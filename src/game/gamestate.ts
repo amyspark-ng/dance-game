@@ -1,9 +1,8 @@
+import { Conductor } from "../play/Conductor"
+
 export class GameStateClass {
-	/**
-	 * How many lives the player has
-	 * @default 3
-	 */
-	playerLives: number = 3 
+	/** The current conductor */
+	conductor: Conductor;
 }
 
 /** The GameState, an instance of GameStateClass */

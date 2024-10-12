@@ -1,5 +1,6 @@
 
 import { AudioPlay, AudioPlayOpt, Key } from "kaplay";
+import { GameSave } from "../../game/gamesave";
 
 // ======= SOUND PLAYING ==========
 export class volumeChannel {
@@ -44,7 +45,7 @@ type customAudioPlayOpt = AudioPlayOpt & {
  */
 export function playSound(soundName: string, opts?:customAudioPlayOpt) : customAudioPlay {
 	opts = opts ?? {} as customAudioPlayOpt
-	opts.channel = opts.channel ?? { volume: 1, muted: false } as volumeChannel
+	opts.channel = opts.channel ?? GameSave.sound.sfx
 	
 	const audioPlayer = play(soundName, { 
 		...opts,

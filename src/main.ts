@@ -25,7 +25,7 @@ export const libraryOpts = {
 	debug: DEBUG,
 	loadingScreen: true,
 	crisp: false,
-	backgroundAudio: true,
+	backgroundAudio: false,
 	stretch: false,
 	letterbox: false,
 	maxFPS: 90,

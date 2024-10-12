@@ -1,14 +1,16 @@
-import { Comp, GameObj, KEventController, PosComp, SpriteComp } from "kaplay"
+import { Comp, GameObj, KEventController, PosComp, ScaleComp, SpriteComp } from "kaplay"
 import { juice, juiceComp } from "../../plugins/graphics/juiceComponent"
 
 type Move = "left" | "right" | "up" | "down" | "victory" | "miss" | "idle"
 
 export interface dancerComp extends Comp {
-	doMove(move: Move) : void
+	doMove(move: Move) : void,
+	/** Kinda like in FNF background characters */
+	moveBop() : void,
 }
 
 export function dancer() : dancerComp {
-	let thisObj:GameObj<SpriteComp | dancerComp | juiceComp | PosComp> = null
+	let thisObj:GameObj<SpriteComp | dancerComp | juiceComp | PosComp | ScaleComp> = null
 	let onAnimEndEvent:KEventController = null
 
 	return {
@@ -16,6 +18,10 @@ export function dancer() : dancerComp {
 		require: [ "sprite", "juice", "pos" ],
 		add() {
 			thisObj = this
+		},
+
+		moveBop() {
+			thisObj.stretch({ XorY: "y", startScale: thisObj.scale.y * 0.9, endScale: thisObj.scale.y })
 		},
 
 		doMove(move: Move) {
@@ -34,7 +40,7 @@ export function dancer() : dancerComp {
 				this.play(move)
 			}
 
-			thisObj.stretch({ XorY: "y", startScale: 0.9, endScale: 1 })
+			this.moveBop()
 		},
 	}
 }

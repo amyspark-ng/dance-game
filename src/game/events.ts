@@ -6,12 +6,11 @@ export function setupEventHandler() {
 }
 
 /** Type that dictates possible events in the game */
-export type possibleEvents = "transitionStart" | "transitionEnd"
+export type possibleEvents = "transitionStart" | "transitionEnd" | "onBeatHit" | "twiceBeat"
 
 /** Triggrs an event */
 export function triggerEvent(possibleEvent: possibleEvents, ...args:any) {
 	gameEventHandler.trigger(possibleEvent, args)
-	gameEventHandler.clear()
 }
 
 /** Event that runs when a transition starts */
@@ -22,4 +21,12 @@ export function onTransitionStart(action: (nameOfTransition: string) => void) {
 /** Event that runs when a transition ends */
 export function onTransitionEnd(action: (nameOfTransition: string) => void) {
 	return gameEventHandler.on("transitionEnd" as possibleEvents, action)
+}
+
+export function onBeatHit(action: () => void) {
+	return gameEventHandler.on("onBeatHit" as possibleEvents, action)
+}
+
+export function onTwiceBeat(action: () => void) {
+	return gameEventHandler.on("twiceBeat" as possibleEvents, action)
 }

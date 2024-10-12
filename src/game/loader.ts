@@ -23,6 +23,10 @@ export function loadingScreen(progress: number) {
 	});
 }
 
+function loadSong(songName: string) {
+	loadSound(songName, `songs/${songName}/Inst.ogg`)
+}
+
 /** Loads all the assets of the game */
 export function loadAssets() {
 	loadBean()
@@ -52,6 +56,8 @@ export function loadAssets() {
 	loadSound("ending", "sounds/ending.mp3")
 	loadSound("saataandagi", "sounds/saataandagi.ogg")
 	
+	loadSong("bopeebo")
+
 	loadSound("plap", "sounds/plap.mp3")
 	loadSound("plop", "sounds/plop.mp3")
 	loadSound("ClickUp", "sounds/ClickUp.ogg")
