@@ -21,4 +21,8 @@ export function setupInput() {
 			getDancer().doMove(action);
 		});
 	});
+
+	onKeyPress("space", () => {
+		getDancer().doMove("victory")
+	})
 }

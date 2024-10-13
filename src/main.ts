@@ -11,7 +11,7 @@ export let DEBUG = true
 export const PRODUCT_VERSION = "0.0.0"
 export const PRODUCT_AUTHOR = "amyspark-ng"
 export const PRODUCT_NAME = "game" // lol
-export const SAVE_NAME = `${PRODUCT_NAME}_save`
+export const SAVE_NAME = `${PRODUCT_AUTHOR}.${PRODUCT_NAME}.save`
 export const STARTING_SCENE:sceneNameType = "game"
 
 export const DFEATURE_FOCUS = true

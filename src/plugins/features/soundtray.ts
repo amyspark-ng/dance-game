@@ -30,8 +30,8 @@ function addSoundElements() {
 		color(BLACK),
 		stay(),
 		opacity(0.75),
-		z(999999999),
-		layer("mouse"),
+		z(0),
+		layer("cursor"),
 		scale(),
 		"volElement",
 		"parent",
@@ -42,8 +42,8 @@ function addSoundElements() {
 		pos(0, bg.height - 12),
 		anchor("center"),
 		scale(0.6),
-		z(9999999999),
-		layer("mouse"),
+		z(1),
+		layer("cursor"),
 		"volElement",
 		{
 			update() {
@@ -60,9 +60,9 @@ function addSoundElements() {
 			rect(10, bg.height - 40, { radius: 1 }),
 			opacity(0),
 			anchor("center"),
-			z(99999999999),
+			z(2),
 			scale(),
-			layer("mouse"),
+			layer("cursor"),
 			juice(),
 			timer(),
 			"volElement",
@@ -118,6 +118,24 @@ export function addSoundTray(opts: addSoundTrayOpt) : SoundTray {
 						volume(GameSave.sound.masterVolume)
 					}
 					soundTrayEvents.trigger("show", 1, false)
+				}
+
+				if (isKeyPressed(opts.downVolumeKey) || isKeyPressed(opts.upVolumeKey)) {
+					GameSave.save()
+				}
+
+				// The volume are multiplied by the master volume
+				if (GameSave.sound.masterVolume != 0) {
+					GameSave.sound.sfx.muted = false
+					GameSave.sound.music.muted = false
+					
+					GameSave.sound.sfx.volume *= GameSave.sound.masterVolume
+					GameSave.sound.music.volume *= GameSave.sound.masterVolume
+				}
+
+				else {
+					GameSave.sound.sfx.muted = true
+					GameSave.sound.music.muted = true
 				}
 			}
 		}

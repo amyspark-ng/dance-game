@@ -8,6 +8,8 @@ import { setupLayers } from "./layers"
 import { loadAssets, loadingScreen } from "./loader"
 import { goScene, setupScenes } from "./scenes"
 import { setupEventHandler } from "./events"
+import { utils } from "../utils"
+import { GameState } from "./gamestate"
 
 /** Sets up the game */
 export function initGame() {
@@ -37,6 +39,9 @@ export function initGame() {
 		}
 
 		else go(`${STARTING_SCENE}`)
+	
+		globalThis.GameState = GameState
+		globalThis.GameSave = GameSave
 	})
 	
 	// for drag

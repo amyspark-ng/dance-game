@@ -1,8 +1,10 @@
-import { Comp, GameObj, KEventController, PosComp, ScaleComp, SpriteComp, TweenController } from "kaplay"
+import { Comp, GameObj, KEventController, PosComp, ScaleComp, SpriteComp, TimerController, TweenController } from "kaplay"
 import { juice, juiceComp } from "../../plugins/graphics/juiceComponent"
 import { onBeatHit } from "../../game/events"
 
 export type Move = "left" | "right" | "up" | "down" | "victory" | "miss" | "idle"
+
+const TIME_FOR_IDLE = 2
 
 export interface dancerComp extends Comp {
 	doMove(move: Move) : void,
@@ -20,6 +22,9 @@ export function dancer() : dancerComp {
 	let onAnimEndEvent:KEventController = null
 
 	let startScale = vec2(1)
+	
+	/** The wait for the idle, is cancelled on each doMove() */
+	let waitForIdle:TimerController = wait(0)
 
 	return {
 		id: "dancer",
@@ -37,6 +42,8 @@ export function dancer() : dancerComp {
 		},
 
 		doMove(move: Move) {
+			
+			/* Storing this code for the results screen 
 			if (move === "victory") {
 				this.play("victory")
 				onAnimEndEvent?.cancel()
@@ -46,13 +53,19 @@ export function dancer() : dancerComp {
 					}
 				})
 			}
+			*/
 			
-			else {
-				onAnimEndEvent?.cancel()
-				this.play(move)
-			}
+			onAnimEndEvent?.cancel()
+			this.play(move)
 
-			this.moveBop()
+			if (move != "idle") {
+				this.moveBop()
+
+				waitForIdle?.cancel()
+				waitForIdle = wait(TIME_FOR_IDLE, () => {
+					this.doMove("idle")
+				})
+			}
 		},
 	}
 }
@@ -65,15 +78,15 @@ export function addDancer() {
 		dancer(),
 		scale(),
 		juice(),
-		"dancer",
+		"dancerObj",
 	])
 
 	return dancerObj;
 }
 
-export function getDancer() : Dancer {
-	return get("dancer", { recursive: true })[0] as Dancer
-}
-
 /** The type that a dancer game object would be */
 export type Dancer = ReturnType<typeof addDancer>
+
+export function getDancer() : Dancer {
+	return get("dancerObj", { recursive: true })[0] as Dancer
+}
