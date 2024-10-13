@@ -7,6 +7,8 @@ export interface dancerComp extends Comp {
 	doMove(move: Move) : void,
 	/** Kinda like in FNF background characters */
 	moveBop() : void,
+
+	getMove() : Move
 }
 
 export function dancer() : dancerComp {
@@ -16,12 +18,17 @@ export function dancer() : dancerComp {
 	return {
 		id: "dancer",
 		require: [ "sprite", "juice", "pos" ],
-		add() {
+		update() {
 			thisObj = this
 		},
 
 		moveBop() {
 			thisObj.stretch({ XorY: "y", startScale: thisObj.scale.y * 0.9, endScale: thisObj.scale.y })
+		},
+
+		// get the currentMove it doing
+		getMove() : Move {
+			return thisObj.getCurAnim().name as Move;
 		},
 
 		doMove(move: Move) {

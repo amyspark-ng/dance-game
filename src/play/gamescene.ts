@@ -10,24 +10,28 @@ export function GameScene() { scene("game", () => {
 	setBackground(RED.lighten(60))
 
 	const audioPlay = playSound("bopeebo", { channel: { volume: 0.05, muted: false } })
-	const conductor = new Conductor(audioPlay, 100)
+	const conductor = new Conductor({ audioPlay: audioPlay, bpm: 100, timeSignature: [4, 4] })
 	setupConductor(conductor)
 
-	onBeatHit(() => {
-		const currentBeat = add([
-			text(GameState.conductor.currentBeat.toString()),
-			pos(center()),
-			color(BLACK),
-			scale(5),
-			opacity(1),
-		])
-
-		currentBeat.fadeOut(0.25).onEnd(() => { currentBeat.destroy() })
-	})
-	
 	const dancer = addDancer()
 	dancer.scale = vec2(0.5)
 
+	onBeatHit(() => {
+		// const currentBeat = add([
+		// 	text(GameState.conductor.currentBeat.toString()),
+		// 	pos(center()),
+		// 	color(BLACK),
+		// 	scale(5),
+		// 	opacity(1),
+		// ])
+
+		// currentBeat.fadeOut(0.25).onEnd(() => { currentBeat.destroy() })
+	
+		if (dancer.getMove() == "idle") {
+			dancer.moveBop()
+		}
+	})
+	
 	onTwiceBeat(() => {
 		dancer.moveBop()
 	})
@@ -44,7 +48,7 @@ export function GameScene() { scene("game", () => {
 
 	Object.keys(keysAndMoves).forEach((key) => {
 		onKeyPress(key as Key, () => {
-			// dancer.doMove(keysAndMoves[key])
+			dancer.doMove(keysAndMoves[key])
 		})
 	})
 })}
