@@ -1,5 +1,26 @@
+import { Key } from "kaplay";
 import { SAVE_NAME } from "../main";
 import { volumeChannel } from "../plugins/features/sound";
+import { Move } from "../play/objects/dancer";
+
+type gameKey = {
+	keyboardKey: Key,
+	index: number,
+}
+
+export type Preferences = {
+	gameControls: {
+		left: gameKey,
+		right: gameKey,
+		down: gameKey,
+		up: gameKey,
+	},
+
+	controls: {
+		pause: Key,
+		accept: Key,
+	}
+}
 
 /** Holds all the info that should be saved and loaded through sessions */
 export class GameSaveClass {
@@ -15,6 +36,20 @@ export class GameSaveClass {
 	/** Writes current instance to localStorage */
 	save() {
 		setData(SAVE_NAME, this)
+	}
+
+	preferences:Preferences = {
+		gameControls: {
+			left: { keyboardKey: "left", index: 0 },
+			down: { keyboardKey: "down", index: 1, },
+			up: { keyboardKey: "up", index: 2, },
+			right: { keyboardKey: "right", index: 3 }
+		},
+
+		controls: {
+			pause: "escape",
+			accept: "enter",
+		}
 	}
 
 	/**

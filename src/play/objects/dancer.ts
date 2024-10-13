@@ -1,41 +1,46 @@
-import { Comp, GameObj, KEventController, PosComp, ScaleComp, SpriteComp } from "kaplay"
+import { Comp, GameObj, KEventController, PosComp, ScaleComp, SpriteComp, TweenController } from "kaplay"
 import { juice, juiceComp } from "../../plugins/graphics/juiceComponent"
+import { onBeatHit } from "../../game/events"
 
-type Move = "left" | "right" | "up" | "down" | "victory" | "miss" | "idle"
+export type Move = "left" | "right" | "up" | "down" | "victory" | "miss" | "idle"
 
 export interface dancerComp extends Comp {
 	doMove(move: Move) : void,
-	/** Kinda like in FNF background characters */
-	moveBop() : void,
+	/**
+	 * Bops the dancer kinda like a FNF object
+	 * @returns The tween, check juice stretch for more info
+	 */
+	moveBop() : TweenController,
 
-	getMove() : Move
+	/** Gets the current move */
+	getMove() : Move,
 }
 
 export function dancer() : dancerComp {
-	let thisObj:GameObj<SpriteComp | dancerComp | juiceComp | PosComp | ScaleComp> = null
 	let onAnimEndEvent:KEventController = null
+
+	let startScale = vec2(1)
 
 	return {
 		id: "dancer",
 		require: [ "sprite", "juice", "pos" ],
-		update() {
-			thisObj = this
+		add() {
+			startScale = this.scale
 		},
 
 		moveBop() {
-			thisObj.stretch({ XorY: "y", startScale: thisObj.scale.y * 0.9, endScale: thisObj.scale.y })
+			return this.stretch({ XorY: "y", startScale: startScale.y * 0.9, endScale: startScale.y })
 		},
 
-		// get the currentMove it doing
-		getMove() : Move {
-			return thisObj.getCurAnim().name as Move;
+		getMove() {
+			return this.getCurAnim().name as Move;
 		},
 
 		doMove(move: Move) {
 			if (move === "victory") {
 				this.play("victory")
 				onAnimEndEvent?.cancel()
-				onAnimEndEvent = thisObj.onAnimEnd((animName) => {
+				onAnimEndEvent = this.onAnimEnd((animName) => {
 					if (animName == "victory") {
 						this.play("victory", { loop: true })
 					}
@@ -60,9 +65,14 @@ export function addDancer() {
 		dancer(),
 		scale(),
 		juice(),
+		"dancer",
 	])
 
 	return dancerObj;
+}
+
+export function getDancer() : Dancer {
+	return get("dancer", { recursive: true })[0] as Dancer
 }
 
 /** The type that a dancer game object would be */

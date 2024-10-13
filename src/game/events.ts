@@ -26,7 +26,3 @@ export function onTransitionEnd(action: (nameOfTransition: string) => void) {
 export function onBeatHit(action: () => void) {
 	return gameEventHandler.on("onBeatHit" as possibleEvents, action)
 }
-
-export function onTwiceBeat(action: () => void) {
-	return gameEventHandler.on("twiceBeat" as possibleEvents, action)
-}
