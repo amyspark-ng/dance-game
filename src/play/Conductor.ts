@@ -108,6 +108,8 @@ export function debugConductor() {
 	]);
 
 	onUpdate(() => {
+		stuff["time in song"] = GameState.conductor.timeInSeconds.toFixed(3)
+		stuff["notes spawned"] = GameState.spawnedNotes.length
 		textin.text = createKeys()
 	})
 }

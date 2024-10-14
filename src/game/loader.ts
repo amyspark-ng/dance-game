@@ -1,3 +1,5 @@
+import { Song } from "../play/objects/song";
+
 /** The loading screen of the game */
 export function loadingScreen(progress: number) {
 	// Black background
@@ -23,8 +25,13 @@ export function loadingScreen(progress: number) {
 	});
 }
 
+export let songCharts:Song[] = [] 
+
 function loadSong(songName: string) {
-	loadSound(songName, `songs/${songName}/Inst.ogg`)
+	loadSound(`${songName}-song`, `songs/${songName}/${songName}-song.ogg`)
+	const chart = loadJSON(`${songName}-chart`, `songs/${songName}/${songName}-chart.json`).onLoad(() => {
+		songCharts[songName] = chart.data
+	})
 }
 
 /** Loads all the assets of the game */

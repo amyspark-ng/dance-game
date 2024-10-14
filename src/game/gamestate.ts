@@ -1,8 +1,15 @@
 import { Conductor } from "../play/conductor";
+import { NoteType, Song } from "../play/objects/song";
 
 export class GameStateClass {
 	/** The current conductor */
 	conductor: Conductor;
+
+	/** Holds the current song chart */
+	currentSong: Song = { title: "x", notes: [] };
+	
+	/** Holds all the notes that have been spawned */
+	spawnedNotes: NoteType[] = [];
 
 	/** Dictates wheter the game is paused or not, please do not touch if not through the manage pause function */
 	private _paused: boolean;

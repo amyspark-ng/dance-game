@@ -2,6 +2,7 @@ import { Comp, GameObj, KEventController, PosComp, ScaleComp, SpriteComp, TimerC
 import { juice, juiceComp } from "../../plugins/graphics/juiceComponent"
 import { onBeatHit } from "../../game/events"
 
+/** Moves available for the dancer, also handles the note type */
 export type Move = "left" | "right" | "up" | "down" | "victory" | "miss" | "idle"
 
 const TIME_FOR_IDLE = 2
