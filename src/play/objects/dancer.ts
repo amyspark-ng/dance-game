@@ -27,7 +27,7 @@ export function dancer() : dancerComp {
 	let waitForIdle:TimerController = wait(0)
 
 	return {
-		id: "dancer",
+		id: "dancerComp",
 		require: [ "sprite", "juice", "pos" ],
 		add() {
 			startScale = this.scale

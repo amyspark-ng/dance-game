@@ -1,11 +1,13 @@
-import { Conductor } from "../play/Conductor"
+import { Conductor } from "../play/conductor";
 
 export class GameStateClass {
 	/** The current conductor */
 	conductor: Conductor;
 
+	/** Dictates wheter the game is paused or not, please do not touch if not through the manage pause function */
 	private _paused: boolean;
-	/** Wheter the game is paused or not */
+	
+	/** Wheter the game is currently paused or not */
 	get paused() {
 		return this._paused;
 	}
@@ -15,7 +17,7 @@ export class GameStateClass {
 		newPause = newPause ?? !this.paused
 
 		this._paused = newPause;
-		this.conductor.audioPlay.paused = this.paused
+		this.conductor.audioPlay.paused = this._paused
 		// openPauseMenu()
 	};
 }

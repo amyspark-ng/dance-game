@@ -124,19 +124,19 @@ export function addSoundTray(opts: addSoundTrayOpt) : SoundTray {
 					GameSave.save()
 				}
 
-				// The volume are multiplied by the master volume
-				if (GameSave.sound.masterVolume != 0) {
-					GameSave.sound.sfx.muted = false
-					GameSave.sound.music.muted = false
+				// // The volume are multiplied by the master volume
+				// if (GameSave.sound.masterVolume != 0) {
+				// 	GameSave.sound.sfx.muted = false
+				// 	GameSave.sound.music.muted = false
 					
-					GameSave.sound.sfx.volume *= GameSave.sound.masterVolume
-					GameSave.sound.music.volume *= GameSave.sound.masterVolume
-				}
+				// 	GameSave.sound.sfx.volume *= GameSave.sound.masterVolume
+				// 	GameSave.sound.music.volume *= GameSave.sound.masterVolume
+				// }
 
-				else {
-					GameSave.sound.sfx.muted = true
-					GameSave.sound.music.muted = true
-				}
+				// else {
+				// 	GameSave.sound.sfx.muted = true
+				// 	GameSave.sound.music.muted = true
+				// }
 			}
 		}
 	])
