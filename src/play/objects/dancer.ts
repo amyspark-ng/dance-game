@@ -1,4 +1,4 @@
-import { Comp, GameObj, KEventController, PosComp, ScaleComp, SpriteComp, TimerController, TweenController } from "kaplay"
+import { Comp, GameObj, KEventController, PosComp, ScaleComp, SpriteComp, TimerController, TweenController, Vec2 } from "kaplay"
 import { juice, juiceComp } from "../../plugins/graphics/juiceComponent"
 import { onBeatHit } from "../../game/events"
 
@@ -21,20 +21,15 @@ export interface dancerComp extends Comp {
 export function dancer() : dancerComp {
 	let onAnimEndEvent:KEventController = null
 
-	let startScale = vec2(1)
-	
 	/** The wait for the idle, is cancelled on each doMove() */
 	let waitForIdle:TimerController = wait(0)
 
 	return {
 		id: "dancerComp",
 		require: [ "sprite", "juice", "pos" ],
-		add() {
-			startScale = this.scale
-		},
 
 		moveBop() {
-			return this.stretch({ XorY: "y", startScale: startScale.y * 0.9, endScale: startScale.y })
+			return this.stretch({ XorY: "y", startScale: this.scale.y * 0.9, endScale: this.scale.y })
 		},
 
 		getMove() {
@@ -70,13 +65,13 @@ export function dancer() : dancerComp {
 	}
 }
 
-export function addDancer() {
+export function addDancer(initialScale?: Vec2) {
 	const dancerObj = add([
 		sprite("astri", { anim: "idle" }),
 		pos(center().x, height()),
 		anchor("bot"),
 		dancer(),
-		scale(),
+		scale(initialScale ?? vec2(1)),
 		juice(),
 		"dancerObj",
 	])

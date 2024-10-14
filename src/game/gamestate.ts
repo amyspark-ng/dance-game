@@ -20,6 +20,9 @@ export class GameStateClass {
 		this.conductor.audioPlay.paused = this._paused
 		// openPauseMenu()
 	};
+
+	/** Wheter the player can press keys to play */
+	gameInputEnabled: boolean = false
 }
 
 /** The GameState, an instance of GameStateClass */

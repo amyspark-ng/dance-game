@@ -13,6 +13,8 @@ export interface strumlineComp extends Comp {
 	notesInLane: [],
 }
 
+const PRESS_SCALE = 1.2
+
 export function strumline() : strumlineComp {
 	return {
 		id: "strumlineComp",
@@ -23,13 +25,13 @@ export function strumline() : strumlineComp {
 		press(noteToTry?: 1 | 2 | 3 | 4) {
 			this.bop({
 				startScale: vec2(1),
-				endScale: vec2(1.5),
+				endScale: vec2(PRESS_SCALE),
 			})
 		},
 
 		release() {
 			this.bop({
-				startScale: vec2(1.5),
+				startScale: vec2(PRESS_SCALE),
 				endScale: vec2(1),
 			})
 		}
@@ -41,17 +43,28 @@ export function strumline() : strumlineComp {
  */
 export function addStrumline() {
 	/** The pos of the single strum (1-strum-mode) */
-	const ONE_STRUM_POS = vec2(center().x, height() - 50);
+	const ONE_STRUM_POS = vec2(center().x, height() - 60);
 	
 	const strumlineObj = add([
-		rect(50, 50),
-		color(BLACK),
 		juice(),
 		pos(vec2(0)),
 		anchor("center"),
 		strumline(),
 		scale(),
 		"strumlineObj",
+		{
+			draw() {
+				drawCircle({
+					opacity: 0.9,
+					radius: 40,
+					outline: {
+						color: BLACK,
+						width: 6,
+					},
+					fill: false,
+				})
+			}
+		}
 	])
 	
 	strumlineObj.pos = ONE_STRUM_POS

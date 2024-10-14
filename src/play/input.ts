@@ -1,4 +1,3 @@
-import { Key } from "kaplay"
 import { GameSave } from "../game/gamesave"
 import { getDancer, Move } from "./objects/dancer"
 import { GameState } from "../game/gamestate"
@@ -17,6 +16,8 @@ function indexToMove(index: number) : Move {
 export function setupInput() {
 	Object.values(GameSave.preferences.gameControls).forEach((gameControl) => {
 		onKeyPress(gameControl.keyboardKey, () => {
+			if (!GameState.gameInputEnabled) return
+			
 			// TODO: Figure out why + 1 ?
 			
 			// bust a move
@@ -26,11 +27,15 @@ export function setupInput() {
 		});
 
 		onKeyRelease(gameControl.keyboardKey, () => {
+			if (!GameState.gameInputEnabled) return
+			
 			getStrumline().release()
 		})
 	});
 
 	onKeyPress("escape", () => {
+		if (!GameState.gameInputEnabled) return
+		
 		GameState.managePause();
 	})
 }
