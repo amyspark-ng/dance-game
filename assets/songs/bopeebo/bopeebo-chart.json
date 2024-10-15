@@ -1,7 +1,12 @@
 {
-	"name": "bopeebo",
+	"title": "bopeebo",
+	"idTitle": "bopeebo",
+	
 	"notes": [
 		{ "timeInSong":  0.6, "dancerMove": "up", "index": 0},
 		{ "timeInSong":  1.2, "dancerMove": "right", "index": 1}
-	]
+	],
+
+	"bpm": 100,
+	"timeSignature": [4, 4]
 }

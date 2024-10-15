@@ -5,9 +5,16 @@ import { getStrumline, strumline } from "./strumline";
 import { GameState } from "../../game/gamestate";
 import { songCharts } from "../../game/loader";
 import { GameSave } from "../../game/gamesave";
-import { NoteType } from "./song";
 
 export const NOTE_SPEED = 2;
+
+/** Type that holds the properties a note in a chart file would have */
+export type ChartNote = {
+	/** The time of the song (in seconds) that this note must be hit on */
+	hitTime: number,
+	/** The move (the color) the dancer will do upon hitting this note */
+	dancerMove: Move,
+}
 
 function moveToColor(move: Move) : Color {
 	switch (move) {
@@ -71,12 +78,12 @@ export function getAllNotesByTime() {
 	return get("noteObj").sort((a, b) => b.timeInSong - a.timeInSong) as noteObj[]
 }
 
-function findClosestNote(notes:NoteType[], currentTime:number) {
+function findClosestNote(notes:ChartNote[], currentTime:number) {
     let closestNote = null;
     let closestDifference = Infinity;
 
     notes.forEach(note => {
-        const difference = Math.abs(note.timeInSong - currentTime);
+        const difference = Math.abs(note.hitTime - currentTime);
         if (difference < closestDifference) {
             closestDifference = difference;
             closestNote = note;

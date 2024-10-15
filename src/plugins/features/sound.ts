@@ -40,6 +40,9 @@ type customAudioPlayOpt = AudioPlayOpt & {
 	channel?: volumeChannel
 }
 
+/** Set of all the sound handlers in the game */
+export const allSoundHandlers = new Set<customAudioPlay>
+
 /**
  * Custom function for playing sound
  */
@@ -93,6 +96,11 @@ export function playSound(soundName: string, opts?:customAudioPlayOpt) : customA
 			tween(audioPlayer.detune, ogDetune - 150, 0.4, (p) => audioPlayer.detune = p)
 		})
 	}
+
+	allSoundHandlers.add(audioPlayer)
+	audioPlayer.onEnd(() => {
+		allSoundHandlers.delete(audioPlayer)
+	})
 
 	return audioPlayer
 }

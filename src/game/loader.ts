@@ -1,4 +1,4 @@
-import { Song } from "../play/objects/song";
+import { SongChart } from "../play/objects/song";
 
 /** The loading screen of the game */
 export function loadingScreen(progress: number) {
@@ -25,7 +25,7 @@ export function loadingScreen(progress: number) {
 	});
 }
 
-export let songCharts:Song[] = [] 
+export let songCharts:SongChart[] = [] 
 
 function loadSong(songName: string) {
 	loadSound(`${songName}-song`, `songs/${songName}/${songName}-song.ogg`)

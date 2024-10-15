@@ -1,5 +1,8 @@
 import { GameScene } from "../play/gamescene";
 import { FocusScene } from "../ui/focusscene";
+import { MenuScene } from "../ui/menuscene";
+import { ResultsScene } from "../ui/resultsscene";
+import { SongSelectScene } from "../ui/songselectscene";
 import { TitleScene } from "../ui/titlescene";
 
 /** Object containing the name of all game scenes */
@@ -7,6 +10,9 @@ const allGameScenes = {
 	"focus": FocusScene,
 	"title": TitleScene,
 	"game": GameScene,
+	"menu": MenuScene,
+	"results": ResultsScene,
+	"songselect": SongSelectScene,
 }
 
 /** Custom type for scene names */

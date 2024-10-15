@@ -5,11 +5,12 @@ import { drag } from "../plugins/features/drag"
 import { setupSoundtray } from "../plugins/features/soundtray"
 import { GameSave } from "./gamesave"
 import { setupLayers } from "./layers"
-import { loadAssets, loadingScreen } from "./loader"
+import { loadAssets, loadingScreen, songCharts } from "./loader"
 import { goScene, setupScenes } from "./scenes"
 import { setupEventHandler } from "./events"
 import { utils } from "../utils"
 import { GameState } from "./gamestate"
+import { GameSceneParams } from "../play/gamescene"
 
 /** Sets up the game */
 export function initGame() {
@@ -34,7 +35,7 @@ export function initGame() {
 		
 		// determins the scene the scene
 		if (DFEATURE_FOCUS) {
-			if (isFocused()) go(`${STARTING_SCENE}`)
+			if (isFocused()) go(`${STARTING_SCENE}`, { song: songCharts["bopeebo"] } as GameSceneParams)
 			else goScene("focus", null)
 		}
 

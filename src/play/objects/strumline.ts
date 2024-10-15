@@ -4,7 +4,7 @@ import { utils } from "../../utils";
 import { juice } from "../../plugins/graphics/juiceComponent";
 import { Move } from "../objects/dancer"
 import { GameState } from "../../game/gamestate";
-import { pressStrumlineCheckForNote } from "../input";
+import { press_CheckForNote } from "../input";
 import { addNote } from "./note";
 
 export interface strumlineComp extends Comp {
@@ -28,7 +28,7 @@ export function strumline() : strumlineComp {
 				endScale: vec2(PRESS_SCALE),
 			})
 
-			pressStrumlineCheckForNote(moveToTry)
+			press_CheckForNote(moveToTry)
 		},
 
 		release() {

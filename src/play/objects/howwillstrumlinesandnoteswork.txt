@@ -1,8 +1,0 @@
-Ok so we have a strumline object
-
-When you press it, it should check what notes are closest in time in song
-
-So get all notes and order them by timeInSong, which one has the highest
-
-And then on the press, check if the note with the highest timeInSong is within range of time
-And if it is then do check for sick, good, great, bad etc (rankings)
