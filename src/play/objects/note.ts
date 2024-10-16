@@ -3,8 +3,6 @@ import { getDancer, Move } from "./dancer";
 import { utils } from "../../utils";
 import { getStrumline, strumline } from "./strumline";
 import { GameState } from "../../game/gamestate";
-import { songCharts } from "../../game/loader";
-import { GameSave } from "../../game/gamesave";
 
 export const NOTE_SPEED = 2;
 

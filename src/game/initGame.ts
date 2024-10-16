@@ -1,4 +1,4 @@
-import { DEBUG, DFEATURE_FOCUS, PRODUCT_AUTHOR, PRODUCT_NAME, PRODUCT_VERSION, STARTING_SCENE } from "../main"
+import { DFEATURE_FOCUS, libraryOpts, PRODUCT_AUTHOR, PRODUCT_NAME, PRODUCT_VERSION, STARTING_SCENE } from "../main"
 import { setupCamera } from "../plugins/features/camera"
 import { setupCursor } from "../plugins/features/gameCursor"
 import { drag } from "../plugins/features/drag"
@@ -8,9 +8,9 @@ import { setupLayers } from "./layers"
 import { loadAssets, loadingScreen, songCharts } from "./loader"
 import { goScene, setupScenes } from "./scenes"
 import { setupEventHandler } from "./events"
-import { utils } from "../utils"
 import { GameState } from "./gamestate"
 import { GameSceneParams } from "../play/gamescene"
+import { setupWatch } from "../plugins/features/watcher"
 
 /** Sets up the game */
 export function initGame() {
@@ -30,7 +30,8 @@ export function initGame() {
 		setupCamera(); // sets up the camera
 		setupSoundtray(); // sets up the soundtray
 		setupEventHandler(); // sets up the event handler
-		
+		setupWatch(); // sets up the watcher
+
 		console.log(`${PRODUCT_AUTHOR}.${PRODUCT_NAME} v: ${PRODUCT_VERSION}`)
 		
 		// determins the scene the scene

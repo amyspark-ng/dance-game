@@ -21,7 +21,7 @@ export const libraryOpts = {
 	width: 1024,
 	height: 576,
 	canvas: document.querySelector("#kanva"),
-	debugKey: "f1",
+	debugKey: "f2",
 	debug: DEBUG,
 	loadingScreen: true,
 	crisp: false,

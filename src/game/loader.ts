@@ -43,8 +43,6 @@ export function loadAssets() {
 	loadSprite("cursor", "sprites/cursor-o.png")
 	loadSprite("pointer", "sprites/pointer-o.png")
 
-	loadSprite("yeouch", "sprites/yeouch.png")
-
 	loadSprite("astri", "sprites/astri.png", {
 		sliceX: 5,
 		sliceY: 3,

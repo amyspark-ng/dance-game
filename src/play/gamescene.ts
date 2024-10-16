@@ -10,6 +10,7 @@ import { songCharts } from "../game/loader"
 import { SongChart } from "./objects/song"
 import { goScene } from "../game/scenes"
 import { resultsSceneParams } from "../ui/resultsscene"
+import { unwatchVar, watchVar } from "../plugins/features/watcher"
 
 export type GameSceneParams = {
 	song: SongChart,
@@ -33,6 +34,10 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 	const dancer = addDancer(DANCER_SCALE)
 	dancer.pos = DANCER_POS
 
+	dancer.onUpdate(() => {
+		dancer.pos = mousePos()
+	})
+
 	onBeatHit(() => {
 		if (dancer.getMove() == "idle") {
 			dancer.moveBop()
@@ -40,6 +45,8 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 
 		addNote(choose(["down", "up", "left", "right"]), GameState.conductor.timeInSeconds)
 	})
+
+	watchVar(dancer, "pos", "astri.position")
 
 	// ==== SETS UP SOME IMPORTANT STUFF ====
 	setupInput();
@@ -55,6 +62,10 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 			songChart: params.song,
 			tally: GameState.tally,
 		} as resultsSceneParams)
+	})
+
+	onKeyPress("f2", () => {
+		debug.inspect = !debug.inspect
 	})
 
 	// ==== debug ====
