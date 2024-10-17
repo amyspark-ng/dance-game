@@ -1,6 +1,6 @@
 import { GameSave } from "../game/gamesave"
 import { goScene } from "../game/scenes"
-import { SongChart, Tally } from "../play/objects/song"
+import { SongChart, Tally } from "../play/song"
 
 export type resultsSceneParams = {
 	songChart: SongChart,

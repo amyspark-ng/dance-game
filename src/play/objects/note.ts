@@ -1,10 +1,17 @@
-import { Color, Comp } from "kaplay";
+import { Color, Comp, TimerController } from "kaplay";
 import { getDancer, Move } from "./dancer";
 import { utils } from "../../utils";
 import { getStrumline, strumline } from "./strumline";
 import { GameState } from "../../game/gamestate";
 
-export const NOTE_SPEED = 2;
+/** How much pixels per second does the note move at */
+export const NOTE_PXPERSECOND = 5;
+
+/** The width of the note */
+export const NOTE_WIDTH = 70
+
+/** The spawn point of the note */
+export const NOTE_SPAWNPOINT = 1024 + NOTE_WIDTH / 2
 
 /** Type that holds the properties a note in a chart file would have */
 export type ChartNote = {
@@ -12,6 +19,8 @@ export type ChartNote = {
 	hitTime: number,
 	/** The move (the color) the dancer will do upon hitting this note */
 	dancerMove: Move,
+	/** the time the note must be spawned at */
+	spawnTime: number,
 }
 
 function moveToColor(move: Move) : Color {
@@ -24,87 +33,65 @@ function moveToColor(move: Move) : Color {
 }
 
 export interface noteComp extends Comp {
-	dancerMove: Move,
-	timeInSong: number,
+	/** The chartnote this note gameobj corresponds to */
+	chartNote: ChartNote,
 }
 
+/** Component for note game objects */
 export function note() : noteComp {
 	return {
 		id: "note",
-		
-		dancerMove: "left",
-		timeInSong: 0,
+		chartNote: { hitTime: 0, dancerMove: "left" } as ChartNote,
 	}
 }
 
-export function addNote(theMove: Move, timeInSong: number) {
+/** Get how much time will take for the note to reach the strum */
+function timeForStrum() {
+	// time = distance / speed
+	const distance = (NOTE_SPAWNPOINT - getStrumline().pos.x) // 547
+	const speed = NOTE_PXPERSECOND * GameState.currentSong.scrollSpeed // 5
+	return distance / speed
+}
+
+export function addNote(chartNote: ChartNote) {
 	const noteObj = add([
-		pos(width() + 50, getStrumline().pos.y),
+		rect(NOTE_WIDTH, NOTE_WIDTH),
+		pos(width() + NOTE_WIDTH, getStrumline().pos.y),
 		note(),
 		anchor("center"),
+		color(moveToColor(chartNote.dancerMove)),
+		opacity(),
 		"noteObj",
 	])
 
-	noteObj.onDraw(() => {
-		drawCircle({
-			radius: 40,
-			color: moveToColor(theMove)
-		})
-	})
+	noteObj.pos.x = NOTE_SPAWNPOINT;
+	noteObj.chartNote = chartNote;
 
+	let hasMissedNote = false
 	noteObj.onUpdate(() => {
 		if (GameState.paused) return
 		
-		noteObj.pos.x -= NOTE_SPEED;
+		noteObj.pos.x -= NOTE_PXPERSECOND * GameState.currentSong.scrollSpeed;
 	
-		if (noteObj.pos.x < getStrumline().pos.x - 50) {
-			noteObj.destroy()
-			getDancer().doMove("miss")
+		if (noteObj.pos.x < getStrumline().pos.x - NOTE_WIDTH - 5 && hasMissedNote == false) {
+			hasMissedNote = true
+			getDancer().miss()
+		}
+
+		if (hasMissedNote) {
+			noteObj.opacity -= 0.085
+			if (noteObj.opacity < 0) {
+				noteObj.destroy()
+			}
 		}
 	})
-
-	noteObj.dancerMove = theMove;
-	noteObj.timeInSong = timeInSong;
 
 	return noteObj;
 }
 
-export type noteObj = ReturnType<typeof addNote>
-
-/** Gets all songs in the gamescene by ordering them from the highest time in song to the lowest */
-export function getAllNotesByTime() {
-	return get("noteObj").sort((a, b) => b.timeInSong - a.timeInSong) as noteObj[]
-}
-
-function findClosestNote(notes:ChartNote[], currentTime:number) {
-    let closestNote = null;
-    let closestDifference = Infinity;
-
-    notes.forEach(note => {
-        const difference = Math.abs(note.hitTime - currentTime);
-        if (difference < closestDifference) {
-            closestDifference = difference;
-            closestNote = note;
-        }
-    });
-
-    return closestNote;
-}
+export type NoteGameObj = ReturnType<typeof addNote>
 
 /** Crucial function that spawns the note */
 export function notesSpawner() {
-	// const NOTE_TRESHOLD = 0.01
 	
-	// onUpdate(() => {
-	// 	if (GameState.currentSong.notes.some((note) => note.timeInSong - GameState.conductor.timeInSeconds < NOTE_TRESHOLD)) {
-	// 		const note = GameState.currentSong.notes.find((note) => note.timeInSong - GameState.conductor.timeInSeconds < NOTE_TRESHOLD);
-			
-	// 		// if that note that was found is in the spawned notes array, don't spawn it again
-	// 		if (!GameState.spawnedNotes.includes(note)) {
-	// 			GameState.spawnedNotes.push(note)
-	// 			addNote(note.dancerMove, note.timeInSong)
-	// 			debug.log("note spawned")
-	// 		}
-	// 	}
-	// })
 }

@@ -3,7 +3,7 @@ import { juice, juiceComp } from "../../plugins/graphics/juiceComponent"
 import { onBeatHit } from "../../game/events"
 
 /** Moves available for the dancer, also handles the note type */
-export type Move = "left" | "right" | "up" | "down" | "victory" | "miss" | "idle"
+export type Move = "left" | "right" | "up" | "down" | "idle"
 
 const TIME_FOR_IDLE = 2
 
@@ -17,6 +17,9 @@ export interface dancerComp extends Comp {
 
 	/** Gets the current move */
 	getMove() : Move,
+
+	/** miss */
+	miss(): void
 }
 
 export function dancer() : dancerComp {
@@ -56,13 +59,23 @@ export function dancer() : dancerComp {
 
 			if (move != "idle") {
 				this.moveBop()
-
+	
 				waitForIdle?.cancel()
 				waitForIdle = wait(TIME_FOR_IDLE, () => {
 					this.doMove("idle")
 				})
 			}
 		},
+
+		miss() {
+			this.play("miss")
+			this.moveBop()
+	
+			waitForIdle?.cancel()
+			waitForIdle = wait(TIME_FOR_IDLE, () => {
+				this.doMove("idle")
+			})
+		}
 	}
 }
 
@@ -81,8 +94,8 @@ export function addDancer(initialScale?: Vec2) {
 }
 
 /** The type that a dancer game object would be */
-export type Dancer = ReturnType<typeof addDancer>
+export type DancerGameObj = ReturnType<typeof addDancer>
 
-export function getDancer() : Dancer {
-	return get("dancerObj", { recursive: true })[0] as Dancer
+export function getDancer() : DancerGameObj {
+	return get("dancerObj", { recursive: true })[0] as DancerGameObj
 }

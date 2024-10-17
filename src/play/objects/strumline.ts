@@ -2,14 +2,14 @@ import { Comp } from "kaplay";
 import { GameSave } from "../../game/gamesave"
 import { utils } from "../../utils";
 import { juice } from "../../plugins/graphics/juiceComponent";
-import { Move } from "../objects/dancer"
+import { dancer, getDancer, Move } from "../objects/dancer"
 import { GameState } from "../../game/gamestate";
-import { press_CheckForNote } from "../input";
-import { addNote } from "./note";
+import { checkForNote } from "../input";
+import { addNote, NoteGameObj } from "./note";
 
 export interface strumlineComp extends Comp {
 	/** Presses/hits the strumline */
-	press(moveToTry: Move): void,
+	press(): void,
 
 	/** Releases the strumline */
 	release(): void,
@@ -22,13 +22,26 @@ export function strumline() : strumlineComp {
 		id: "strumlineComp",
 		require: [ "pos" ],
 
-		press(moveToTry?: Move) {
+		press() {
 			this.bop({
 				startScale: vec2(1),
 				endScale: vec2(PRESS_SCALE),
 			})
 
-			press_CheckForNote(moveToTry)
+			const note = checkForNote()
+			if (note != null) {
+				// get the noteGameObj with the note
+				const hitNote = get("noteObj", { recursive: true }).find((noteGameObj) => noteGameObj.chartNote == note)
+				if (hitNote) {
+					hitNote.destroy()
+				}
+
+				getDancer().doMove(note.dancerMove)
+			}
+
+			else if (note == null) {
+				getDancer().miss()
+			}
 		},
 
 		release() {
@@ -45,25 +58,14 @@ export function addStrumline() {
 	const STRUM_POS = vec2(center().x, height() - 60);
 	
 	const strumlineObj = add([
+		rect(80, 80),
 		juice(),
 		pos(vec2(0)),
 		anchor("center"),
 		strumline(),
 		scale(),
+		color(WHITE.darken(80)),
 		"strumlineObj",
-		{
-			draw() {
-				drawCircle({
-					opacity: 0.9,
-					radius: 40,
-					outline: {
-						color: BLACK,
-						width: 6,
-					},
-					fill: false,
-				})
-			}
-		}
 	])
 	
 	strumlineObj.pos = STRUM_POS
@@ -71,8 +73,8 @@ export function addStrumline() {
 	return strumlineObj;
 }
 
-export type strumlineObj = ReturnType<typeof addStrumline>
+export type StrumlineGameObj = ReturnType<typeof addStrumline>
 
-export function getStrumline() : strumlineObj {
-	return get("strumlineObj", { recursive: true })[0] as strumlineObj
+export function getStrumline() : StrumlineGameObj {
+	return get("strumlineObj", { recursive: true })[0] as StrumlineGameObj
 }

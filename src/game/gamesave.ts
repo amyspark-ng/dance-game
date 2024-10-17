@@ -1,7 +1,7 @@
 import { Key } from "kaplay";
 import { SAVE_NAME } from "../main";
 import { volumeChannel } from "../plugins/features/sound";
-import { saveSongScore } from "../play/objects/song";
+import { saveSongScore } from "../play/song";
 
 type gameKey = { kbKey: Key, index: number }
 

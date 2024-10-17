@@ -1,10 +1,13 @@
 {
 	"title": "bopeebo",
 	"idTitle": "bopeebo",
+
+	"scrollSpeed": 1,
 	
 	"notes": [
-		{ "timeInSong":  0.6, "dancerMove": "up", "index": 0},
-		{ "timeInSong":  1.2, "dancerMove": "right", "index": 1}
+		{ "hitTime":  0.6, "dancerMove": "up" },
+		{ "hitTime":  1.2, "dancerMove": "right" },
+		{ "hitTime":  4, "dancerMove": "right" }
 	],
 
 	"bpm": 100,

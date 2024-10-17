@@ -1,4 +1,4 @@
-import { SongChart } from "../play/objects/song";
+import { SongChart } from "../play/song";
 
 /** The loading screen of the game */
 export function loadingScreen(progress: number) {

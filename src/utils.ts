@@ -22,6 +22,11 @@ export class utils {
 		return rgb(rand(0, 255), rand(0, 255), rand(0, 255))
 	}
 
+	/** Returns an array with the specified element removed from it */
+	static removeFromArr(el: any, arr: any[]) {
+		return arr.filter((e) => e != el)
+	}
+
 	// 3 columns means 3 objects laid horizontally, 3 rows is 3 objects laid vertically
 	// from top to bottom
 	//   ccc

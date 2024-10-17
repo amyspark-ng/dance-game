@@ -2,15 +2,16 @@ import { addDancer } from "./objects/dancer"
 import { GameState } from "../game/gamestate"
 import { playSound } from "../plugins/features/sound"
 import { onBeatHit } from "../game/events"
-import { setupInput } from "./input"
+import { checkForNote, setupInput } from "./input"
 import { Conductor, setupConductor } from "./conductor"
 import { addStrumline } from "./objects/strumline"
 import { addNote, notesSpawner } from "./objects/note"
 import { songCharts } from "../game/loader"
-import { SongChart } from "./objects/song"
+import { SongChart } from "./song"
 import { goScene } from "../game/scenes"
 import { resultsSceneParams } from "../ui/resultsscene"
 import { unwatchVar, watchVar } from "../plugins/features/watcher"
+import { cam } from "../plugins/features/camera"
 
 export type GameSceneParams = {
 	song: SongChart,
@@ -28,32 +29,47 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 	GameState.currentSong = songCharts[params.song.idTitle]
 	GameState.spawnedNotes = []
 
-	// ==== DANCER + UI =====
-	const DANCER_POS = vec2(518, 377)
-	const DANCER_SCALE = vec2(0.5) // placeholder
-	const dancer = addDancer(DANCER_SCALE)
-	dancer.pos = DANCER_POS
-
-	dancer.onUpdate(() => {
-		dancer.pos = mousePos()
-	})
-
-	onBeatHit(() => {
-		if (dancer.getMove() == "idle") {
-			dancer.moveBop()
-		}
-
-		addNote(choose(["down", "up", "left", "right"]), GameState.conductor.timeInSeconds)
-	})
-
-	watchVar(dancer, "pos", "astri.position")
-
 	// ==== SETS UP SOME IMPORTANT STUFF ====
 	setupInput();
 	addStrumline();
 	notesSpawner();
 	
 	GameState.gameInputEnabled = true
+
+	// ==== DANCER + UI =====
+	const DANCER_POS = vec2(518, 377)
+	const DANCER_SCALE = vec2(0.5) // placeholder
+	const dancer = addDancer(DANCER_SCALE)
+	dancer.pos = DANCER_POS
+
+	onDraw(() => {
+		if (GameState.paused) {
+			drawRect({
+				width: width(),
+				height: height(),
+				color: BLACK,
+				opacity: 0.5,
+				anchor: "center",
+				pos: center(),
+			})
+
+			drawText({
+				text: "PAUSED",
+				anchor: "center",
+				pos: center()
+			})
+		}
+	})
+
+	onHide(() => {
+		GameState.managePause(true)
+	})
+
+	onBeatHit(() => {
+		if (dancer.getMove() == "idle") {
+			dancer.moveBop()
+		}
+	})
 
 	// END SONG
 	GameState.conductor.audioPlay.onEnd(() => {
@@ -70,4 +86,9 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 
 	// ==== debug ====
 	GameState.managePause()
+
+	onUpdate(() => {
+		// debug.log(checkForNote())
+		// cam.zoom = vec2(0.5)
+	})
 })}

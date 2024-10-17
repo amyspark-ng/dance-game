@@ -1,9 +1,12 @@
-import { ChartNote } from "./note";
+import { ChartNote } from "./objects/note";
 
 /** Class that holds the properties a chart file will have */
 export type SongChart = {
 	/** The title of the song (string) */
 	title: string;
+
+	/** The multiplier of the scroll speed */
+	scrollSpeed: number;
 
 	/** Id of the song (like title but id with - and all that) */
 	idTitle: string;

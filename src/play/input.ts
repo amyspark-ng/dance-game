@@ -2,6 +2,7 @@ import { GameSave } from "../game/gamesave"
 import { getDancer, Move } from "./objects/dancer"
 import { GameState } from "../game/gamestate"
 import { getStrumline } from "./objects/strumline"
+import { ChartNote, NoteGameObj } from "./objects/note"
 
 /** Converts an index from the type gameKey to the type Move */
 function indexToMove(index: number) : Move {
@@ -16,13 +17,10 @@ function indexToMove(index: number) : Move {
 /** The main function that manages inputs for the game */
 export function setupInput() {
 	Object.values(GameSave.preferences.gameControls).forEach((gameKey) => {
-		console.log(gameKey)
 		onKeyPress(gameKey.kbKey, () => {
 			if (!GameState.gameInputEnabled) return
 			// bust a move
-			const theMove = indexToMove(gameKey.index)
-			getDancer().doMove(theMove)
-			getStrumline().press(theMove)
+			getStrumline().press()
 		});
 
 		onKeyRelease(gameKey.kbKey, () => {
@@ -40,9 +38,23 @@ export function setupInput() {
 }
 
 // TIMINGS
-export const INPUT_THRESHOLD = 0.3
+export const INPUT_THRESHOLD = 0.05
 
-/** Runs everytime you press a key, checks for a move and if the conditions are right, busts it */
-export function press_CheckForNote(moveToTry: Move) {
+/** Runs every time you press a key, if you pressed correctly it will return the chartNote you pressed correctly :) */
+export function checkForNote() : ChartNote {
+	function timeCondition(note: ChartNote) {
+		const lowest = GameState.conductor.timeInSeconds - INPUT_THRESHOLD
+		const highest = GameState.conductor.timeInSeconds + INPUT_THRESHOLD
+		return lowest <= note.hitTime && note.hitTime <= highest
+	}
 
+	// if time in seconds is close by input_treshold to the hit note of any note in the chart
+	if (GameState.currentSong.notes.some((note) => timeCondition(note))) {
+		return GameState.currentSong.notes.find((note) => timeCondition(note))
+	}
+	
+	// if no note found (the player is a dummy and didn't hit anything)
+	else {
+		return null;
+	}
 }
