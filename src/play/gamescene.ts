@@ -2,16 +2,14 @@ import { addDancer } from "./objects/dancer"
 import { GameState } from "../game/gamestate"
 import { playSound } from "../plugins/features/sound"
 import { onBeatHit } from "../game/events"
-import { checkForNote, setupInput } from "./input"
+import { setupInput } from "./input"
 import { Conductor, setupConductor } from "./conductor"
 import { addStrumline } from "./objects/strumline"
-import { addNote, notesSpawner } from "./objects/note"
+import { notesSpawner } from "./objects/note"
 import { songCharts } from "../game/loader"
 import { SongChart } from "./song"
 import { goScene } from "../game/scenes"
 import { resultsSceneParams } from "../ui/resultsscene"
-import { unwatchVar, watchVar } from "../plugins/features/watcher"
-import { cam } from "../plugins/features/camera"
 
 export type GameSceneParams = {
 	song: SongChart,
@@ -23,9 +21,10 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 	setBackground(RED.lighten(60))
 
 	// ==== PLAYS THE AUDIO AND SETS UP THE CONDUCTOR ===
-	const audioPlay = playSound(`${params.song.title}-song`, { channel: { volume: 0.1, muted: false } })
+	const audioPlay = playSound(`${params.song.title}-song`, { volume: 0.1 })
 	const conductor = new Conductor({ audioPlay: audioPlay, bpm: params.song.bpm, timeSignature: params.song.timeSignature })
 	setupConductor(conductor)
+
 	GameState.currentSong = songCharts[params.song.idTitle]
 	GameState.spawnedNotes = []
 
@@ -68,8 +67,22 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 	// ==== debug ====
 	GameState.managePause()
 
+	let keysForDebugging = {}
+
+	const textin = add([
+		text(""),
+		pos(),
+		color(BLACK),
+	]);
+
 	onUpdate(() => {
-		// debug.log(checkForNote())
-		// cam.zoom = vec2(0.5)
+		function createKeys() {
+			let text = Object.keys(keysForDebugging).map((key) => `${key}: ${keysForDebugging[key]}`).join("\n")
+			return text
+		}
+	
+		keysForDebugging["timeInSeconds"] = GameState.conductor.timeInSeconds.toFixed(3);
+		keysForDebugging["currentBeat"] = GameState.conductor.currentBeat;
+		textin.text = createKeys()
 	})
 })}

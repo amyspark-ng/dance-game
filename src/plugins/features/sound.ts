@@ -47,12 +47,13 @@ export const allSoundHandlers = new Set<customAudioPlay>
  * Custom function for playing sound
  */
 export function playSound(soundName: string, opts?:customAudioPlayOpt) : customAudioPlay {
-	opts = opts ?? {} as customAudioPlayOpt
-	opts.channel = opts.channel ?? GameSave.sound.sfx
-	
+	if (!opts.channel && opts.volume) opts.volume = opts.volume;
+	else if (opts.channel) {
+		opts.volume = opts.channel.volume
+	}
+
 	const audioPlayer = play(soundName, { 
 		...opts,
-		volume: opts.channel.muted ? 0 : opts.channel.volume,
 	}) as customAudioPlay
 
 	audioPlayer.randomizePitch = (minMax?: [number, number]) => {
@@ -103,4 +104,10 @@ export function playSound(soundName: string, opts?:customAudioPlayOpt) : customA
 	})
 
 	return audioPlayer
+}
+
+export function changeAllSoundsVolume(set: Set<customAudioPlay>, volume: number) {
+	set.forEach((handler) => {
+		handler.volume = volume;
+	})
 }

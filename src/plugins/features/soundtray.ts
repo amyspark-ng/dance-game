@@ -1,6 +1,6 @@
 import { GameObj, KEventController, Key, StayComp, TimerController, TweenController } from "kaplay"
 import { GameSave } from "../../game/gamesave"
-import { playSound } from "./sound"
+import { changeAllSoundsVolume, playSound } from "./sound"
 import { juice } from "../graphics/juiceComponent"
 
 export interface SoundTray {

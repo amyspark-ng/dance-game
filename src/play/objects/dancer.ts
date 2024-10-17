@@ -1,6 +1,7 @@
 import { Comp, GameObj, KEventController, PosComp, ScaleComp, SpriteComp, TimerController, TweenController, Vec2 } from "kaplay"
 import { juice, juiceComp } from "../../plugins/graphics/juiceComponent"
 import { onBeatHit } from "../../game/events"
+import { playSound } from "../../plugins/features/sound"
 
 /** Moves available for the dancer, also handles the note type */
 export type Move = "left" | "right" | "up" | "down" | "idle"
@@ -68,6 +69,8 @@ export function dancer() : dancerComp {
 		},
 
 		miss() {
+			playSound("missnote", { volume: 0.1 })
+			
 			this.play("miss")
 			this.moveBop()
 	

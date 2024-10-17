@@ -12,6 +12,10 @@ import { GameState } from "./gamestate"
 import { GameSceneParams } from "../play/gamescene"
 import { setupWatch } from "../plugins/features/watcher"
 
+export function goGameScene() {
+	go(`${STARTING_SCENE}`, { song: songCharts["bopeebo"] } as GameSceneParams)
+}
+
 /** Sets up the game */
 export function initGame() {
 	document.title = PRODUCT_NAME
@@ -36,11 +40,11 @@ export function initGame() {
 		
 		// determins the scene the scene
 		if (DFEATURE_FOCUS) {
-			if (isFocused()) go(`${STARTING_SCENE}`, { song: songCharts["bopeebo"] } as GameSceneParams)
+			if (isFocused()) goGameScene()
 			else goScene("focus", null)
 		}
 
-		else go(`${STARTING_SCENE}`)
+		else goGameScene()
 	
 		globalThis.GameState = GameState
 		globalThis.GameSave = GameSave

@@ -8,7 +8,7 @@ import { GameState } from "../../game/gamestate";
 export const NOTE_PXPERSECOND = 5;
 
 /** The width of the note */
-export const NOTE_WIDTH = 70
+export const NOTE_WIDTH = 80
 
 /** The spawn point of the note */
 export const NOTE_SPAWNPOINT = 1024 + NOTE_WIDTH / 2
@@ -67,13 +67,14 @@ export function addNote(chartNote: ChartNote) {
 	noteObj.onUpdate(() => {
 		if (GameState.paused) return
 		
-		let mapValue = (GameState.conductor.timeInSeconds - chartNote.spawnTime) / timeForStrum();
+		let mapValue = (GameState.conductor.timeInSeconds - chartNote.spawnTime) / timeForStrum()
 		const xPos = map(mapValue, 0, 1, NOTE_SPAWNPOINT, getStrumline().pos.x);
 		noteObj.pos.x = xPos;
 
 		if (xPos <= getStrumline().pos.x - 5 && hasMissedNote == false) {
 			hasMissedNote = true
 			getDancer().miss()
+			debug.log("missed")
 		}
 
 		if (hasMissedNote) {
@@ -89,6 +90,8 @@ export function addNote(chartNote: ChartNote) {
 
 export type NoteGameObj = ReturnType<typeof addNote>
 
+// MF you genius
+
 /** Crucial function that spawns the note */
 export function notesSpawner() {
 	// sets the spawnTime
@@ -96,13 +99,8 @@ export function notesSpawner() {
 		note.spawnTime = note.hitTime - timeForStrum()
 	})
 
-	debug.log(timeForStrum())
-
 	/** holds all the notes that have not been spawned */
 	let waiting: ChartNote[] = GameState.currentSong.notes.toSorted((a, b) => b.spawnTime - a.spawnTime)
-
-	console.log("waiting after sorting:")
-	console.log(...waiting)
 
 	function checkNotes() {
 		const t = GameState.conductor.timeInSeconds;
@@ -116,7 +114,6 @@ export function notesSpawner() {
 				break;
 			}
 			addNote(note);
-			debug.log("notes spawned")
 			index--;
 		}
 
@@ -124,11 +121,6 @@ export function notesSpawner() {
 		if (index < waiting.length - 1) {
 			GameState.spawnedNotes.push(...waiting.slice(index + 1, waiting.length))
 			waiting.splice(index + 1, waiting.length - 1 - index)
-		
-			console.log("waiting after spawning:")
-			console.log(...waiting)
-			console.log("spawned:")
-			console.log(...GameState.spawnedNotes)
 		}
 	}
 

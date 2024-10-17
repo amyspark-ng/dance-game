@@ -16,6 +16,7 @@ export type Preferences = {
 	controls: {
 		pause: Key,
 		accept: Key,
+		reset: Key,
 	},
 }
 
@@ -39,8 +40,9 @@ export class GameSaveClass {
 		},
 
 		controls: {
-			pause: "escape" as Key,
-			accept: "enter" as Key,
+			pause: "escape",
+			accept: "enter",
+			reset: "r",
 		},
 	}
 

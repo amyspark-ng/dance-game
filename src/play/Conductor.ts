@@ -104,27 +104,6 @@ export class Conductor {
 	}
 }
 
-export function debugConductor() {
-	let stuff = {}
-
-	function createKeys() {
-		let text = Object.keys(stuff).map((key) => `${key} ${stuff[key]}`).join("\n")
-		return text
-	}
-	
-	const textin = add([
-		text(""),
-		pos(),
-		color(BLACK),
-	]);
-
-	onUpdate(() => {
-		stuff["time in song"] = GameState.conductor.timeInSeconds.toFixed(3)
-		stuff["notes spawned"] = GameState.spawnedNotes.length
-		textin.text = createKeys()
-	})
-}
-
 /** Sets up the functions related to conducting the loop of the song, runs once */
 export function setupConductor(conductor: Conductor) {
 	GameState.conductor = conductor;
@@ -132,6 +111,4 @@ export function setupConductor(conductor: Conductor) {
 	onUpdate(() => {
 		GameState.conductor.update()
 	})
-
-	debugConductor();
 }

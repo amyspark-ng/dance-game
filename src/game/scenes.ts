@@ -23,7 +23,7 @@ export type sceneNameType = keyof typeof allGameScenes
  * @param sceneName The name of the scene dictated by sceneNameType which is dictated by a list of all game scenes
  * @param transition The transition to go to the scene, can be null then it won't have transition
  */
-export function goScene(sceneName: sceneNameType, transition?: (newName: sceneNameType) => void | null, ...args:any) {
+export function goScene(sceneName: sceneNameType, transition?: (newName: sceneNameType) => void | null, args?:any) {
 	transition = transition ?? null
 	if (transition != null) transition(sceneName)
 	else go(sceneName, args)

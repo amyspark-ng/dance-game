@@ -3,6 +3,9 @@ import { getDancer, Move } from "./objects/dancer"
 import { GameState } from "../game/gamestate"
 import { getStrumline } from "./objects/strumline"
 import { ChartNote, NoteGameObj } from "./objects/note"
+import { goScene } from "../game/scenes"
+import { GameSceneParams } from "./gamescene"
+import { songCharts } from "../game/loader"
 
 /** The main function that manages inputs for the game */
 export function setupInput() {
@@ -20,17 +23,22 @@ export function setupInput() {
 		})
 	});
 
-	onKeyPress("escape", () => {
+	onKeyPress(GameSave.preferences.controls.pause, () => {
 		if (!GameState.gameInputEnabled) return
 		
 		GameState.managePause();
+	})
+
+	onKeyPress("r", () => {
+		if (!GameState.gameInputEnabled) return
+		goScene("game", null, {song: GameState.currentSong} as GameSceneParams)
 	})
 }
 
 // TIMINGS
 export const INPUT_THRESHOLD = 0.05
 
-/** Runs every time you press a key, if you pressed correctly it will return the chartNote you pressed correctly :) */
+/** Runs every time you press a key, if you pressed in time to any note it will return it */
 export function checkForNote() : ChartNote {
 	function timeCondition(note: ChartNote) {
 		const lowest = GameState.conductor.timeInSeconds - INPUT_THRESHOLD
