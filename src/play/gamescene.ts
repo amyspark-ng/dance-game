@@ -42,25 +42,6 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 	const dancer = addDancer(DANCER_SCALE)
 	dancer.pos = DANCER_POS
 
-	onDraw(() => {
-		if (GameState.paused) {
-			drawRect({
-				width: width(),
-				height: height(),
-				color: BLACK,
-				opacity: 0.5,
-				anchor: "center",
-				pos: center(),
-			})
-
-			drawText({
-				text: "PAUSED",
-				anchor: "center",
-				pos: center()
-			})
-		}
-	})
-
 	onHide(() => {
 		GameState.managePause(true)
 	})

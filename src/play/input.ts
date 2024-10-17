@@ -4,16 +4,6 @@ import { GameState } from "../game/gamestate"
 import { getStrumline } from "./objects/strumline"
 import { ChartNote, NoteGameObj } from "./objects/note"
 
-/** Converts an index from the type gameKey to the type Move */
-function indexToMove(index: number) : Move {
-	switch (index) {
-		case 1: return "left"
-		case 2: return "down"
-		case 3: return "up"
-		case 4: return "right"
-	}
-}
-
 /** The main function that manages inputs for the game */
 export function setupInput() {
 	Object.values(GameSave.preferences.gameControls).forEach((gameKey) => {

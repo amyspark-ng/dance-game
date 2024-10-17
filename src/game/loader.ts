@@ -66,6 +66,7 @@ export function loadAssets() {
 	loadSound("plap", "sounds/plap.mp3")
 	loadSound("plop", "sounds/plop.mp3")
 	loadSound("ClickUp", "sounds/ClickUp.ogg")
+	loadSound("pauseScratch", "sounds/pauseScratch.mp3")
 
 	// Written by MF
 	loadShader("saturate", null, `

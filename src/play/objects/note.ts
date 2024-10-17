@@ -67,15 +67,14 @@ export function addNote(chartNote: ChartNote) {
 	noteObj.onUpdate(() => {
 		if (GameState.paused) return
 		
-		const x = map((GameState.conductor.timeInSeconds - chartNote.spawnTime) / timeForStrum(), 0, 1, NOTE_SPAWNPOINT, getStrumline().pos.x);
-		noteObj.pos.x = x;
-	
-		// noteObj.pos.x -= (NOTE_PXPERSECOND * dt()) * GameState.currentSong.scrollSpeed;
-	
-		// if (noteObj.pos.x < getStrumline().pos.x - NOTE_WIDTH - 5 && hasMissedNote == false) {
-		// 	hasMissedNote = true
-		// 	getDancer().miss()
-		// }
+		let mapValue = (GameState.conductor.timeInSeconds - chartNote.spawnTime) / timeForStrum();
+		const xPos = map(mapValue, 0, 1, NOTE_SPAWNPOINT, getStrumline().pos.x);
+		noteObj.pos.x = xPos;
+
+		if (xPos <= getStrumline().pos.x - 5 && hasMissedNote == false) {
+			hasMissedNote = true
+			getDancer().miss()
+		}
 
 		if (hasMissedNote) {
 			noteObj.opacity -= 0.085

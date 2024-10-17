@@ -78,20 +78,20 @@ export class Conductor {
 	/** Update function that should run onUpdate so the conductor gets updated */
 	update() {
 		if (GameState.paused == false) {
-			this.timeInSeconds += dt()
-		}
+			if (this.timeInSeconds < 0) {
+				this.timeInSeconds += dt()
+				this.audioPlay.paused = true
+			}
 
-		if (this.timeInSeconds < 0) {
-			this.audioPlay.paused = true
-		}
+			else {
+				this.timeInSeconds = this.audioPlay.time()
+				this.audioPlay.paused = GameState.paused;
+				let oldBeat = this.currentBeat;
+				this.currentBeat = Math.floor(this.timeInSeconds / this.lengthOfBeat);
 		
-		else if (this.timeInSeconds >= 0) {
-			this.audioPlay.paused = GameState.paused;
-			let oldBeat = this.currentBeat;
-			this.currentBeat = Math.floor(this.timeInSeconds / this.lengthOfBeat);
-	
-			if (oldBeat != this.currentBeat) {
-				triggerEvent("onBeatHit")
+				if (oldBeat != this.currentBeat) {
+					triggerEvent("onBeatHit")
+				}
 			}
 		}
 	}

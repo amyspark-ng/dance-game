@@ -6,7 +6,7 @@ export type SongChart = {
 	title: string;
 
 	/** The multiplier of the scroll speed */
-	scrollSpeed: number;
+	speedMultiplier: number;
 
 	/** Id of the song (like title but id with - and all that) */
 	idTitle: string;

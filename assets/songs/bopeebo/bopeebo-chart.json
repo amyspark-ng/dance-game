@@ -2,13 +2,15 @@
 	"title": "bopeebo",
 	"idTitle": "bopeebo",
 
-	"scrollSpeed": 1,
+	"speedMultiplier": 1,
 	
 	"notes": [
-		{ "hitTime":  0, "dancerMove": "up" },
 		{ "hitTime":  2.4, "dancerMove": "up" },
 		{ "hitTime":  3, "dancerMove": "right" },
-		{ "hitTime":  3.6, "dancerMove": "right" }
+		{ "hitTime":  3.6, "dancerMove": "right" },
+		{ "hitTime":  7.2, "dancerMove": "right" },
+		{ "hitTime":  7.8, "dancerMove": "right" },
+		{ "hitTime":  8.4, "dancerMove": "right" }
 	],
 
 	"bpm": 100,
