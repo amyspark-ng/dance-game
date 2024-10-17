@@ -17,17 +17,25 @@ export type GameSceneParams = {
 	dancer?: string,
 }
 
-export function GameScene() { scene("game", (params: GameSceneParams) => {
-	setBackground(RED.lighten(60))
-
+export function startSong(params: GameSceneParams) {
 	// ==== PLAYS THE AUDIO AND SETS UP THE CONDUCTOR ===
+	GameState.conductor?.audioPlay?.stop()
+	GameState.conductor = null;
+	GameState.health = 100
+
 	const audioPlay = playSound(`${params.song.title}-song`, { volume: 0.1 })
 	const conductor = new Conductor({ audioPlay: audioPlay, bpm: params.song.bpm, timeSignature: params.song.timeSignature })
 	setupConductor(conductor)
 
 	GameState.currentSong = songCharts[params.song.idTitle]
 	GameState.spawnedNotes = []
+}
 
+export function GameScene() { scene("game", (params: GameSceneParams) => {
+	setBackground(RED.lighten(60))
+	
+	startSong(params)
+	
 	// ==== SETS UP SOME IMPORTANT STUFF ====
 	setupInput();
 	addStrumline();
@@ -53,11 +61,7 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 
 	// END SONG
 	GameState.conductor.audioPlay.onEnd(() => {
-		goScene("results", null, {
-			dancer: params.dancer,
-			songChart: params.song,
-			tally: GameState.tally,
-		} as resultsSceneParams)
+		goScene("results", {} as resultsSceneParams)
 	})
 
 	onKeyPress("f2", () => {
@@ -65,7 +69,7 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 	})
 
 	// ==== debug ====
-	GameState.managePause()
+	// GameState.managePause()
 
 	let keysForDebugging = {}
 
@@ -83,6 +87,7 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 	
 		keysForDebugging["timeInSeconds"] = GameState.conductor.timeInSeconds.toFixed(3);
 		keysForDebugging["currentBeat"] = GameState.conductor.currentBeat;
+		keysForDebugging["health"] = GameState.health;
 		textin.text = createKeys()
 	})
 })}

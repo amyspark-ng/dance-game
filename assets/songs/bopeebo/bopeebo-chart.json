@@ -8,9 +8,13 @@
 		{ "hitTime":  2.4, "dancerMove": "up" },
 		{ "hitTime":  3, "dancerMove": "right" },
 		{ "hitTime":  3.6, "dancerMove": "right" },
-		{ "hitTime":  7.2, "dancerMove": "right" },
-		{ "hitTime":  7.8, "dancerMove": "right" },
-		{ "hitTime":  8.4, "dancerMove": "right" }
+		{ "hitTime":  7.2, "dancerMove": "down" },
+		{ "hitTime":  7.8, "dancerMove": "left" },
+		{ "hitTime":  8.4, "dancerMove": "right" },
+		{ "hitTime":  12.0, "dancerMove": "down" },
+		{ "hitTime":  12.6, "dancerMove": "left" },
+		{ "hitTime":  12.9, "dancerMove": "right" },
+		{ "hitTime":  13.2, "dancerMove": "down" }
 	],
 
 	"bpm": 100,

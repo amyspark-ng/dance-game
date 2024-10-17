@@ -2,6 +2,8 @@ import { Comp, GameObj, KEventController, PosComp, ScaleComp, SpriteComp, TimerC
 import { juice, juiceComp } from "../../plugins/graphics/juiceComponent"
 import { onBeatHit } from "../../game/events"
 import { playSound } from "../../plugins/features/sound"
+import { GameState } from "../../game/gamestate"
+import { goScene } from "../../game/scenes"
 
 /** Moves available for the dancer, also handles the note type */
 export type Move = "left" | "right" | "up" | "down" | "idle"
@@ -66,6 +68,8 @@ export function dancer() : dancerComp {
 					this.doMove("idle")
 				})
 			}
+
+			GameState.health += 5
 		},
 
 		miss() {
@@ -74,11 +78,19 @@ export function dancer() : dancerComp {
 			this.play("miss")
 			this.moveBop()
 	
+			GameState.health -= 5
+			debug.log("missed")
+
 			waitForIdle?.cancel()
 			waitForIdle = wait(TIME_FOR_IDLE, () => {
 				this.doMove("idle")
 			})
-		}
+		},
+
+		update() {
+			GameState.health = clamp(GameState.health, 0, 100)
+			if (GameState.health <= 0) goScene("death")
+		},
 	}
 }
 

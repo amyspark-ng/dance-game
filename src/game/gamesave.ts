@@ -2,8 +2,9 @@ import { Key } from "kaplay";
 import { SAVE_NAME } from "../main";
 import { volumeChannel } from "../plugins/features/sound";
 import { saveSongScore } from "../play/song";
+import { Move } from "../play/objects/dancer";
 
-type gameKey = { kbKey: Key, index: number }
+type gameKey = { kbKey: Key, move: Move }
 
 export type Preferences = {
 	gameControls: {
@@ -33,10 +34,10 @@ export class GameSaveClass {
 
 	preferences:Preferences = {
 		gameControls: {
-			left: { kbKey: "left", index: 1 },
-			down: { kbKey: "down", index: 2 },
-			up: { kbKey: "up", index: 3 },
-			right: { kbKey: "right", index: 4 },
+			left: { kbKey: "left", move: "left" },
+			down: { kbKey: "down", move: "down" },
+			up: { kbKey: "up", move: "up" },
+			right: { kbKey: "right", move: "right" },
 		},
 
 		controls: {
@@ -75,9 +76,13 @@ export class GameSaveClass {
 		// newGameSave is the default in case it doesn't find a save
 		const data = getData(SAVE_NAME, newGameSave) as GameSaveClass
 
-		Object.keys(newGameSave).forEach(function(k) {
-			if (!data.hasOwnProperty(k)) data[k] = newGameSave[k];
-		});
+		// Have to find a way to get all the properties of GameSaveClass that are not in data
+		// and then merge them
+		for (const key in newGameSave) {
+			if (!(key in data)) {
+				data[key] = newGameSave[key]
+			}
+		}
 
 		return data;
 	}

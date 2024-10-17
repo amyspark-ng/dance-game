@@ -1,4 +1,5 @@
 import { GameScene } from "../play/gamescene";
+import { DeathScene } from "../ui/deathscene";
 import { FocusScene } from "../ui/focusscene";
 import { MenuScene } from "../ui/menuscene";
 import { ResultsScene } from "../ui/resultsscene";
@@ -13,20 +14,39 @@ const allGameScenes = {
 	"menu": MenuScene,
 	"results": ResultsScene,
 	"songselect": SongSelectScene,
+	"death": DeathScene,
 }
 
 /** Custom type for scene names */
 export type sceneNameType = keyof typeof allGameScenes
 
+export type newSceneOpts = {
+	sceneName: sceneNameType,
+	params?: any,
+}
+
 /**
- * Custom function to go to a scene
- * @param sceneName The name of the scene dictated by sceneNameType which is dictated by a list of all game scenes
- * @param transition The transition to go to the scene, can be null then it won't have transition
+ * Receives a transition function so it can call it and transition from one scene to another
+ * @param transitionFunction The transition function
+ * @param sceneName The typed name of the scene
+ * @param params Extra params you'd want to add (please be an object)
  */
-export function goScene(sceneName: sceneNameType, transition?: (newName: sceneNameType) => void | null, args?:any) {
-	transition = transition ?? null
-	if (transition != null) transition(sceneName)
-	else go(sceneName, args)
+export function transitionToScene(
+	transitionFunction: (sceneName: sceneNameType, params: any) => void,
+	sceneName: sceneNameType,
+	params: any
+) {
+	// Call the passed transition function with the provided scene name and params
+	transitionFunction(sceneName, params);
+}
+
+/**
+ * Just like a regular go() but with the scene name typed
+ * @param sceneName The typed name of the scene
+ * @param params Extra params you'd want to add (please be an object)
+ */
+export function goScene(sceneName: sceneNameType, params?: any) {
+	go(sceneName, params)
 }
 
 /** Is the function that calls all the scene definitions, thus loading them */

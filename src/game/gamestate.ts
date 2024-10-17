@@ -16,6 +16,8 @@ export class GameStateClass {
 	/** Holds all the notes that have been spawned */
 	spawnedNotes: ChartNote[] = [];
 
+	health: number = 100;
+
 	/** Dictates wheter the game is paused or not, please do not touch if not through the manage pause function */
 	private _paused: boolean;
 	

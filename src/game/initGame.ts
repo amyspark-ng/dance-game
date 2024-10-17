@@ -13,7 +13,7 @@ import { GameSceneParams } from "../play/gamescene"
 import { setupWatch } from "../plugins/features/watcher"
 
 export function goGameScene() {
-	go(`${STARTING_SCENE}`, { song: songCharts["bopeebo"] } as GameSceneParams)
+	goScene("game", { song: songCharts["bopeebo"] })
 }
 
 /** Sets up the game */
@@ -41,7 +41,7 @@ export function initGame() {
 		// determins the scene the scene
 		if (DFEATURE_FOCUS) {
 			if (isFocused()) goGameScene()
-			else goScene("focus", null)
+			else goScene("focus")
 		}
 
 		else goGameScene()

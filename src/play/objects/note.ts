@@ -3,6 +3,7 @@ import { getDancer, Move } from "./dancer";
 import { utils } from "../../utils";
 import { getStrumline, strumline } from "./strumline";
 import { GameState } from "../../game/gamestate";
+import { INPUT_THRESHOLD } from "../input";
 
 /** How much pixels per second does the note move at */
 export const NOTE_PXPERSECOND = 5;
@@ -71,10 +72,9 @@ export function addNote(chartNote: ChartNote) {
 		const xPos = map(mapValue, 0, 1, NOTE_SPAWNPOINT, getStrumline().pos.x);
 		noteObj.pos.x = xPos;
 
-		if (xPos <= getStrumline().pos.x - 5 && hasMissedNote == false) {
+		if (GameState.conductor.timeInSeconds >= chartNote.hitTime + INPUT_THRESHOLD && !hasMissedNote) {
 			hasMissedNote = true
 			getDancer().miss()
-			debug.log("missed")
 		}
 
 		if (hasMissedNote) {

@@ -9,7 +9,7 @@ import { addNote, NoteGameObj } from "./note";
 
 export interface strumlineComp extends Comp {
 	/** Presses/hits the strumline */
-	press(): void,
+	press(move: Move): void,
 
 	/** Releases the strumline */
 	release(): void,
@@ -22,13 +22,13 @@ export function strumline() : strumlineComp {
 		id: "strumlineComp",
 		require: [ "pos" ],
 
-		press() {
+		press(move: Move) {
 			this.bop({
 				startScale: vec2(1),
 				endScale: vec2(PRESS_SCALE),
 			})
 
-			const note = checkForNote()
+			const note = checkForNote(move)
 			if (note != null) {
 				// get the noteGameObj with the note
 				const hitNote = get("noteObj", { recursive: true }).find((noteGameObj) => noteGameObj.chartNote == note)
