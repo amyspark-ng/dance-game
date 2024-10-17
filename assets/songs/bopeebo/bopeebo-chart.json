@@ -5,9 +5,10 @@
 	"scrollSpeed": 1,
 	
 	"notes": [
-		{ "hitTime":  0.6, "dancerMove": "up" },
-		{ "hitTime":  1.2, "dancerMove": "right" },
-		{ "hitTime":  4, "dancerMove": "right" }
+		{ "hitTime":  0, "dancerMove": "up" },
+		{ "hitTime":  2.4, "dancerMove": "up" },
+		{ "hitTime":  3, "dancerMove": "right" },
+		{ "hitTime":  3.6, "dancerMove": "right" }
 	],
 
 	"bpm": 100,

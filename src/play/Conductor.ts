@@ -1,6 +1,7 @@
 import { triggerEvent } from "../game/events";
 import { GameState } from "../game/gamestate";
 import { customAudioPlay } from "../plugins/features/sound";
+import { timeForStrum } from "./objects/note";
 
 /*  
 	=== Some explanations about conducting and music ===
@@ -70,17 +71,28 @@ export class Conductor {
 		this.lengthOfStep = this.lengthOfBeat / this.stepsPerBeat;
 	
 		this.currentBeat = 0
+		this.timeInSeconds = -timeForStrum()
+		this.audioPlay.stop();
 	}
 
 	/** Update function that should run onUpdate so the conductor gets updated */
 	update() {
-		this.timeInSeconds = this.audioPlay.time()
-	
-		let oldBeat = this.currentBeat;
-		this.currentBeat = Math.floor(this.timeInSeconds / this.lengthOfBeat);
+		if (GameState.paused == false) {
+			this.timeInSeconds += dt()
+		}
 
-		if (oldBeat != this.currentBeat) {
-			triggerEvent("onBeatHit")
+		if (this.timeInSeconds < 0) {
+			this.audioPlay.paused = true
+		}
+		
+		else if (this.timeInSeconds >= 0) {
+			this.audioPlay.paused = GameState.paused;
+			let oldBeat = this.currentBeat;
+			this.currentBeat = Math.floor(this.timeInSeconds / this.lengthOfBeat);
+	
+			if (oldBeat != this.currentBeat) {
+				triggerEvent("onBeatHit")
+			}
 		}
 	}
 
@@ -88,7 +100,6 @@ export class Conductor {
 		this.audioPlay = opts.audioPlay;
 		this.BPM = opts.bpm;
 		this.timeSignature = opts.timeSignature
-	
 		this.add()
 	}
 }

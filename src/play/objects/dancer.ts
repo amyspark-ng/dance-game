@@ -32,8 +32,8 @@ export function dancer() : dancerComp {
 		id: "dancerComp",
 		require: [ "sprite", "juice", "pos" ],
 
-		moveBop() {
-			return this.stretch({ XorY: "y", startScale: this.scale.y * 0.9, endScale: this.scale.y })
+		moveBop(theScale = vec2(0.5)) {
+			return this.stretch({ XorY: "y", startScale: theScale.y * 0.9, endScale: theScale.y })
 		},
 
 		getMove() {

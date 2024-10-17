@@ -46,11 +46,8 @@ export function note() : noteComp {
 }
 
 /** Get how much time will take for the note to reach the strum */
-function timeForStrum() {
-	// time = distance / speed
-	const distance = (NOTE_SPAWNPOINT - getStrumline().pos.x) // 547
-	const speed = NOTE_PXPERSECOND * GameState.currentSong.scrollSpeed // 5
-	return distance / speed
+export function timeForStrum() {
+	return 0.3;
 }
 
 export function addNote(chartNote: ChartNote) {
@@ -64,19 +61,21 @@ export function addNote(chartNote: ChartNote) {
 		"noteObj",
 	])
 
-	noteObj.pos.x = NOTE_SPAWNPOINT;
 	noteObj.chartNote = chartNote;
 
 	let hasMissedNote = false
 	noteObj.onUpdate(() => {
 		if (GameState.paused) return
 		
-		noteObj.pos.x -= NOTE_PXPERSECOND * GameState.currentSong.scrollSpeed;
+		const x = map((GameState.conductor.timeInSeconds - chartNote.spawnTime) / timeForStrum(), 0, 1, NOTE_SPAWNPOINT, getStrumline().pos.x);
+		noteObj.pos.x = x;
 	
-		if (noteObj.pos.x < getStrumline().pos.x - NOTE_WIDTH - 5 && hasMissedNote == false) {
-			hasMissedNote = true
-			getDancer().miss()
-		}
+		// noteObj.pos.x -= (NOTE_PXPERSECOND * dt()) * GameState.currentSong.scrollSpeed;
+	
+		// if (noteObj.pos.x < getStrumline().pos.x - NOTE_WIDTH - 5 && hasMissedNote == false) {
+		// 	hasMissedNote = true
+		// 	getDancer().miss()
+		// }
 
 		if (hasMissedNote) {
 			noteObj.opacity -= 0.085
@@ -93,5 +92,51 @@ export type NoteGameObj = ReturnType<typeof addNote>
 
 /** Crucial function that spawns the note */
 export function notesSpawner() {
-	
+	// sets the spawnTime
+	GameState.currentSong.notes.forEach((note) => {
+		note.spawnTime = note.hitTime - timeForStrum()
+	})
+
+	debug.log(timeForStrum())
+
+	/** holds all the notes that have not been spawned */
+	let waiting: ChartNote[] = GameState.currentSong.notes.toSorted((a, b) => b.spawnTime - a.spawnTime)
+
+	console.log("waiting after sorting:")
+	console.log(...waiting)
+
+	function checkNotes() {
+		const t = GameState.conductor.timeInSeconds;
+		let index = waiting.length - 1;
+		
+		// while there are notes to spawn
+		while (index >= 0) {
+			const note = waiting[index];
+			// If next note is in the future, stop
+			if (note.spawnTime > t) {
+				break;
+			}
+			addNote(note);
+			debug.log("notes spawned")
+			index--;
+		}
+
+		// remove all the notes that have been spawned
+		if (index < waiting.length - 1) {
+			GameState.spawnedNotes.push(...waiting.slice(index + 1, waiting.length))
+			waiting.splice(index + 1, waiting.length - 1 - index)
+		
+			console.log("waiting after spawning:")
+			console.log(...waiting)
+			console.log("spawned:")
+			console.log(...GameState.spawnedNotes)
+		}
+	}
+
+	onUpdate(() => {
+		if (GameState.paused) return;
+		
+		// waiting should add all the notes that are not spawned yet and sort them from last to early
+		checkNotes()
+	})
 }
