@@ -46,9 +46,11 @@ export function note() : noteComp {
 	}
 }
 
-/** Get how much time will take for the note to reach the strum */
-export function timeForStrum() {
-	return 0.3;
+/** How much time will take for the note to reach the strum */
+export let TIME_FOR_STRUM = 1.25
+
+export function setTimeForStrum(value: number) {
+	TIME_FOR_STRUM = value;
 }
 
 export function addNote(chartNote: ChartNote) {
@@ -68,8 +70,8 @@ export function addNote(chartNote: ChartNote) {
 	noteObj.onUpdate(() => {
 		if (GameState.paused) return
 		
-		let mapValue = (GameState.conductor.timeInSeconds - chartNote.spawnTime) / timeForStrum()
-		const xPos = map(mapValue, 0, 1, NOTE_SPAWNPOINT, getStrumline().pos.x);
+		let mapValue = (GameState.conductor.timeInSeconds - chartNote.spawnTime) / TIME_FOR_STRUM
+		const xPos = map(mapValue, 0, 1, NOTE_SPAWNPOINT, getStrumline().pos.x - NOTE_WIDTH / 2);
 		noteObj.pos.x = xPos;
 
 		if (GameState.conductor.timeInSeconds >= chartNote.hitTime + INPUT_THRESHOLD && !hasMissedNote) {
@@ -96,7 +98,7 @@ export type NoteGameObj = ReturnType<typeof addNote>
 export function notesSpawner() {
 	// sets the spawnTime
 	GameState.currentSong.notes.forEach((note) => {
-		note.spawnTime = note.hitTime - timeForStrum()
+		note.spawnTime = note.hitTime - TIME_FOR_STRUM
 	})
 
 	/** holds all the notes that have not been spawned */

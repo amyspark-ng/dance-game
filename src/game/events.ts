@@ -6,9 +6,9 @@ export function setupEventHandler() {
 }
 
 /** Type that dictates possible events in the game */
-export type possibleEvents = "transitionStart" | "transitionEnd" | "onBeatHit" | "twiceBeat"
+export type possibleEvents = "transitionStart" | "transitionEnd" | "onBeatHit"
 
-/** Triggrs an event */
+/** Triggers an event */
 export function triggerEvent(possibleEvent: possibleEvents, ...args:any) {
 	gameEventHandler.trigger(possibleEvent, args)
 }

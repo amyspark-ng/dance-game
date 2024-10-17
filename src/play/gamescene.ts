@@ -5,7 +5,7 @@ import { onBeatHit } from "../game/events"
 import { setupInput } from "./input"
 import { Conductor, setupConductor } from "./conductor"
 import { addStrumline } from "./objects/strumline"
-import { notesSpawner } from "./objects/note"
+import { notesSpawner, setTimeForStrum } from "./objects/note"
 import { songCharts } from "../game/loader"
 import { SongChart } from "./song"
 import { goScene } from "../game/scenes"
@@ -29,6 +29,7 @@ export function startSong(params: GameSceneParams) {
 
 	GameState.currentSong = songCharts[params.song.idTitle]
 	GameState.spawnedNotes = []
+	setTimeForStrum(params.song.timeForStrum)
 }
 
 export function GameScene() { scene("game", (params: GameSceneParams) => {
@@ -87,6 +88,7 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 	
 		keysForDebugging["timeInSeconds"] = GameState.conductor.timeInSeconds.toFixed(3);
 		keysForDebugging["currentBeat"] = GameState.conductor.currentBeat;
+		keysForDebugging["currentStep"] = GameState.conductor.currentStep;
 		keysForDebugging["health"] = GameState.health;
 		textin.text = createKeys()
 	})

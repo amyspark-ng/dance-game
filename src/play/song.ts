@@ -5,8 +5,8 @@ export type SongChart = {
 	/** The title of the song (string) */
 	title: string;
 
-	/** The multiplier of the scroll speed */
-	speedMultiplier: number;
+	/** How long will the note take to reach the strum */
+	timeForStrum: number;
 
 	/** Id of the song (like title but id with - and all that) */
 	idTitle: string;

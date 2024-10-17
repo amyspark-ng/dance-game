@@ -33,12 +33,14 @@ export function setupInput() {
 
 	onKeyPress(GameSave.preferences.controls.reset, () => {
 		if (!GameState.gameInputEnabled) return
+		
+		if (GameState.paused) GameState.managePause(false)
 		goScene("game", { song: GameState.currentSong } as GameSceneParams)
 	})
 }
 
 // TIMINGS
-export const INPUT_THRESHOLD = 0.1
+export const INPUT_THRESHOLD = 0.16
 
 /** Runs every time you press a key, if you pressed in time to any note it will return it */
 export function checkForNote(move: Move) : ChartNote {

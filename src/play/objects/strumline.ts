@@ -1,11 +1,8 @@
 import { Comp } from "kaplay";
-import { GameSave } from "../../game/gamesave"
-import { utils } from "../../utils";
 import { juice } from "../../plugins/graphics/juiceComponent";
-import { dancer, getDancer, Move } from "../objects/dancer"
-import { GameState } from "../../game/gamestate";
+import { getDancer, Move } from "../objects/dancer"
 import { checkForNote } from "../input";
-import { addNote, NoteGameObj } from "./note";
+import { NoteGameObj } from "./note";
 import { addJudgement, getJudgement } from "./judgement";
 
 export interface strumlineComp extends Comp {
@@ -21,7 +18,7 @@ const PRESS_SCALE = 1.2
 export function strumline() : strumlineComp {
 	return {
 		id: "strumlineComp",
-		require: [ "pos" ],
+		require: [ "color", "juice" ],
 
 		press(move: Move) {
 			this.bop({
@@ -37,6 +34,11 @@ export function strumline() : strumlineComp {
 				if (hitNote) {
 					hitNote.destroy()
 					let judgement = getJudgement(hitNote.chartNote)
+					
+					if (judgement == "Miss") {
+						getDancer().miss()
+					}
+	
 					addJudgement(judgement)
 					getDancer().doMove(note.dancerMove)
 				}

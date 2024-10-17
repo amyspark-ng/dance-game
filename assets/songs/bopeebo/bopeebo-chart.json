@@ -2,7 +2,7 @@
 	"title": "bopeebo",
 	"idTitle": "bopeebo",
 
-	"speedMultiplier": 1,
+	"timeForStrum": 1,
 	
 	"notes": [
 		{ "hitTime":  2.4, "dancerMove": "up" },
