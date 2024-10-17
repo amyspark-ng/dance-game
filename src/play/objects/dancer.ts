@@ -67,9 +67,9 @@ export function dancer() : dancerComp {
 				waitForIdle = wait(TIME_FOR_IDLE, () => {
 					this.doMove("idle")
 				})
-			}
 
-			GameState.health += 5
+				GameState.health += 5
+			}
 		},
 
 		miss() {

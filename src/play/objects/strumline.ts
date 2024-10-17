@@ -6,6 +6,7 @@ import { dancer, getDancer, Move } from "../objects/dancer"
 import { GameState } from "../../game/gamestate";
 import { checkForNote } from "../input";
 import { addNote, NoteGameObj } from "./note";
+import { addJudgement, getJudgement } from "./judgement";
 
 export interface strumlineComp extends Comp {
 	/** Presses/hits the strumline */
@@ -31,16 +32,19 @@ export function strumline() : strumlineComp {
 			const note = checkForNote(move)
 			if (note != null) {
 				// get the noteGameObj with the note
-				const hitNote = get("noteObj", { recursive: true }).find((noteGameObj) => noteGameObj.chartNote == note)
+				const hitNote = get("noteObj", { recursive: true }).find((noteGameObj) => noteGameObj.chartNote == note) as NoteGameObj
+				
 				if (hitNote) {
 					hitNote.destroy()
+					let judgement = getJudgement(hitNote.chartNote)
+					addJudgement(judgement)
+					getDancer().doMove(note.dancerMove)
 				}
-
-				getDancer().doMove(note.dancerMove)
 			}
 
 			else if (note == null) {
 				getDancer().miss()
+				addJudgement("Miss")
 			}
 		},
 
@@ -58,7 +62,7 @@ export function addStrumline() {
 	const STRUM_POS = vec2(center().x, height() - 60);
 	
 	const strumlineObj = add([
-		rect(80, 80),
+		rect(80, 80, { radius: 5 }),
 		juice(),
 		pos(vec2(0)),
 		anchor("center"),

@@ -53,7 +53,7 @@ export function timeForStrum() {
 
 export function addNote(chartNote: ChartNote) {
 	const noteObj = add([
-		rect(NOTE_WIDTH, NOTE_WIDTH),
+		rect(NOTE_WIDTH, NOTE_WIDTH, { radius: 5 }),
 		pos(width() + NOTE_WIDTH, getStrumline().pos.y),
 		note(),
 		anchor("center"),

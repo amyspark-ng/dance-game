@@ -33,7 +33,7 @@ export function startSong(params: GameSceneParams) {
 
 export function GameScene() { scene("game", (params: GameSceneParams) => {
 	setBackground(RED.lighten(60))
-	
+
 	startSong(params)
 	
 	// ==== SETS UP SOME IMPORTANT STUFF ====

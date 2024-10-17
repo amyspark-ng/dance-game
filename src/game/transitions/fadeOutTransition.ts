@@ -21,7 +21,6 @@ export function fadeOut(sceneName: sceneNameType, params: any) : void {
 	// Changes the scene
 	fade.tween(0, 1, FADE_TIME, (p) => fade.opacity = p).onEnd(() => {
 		goScene(sceneName, params)
-		debug.log("has changed scene")
 	})
 	
 	triggerEvent("transitionStart", "fadeOut")
