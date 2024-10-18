@@ -3,7 +3,9 @@ import { juice } from "../../plugins/graphics/juiceComponent";
 import { getDancer, Move } from "../objects/dancer"
 import { checkForNote } from "../input";
 import { NoteGameObj } from "./note";
-import { addJudgement, getJudgement } from "./judgement";
+import { addJudgement, getJudgement, getScorePerDiff } from "./judgement";
+import { triggerEvent } from "../../game/events";
+import { GameState } from "../../game/gamestate";
 
 export interface strumlineComp extends Comp {
 	/** Presses/hits the strumline */
@@ -37,10 +39,16 @@ export function strumline() : strumlineComp {
 					
 					if (judgement == "Miss") {
 						getDancer().miss()
+						addJudgement("Miss")
 					}
 	
 					addJudgement(judgement)
 					getDancer().doMove(note.dancerMove)
+					triggerEvent("onNoteHit", hitNote.chartNote)
+				
+					GameState.tally[judgement.toLowerCase() + "s"] += 1
+					GameState.tally.score += getScorePerDiff(hitNote.chartNote)
+					console.log(GameState.tally)
 				}
 			}
 

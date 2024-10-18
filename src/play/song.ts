@@ -1,12 +1,12 @@
 import { ChartNote } from "./objects/note";
 
 /** Class that holds the properties a chart file will have */
-export type SongChart = {
+export class SongChart {
 	/** The title of the song (string) */
 	title: string;
 
-	/** How long will the note take to reach the strum */
-	timeForStrum: number;
+	/** Actually divides the time it'll take the note to reach the strum by this */
+	speedMultiplier: number;
 
 	/** Id of the song (like title but id with - and all that) */
 	idTitle: string;
@@ -18,7 +18,16 @@ export type SongChart = {
 	bpm: number
 
 	/** The time signature of the song */
-	timeSignature: [number, number]
+	timeSignature: [number, number];
+
+	constructor() {
+		this.title = "x"
+		this.speedMultiplier = 1;
+		this.idTitle = "x";
+		this.notes = []
+		this.bpm = 100;
+		this.timeSignature = [4, 4];
+	}
 }
 
 /** Holds the current tallies for the current song */

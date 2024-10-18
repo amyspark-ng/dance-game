@@ -8,7 +8,7 @@ export class GameStateClass {
 	conductor: Conductor;
 
 	/** Holds the current song chart */
-	currentSong: SongChart = { title: "x", notes: [], timeSignature: [4, 4], bpm: 100, idTitle: "x", speedMultiplier: 1 };
+	currentSong: SongChart = new SongChart();
 	
 	/** Holds the current tallies for the song */
 	tally: Tally = { awesomes: 0, goods: 0, ehhs: 0, misses: 0, score: 0 };
@@ -16,6 +16,7 @@ export class GameStateClass {
 	/** Holds all the notes that have been spawned */
 	spawnedNotes: ChartNote[] = [];
 
+	/** Current player health */
 	health: number = 100;
 
 	/** Dictates wheter the game is paused or not, please do not touch if not through the manage pause function */

@@ -1,3 +1,5 @@
+import { ChartNote } from "../play/objects/note";
+
 /** The game's main event handler */
 export let gameEventHandler:any = null;
 
@@ -6,7 +8,7 @@ export function setupEventHandler() {
 }
 
 /** Type that dictates possible events in the game */
-export type possibleEvents = "transitionStart" | "transitionEnd" | "onBeatHit"
+export type possibleEvents = "transitionStart" | "transitionEnd" | "onBeatHit" | "onNoteHit"
 
 /** Triggers an event */
 export function triggerEvent(possibleEvent: possibleEvents, ...args:any) {
@@ -25,4 +27,8 @@ export function onTransitionEnd(action: (nameOfTransition: string) => void) {
 
 export function onBeatHit(action: () => void) {
 	return gameEventHandler.on("onBeatHit" as possibleEvents, action)
+}
+
+export function onNoteHit(action: (note: ChartNote) => void) {
+	return gameEventHandler.on("onNoteHit" as possibleEvents, action)
 }

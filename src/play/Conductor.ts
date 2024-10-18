@@ -23,7 +23,7 @@ import { TIME_FOR_STRUM } from "./objects/note";
 	The denominator is the 'type of beat'
 
 	# For charting
-	* A measure is every 'block' of the track
+	* A measure is every 'chunk' of the track, holds 16 steps
 	* onBeatHit (aka a Beat) are the 4 bigger lines on each measure. 4 beats per measure
 	* onStepHit (aka a Step) are the 16 spaces you can place notes in each measure (by default).
 	4 steps per beat, so 16 steps per measure
@@ -79,28 +79,29 @@ export class Conductor {
 
 	/** Update function that should run onUpdate so the conductor gets updated */
 	update() {
-		if (GameState.paused == false) {
-			if (this.timeInSeconds <= 0) {
-				this.timeInSeconds += dt()
-				this.audioPlay.paused = true
+		if (GameState.paused) return;
+
+		if (this.timeInSeconds <= 0) {
+			this.timeInSeconds += dt()
+			this.audioPlay.paused = true
+		}
+
+		// if it has to start playing and hasn't started playing play!!
+		else {
+			this.timeInSeconds = this.audioPlay.time()
+			this.audioPlay.paused = GameState.paused;
+			let oldBeat = this.currentBeat;
+			let oldStep = this.currentStep;
+			
+			this.currentBeat = Math.floor(this.timeInSeconds / this.lengthOfBeat);
+			this.currentStep = Math.floor(this.timeInSeconds / this.lengthOfStep);
+
+			if (oldBeat != this.currentBeat) {
+				triggerEvent("onBeatHit")
 			}
 
-			else {
-				this.timeInSeconds = this.audioPlay.time()
-				this.audioPlay.paused = GameState.paused;
-				let oldBeat = this.currentBeat;
-				let oldStep = this.currentStep;
-				
-				this.currentBeat = Math.floor(this.timeInSeconds / this.lengthOfBeat);
-				this.currentStep = Math.floor(this.timeInSeconds / this.lengthOfStep);
-
-				if (oldBeat != this.currentBeat) {
-					triggerEvent("onBeatHit")
-				}
-
-				if (oldStep != this.currentStep) {
-					// triggerEvent("onStepHit")
-				}
+			if (oldStep != this.currentStep) {
+				// triggerEvent("onStepHit")
 			}
 		}
 	}

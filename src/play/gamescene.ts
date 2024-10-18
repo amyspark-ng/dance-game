@@ -1,11 +1,11 @@
 import { addDancer } from "./objects/dancer"
 import { GameState } from "../game/gamestate"
 import { playSound } from "../plugins/features/sound"
-import { onBeatHit } from "../game/events"
+import { onBeatHit, onNoteHit } from "../game/events"
 import { setupInput } from "./input"
 import { Conductor, setupConductor } from "./conductor"
 import { addStrumline } from "./objects/strumline"
-import { notesSpawner, setTimeForStrum } from "./objects/note"
+import { notesSpawner, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note"
 import { songCharts } from "../game/loader"
 import { SongChart } from "./song"
 import { goScene } from "../game/scenes"
@@ -15,21 +15,28 @@ export type GameSceneParams = {
 	song: SongChart,
 	/** The name of the dancer, i haven't done this yet so it will stay as optional */
 	dancer?: string,
+	/** How fast to make the song :smiling_imp: */
+	playbackSpeed?: number,
 }
 
 export function startSong(params: GameSceneParams) {
 	// ==== PLAYS THE AUDIO AND SETS UP THE CONDUCTOR ===
+	// Reset stuff related to gamestate
 	GameState.conductor?.audioPlay?.stop()
 	GameState.conductor = null;
 	GameState.health = 100
-
-	const audioPlay = playSound(`${params.song.title}-song`, { volume: 0.1 })
-	const conductor = new Conductor({ audioPlay: audioPlay, bpm: params.song.bpm, timeSignature: params.song.timeSignature })
-	setupConductor(conductor)
-
-	GameState.currentSong = songCharts[params.song.idTitle]
 	GameState.spawnedNotes = []
-	setTimeForStrum(params.song.timeForStrum)
+	GameState.currentSong = songCharts[params.song.idTitle]
+
+	// now that we have the song we can get the scroll speed multiplier and set the playback speed for funzies
+	params.playbackSpeed = params.playbackSpeed ?? 1;
+	const speed = GameState.currentSong.speedMultiplier * params.playbackSpeed
+	setTimeForStrum(TIME_FOR_STRUM / speed)
+
+	// then we actually setup the conductor and play the song
+	const audioPlay = playSound(`${params.song.title}-song`, { volume: 0.1, speed: params.playbackSpeed })
+	const conductor = new Conductor({ audioPlay: audioPlay, bpm: params.song.bpm * params.playbackSpeed, timeSignature: params.song.timeSignature })
+	setupConductor(conductor)
 }
 
 export function GameScene() { scene("game", (params: GameSceneParams) => {
@@ -51,7 +58,9 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 	dancer.pos = DANCER_POS
 
 	onHide(() => {
-		GameState.managePause(true)
+		if (!GameState.paused) {
+			GameState.managePause(true)
+		}
 	})
 
 	onBeatHit(() => {
