@@ -5,7 +5,6 @@ import { checkForNoteHit, getNotesOnScreen } from "../input";
 import { NoteGameObj } from "./note";
 import { addJudgement, getJudgement, getScorePerDiff } from "./judgement";
 import { triggerEvent } from "../../game/events";
-import { GameState } from "../../game/gamestate";
 
 export interface strumlineComp extends Comp {
 	/** Wheter the strumline is pressd */

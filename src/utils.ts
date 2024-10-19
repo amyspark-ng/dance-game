@@ -45,6 +45,11 @@ export class utils {
 		return vec2(initialpos.x + spacing.x * (column), initialpos.y + spacing.y * (row));
 	}
 
+	/** Formats time with miutes, seconds and miliseconds */
+	static formatTime(timeInSeconds: number) : string {
+		return `${Math.floor(timeInSeconds / 60)}:${(timeInSeconds % 60).toFixed(2).padStart(5, "0")}`
+	}
+
 	/** A real roundabout of just doing col1.lerp(col2, 0.5) */
 	static blendColors(col1: Color, col2: Color, blendFactor: number) {
 		return col1.lerp(col2, blendFactor) as Color

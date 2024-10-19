@@ -1,6 +1,5 @@
 // # This file will manage the ranking system
-
-import { GameState } from "../../game/gamestate";
+import { GameState } from "../gamescene";
 import { getDancer } from "./dancer";
 import { ChartNote } from "./note";
 

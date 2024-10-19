@@ -1,12 +1,11 @@
 import { GameSave } from "../game/gamesave"
-import { getDancer, Move } from "./objects/dancer"
-import { GameState } from "../game/gamestate"
 import { getStrumline } from "./objects/strumline"
-import { ChartNote, NoteGameObj } from "./objects/note"
-import { goScene } from "../game/scenes"
-import { GameSceneParams, resetSong } from "./gamescene"
-import { songCharts } from "../game/loader"
-import { fadeOut } from "../game/transitions/fadeOutTransition"
+import { ChartNote } from "./objects/note"
+import { GameState, resetSong } from "./gamescene";
+import { Move } from "./objects/dancer";
+import { goScene, transitionToScene } from "../game/scenes";
+import { chartEditorParams } from "../debug/charteditorscene";
+import { fadeOut } from "../game/transitions/fadeOutTransition";
 
 /** The main function that manages inputs for the game */
 export function setupInput() {
@@ -34,6 +33,10 @@ export function setupInput() {
 	onKeyPress(GameSave.preferences.controls.reset, () => {
 		if (!GameState.gameInputEnabled) return
 		resetSong()
+	})
+
+	onKeyPress(GameSave.preferences.controls.debug, () => {
+		transitionToScene(fadeOut, "charteditor", { song: GameState.currentSong } as chartEditorParams)
 	})
 }
 

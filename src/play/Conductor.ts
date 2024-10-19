@@ -1,5 +1,4 @@
 import { triggerEvent } from "../game/events";
-import { GameState } from "../game/gamestate";
 import { customAudioPlay } from "../plugins/features/sound";
 import { TIME_FOR_STRUM } from "./objects/note";
 
@@ -61,8 +60,16 @@ export class Conductor {
 	currentStep: number;
 	currentBeat: number;
 
+	/** The bpm of the song on the audioPlay */
+	BPM: number = 100;
+
+	/** Wheter the conductor is playing */
+	paused: boolean = false;
+
 	/** Gets how many beats are in the song */
 	get totalBeats() {
+		// Converts the the duration to minutes, BPM is how many beats there are in a minute
+		// Multiplied by minutes in a song, total beats lol!
 		return this.BPM * (this.audioPlay.duration() / 60)
 	}
 
@@ -70,9 +77,6 @@ export class Conductor {
 	get totalSteps() {
 		return this.stepsPerBeat * this.totalBeats
 	}
-
-	/** The bpm of the song on the audioPlay */
-	BPM: number = 100;
 
 	/** Function that should run at the start of the conductor */
 	add() {
@@ -84,12 +88,12 @@ export class Conductor {
 		this.currentBeat = 0
 		this.currentStep = 0
 		this.timeInSeconds = -TIME_FOR_STRUM
-		this.audioPlay.stop();
 	}
 
 	/** Update function that should run onUpdate so the conductor gets updated */
 	update() {
-		if (GameState.paused) return;
+		if (this.timeInSeconds >= 0) this.audioPlay.paused = this.paused;
+		if (this.paused) return;
 
 		if (this.timeInSeconds < 0) {
 			this.timeInSeconds += dt()
@@ -99,7 +103,7 @@ export class Conductor {
 		// if it has to start playing and hasn't started playing, play!!
 		else if (this.timeInSeconds >= 0) {
 			this.timeInSeconds = this.audioPlay.time()
-			this.audioPlay.paused = GameState.paused;
+			
 			let oldBeat = this.currentBeat;
 			let oldStep = this.currentStep;
 			
@@ -119,10 +123,9 @@ export class Conductor {
 	/** Basically sets it up so we can start the song */
 	setup() {
 		this.audioPlay?.stop();
-		GameState.conductor = this;
 	
 		onUpdate(() => {
-			GameState.conductor.update()
+			this.update()
 		})
 	}
 

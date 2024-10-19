@@ -12,6 +12,7 @@ export function fadeOut(sceneName: sceneNameType, params: any) : void {
 		stay(),
 		layer("background"),
 		z(1),
+		fixed(),
 		timer(),
 		"fadeTransition"
 	])

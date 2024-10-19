@@ -1,5 +1,4 @@
-Dancer squishing
-Note spawning and stuff like that trying for note hit
+Fix reset repeating song whaaat
 
 TEMPLATE
 Fix volume and muting and all that jazz

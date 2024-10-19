@@ -18,6 +18,7 @@ export type Preferences = {
 		pause: Key,
 		accept: Key,
 		reset: Key,
+		debug: Key,
 	},
 }
 
@@ -44,6 +45,7 @@ export class GameSaveClass {
 			pause: "escape",
 			accept: "enter",
 			reset: "r",
+			debug: "l",
 		},
 	}
 

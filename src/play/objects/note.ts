@@ -2,9 +2,9 @@ import { Color, Comp, TimerController } from "kaplay";
 import { getDancer, Move } from "./dancer";
 import { utils } from "../../utils";
 import { getStrumline, strumline } from "./strumline";
-import { GameState } from "../../game/gamestate";
 import { INPUT_THRESHOLD } from "../input";
 import { onReset, triggerEvent } from "../../game/events";
+import { GameState } from "../gamescene";
 
 /** How much pixels per second does the note move at */
 export const NOTE_PXPERSECOND = 5;
@@ -22,10 +22,10 @@ export type ChartNote = {
 	/** The move (the color) the dancer will do upon hitting this note */
 	dancerMove: Move,
 	/** the time the note must be spawned at */
-	spawnTime: number,
+	spawnTime?: number,
 }
 
-function moveToColor(move: Move) : Color {
+export function moveToColor(move: Move) : Color {
 	switch (move) {
 		case "left": return utils.blendColors(RED, BLUE, 0.5).lighten(10)
 		case "down": return BLUE.lighten(50)
@@ -136,7 +136,7 @@ export function notesSpawner() {
 	}
 
 	onUpdate(() => {
-		if (GameState.paused) return;
+		if (GameState.conductor.paused) return;
 		checkNotes()
 	})
 }

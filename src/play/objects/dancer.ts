@@ -2,8 +2,8 @@ import { Comp, GameObj, KEventController, PosComp, ScaleComp, SpriteComp, TimerC
 import { juice, juiceComp } from "../../plugins/graphics/juiceComponent"
 import { onBeatHit } from "../../game/events"
 import { playSound } from "../../plugins/features/sound"
-import { GameState } from "../../game/gamestate"
 import { goScene } from "../../game/scenes"
+import { GameState } from "../gamescene"
 
 /** Moves available for the dancer, also handles the note type */
 export type Move = "left" | "right" | "up" | "down" | "idle"

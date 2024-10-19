@@ -7,7 +7,6 @@ import { GameSave } from "./gamesave"
 import { setupLayers } from "./layers"
 import { loadAssets, loadingScreen, songCharts } from "./loader"
 import { goScene, setupScenes } from "./scenes"
-import { GameState } from "./gamestate"
 import { setupWatch } from "../plugins/features/watcher"
 import { chartEditorParams } from "../debug/charteditorscene"
 
@@ -51,7 +50,6 @@ export function initGame() {
 			goGameScene()
 		}
 	
-		globalThis.GameState = GameState
 		globalThis.GameSave = GameSave
 	})
 	

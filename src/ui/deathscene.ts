@@ -1,9 +1,8 @@
 import { triggerEvent } from "../game/events"
 import { GameSave } from "../game/gamesave"
-import { GameState } from "../game/gamestate"
 import { goScene, transitionToScene } from "../game/scenes"
 import { fadeOut } from "../game/transitions/fadeOutTransition"
-import { GameSceneParams } from "../play/gamescene"
+import { GameSceneParams, GameState } from "../play/gamescene"
 
 export function DeathScene() { scene("death", () => {
 	setBackground(BLACK)

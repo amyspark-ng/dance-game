@@ -32,6 +32,10 @@ export function onBeatHit(action: () => void) {
 	return getTreeRoot().on("onBeatHit", action)
 }
 
+export function onStepHit(action: () => void) {
+	return getTreeRoot().on("onStepHit", action)
+}
+
 export function onNoteHit(action: (note: ChartNote) => void) {
 	return getTreeRoot().on("onNoteHit", action)
 }
