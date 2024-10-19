@@ -58,6 +58,9 @@ export type GameSceneParams = {
 	dancer?: string,
 	/** How fast to make the song :smiling_imp: */
 	playbackSpeed?: number,
+
+	/** If the song should start at a specific second */
+	seekTime?: number,
 }
 
 /** Instance of the game scene */
@@ -73,6 +76,8 @@ export function startSong(params: GameSceneParams) {
 	GameState.tally = new Tally();
 	GameState.currentSong = songCharts[params.song.idTitle]
 	
+	params.seekTime = params.seekTime ?? 0
+
 	// now that we have the song we can get the scroll speed multiplier and set the playback speed for funzies
 	params.playbackSpeed = params.playbackSpeed ?? 1;
 	const speed = GameState.currentSong.speedMultiplier * params.playbackSpeed
@@ -84,6 +89,13 @@ export function startSong(params: GameSceneParams) {
 	conductor.setup();
 	GameState.conductor = conductor;
 	if (getDancer()) getDancer().doMove("idle")
+
+	// all notes that should have already been spawned
+	GameState.currentSong.notes.forEach((note) => {
+		if (note.hitTime < params.seekTime) GameState.spawnedNotes.push(note)
+	})
+
+	GameState.conductor.audioPlay.seek(params.seekTime)
 }
 
 export function resetSong() {

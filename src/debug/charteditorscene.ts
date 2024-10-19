@@ -67,6 +67,10 @@ export function ChartEditor() { scene("charteditor", (params: chartEditorParams)
 		ChartState.conductor.paused = ChartState.paused;
 		viewedTime = camPosToTime(cam.pos.y, ChartState.conductor.lengthOfStep)
 		timeText.text = utils.formatTime(viewedTime) + "\n" + `Current step: ${ChartState.conductor.currentStep}`
+	
+		if (isKeyDown("control") && isKeyPressed("s")) {
+			downloadJSON(`${params.song.idTitle}-chart.json`, ChartState.song)
+		}
 	})
 
 	/** The initial pos of the first square */
@@ -108,7 +112,6 @@ export function ChartEditor() { scene("charteditor", (params: chartEditorParams)
 		// if the mouse pos is close to any square then highlight it
 		// convert mouse pos to step
 		// here i do the stuff to place notes
-
 	})
 
 	const keysAndMoves = {
@@ -148,7 +151,7 @@ export function ChartEditor() { scene("charteditor", (params: chartEditorParams)
 	})
 
 	onKeyPress("enter", () => {
-		transitionToScene(fadeOut, "game", { song: ChartState.song } as GameSceneParams)
+		transitionToScene(fadeOut, "game", { song: ChartState.song, seekTime: viewedTime } as GameSceneParams)
 	})
 
 	onStepHit(() => {
