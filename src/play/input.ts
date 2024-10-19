@@ -4,7 +4,7 @@ import { GameState } from "../game/gamestate"
 import { getStrumline } from "./objects/strumline"
 import { ChartNote, NoteGameObj } from "./objects/note"
 import { goScene } from "../game/scenes"
-import { GameSceneParams } from "./gamescene"
+import { GameSceneParams, resetSong } from "./gamescene"
 import { songCharts } from "../game/loader"
 import { fadeOut } from "../game/transitions/fadeOutTransition"
 
@@ -33,17 +33,15 @@ export function setupInput() {
 
 	onKeyPress(GameSave.preferences.controls.reset, () => {
 		if (!GameState.gameInputEnabled) return
-		
-		if (GameState.paused) GameState.managePause(false)
-		goScene("game", { song: GameState.currentSong } as GameSceneParams)
+		resetSong()
 	})
 }
 
 // TIMINGS
 export const INPUT_THRESHOLD = 0.16
 
-/** Runs every time you press a key, if you pressed in time to any note it will return it */
-export function checkForNote(move: Move) : ChartNote {
+/** Runs when you press and returns the note hit or null if you didn't hit anything on time */
+export function checkForNoteHit(move: Move) : ChartNote {
 	function conditionsForHit(note: ChartNote) {
 		// i have to check if the current time in the song is between the hittime of the note
 		const t = GameState.conductor.timeInSeconds
@@ -62,4 +60,9 @@ export function checkForNote(move: Move) : ChartNote {
 	else {
 		return null;
 	}
+}
+
+/** Returns an array of all the notes currently on the screen */
+export function getNotesOnScreen() {
+	return get("noteObj", { recursive: true })
 }

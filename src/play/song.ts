@@ -31,18 +31,18 @@ export class SongChart {
 }
 
 /** Holds the current tallies for the current song */
-export type Tally = {
-	awesomes: number,
-	goods: number,
-	ehhs: number,
-	misses: number,
-	score: number,
+export class Tally {
+	awesomes: number;
+	goods: number;
+	ehhs: number;
+	misses: number;
+	score: number;
 }
 
 /** When a song ends pushes an object of this type with that song in mind idk */
-export type saveSongScore = {
-	score: number,
-	tally: Tally,
+export class saveSongScore {
+	score: number;
+	tally: Tally;
 }
 
 // something like GameSave.songsPlayed["bopeebo"]

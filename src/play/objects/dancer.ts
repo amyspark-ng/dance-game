@@ -44,19 +44,6 @@ export function dancer() : dancerComp {
 		},
 
 		doMove(move: Move) {
-			
-			/* Storing this code for the results screen 
-			if (move === "victory") {
-				this.play("victory")
-				onAnimEndEvent?.cancel()
-				onAnimEndEvent = this.onAnimEnd((animName) => {
-					if (animName == "victory") {
-						this.play("victory", { loop: true })
-					}
-				})
-			}
-			*/
-			
 			onAnimEndEvent?.cancel()
 			this.play(move)
 
@@ -73,23 +60,23 @@ export function dancer() : dancerComp {
 		},
 
 		miss() {
-			playSound("missnote", { volume: 0.1 })
-			
-			this.play("miss")
-			this.moveBop()
+			this.play("miss");
+			this.moveBop();
 	
-			GameState.health -= 5
+			GameState.health -= 5;
 			debug.log("missed")
 
-			waitForIdle?.cancel()
+			waitForIdle?.cancel();
+			waitForIdle = null;
 			waitForIdle = wait(TIME_FOR_IDLE, () => {
-				this.doMove("idle")
+				this.doMove("idle");
 			})
 		},
 
 		update() {
 			GameState.health = clamp(GameState.health, 0, 100)
 			if (GameState.health <= 0) goScene("death")
+			if (waitForIdle) waitForIdle.paused = GameState.paused;
 		},
 	}
 }

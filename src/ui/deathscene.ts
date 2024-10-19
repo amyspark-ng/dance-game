@@ -1,3 +1,4 @@
+import { triggerEvent } from "../game/events"
 import { GameSave } from "../game/gamesave"
 import { GameState } from "../game/gamestate"
 import { goScene, transitionToScene } from "../game/scenes"
@@ -25,5 +26,9 @@ export function DeathScene() { scene("death", () => {
 
 	onKeyPress(GameSave.preferences.controls.accept, () => {
 		transitionToScene(fadeOut, "game", { song: GameState.currentSong })
+	})
+
+	onKeyPress("q", () => {
+		triggerEvent("onBeatHit")
 	})
 })}

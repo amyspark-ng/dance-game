@@ -2,14 +2,8 @@ import { GameObj, OpacityComp } from "kaplay"
 import { playSound } from "../plugins/features/sound"
 
 export function onPause() {
-	// playSound("pauseScratch", { detune: 0, speed: 1 })
-	
-	// GameState.conductor.audioPlay.scratch({
-	// 	newDetune: -30,
-	// 	newVolume: 0,
-	// 	time: 0.2
-	// })
-
+	// const pauseScratch = playSound("pauseScratch", { detune: 0, speed: 1 })
+	// pauseScratch.detune = rand(-100, 100)
 	let pauseBlack = get("pauseBlack")[0]
 
 	// not found pauseBlack

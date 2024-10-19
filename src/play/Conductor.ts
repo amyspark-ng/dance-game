@@ -61,6 +61,16 @@ export class Conductor {
 	currentStep: number;
 	currentBeat: number;
 
+	/** Gets how many beats are in the song */
+	get totalBeats() {
+		return this.BPM * (this.audioPlay.duration() / 60)
+	}
+
+	/** Gets how many steps are in the song */
+	get totalSteps() {
+		return this.stepsPerBeat * this.totalBeats
+	}
+
 	/** The bpm of the song on the audioPlay */
 	BPM: number = 100;
 
@@ -81,13 +91,13 @@ export class Conductor {
 	update() {
 		if (GameState.paused) return;
 
-		if (this.timeInSeconds <= 0) {
+		if (this.timeInSeconds < 0) {
 			this.timeInSeconds += dt()
 			this.audioPlay.paused = true
 		}
 
-		// if it has to start playing and hasn't started playing play!!
-		else {
+		// if it has to start playing and hasn't started playing, play!!
+		else if (this.timeInSeconds >= 0) {
 			this.timeInSeconds = this.audioPlay.time()
 			this.audioPlay.paused = GameState.paused;
 			let oldBeat = this.currentBeat;
@@ -101,9 +111,19 @@ export class Conductor {
 			}
 
 			if (oldStep != this.currentStep) {
-				// triggerEvent("onStepHit")
+				triggerEvent("onStepHit")
 			}
 		}
+	}
+
+	/** Basically sets it up so we can start the song */
+	setup() {
+		this.audioPlay?.stop();
+		GameState.conductor = this;
+	
+		onUpdate(() => {
+			GameState.conductor.update()
+		})
 	}
 
 	constructor(opts: conductorOpts) {
@@ -112,13 +132,4 @@ export class Conductor {
 		this.timeSignature = opts.timeSignature
 		this.add()
 	}
-}
-
-/** Sets up the functions related to conducting the loop of the song, runs once */
-export function setupConductor(conductor: Conductor) {
-	GameState.conductor = conductor;
-	
-	onUpdate(() => {
-		GameState.conductor.update()
-	})
 }

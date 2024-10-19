@@ -14,7 +14,7 @@ export const PRODUCT_NAME = "dance-game" // lol
 export const SAVE_NAME = `${PRODUCT_AUTHOR}.${PRODUCT_NAME}.save`
 export const STARTING_SCENE:sceneNameType = "game"
 
-export const DFEATURE_FOCUS = true
+export const DFEATURE_FOCUS = false
 
 // # KAPLAY
 export const libraryOpts = {

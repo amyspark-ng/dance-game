@@ -25,6 +25,8 @@ export function getJudgement(chartNote: ChartNote) : Judgement {
 	const diff = GameState.conductor.timeInSeconds - chartNote.hitTime
 	const absDiff = Math.abs(diff)
 
+	// if the diff is less than 0 then the player hit early, just a note
+
 	// The lesser the difference the better the judgement
 	if (absDiff <= AWESOME_TIMING) return "Awesome"
 	else if (absDiff <= GOOD_TIMING) return "Good"
@@ -49,4 +51,6 @@ export function addJudgement(judgement: Judgement) {
 	})
 
 	judgementObj.fadeOut(1)
+	
+	return judgementObj;
 }

@@ -5,13 +5,13 @@ import { SongChart, Tally } from "../play/song";
 
 export class GameStateClass {
 	/** The current conductor */
-	conductor: Conductor;
+	conductor: Conductor = null;
 
 	/** Holds the current song chart */
 	currentSong: SongChart = new SongChart();
 	
 	/** Holds the current tallies for the song */
-	tally: Tally = { awesomes: 0, goods: 0, ehhs: 0, misses: 0, score: 0 };
+	tally: Tally = new Tally();
 
 	/** Holds all the notes that have been spawned */
 	spawnedNotes: ChartNote[] = [];

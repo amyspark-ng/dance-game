@@ -1,34 +1,45 @@
 import { ChartNote } from "../play/objects/note";
 
-/** The game's main event handler */
-export let gameEventHandler:any = null;
-
-export function setupEventHandler() {
-	gameEventHandler = new KEventHandler();
-}
+const possibleEvents = [
+	"transitionStart",
+	"transitionEnd",
+	"onBeatHit",
+	"onStepHit",
+	"onNoteHit",
+	"onMiss",
+	"onReset",
+] as const
 
 /** Type that dictates possible events in the game */
-export type possibleEvents = "transitionStart" | "transitionEnd" | "onBeatHit" | "onNoteHit"
+export type possibleEvents = typeof possibleEvents[number];
 
 /** Triggers an event */
-export function triggerEvent(possibleEvent: possibleEvents, ...args:any) {
-	gameEventHandler.trigger(possibleEvent, args)
+export function triggerEvent(possibleEvent: possibleEvents, args?:any) {
+	getTreeRoot().trigger(possibleEvent, args)
 }
 
 /** Event that runs when a transition starts */
 export function onTransitionStart(action: (nameOfTransition: string) => void) {
-	return gameEventHandler.on("transitionStart" as possibleEvents, action)
+	return getTreeRoot().on("transitionStart", action)
 }
 
 /** Event that runs when a transition ends */
 export function onTransitionEnd(action: (nameOfTransition: string) => void) {
-	return gameEventHandler.on("transitionEnd" as possibleEvents, action)
+	return getTreeRoot().on("transitionEnd", action)
 }
 
 export function onBeatHit(action: () => void) {
-	return gameEventHandler.on("onBeatHit" as possibleEvents, action)
+	return getTreeRoot().on("onBeatHit", action)
 }
 
 export function onNoteHit(action: (note: ChartNote) => void) {
-	return gameEventHandler.on("onNoteHit" as possibleEvents, action)
+	return getTreeRoot().on("onNoteHit", action)
+}
+
+export function onMiss(action: () => void) {
+	return getTreeRoot().on("onMiss", action)
+}
+
+export function onReset(action: () => void) {
+	return getTreeRoot().on("onReset", action)
 }

@@ -4,6 +4,7 @@ import { utils } from "../../utils";
 import { getStrumline, strumline } from "./strumline";
 import { GameState } from "../../game/gamestate";
 import { INPUT_THRESHOLD } from "../input";
+import { onReset, triggerEvent } from "../../game/events";
 
 /** How much pixels per second does the note move at */
 export const NOTE_PXPERSECOND = 5;
@@ -76,7 +77,7 @@ export function addNote(chartNote: ChartNote) {
 
 		if (GameState.conductor.timeInSeconds >= chartNote.hitTime + INPUT_THRESHOLD && !hasMissedNote) {
 			hasMissedNote = true
-			getDancer().miss()
+			triggerEvent("onMiss")
 		}
 
 		if (hasMissedNote) {
@@ -102,7 +103,15 @@ export function notesSpawner() {
 	})
 
 	/** holds all the notes that have not been spawned */
-	let waiting: ChartNote[] = GameState.currentSong.notes.toSorted((a, b) => b.spawnTime - a.spawnTime)
+	let waiting: ChartNote[] = [];
+	
+	function resetWaiting() {
+		waiting = GameState.currentSong.notes.toSorted((a, b) => b.spawnTime - a.spawnTime)
+	}
+
+	resetWaiting()
+
+	onReset(() => resetWaiting())
 
 	function checkNotes() {
 		const t = GameState.conductor.timeInSeconds;
@@ -128,8 +137,6 @@ export function notesSpawner() {
 
 	onUpdate(() => {
 		if (GameState.paused) return;
-		
-		// waiting should add all the notes that are not spawned yet and sort them from last to early
 		checkNotes()
 	})
 }

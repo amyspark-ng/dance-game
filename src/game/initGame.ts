@@ -1,4 +1,4 @@
-import { DFEATURE_FOCUS, libraryOpts, PRODUCT_AUTHOR, PRODUCT_NAME, PRODUCT_VERSION, STARTING_SCENE } from "../main"
+import { DFEATURE_FOCUS, PRODUCT_AUTHOR, PRODUCT_NAME, PRODUCT_VERSION } from "../main"
 import { setupCamera } from "../plugins/features/camera"
 import { setupCursor } from "../plugins/features/gameCursor"
 import { drag } from "../plugins/features/drag"
@@ -7,13 +7,16 @@ import { GameSave } from "./gamesave"
 import { setupLayers } from "./layers"
 import { loadAssets, loadingScreen, songCharts } from "./loader"
 import { goScene, setupScenes } from "./scenes"
-import { setupEventHandler } from "./events"
 import { GameState } from "./gamestate"
-import { GameSceneParams } from "../play/gamescene"
 import { setupWatch } from "../plugins/features/watcher"
+import { chartEditorParams } from "../debug/charteditorscene"
 
 export function goGameScene() {
 	goScene("game", { song: songCharts["bopeebo"] })
+}
+
+export function goChartEditor() {
+	goScene("charteditor", { song: songCharts["bopeebo"] } as chartEditorParams)
 }
 
 /** Sets up the game */
@@ -33,7 +36,6 @@ export function initGame() {
 		setupCursor() // sets up the cursor
 		setupCamera(); // sets up the camera
 		setupSoundtray(); // sets up the soundtray
-		setupEventHandler(); // sets up the event handler
 		setupWatch(); // sets up the watcher
 
 		console.log(`${PRODUCT_AUTHOR}.${PRODUCT_NAME} v: ${PRODUCT_VERSION}`)
@@ -44,7 +46,10 @@ export function initGame() {
 			else goScene("focus")
 		}
 
-		else goGameScene()
+		else {
+			// goChartEditor()
+			goGameScene()
+		}
 	
 		globalThis.GameState = GameState
 		globalThis.GameSave = GameSave

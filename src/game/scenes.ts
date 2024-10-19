@@ -1,3 +1,4 @@
+import { ChartEditor } from "../debug/charteditorscene";
 import { GameScene } from "../play/gamescene";
 import { DeathScene } from "../ui/deathscene";
 import { FocusScene } from "../ui/focusscene";
@@ -15,6 +16,7 @@ const allGameScenes = {
 	"results": ResultsScene,
 	"songselect": SongSelectScene,
 	"death": DeathScene,
+	"charteditor": ChartEditor,
 }
 
 /** Custom type for scene names */

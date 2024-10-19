@@ -1,15 +1,16 @@
-import { addDancer } from "./objects/dancer"
+import { addDancer, getDancer } from "./objects/dancer"
 import { GameState } from "../game/gamestate"
 import { playSound } from "../plugins/features/sound"
-import { onBeatHit, onNoteHit } from "../game/events"
-import { setupInput } from "./input"
-import { Conductor, setupConductor } from "./conductor"
+import { onBeatHit, onMiss, onNoteHit, triggerEvent } from "../game/events"
+import { getNotesOnScreen, setupInput } from "./input"
+import { Conductor } from "./conductor"
 import { addStrumline } from "./objects/strumline"
-import { notesSpawner, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note"
+import { ChartNote, notesSpawner, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note"
 import { songCharts } from "../game/loader"
-import { SongChart } from "./song"
+import { SongChart, Tally } from "./song"
 import { goScene } from "../game/scenes"
 import { resultsSceneParams } from "../ui/resultsscene"
+import { addJudgement, getJudgement, getScorePerDiff } from "./objects/judgement"
 
 export type GameSceneParams = {
 	song: SongChart,
@@ -26,17 +27,30 @@ export function startSong(params: GameSceneParams) {
 	GameState.conductor = null;
 	GameState.health = 100
 	GameState.spawnedNotes = []
+	GameState.tally = new Tally();
 	GameState.currentSong = songCharts[params.song.idTitle]
-
+	
 	// now that we have the song we can get the scroll speed multiplier and set the playback speed for funzies
 	params.playbackSpeed = params.playbackSpeed ?? 1;
 	const speed = GameState.currentSong.speedMultiplier * params.playbackSpeed
 	setTimeForStrum(TIME_FOR_STRUM / speed)
-
+	
 	// then we actually setup the conductor and play the song
 	const audioPlay = playSound(`${params.song.title}-song`, { volume: 0.1, speed: params.playbackSpeed })
 	const conductor = new Conductor({ audioPlay: audioPlay, bpm: params.song.bpm * params.playbackSpeed, timeSignature: params.song.timeSignature })
-	setupConductor(conductor)
+	conductor.setup();
+	if (getDancer()) getDancer().doMove("idle")
+}
+
+export function resetSong() {
+	if (GameState.paused) GameState.managePause(false)
+
+	getNotesOnScreen().forEach((noteObj) => {
+		noteObj.destroy()
+	})
+
+	triggerEvent("onReset")
+	startSong({ song: GameState.currentSong })
 }
 
 export function GameScene() { scene("game", (params: GameSceneParams) => {
@@ -69,6 +83,29 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 		}
 	})
 
+	onNoteHit((chartNote:ChartNote) => {
+		let judgement = getJudgement(chartNote)
+		
+		if (judgement == "Miss") {
+			triggerEvent("onMiss")
+			return;
+		}
+
+		// the judgement isn't a miss
+		addJudgement(judgement)
+		getDancer().doMove(chartNote.dancerMove)
+	
+		GameState.tally[judgement.toLowerCase() + "s"] += 1
+		GameState.tally.score += getScorePerDiff(chartNote)
+	})
+
+	onMiss(() => {
+		GameState.tally.misses += 1
+		getDancer().miss()
+		playSound("missnote", { volume: 0.1 });
+		addJudgement("Miss")
+	})
+
 	// END SONG
 	GameState.conductor.audioPlay.onEnd(() => {
 		goScene("results", {} as resultsSceneParams)
@@ -79,8 +116,6 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 	})
 
 	// ==== debug ====
-	// GameState.managePause()
-
 	let keysForDebugging = {}
 
 	const textin = add([
@@ -97,7 +132,9 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 	
 		keysForDebugging["timeInSeconds"] = GameState.conductor.timeInSeconds.toFixed(3);
 		keysForDebugging["currentBeat"] = GameState.conductor.currentBeat;
+		keysForDebugging["totalBeats"] = GameState.conductor.totalBeats;
 		keysForDebugging["currentStep"] = GameState.conductor.currentStep;
+		keysForDebugging["totalSteps"] = GameState.conductor.totalSteps;
 		keysForDebugging["health"] = GameState.health;
 		textin.text = createKeys()
 	})

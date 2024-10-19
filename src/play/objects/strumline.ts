@@ -1,13 +1,16 @@
 import { Comp } from "kaplay";
 import { juice } from "../../plugins/graphics/juiceComponent";
 import { getDancer, Move } from "../objects/dancer"
-import { checkForNote } from "../input";
+import { checkForNoteHit, getNotesOnScreen } from "../input";
 import { NoteGameObj } from "./note";
 import { addJudgement, getJudgement, getScorePerDiff } from "./judgement";
 import { triggerEvent } from "../../game/events";
 import { GameState } from "../../game/gamestate";
 
 export interface strumlineComp extends Comp {
+	/** Wheter the strumline is pressd */
+	pressed: boolean;
+	
 	/** Presses/hits the strumline */
 	press(move: Move): void,
 
@@ -21,44 +24,38 @@ export function strumline() : strumlineComp {
 	return {
 		id: "strumlineComp",
 		require: [ "color", "juice" ],
+		pressed: false,
 
 		press(move: Move) {
+			this.pressed = true;
+			
 			this.bop({
 				startScale: vec2(1),
 				endScale: vec2(PRESS_SCALE),
 			})
 
-			const note = checkForNote(move)
-			if (note != null) {
-				// get the noteGameObj with the note
-				const hitNote = get("noteObj", { recursive: true }).find((noteGameObj) => noteGameObj.chartNote == note) as NoteGameObj
-				
-				if (hitNote) {
-					hitNote.destroy()
-					let judgement = getJudgement(hitNote.chartNote)
+			// there's notes on the screen
+			if (getNotesOnScreen().length > 0) {
+				const note = checkForNoteHit(move)
+				if (note != null) {
+					// get the noteGameObj with the note
+					const hitNote = get("noteObj", { recursive: true }).find((noteGameObj) => noteGameObj.chartNote == note) as NoteGameObj
 					
-					if (judgement == "Miss") {
-						getDancer().miss()
-						addJudgement("Miss")
+					if (hitNote) {
+						hitNote.destroy()
+						triggerEvent("onNoteHit", hitNote.chartNote)
 					}
-	
-					addJudgement(judgement)
-					getDancer().doMove(note.dancerMove)
-					triggerEvent("onNoteHit", hitNote.chartNote)
-				
-					GameState.tally[judgement.toLowerCase() + "s"] += 1
-					GameState.tally.score += getScorePerDiff(hitNote.chartNote)
-					console.log(GameState.tally)
 				}
-			}
-
-			else if (note == null) {
-				getDancer().miss()
-				addJudgement("Miss")
+	
+				else if (note == null) {
+					triggerEvent("onMiss")
+				}
 			}
 		},
 
 		release() {
+			this.pressed = false;
+			
 			this.bop({
 				startScale: vec2(PRESS_SCALE),
 				endScale: vec2(1),
