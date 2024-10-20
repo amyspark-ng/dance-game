@@ -55,6 +55,12 @@ export class utils {
 		return num >= min && num <= max
 	}
 
+	// thank you u/LambentLight
+	/** Converts with and height to a radius of a circle */
+	static widthAndHeightToRadius(size: Vec2) {
+		return (size.y / 2) + ((size.x) / (8 * size.y))
+	}
+	
 	/** A real roundabout of just doing col1.lerp(col2, 0.5) */
 	static blendColors(col1: Color, col2: Color, blendFactor: number) {
 		return col1.lerp(col2, blendFactor) as Color

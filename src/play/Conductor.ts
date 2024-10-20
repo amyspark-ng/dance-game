@@ -78,8 +78,8 @@ export class Conductor {
 		return this.stepsPerBeat * this.totalBeats
 	}
 
-	/** Function that should run at the start of the conductor */
-	add() {
+	/** Function that runs at the start of the conductor */
+	add(offset?:number) {
 		this.beatInterval = 60 / this.BPM;
 		this.beatsPerMeasure = this.timeSignature[1];
 		this.stepsPerBeat = this.timeSignature[0];
@@ -87,7 +87,7 @@ export class Conductor {
 	
 		this.currentBeat = 0
 		this.currentStep = 0
-		this.timeInSeconds = -TIME_FOR_STRUM
+		this.timeInSeconds = -offset
 	}
 
 	/** Update function that should run onUpdate so the conductor gets updated */
@@ -121,7 +121,9 @@ export class Conductor {
 	}
 
 	/** Basically sets it up so we can start the song */
-	setup() {
+	setup(offset?: number) {
+		offset = offset ?? 0
+		this.add(offset)
 		this.audioPlay?.stop();
 	
 		onUpdate(() => {
@@ -133,6 +135,5 @@ export class Conductor {
 		this.audioPlay = opts.audioPlay;
 		this.BPM = opts.bpm;
 		this.timeSignature = opts.timeSignature
-		this.add()
 	}
 }

@@ -1,3 +1,4 @@
+import { SpriteAtlasData } from "kaplay";
 import { SongChart } from "../play/song";
 
 /** The loading screen of the game */
@@ -26,6 +27,33 @@ export function loadingScreen(progress: number) {
 }
 
 export let songCharts:SongChart[] = [] 
+
+function loadNoteSkins() {
+	let spriteAtlasData = {}
+
+	let noteSkinTypes = ["P_", "T_", "A_"]
+	let movements = ["up", "down", "left", "right"]
+	
+	let x = 0
+	let y = 0
+	let size = 80
+	noteSkinTypes.forEach((noteSkinType, noteIndex) => {
+		movements.forEach((move, movIndex) => {
+			x = movIndex * size
+			y = noteIndex * size
+
+			spriteAtlasData[noteSkinType + move] = {
+				width: size,
+				height: size,
+				x: x,
+				y: y,
+			}
+		})
+	})
+
+	console.log(spriteAtlasData)
+	loadSpriteAtlas("sprites/noteSkins.png", spriteAtlasData)
+}
 
 function loadSong(songName: string) {
 	loadSound(`${songName}-song`, `songs/${songName}/${songName}-song.ogg`)
@@ -68,6 +96,8 @@ export function loadAssets() {
 	loadSound("ClickUp", "sounds/ClickUp.ogg")
 	loadSound("pauseScratch", "sounds/pauseScratch.mp3")
 	loadSound("missnote", "sounds/missnote.mp3")
+
+	loadNoteSkins()
 
 	// Written by MF
 	loadShader("saturate", null, `

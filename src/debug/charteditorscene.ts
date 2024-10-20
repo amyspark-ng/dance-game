@@ -7,15 +7,13 @@ import { playSound } from "../plugins/features/sound"
 import { utils } from "../utils"
 import { transitionToScene } from "../game/scenes"
 import { fadeOut } from "../game/transitions/fadeOutTransition"
-import { GameSceneParams } from "../play/gamescene"
+import { GameSceneParams, GameStateClass } from "../play/gamescene"
 import { Conductor } from "../play/conductor"
 import { GameSave } from "../game/gamesave"
 import { Move } from "../play/objects/dancer"
 import { INPUT_THRESHOLD } from "../play/input"
 import { gameCursor } from "../plugins/features/gameCursor"
 import { dragger } from "../plugins/features/drag"
-
-const CAM_Y_INITIAL = 88
 
 export type chartEditorParams = {
 	song: SongChart,
@@ -33,19 +31,17 @@ function stepToTime(step: number, lengthOfStep: number) {
 	return step * lengthOfStep
 }
 
-/** Converts the cam.y pos to time */
-function camPosToTime(camPosY: number, lengthOfStep: number) {
-	return stepToTime(camPosY / 50, lengthOfStep)
-}
-
 export function snapToGrid(num: number, SQUARE_SIZE = 50) {
-	return Math.floor(num / SQUARE_SIZE) * SQUARE_SIZE + SQUARE_SIZE * 0.5
+	return Math.floor(num / SQUARE_SIZE) * SQUARE_SIZE + SQUARE_SIZE / 2
 }
 
 export class ChartStateClass {
 	song: SongChart;
 	paused: boolean;
 	conductor: Conductor;
+
+	/** How many steps scrolled */
+	scrollStep: number = 0;
 }
 
 function moveToDetune(move: Move) {
@@ -63,6 +59,7 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 	// had an issue with BPM being NaN but it was because since this wasn't defined then it was NaN
 	params.playbackSpeed = params.playbackSpeed ?? 1
 	params.seekTime = params.seekTime ?? 0
+	params.seekTime = Math.abs(params.seekTime)
 
 	const ChartState = new ChartStateClass()
 
@@ -78,13 +75,21 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 	// IMPORTANT
 	ChartState.paused = true
 	ChartState.song = params.song;
-	/** The time according to the camera */
-	let viewedTime = 0
+
+	let scrollStepToTime = stepToTime(ChartState.scrollStep, ChartState.conductor.stepInterval)
+
 	/** When you hold down a key, the cursor will change color to signify the move */
 	let currentMove:Move = "up"
-	/** The Y pos of the cursor (in grid) */
-	let cursorYGridPos = 0
+	
+	/** The Y pos of the cursor (divided in grid) */
+	let cursorGridPos = 0
+	
+	/** The row the cursor is in (the step) */
+	let cursorGridRow = 0
+
 	let isCursorInGrid = false;
+
+	let cameraControllerPos = vec2(width() - 25, 25)
 
 	const keysAndMoves = {}
 	Object.values(GameSave.preferences.gameControls).forEach((keyForMove) => {
@@ -98,34 +103,30 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 		fixed(),
 	])
 
-	const cameraController = add([
-		pos(25),
-		rect(50, 50),
-		area(),
-		anchor("center"),
-		area(),
-		color(YELLOW),
-		opacity(0.5),
-		fixed(),
-		{
-			holding: false,
-		}
-	])
-
-	cameraController.onClick(() => {
-		cameraController.holding = true
-	})
-
-	cameraController.onMouseRelease(() => {
-		cameraController.holding = false
-	})
-
+	const cameraController = add([ opacity() ])
+	let movingCamera = false
 	cameraController.onUpdate(() => {
-		if (cameraController.holding) {
-			cameraController.pos.y = mousePos().y
-			cameraController.pos.y = clamp(cameraController.pos.y, 25, height() - 25)
-		
-			cam.pos.y = map(cameraController.pos.y, 25, height() - 25, CAM_Y_INITIAL, 50 * ChartState.conductor.totalSteps)
+		if (isMousePressed("left") && mousePos().x >= width() - 50 && movingCamera == false) {
+			movingCamera = true
+			if (!ChartState.paused) ChartState.paused = true
+		}
+
+		else if (isMouseReleased("left") && movingCamera == true) {
+			movingCamera = false
+		}
+
+		if (ChartState.paused) cameraController.opacity = 0.5
+		else cameraController.opacity = 0.4
+
+		if (movingCamera) {
+			cameraControllerPos.y = mousePos().y
+			cameraControllerPos.y = clamp(cameraControllerPos.y, 25, height() - 25)
+			ChartState.scrollStep = mapc(cameraControllerPos.y, 25, height() - 25, 0, ChartState.conductor.totalSteps)
+			ChartState.scrollStep = Math.round(ChartState.scrollStep)
+		}
+
+		else {
+			cameraControllerPos.y = mapc(ChartState.scrollStep, 0, ChartState.conductor.totalSteps, 25, height() - 25)
 		}
 	})
 
@@ -154,15 +155,22 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 
 	onUpdate(() => {
 		ChartState.conductor.paused = ChartState.paused;
-		viewedTime = camPosToTime(cam.pos.y, ChartState.conductor.stepInterval)
+		scrollStepToTime = stepToTime(ChartState.scrollStep, ChartState.conductor.stepInterval)
+		ChartState.scrollStep = clamp(ChartState.scrollStep, 0, ChartState.conductor.totalSteps)
+
+		if (!ChartState.paused) {
+			ChartState.scrollStep = ChartState.conductor.currentStep
+		}
 
 		gameCursor.color = utils.blendColors(WHITE, moveToColor(currentMove), 0.5)
 
+		const scrollStepsToTime = utils.formatTime(scrollStepToTime)
+		const formattedTime = utils.formatTime(ChartState.conductor.timeInSeconds)
+
 		const allProps = {
-			"Time": ChartState.paused ? utils.formatTime(viewedTime) : utils.formatTime(ChartState.conductor.timeInSeconds),
-			"Step": timeToStep(viewedTime, ChartState.conductor.stepInterval),
-			"Beat": Math.floor(viewedTime / ChartState.conductor.beatInterval),
-			"camPos": cam.pos.y
+			"Time": ChartState.paused ? scrollStepsToTime : formattedTime,
+			"Beat": Math.floor(scrollStepToTime / ChartState.conductor.beatInterval),
+			"scrollStep": ChartState.scrollStep
 		}
 
 		propsText.text = Object.entries(allProps).map(([key, value]) => `${key}: ${value}`).join("\n")
@@ -177,29 +185,33 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 			}
 		})
 	
-		cursorYGridPos = Math.floor(mousePos().y / SQUARE_SIZE.y) * SQUARE_SIZE.y + SQUARE_SIZE.y * 0.5 
+		cursorGridPos = Math.floor(mousePos().y / SQUARE_SIZE.y) * SQUARE_SIZE.y + SQUARE_SIZE.y / 2 
+		cursorGridRow = Math.floor(cursorGridPos / SQUARE_SIZE.y) - 0.5
 	})
 
-	/** The initial pos of the first square */
-	const INITIAL_POS = vec2(center().x, 25)
 	/** Width and height of every square */
 	const SQUARE_SIZE = vec2(50, 50)
+	/** The initial pos of the first square */
+	const INITIAL_POS = vec2(center().x, SQUARE_SIZE.y + SQUARE_SIZE.y / 2)
 
 	/** The main event, draws everything so i don't have to use objects */
 	onDraw(() => {
 		// draws as many squares as steps in the song
 		for (let i = 0; i < ChartState.conductor.totalSteps; i++) {
 			const newPos = utils.getPosInGrid(INITIAL_POS, i, 0, SQUARE_SIZE)
+			newPos.y -= 50 * ChartState.scrollStep
 
 			const baseColor = WHITE.darken(100)
-			const col = i % 2 == 0 ? baseColor.darken(10) : baseColor.darken(50)
+			const lighter = baseColor.darken(10)
+			const darker = baseColor.darken(50)
+			const col = i % 2 == 0 ? lighter : darker
 
-			// draws the background rect
+			// draws the background chess board squares etc
 			drawRect({
 				width: SQUARE_SIZE.x,
 				height: SQUARE_SIZE.y,
 				color: col,
-				pos: newPos,
+				pos: vec2(newPos.x, newPos.y),
 				anchor: "center",
 			})
 			
@@ -217,21 +229,20 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 
 		ChartState.song.notes.forEach((note) => {
 			const notePos = utils.getPosInGrid(INITIAL_POS, timeToStep(note.hitTime, ChartState.conductor.stepInterval), 0, SQUARE_SIZE)
-			
-			// thank you u/LambentLight
-			const rad = (SQUARE_SIZE.y / 2) + ((SQUARE_SIZE.x) / (8 * SQUARE_SIZE.y)) 
+			notePos.y -= 50 * ChartState.scrollStep
 
-			drawCircle({
-				radius: rad - 2,
-				color: moveToColor(note.dancerMove),
+			drawSprite({
+				width: SQUARE_SIZE.x,
+				height: SQUARE_SIZE.y,
+				sprite: GameSave.preferences.noteskin + note.dancerMove,
 				pos: notePos,
-				opacity: viewedTime >= note.hitTime ? 1 : 0.5,
+				opacity: scrollStepToTime >= note.hitTime ? 1 : 0.5,
 				anchor: "center",
 			})
 		})
 
-		// # strumline
-		const STRUMLINE_Y = 250
+		// # strumlineline
+		const STRUMLINE_Y = 50
 		drawLine({
 			p1: vec2(center().x - SQUARE_SIZE.x / 2 * 3, STRUMLINE_Y),
 			p2: vec2(center().x + SQUARE_SIZE.x / 2 * 3, STRUMLINE_Y),
@@ -242,7 +253,15 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 
 		// if the distance between the cursor and the square is small enough then highlight it
 		if (mousePos().x <= center().x + SQUARE_SIZE.x / 2 && mousePos().x >= center().x - SQUARE_SIZE.x / 2) {
-			isCursorInGrid = true
+			
+			if (ChartState.scrollStep == 0 && mousePos().y >= STRUMLINE_Y) isCursorInGrid = true
+			else if (ChartState.scrollStep == ChartState.conductor.totalSteps && mousePos().y <= STRUMLINE_Y) isCursorInGrid = true
+			else isCursorInGrid = true
+		}
+		
+		else isCursorInGrid = false
+
+		if (isCursorInGrid) {
 			// cursor = the square you're hovering over
 			drawRect({
 				width: SQUARE_SIZE.x - 5,
@@ -252,34 +271,50 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 				outline: {
 					width: 8, color: moveToColor(currentMove).darken(50)
 				},
-				pos: vec2(center().x, cursorYGridPos),
+				pos: vec2(center().x, cursorGridPos),
 				anchor: "center",
 				fixed: true,
 			})
 		}
 
-		else isCursorInGrid = false
+		// draws the camera controller
+		drawRect({
+			width: SQUARE_SIZE.x,
+			height: SQUARE_SIZE.y,
+			anchor: "center",
+			opacity: cameraController.opacity,
+			pos: cameraControllerPos,
+			color: YELLOW,
+		})
+
+		// draws the notes on the side of the camera controller
+		ChartState.song.notes.forEach((note, index) => {
+			const initialPos = vec2(width() - 25, 0)
+			const yPos = map(note.hitTime, 0, ChartState.conductor.audioPlay.duration(), initialPos.y, height())
+			const xPos = initialPos.x
+
+			drawRect({
+				width: SQUARE_SIZE.x / 10,
+				height: SQUARE_SIZE.y / 10,
+				color: moveToColor(note.dancerMove),
+				anchor: "center",
+				pos: vec2(xPos, yPos),
+				opacity: 0.5
+			})
+		})
 	})
 
 	onClick(() => {
 		if (!isCursorInGrid) return
-		// the reason why this doesn't work is because mouse y pos can only be from 0 to height()
-		// meanwhile cam.pos.y can be a number between 0 and 50 * totalSteps, which can even reach like 20 thousand
-		// so how do i convert mouse y pos to time
-		
-		// LOL i found a funny solution i should probably fix
-		// when i did camPosToTime(cursorYGridPos + cam.pos.y) i noticed  the it was always 6 steps below the intended one
-		// so i just substract 300px to the pos (the equivalent of 6 steps) and it works!!!! LOLLLL
-		const time = camPosToTime(cursorYGridPos + cam.pos.y - SQUARE_SIZE.y * 6, ChartState.conductor.stepInterval)
-		
-		/** Finds a note with the same step as the current step */
+		const time = stepToTime(ChartState.scrollStep + cursorGridRow, ChartState.conductor.stepInterval)
+
+		// /** Finds a note with the same step as the current step */
 		function findNoteByStep() {
 			return ChartState.song.notes.find((note) => timeToStep(note.hitTime, ChartState.conductor.stepInterval) == timeToStep(time, ChartState.conductor.stepInterval))
 		}
 		
 		const note = findNoteByStep()
 		if (note) {
-			currentMove = note.dancerMove
 			removeNoteFromChart(note.hitTime, note.dancerMove)
 		}
 
@@ -290,33 +325,35 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 
 	onKeyPress("space", () => {
 		ChartState.paused = !ChartState.paused
-		ChartState.conductor.audioPlay.seek(camPosToTime(cam.pos.y, ChartState.conductor.stepInterval))
+
+		if (ChartState.paused == false) {
+			let newTime = ChartState.scrollStep * ChartState.conductor.stepInterval
+			if (newTime == 0) newTime = 0.01
+			ChartState.conductor.audioPlay.seek(newTime)
+		}
 	})
 
-	let scroll = 0
 	onScroll((delta) => {
+		let scrollPlus = 1
 		if (!ChartState.paused) ChartState.paused = true
-		if (delta.y >= 1) scroll = 50
-		else scroll = -50
+		if (delta.y >= 1) scrollPlus = 1
+		else scrollPlus = -1
 		
-		cam.pos.y = clamp(cam.pos.y, 88, 50 * ChartState.conductor.totalSteps)
-		cam.pos.y += scroll
+		ChartState.scrollStep += scrollPlus
 	})
 
 	onKeyPress("enter", () => {
-		transitionToScene(fadeOut, "game", { song: ChartState.song, seekTime: viewedTime } as GameSceneParams)
+		transitionToScene(fadeOut, "game", { song: ChartState.song, seekTime: scrollStepToTime } as GameSceneParams)
+	})
+
+	onKeyPress("f2", () => {
+		debug.inspect = !debug.inspect
 	})
 
 	onStepHit(() => {
-		cam.pos.y += 50
-	
 		const someNote = ChartState.song.notes.find((note) => timeToStep(note.hitTime, ChartState.conductor.stepInterval) == timeToStep(ChartState.conductor.timeInSeconds, ChartState.conductor.stepInterval)) 
 		if (someNote) {
 			playSound("ClickUp", { detune: moveToDetune(someNote.dancerMove) })
 		}
-	})
-
-	onSceneLeave(() => {
-		cam.pos.y = center().y
 	})
 })}

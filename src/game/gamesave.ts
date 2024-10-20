@@ -20,6 +20,8 @@ export type Preferences = {
 		reset: Key,
 		debug: Key,
 	},
+
+	noteskin: "P_" | "T_" | "A_"
 }
 
 /** Holds all the info that should be saved and loaded through sessions */
@@ -47,6 +49,8 @@ export class GameSaveClass {
 			reset: "r",
 			debug: "l",
 		},
+
+		noteskin: "P_",
 	}
 
 	/** The songs that have been played, check {@link songSaveScore} type for more info */
@@ -73,18 +77,18 @@ export class GameSaveClass {
 
 	/** Gets the latest instance in localStorage */
 	getLatestSave() : GameSaveClass {
-		const newGameSave = new GameSaveClass()
-		// newGameSave is the default in case it doesn't find a save
-		const data = getData(SAVE_NAME, newGameSave) as GameSaveClass
-
-		// if there's a property in newGameSave that it's not on class or it's undefined or it's null, then set it to the default
-		for (const [key, value] of Object.entries(newGameSave)) {
-			if (data[key] === undefined || data[key] === null) {
-				data[key] = value
+		function deepMerge(target: any, source: any): any {
+			for (const key in source) {
+				if (source[key] instanceof Object && key in target) {
+					Object.assign(source[key], deepMerge(target[key], source[key]));
+				}
 			}
+			return Object.assign(target || {}, source);
 		}
 
-		return data;
+		const newGameSave = new GameSaveClass()
+		const data = getData(SAVE_NAME, newGameSave) as GameSaveClass
+		return deepMerge(data, newGameSave);
 	}
 
 	/** Assigns itself to {@link getLatestSave `getLatestSave()`}  */

@@ -5,6 +5,7 @@ import { getStrumline, strumline } from "./strumline";
 import { INPUT_THRESHOLD } from "../input";
 import { onReset, triggerEvent } from "../../game/events";
 import { GameStateClass } from "../gamescene";
+import { GameSave } from "../../game/gamesave";
 
 /** How much pixels per second does the note move at */
 export const NOTE_PXPERSECOND = 5;
@@ -56,11 +57,10 @@ export function setTimeForStrum(value: number) {
 
 export function addNote(chartNote: ChartNote, GameState:GameStateClass) {
 	const noteObj = add([
-		rect(NOTE_WIDTH, NOTE_WIDTH, { radius: 5 }),
+		sprite(GameSave.preferences.noteskin + chartNote.dancerMove),
 		pos(width() + NOTE_WIDTH, getStrumline().pos.y),
 		note(),
 		anchor("center"),
-		color(moveToColor(chartNote.dancerMove)),
 		opacity(),
 		"noteObj",
 	])
@@ -75,7 +75,8 @@ export function addNote(chartNote: ChartNote, GameState:GameStateClass) {
 		const xPos = map(mapValue, 0, 1, NOTE_SPAWNPOINT, getStrumline().pos.x - NOTE_WIDTH / 2);
 		noteObj.pos.x = xPos;
 
-		if (GameState.conductor.timeInSeconds >= chartNote.hitTime + INPUT_THRESHOLD && !hasMissedNote) {
+		// if the time has already passed to hit a note and the note is not on spawned notes
+		if (GameState.conductor.timeInSeconds >= chartNote.hitTime + INPUT_THRESHOLD && !hasMissedNote && GameState.spawnedNotes.includes(noteObj.chartNote)) {
 			hasMissedNote = true
 			triggerEvent("onMiss")
 		}

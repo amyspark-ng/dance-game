@@ -83,13 +83,15 @@ export function startSong(params: GameSceneParams, GameState:GameStateClass) {
 	// then we actually setup the conductor and play the song
 	const audioPlay = playSound(`${params.song.title}-song`, { volume: 0.1, speed: params.playbackSpeed })
 	const conductor = new Conductor({ audioPlay: audioPlay, bpm: params.song.bpm * params.playbackSpeed, timeSignature: params.song.timeSignature })
-	conductor.setup();
+	conductor.setup(TIME_FOR_STRUM);
 	GameState.conductor = conductor;
 	if (getDancer()) getDancer().doMove("idle")
 
 	// all notes that should have already been spawned
-	GameState.currentSong.notes.forEach((note) => {
-		if (note.hitTime < params.seekTime) GameState.spawnedNotes.push(note)
+	wait(0.1, () => {
+		GameState.currentSong.notes.forEach((note) => {
+			if (note.hitTime < params.seekTime) GameState.spawnedNotes.push(note)
+		})
 	})
 
 	GameState.conductor.audioPlay.seek(params.seekTime)

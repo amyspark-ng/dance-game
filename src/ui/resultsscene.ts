@@ -8,7 +8,7 @@ export type resultsSceneParams = {
 	tally: Tally,
 }
 
-export function ResultsScene() { scene("resultsscene", (params: resultsSceneParams) => {
+export function ResultsScene() { scene("results", (params: resultsSceneParams) => {
 	if (params.tally.misses > 10) {
 		debug.log("you suck at this")
 	}
