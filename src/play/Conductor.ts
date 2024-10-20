@@ -46,10 +46,10 @@ export class Conductor {
 	timeSignature: [number, number]
 
 	/** Interval between steps */
-	lengthOfStep: number;
+	stepInterval: number;
 
 	/** Interval between beats */
-	lengthOfBeat: number;
+	beatInterval: number;
 
 	/** Is the bottom (1) number of the timeSignature */
 	beatsPerMeasure: number;
@@ -80,10 +80,10 @@ export class Conductor {
 
 	/** Function that should run at the start of the conductor */
 	add() {
-		this.lengthOfBeat = 60 / this.BPM;
+		this.beatInterval = 60 / this.BPM;
 		this.beatsPerMeasure = this.timeSignature[1];
 		this.stepsPerBeat = this.timeSignature[0];
-		this.lengthOfStep = this.lengthOfBeat / this.stepsPerBeat;
+		this.stepInterval = this.beatInterval / this.stepsPerBeat;
 	
 		this.currentBeat = 0
 		this.currentStep = 0
@@ -107,8 +107,8 @@ export class Conductor {
 			let oldBeat = this.currentBeat;
 			let oldStep = this.currentStep;
 			
-			this.currentBeat = Math.floor(this.timeInSeconds / this.lengthOfBeat);
-			this.currentStep = Math.floor(this.timeInSeconds / this.lengthOfStep);
+			this.currentBeat = Math.floor(this.timeInSeconds / this.beatInterval);
+			this.currentStep = Math.floor(this.timeInSeconds / this.stepInterval);
 
 			if (oldBeat != this.currentBeat) {
 				triggerEvent("onBeatHit")

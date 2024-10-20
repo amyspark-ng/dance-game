@@ -50,6 +50,11 @@ export class utils {
 		return `${Math.floor(timeInSeconds / 60)}:${(timeInSeconds % 60).toFixed(2).padStart(5, "0")}`
 	}
 
+	/** Returns if a number is between a range */
+	static isInRange(num: number, max: number, min: number) : boolean {
+		return num >= min && num <= max
+	}
+
 	/** A real roundabout of just doing col1.lerp(col2, 0.5) */
 	static blendColors(col1: Color, col2: Color, blendFactor: number) {
 		return col1.lerp(col2, blendFactor) as Color

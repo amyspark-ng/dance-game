@@ -47,6 +47,12 @@ export const allSoundHandlers = new Set<customAudioPlay>
  * Custom function for playing sound
  */
 export function playSound(soundName: string, opts?:customAudioPlayOpt) : customAudioPlay {
+	if (!opts) {
+		opts = {
+			channel: GameSave.sound.sfx
+		}
+	}
+	
 	if (!opts.channel && opts.volume) opts.volume = opts.volume;
 	else if (opts.channel) {
 		opts.volume = opts.channel.volume

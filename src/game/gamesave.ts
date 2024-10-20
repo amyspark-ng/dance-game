@@ -49,9 +49,8 @@ export class GameSaveClass {
 		},
 	}
 
-	songsPlayed = {
-		
-	};
+	/** The songs that have been played, check {@link songSaveScore} type for more info */
+	songsPlayed:saveSongScore[] = [];
 
 	/** Writes current instance to localStorage */
 	save() {
@@ -78,11 +77,10 @@ export class GameSaveClass {
 		// newGameSave is the default in case it doesn't find a save
 		const data = getData(SAVE_NAME, newGameSave) as GameSaveClass
 
-		// Have to find a way to get all the properties of GameSaveClass that are not in data
-		// and then merge them
-		for (const key in newGameSave) {
-			if (!(key in data)) {
-				data[key] = newGameSave[key]
+		// if there's a property in newGameSave that it's not on class or it's undefined or it's null, then set it to the default
+		for (const [key, value] of Object.entries(newGameSave)) {
+			if (data[key] === undefined || data[key] === null) {
+				data[key] = value
 			}
 		}
 

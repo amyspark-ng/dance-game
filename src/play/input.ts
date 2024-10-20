@@ -36,7 +36,7 @@ export function setupInput() {
 	})
 
 	onKeyPress(GameSave.preferences.controls.debug, () => {
-		transitionToScene(fadeOut, "charteditor", { song: GameState.currentSong } as chartEditorParams)
+		transitionToScene(fadeOut, "charteditor", { song: GameState.currentSong, seekTime: GameState.conductor.timeInSeconds } as chartEditorParams)
 	})
 }
 
