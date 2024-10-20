@@ -11,7 +11,7 @@ import { goScene } from "../game/scenes"
 import { resultsSceneParams } from "../ui/resultsscene"
 import { addJudgement, getJudgement, getScorePerDiff } from "./objects/judgement"
 import { onPause, onUnpause } from "./pausescreen"
-import { cam } from "../plugins/features/camera"
+import { DeathSceneParams } from "../ui/deathscene"
 
 export class GameStateClass {
 	/** The current conductor */
@@ -63,10 +63,7 @@ export type GameSceneParams = {
 	seekTime?: number,
 }
 
-/** Instance of the game scene */
-export let GameState = new GameStateClass()
-
-export function startSong(params: GameSceneParams) {
+export function startSong(params: GameSceneParams, GameState:GameStateClass) {
 	// ==== PLAYS THE AUDIO AND SETS UP THE CONDUCTOR ===
 	// Reset stuff related to gamestate
 	GameState.conductor?.audioPlay?.stop()
@@ -96,9 +93,9 @@ export function startSong(params: GameSceneParams) {
 	})
 
 	GameState.conductor.audioPlay.seek(params.seekTime)
-}
+} 
 
-export function resetSong() {
+export function resetSong(GameState:GameStateClass) {
 	if (GameState.paused) GameState.managePause(false)
 
 	getNotesOnScreen().forEach((noteObj) => {
@@ -106,19 +103,19 @@ export function resetSong() {
 	})
 
 	triggerEvent("onReset")
-	startSong({ song: GameState.currentSong })
+	startSong({ song: GameState.currentSong }, GameState)
 }
 
 export function GameScene() { scene("game", (params: GameSceneParams) => {
 	setBackground(RED.lighten(60))
-	GameState = new GameStateClass()
+	const GameState = new GameStateClass()
 
-	startSong(params)
+	startSong(params, GameState)
 
 	// ==== SETS UP SOME IMPORTANT STUFF ====
-	setupInput();
-	addStrumline();
-	notesSpawner();
+	setupInput(GameState);
+	addStrumline(GameState);
+	notesSpawner(GameState);
 
 	GameState.gameInputEnabled = true
 
@@ -127,6 +124,10 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 	const DANCER_SCALE = vec2(0.5) // placeholder
 	const dancer = addDancer(DANCER_SCALE)
 	dancer.pos = DANCER_POS
+	dancer.onDeath(() => goScene("death", { song: GameState.currentSong } as DeathSceneParams))
+	dancer.onUpdate(() => {
+		if (dancer.waitForIdle) dancer.waitForIdle.paused = GameState.paused;
+	})
 
 	onHide(() => {
 		if (!GameState.paused) {
@@ -141,7 +142,7 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 	})
 
 	onNoteHit((chartNote:ChartNote) => {
-		let judgement = getJudgement(chartNote)
+		let judgement = getJudgement(GameState.conductor.timeInSeconds, chartNote)
 		
 		if (judgement == "Miss") {
 			triggerEvent("onMiss")
@@ -153,7 +154,7 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 		getDancer().doMove(chartNote.dancerMove)
 	
 		GameState.tally[judgement.toLowerCase() + "s"] += 1
-		GameState.tally.score += getScorePerDiff(chartNote)
+		GameState.tally.score += getScorePerDiff(GameState.conductor.timeInSeconds, chartNote)
 	})
 
 	onMiss(() => {
@@ -182,6 +183,8 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 	]);
 
 	onUpdate(() => {
+		GameState.health = getDancer().hp();
+		
 		function createKeys() {
 			let text = Object.keys(keysForDebugging).map((key) => `${key}: ${keysForDebugging[key]}`).join("\n")
 			return text

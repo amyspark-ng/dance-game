@@ -1,5 +1,4 @@
 // # This file will manage the ranking system
-import { GameState } from "../gamescene";
 import { getDancer } from "./dancer";
 import { ChartNote } from "./note";
 
@@ -12,16 +11,16 @@ export const EHH_TIMING = 0.135
 export const MISS_TIMING = 0.16
 
 /** Maps the difference and gets score based on that */
-export function getScorePerDiff(chartNote: ChartNote) {
+export function getScorePerDiff(timeInSeconds: number, chartNote: ChartNote) {
 	const max_score = 500
 	const min_score = 5
-	const diff = Math.abs(GameState.conductor.timeInSeconds - chartNote.hitTime)
+	const diff = Math.abs(timeInSeconds - chartNote.hitTime)
 	return min_score + (max_score - min_score) * diff
 }
 
 /** Get the judgement the player did based on hit time */
-export function getJudgement(chartNote: ChartNote) : Judgement {
-	const diff = GameState.conductor.timeInSeconds - chartNote.hitTime
+export function getJudgement(timeInSeconds: number, chartNote: ChartNote) : Judgement {
+	const diff = timeInSeconds - chartNote.hitTime
 	const absDiff = Math.abs(diff)
 
 	// if the diff is less than 0 then the player hit early, just a note

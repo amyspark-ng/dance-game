@@ -95,7 +95,7 @@ export class Conductor {
 		if (this.timeInSeconds >= 0) this.audioPlay.paused = this.paused;
 		if (this.paused) return;
 
-		if (this.timeInSeconds < 0) {
+		if (this.timeInSeconds <= 0) {
 			this.timeInSeconds += dt()
 			this.audioPlay.paused = true
 		}

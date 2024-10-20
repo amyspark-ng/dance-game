@@ -4,7 +4,7 @@ import { utils } from "../../utils";
 import { getStrumline, strumline } from "./strumline";
 import { INPUT_THRESHOLD } from "../input";
 import { onReset, triggerEvent } from "../../game/events";
-import { GameState } from "../gamescene";
+import { GameStateClass } from "../gamescene";
 
 /** How much pixels per second does the note move at */
 export const NOTE_PXPERSECOND = 5;
@@ -54,7 +54,7 @@ export function setTimeForStrum(value: number) {
 	TIME_FOR_STRUM = value;
 }
 
-export function addNote(chartNote: ChartNote) {
+export function addNote(chartNote: ChartNote, GameState:GameStateClass) {
 	const noteObj = add([
 		rect(NOTE_WIDTH, NOTE_WIDTH, { radius: 5 }),
 		pos(width() + NOTE_WIDTH, getStrumline().pos.y),
@@ -96,7 +96,7 @@ export type NoteGameObj = ReturnType<typeof addNote>
 // MF you genius
 
 /** Crucial function that spawns the note */
-export function notesSpawner() {
+export function notesSpawner(GameState:GameStateClass) {
 	// sets the spawnTime
 	GameState.currentSong.notes.forEach((note) => {
 		note.spawnTime = note.hitTime - TIME_FOR_STRUM
@@ -124,7 +124,7 @@ export function notesSpawner() {
 			if (note.spawnTime > t) {
 				break;
 			}
-			addNote(note);
+			addNote(note, GameState);
 			index--;
 		}
 

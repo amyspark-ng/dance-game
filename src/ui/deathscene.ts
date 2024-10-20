@@ -1,14 +1,15 @@
-import { triggerEvent } from "../game/events"
 import { GameSave } from "../game/gamesave"
-import { goScene, transitionToScene } from "../game/scenes"
+import { transitionToScene } from "../game/scenes"
 import { fadeOut } from "../game/transitions/fadeOutTransition"
-import { GameSceneParams, GameState } from "../play/gamescene"
+import { SongChart } from "../play/song"
 
-export function DeathScene() { scene("death", () => {
+export type DeathSceneParams = {
+	song: SongChart
+}
+
+export function DeathScene() { scene("death", (params:DeathSceneParams) => {
 	setBackground(BLACK)
 	
-	GameState.conductor.audioPlay.windDown()
-
 	add([
 		text("YOU DIED"),
 		anchor("center"),
@@ -24,10 +25,6 @@ export function DeathScene() { scene("death", () => {
 	])
 
 	onKeyPress(GameSave.preferences.controls.accept, () => {
-		transitionToScene(fadeOut, "game", { song: GameState.currentSong })
-	})
-
-	onKeyPress("q", () => {
-		triggerEvent("onBeatHit")
+		transitionToScene(fadeOut, "game", { song: params.song } as DeathSceneParams)
 	})
 })}

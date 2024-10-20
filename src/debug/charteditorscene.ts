@@ -7,11 +7,13 @@ import { playSound } from "../plugins/features/sound"
 import { utils } from "../utils"
 import { transitionToScene } from "../game/scenes"
 import { fadeOut } from "../game/transitions/fadeOutTransition"
-import { GameSceneParams, GameState } from "../play/gamescene"
+import { GameSceneParams } from "../play/gamescene"
 import { Conductor } from "../play/conductor"
 import { GameSave } from "../game/gamesave"
 import { Move } from "../play/objects/dancer"
 import { INPUT_THRESHOLD } from "../play/input"
+import { gameCursor } from "../plugins/features/gameCursor"
+import { dragger } from "../plugins/features/drag"
 
 const CAM_Y_INITIAL = 88
 
@@ -96,6 +98,37 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 		fixed(),
 	])
 
+	const cameraController = add([
+		pos(25),
+		rect(50, 50),
+		area(),
+		anchor("center"),
+		area(),
+		color(YELLOW),
+		opacity(0.5),
+		fixed(),
+		{
+			holding: false,
+		}
+	])
+
+	cameraController.onClick(() => {
+		cameraController.holding = true
+	})
+
+	cameraController.onMouseRelease(() => {
+		cameraController.holding = false
+	})
+
+	cameraController.onUpdate(() => {
+		if (cameraController.holding) {
+			cameraController.pos.y = mousePos().y
+			cameraController.pos.y = clamp(cameraController.pos.y, 25, height() - 25)
+		
+			cam.pos.y = map(cameraController.pos.y, 25, height() - 25, CAM_Y_INITIAL, 50 * ChartState.conductor.totalSteps)
+		}
+	})
+
 	function addNoteToChart(time: number, move: Move) {
 		const noteWithSameTimeButDifferentMove = ChartState.song.notes.find(note => note.hitTime == time && note.dancerMove != move || note.hitTime == time && note.dancerMove == move)
 		// if there's a note already at that time but a different move, remove it
@@ -123,8 +156,10 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 		ChartState.conductor.paused = ChartState.paused;
 		viewedTime = camPosToTime(cam.pos.y, ChartState.conductor.stepInterval)
 
+		gameCursor.color = utils.blendColors(WHITE, moveToColor(currentMove), 0.5)
+
 		const allProps = {
-			"Time": utils.formatTime(viewedTime),
+			"Time": ChartState.paused ? utils.formatTime(viewedTime) : utils.formatTime(ChartState.conductor.timeInSeconds),
 			"Step": timeToStep(viewedTime, ChartState.conductor.stepInterval),
 			"Beat": Math.floor(viewedTime / ChartState.conductor.beatInterval),
 			"camPos": cam.pos.y
@@ -237,10 +272,17 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 		// so i just substract 300px to the pos (the equivalent of 6 steps) and it works!!!! LOLLLL
 		const time = camPosToTime(cursorYGridPos + cam.pos.y - SQUARE_SIZE.y * 6, ChartState.conductor.stepInterval)
 		
-		if (ChartState.song.notes.some((note) => note.hitTime == time)) {
-			removeNoteFromChart(time, currentMove)
+		/** Finds a note with the same step as the current step */
+		function findNoteByStep() {
+			return ChartState.song.notes.find((note) => timeToStep(note.hitTime, ChartState.conductor.stepInterval) == timeToStep(time, ChartState.conductor.stepInterval))
 		}
-	
+		
+		const note = findNoteByStep()
+		if (note) {
+			currentMove = note.dancerMove
+			removeNoteFromChart(note.hitTime, note.dancerMove)
+		}
+
 		else {
 			addNoteToChart(time, currentMove)
 		}

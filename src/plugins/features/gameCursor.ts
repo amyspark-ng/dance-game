@@ -37,6 +37,7 @@ export function addCursorObject() {
 		stay(),
 		fixed(),
 		z(0),
+		color(),
 		layer("cursor"),
 		"gameCursor",
 		{

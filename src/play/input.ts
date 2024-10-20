@@ -1,14 +1,14 @@
 import { GameSave } from "../game/gamesave"
 import { getStrumline } from "./objects/strumline"
 import { ChartNote } from "./objects/note"
-import { GameState, resetSong } from "./gamescene";
+import { GameStateClass, resetSong } from "./gamescene";
 import { Move } from "./objects/dancer";
 import { goScene, transitionToScene } from "../game/scenes";
 import { chartEditorParams } from "../debug/charteditorscene";
 import { fadeOut } from "../game/transitions/fadeOutTransition";
 
 /** The main function that manages inputs for the game */
-export function setupInput() {
+export function setupInput(GameState: GameStateClass) {
 	Object.values(GameSave.preferences.gameControls).forEach((gameKey) => {
 		onKeyPress(gameKey.kbKey, () => {
 			if (GameState.paused) return
@@ -32,7 +32,7 @@ export function setupInput() {
 
 	onKeyPress(GameSave.preferences.controls.reset, () => {
 		if (!GameState.gameInputEnabled) return
-		resetSong()
+		resetSong(GameState)
 	})
 
 	onKeyPress(GameSave.preferences.controls.debug, () => {
@@ -44,7 +44,7 @@ export function setupInput() {
 export const INPUT_THRESHOLD = 0.16
 
 /** Runs when you press and returns the note hit or null if you didn't hit anything on time */
-export function checkForNoteHit(move: Move) : ChartNote {
+export function checkForNoteHit(GameState:GameStateClass, move: Move) : ChartNote {
 	function conditionsForHit(note: ChartNote) {
 		// i have to check if the current time in the song is between the hittime of the note
 		const t = GameState.conductor.timeInSeconds

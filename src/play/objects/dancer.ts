@@ -1,9 +1,5 @@
-import { Comp, GameObj, KEventController, PosComp, ScaleComp, SpriteComp, TimerController, TweenController, Vec2 } from "kaplay"
-import { juice, juiceComp } from "../../plugins/graphics/juiceComponent"
-import { onBeatHit } from "../../game/events"
-import { playSound } from "../../plugins/features/sound"
-import { goScene } from "../../game/scenes"
-import { GameState } from "../gamescene"
+import { Comp, KEventController ,TimerController, TweenController, Vec2 } from "kaplay"
+import { juice } from "../../plugins/graphics/juiceComponent"
 
 /** Moves available for the dancer, also handles the note type */
 export type Move = "left" | "right" | "up" | "down" | "idle"
@@ -22,18 +18,23 @@ export interface dancerComp extends Comp {
 	getMove() : Move,
 
 	/** miss */
-	miss(): void
+	miss(): void,
+
+	/** The timer controller for the wait for the idle */
+	waitForIdle: TimerController,
 }
 
 export function dancer() : dancerComp {
 	let onAnimEndEvent:KEventController = null
 
-	/** The wait for the idle, is cancelled on each doMove() */
-	let waitForIdle:TimerController = wait(0)
-
 	return {
 		id: "dancerComp",
-		require: [ "sprite", "juice", "pos" ],
+		require: [ "sprite", "juice", "pos", "health" ],
+		waitForIdle: null,
+
+		add() {
+			this.waitForIdle = wait(0)
+		},
 
 		moveBop(theScale = vec2(0.5)) {
 			return this.stretch({ XorY: "y", startScale: theScale.y * 0.9, endScale: theScale.y })
@@ -50,12 +51,12 @@ export function dancer() : dancerComp {
 			if (move != "idle") {
 				this.moveBop()
 	
-				waitForIdle?.cancel()
-				waitForIdle = wait(TIME_FOR_IDLE, () => {
+				this.waitForIdle?.cancel()
+				this.waitForIdle = wait(TIME_FOR_IDLE, () => {
 					this.doMove("idle")
 				})
 
-				GameState.health += 5
+				this.health += 5
 			}
 		},
 
@@ -63,20 +64,14 @@ export function dancer() : dancerComp {
 			this.play("miss");
 			this.moveBop();
 	
-			GameState.health -= 5;
+			this.hurt(5);
 			debug.log("missed")
 
-			waitForIdle?.cancel();
-			waitForIdle = null;
-			waitForIdle = wait(TIME_FOR_IDLE, () => {
+			this.waitForIdle?.cancel();
+			this.waitForIdle = null;
+			this.waitForIdle = wait(TIME_FOR_IDLE, () => {
 				this.doMove("idle");
 			})
-		},
-
-		update() {
-			GameState.health = clamp(GameState.health, 0, 100)
-			if (GameState.health <= 0) goScene("death")
-			if (waitForIdle) waitForIdle.paused = GameState.paused;
 		},
 	}
 }
@@ -89,6 +84,7 @@ export function addDancer(initialScale?: Vec2) {
 		dancer(),
 		scale(initialScale ?? vec2(1)),
 		juice(),
+		health(100, 100),
 		"dancerObj",
 	])
 

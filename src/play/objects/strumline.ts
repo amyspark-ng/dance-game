@@ -5,6 +5,7 @@ import { checkForNoteHit, getNotesOnScreen } from "../input";
 import { NoteGameObj } from "./note";
 import { addJudgement, getJudgement, getScorePerDiff } from "./judgement";
 import { triggerEvent } from "../../game/events";
+import { GameStateClass } from "../gamescene";
 
 export interface strumlineComp extends Comp {
 	/** Wheter the strumline is pressd */
@@ -19,7 +20,7 @@ export interface strumlineComp extends Comp {
 
 const PRESS_SCALE = 1.2
 
-export function strumline() : strumlineComp {
+export function strumline(GameState:GameStateClass) : strumlineComp {
 	return {
 		id: "strumlineComp",
 		require: [ "color", "juice" ],
@@ -35,7 +36,7 @@ export function strumline() : strumlineComp {
 
 			// there's notes on the screen
 			if (getNotesOnScreen().length > 0) {
-				const note = checkForNoteHit(move)
+				const note = checkForNoteHit(GameState, move)
 				if (note != null) {
 					// get the noteGameObj with the note
 					const hitNote = get("noteObj", { recursive: true }).find((noteGameObj) => noteGameObj.chartNote == note) as NoteGameObj
@@ -64,7 +65,7 @@ export function strumline() : strumlineComp {
 }
 
 /** Adds the strumline */
-export function addStrumline() {
+export function addStrumline(GameState:GameStateClass) {
 	const STRUM_POS = vec2(center().x, height() - 60);
 	
 	const strumlineObj = add([
@@ -72,7 +73,7 @@ export function addStrumline() {
 		juice(),
 		pos(vec2(0)),
 		anchor("center"),
-		strumline(),
+		strumline(GameState),
 		scale(),
 		color(WHITE.darken(80)),
 		"strumlineObj",
