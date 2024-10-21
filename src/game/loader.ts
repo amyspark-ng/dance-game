@@ -31,7 +31,7 @@ export let songCharts:SongChart[] = []
 function loadNoteSkins() {
 	let spriteAtlasData = {}
 
-	let noteSkinTypes = ["P_", "T_", "A_"]
+	let noteSkinTypes = ["P", "T", "A"]
 	let movements = ["up", "down", "left", "right"]
 	
 	let x = 0
@@ -42,7 +42,7 @@ function loadNoteSkins() {
 			x = movIndex * size
 			y = noteIndex * size
 
-			spriteAtlasData[noteSkinType + move] = {
+			spriteAtlasData[noteSkinType + "_" + move] = {
 				width: size,
 				height: size,
 				x: x,
@@ -51,7 +51,6 @@ function loadNoteSkins() {
 		})
 	})
 
-	console.log(spriteAtlasData)
 	loadSpriteAtlas("sprites/noteSkins.png", spriteAtlasData)
 }
 
