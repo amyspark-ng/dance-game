@@ -137,3 +137,16 @@ export class Conductor {
 		this.timeSignature = opts.timeSignature
 	}
 }
+
+/** Extra conductor functions for converting units */
+export class conductorUtils {
+	/** Get which time of a song is a certain step */
+	static timeToStep(timeInSeconds: number, lengthOfStep: number) {
+		return Math.floor(timeInSeconds / lengthOfStep)
+	}
+
+	/** Get which step of a song is a certain time */
+	static stepToTime(step: number, lengthOfStep: number) {
+		return step * lengthOfStep
+	}
+}
