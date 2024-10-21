@@ -21,7 +21,7 @@ export type Preferences = {
 		debug: Key,
 	},
 
-	noteskin: "P_" | "T_" | "A_"
+	noteskin: "P" | "T" | "A"
 }
 
 /** Holds all the info that should be saved and loaded through sessions */
@@ -50,7 +50,7 @@ export class GameSaveClass {
 			debug: "l",
 		},
 
-		noteskin: "P_",
+		noteskin: "P",
 	}
 
 	/** The songs that have been played, check {@link songSaveScore} type for more info */

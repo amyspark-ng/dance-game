@@ -79,7 +79,7 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 	const ChartState = new ChartStateClass()
 
 	ChartState.conductor = new Conductor({
-		audioPlay: playSound(`${params.song.title}-song`, { volume: 0.1, speed: params.playbackSpeed }),
+		audioPlay: playSound(`${params.song.idTitle}-song`, { volume: 0.1, speed: params.playbackSpeed }),
 		bpm: params.song.bpm * params.playbackSpeed,
 		timeSignature: params.song.timeSignature,
 	})
@@ -295,50 +295,57 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 			const col = i % 2 == 0 ? lighter : darker
 
 			// draws the background chess board squares etc
-			drawRect({
-				width: SQUARE_SIZE.x,
-				height: SQUARE_SIZE.y,
-				color: col,
-				pos: vec2(newPos.x, newPos.y),
-				anchor: "center",
-			})
+			if (newPos.y <= height() + SQUARE_SIZE.y / 2) {
+				drawRect({
+					width: SQUARE_SIZE.x,
+					height: SQUARE_SIZE.y,
+					color: col,
+					pos: vec2(newPos.x, newPos.y),
+					anchor: "center",
+				})
+			}
 
 			// draws a line on every beat
 			if (i % ChartState.conductor.stepsPerBeat == 0) {
-				// the beat text
-				drawText({
-					text: `${i / ChartState.conductor.stepsPerBeat}`,
-					color: WHITE,
-					size: SQUARE_SIZE.x / 2,
-					anchor: "center",
-					pos: vec2(newPos.x + SQUARE_SIZE.x, newPos.y)
-				})
-				
-				drawRect({
-					width: SQUARE_SIZE.x,
-					height: 5,
-					color: darker.darken(70),
-					anchor: "center",
-					pos: vec2(newPos.x, newPos.y - SQUARE_SIZE.y / 2 - 2.5),
-				})
+				if (newPos.y <= height()) {
+					// the beat text
+					drawText({
+						text: `${i / ChartState.conductor.stepsPerBeat}`,
+						color: WHITE,
+						size: SQUARE_SIZE.x / 2,
+						anchor: "center",
+						pos: vec2(newPos.x + SQUARE_SIZE.x, newPos.y)
+					})
+					
+					drawRect({
+						width: SQUARE_SIZE.x,
+						height: 5,
+						color: darker.darken(70),
+						anchor: "center",
+						pos: vec2(newPos.x, newPos.y - SQUARE_SIZE.y / 2 - 2.5),
+					})
+				}
 			}
 		}
 
+		// draws the notes
 		ChartState.song.notes.forEach((note, index) => {
 			let notePos = utils.getPosInGrid(INITIAL_POS, timeToStep(note.hitTime, ChartState.conductor.stepInterval), 0, SQUARE_SIZE)
 			notePos.y -= 50 * smoothScrollStep
 
 			const notePosLerped = lerp(notePos, notePos, SCROLL_LERP_VALUE)
 			
-			drawSprite({
-				width: SQUARE_SIZE.x,
-				height: SQUARE_SIZE.y,
-				scale: noteScales[index],
-				sprite: GameSave.preferences.noteskin + note.dancerMove,
-				pos: notePosLerped,
-				opacity: scrollTime >= note.hitTime ? 1 : 0.5,
-				anchor: "center",
-			})
+			if (notePos.y <= height()) {
+				drawSprite({
+					width: SQUARE_SIZE.x,
+					height: SQUARE_SIZE.y,
+					scale: noteScales[index],
+					sprite: GameSave.preferences.noteskin + "_" + note.dancerMove,
+					pos: notePosLerped,
+					opacity: scrollTime >= note.hitTime ? 1 : 0.5,
+					anchor: "center",
+				})
+			}
 		})
 
 		// # strumlineline
@@ -387,20 +394,22 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 		})
 
 		// draws the notes on the side of the camera controller
-		ChartState.song.notes.forEach((note, index) => {
-			const initialPos = vec2(width() - 25, 0)
-			const yPos = map(note.hitTime, 0, ChartState.conductor.audioPlay.duration(), initialPos.y, height())
-			const xPos = initialPos.x
-
-			drawRect({
-				width: SQUARE_SIZE.x / 10,
-				height: SQUARE_SIZE.y / 10,
-				color: moveToColor(note.dancerMove),
-				anchor: "center",
-				pos: vec2(xPos, yPos),
-				opacity: 0.5
+		if (movingCamera) {
+			ChartState.song.notes.forEach((note, index) => {
+				const initialPos = vec2(width() - 25, 0)
+				const yPos = map(note.hitTime, 0, ChartState.conductor.audioPlay.duration(), initialPos.y, height())
+				const xPos = initialPos.x
+	
+				drawRect({
+					width: SQUARE_SIZE.x / 10,
+					height: SQUARE_SIZE.y / 10,
+					color: moveToColor(note.dancerMove),
+					anchor: "center",
+					pos: vec2(xPos, yPos),
+					opacity: 0.5
+				})
 			})
-		})
+		}
 
 		// draw the selected gizmo
 		if (selectedNote != undefined) {
@@ -456,6 +465,12 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 		}
 	})
 
+	// restarts it
+	onMouseRelease("left", () => {
+		if (!selectedNote) return 
+		startingStepForSelectedNote = stepToTime(selectedNote.hitTime, ChartState.conductor.stepInterval)
+	})
+
 	// removes a note
 	onMousePress("right", () => {
 		if (!isCursorInGrid) return
@@ -485,6 +500,16 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 				const indexOfOccupied = ChartState.song.notes.indexOf(occupiedNote)
 				ChartState.song.notes[indexOfOccupied].hitTime = stepToTime(newStep + 1, ChartState.conductor.stepInterval)
 			}
+		
+			// if (ChartState.scrollStep != 0 || ChartState.scrollStep != ChartState.conductor.totalSteps) {
+			// 	if (gameCursor.pos.y <= SQUARE_SIZE.y * strumlineStepOffset) {
+			// 		ChartState.scrollStep -= 1
+			// 	}
+	
+			// 	else if (gameCursor.pos.y >= height() - SQUARE_SIZE.y / 2) {
+			// 		ChartState.scrollStep += 1
+			// 	}
+			// }
 		}
 	})
 

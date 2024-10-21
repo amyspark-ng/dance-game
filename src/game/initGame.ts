@@ -11,7 +11,7 @@ import { setupWatch } from "../plugins/features/watcher"
 import { chartEditorParams } from "../debug/charteditorscene"
 
 export function goGameScene() {
-	goScene("game", { song: songCharts["bopeebo"] })
+	goScene("game", { song: songCharts["fresh"] })
 }
 
 export function goChartEditor() {
@@ -58,4 +58,12 @@ export function initGame() {
 		// all of the objects that are draggable have this function
 		if (drag.getCurDragging()) drag.getCurDragging().drop()
 	}, false);
+
+	// for middle click
+	document.body.onmousedown = function(e) {
+		if(e.button == 1) {
+			e.preventDefault();
+			return false;
+		}
+	}
 }

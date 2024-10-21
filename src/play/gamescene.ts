@@ -81,7 +81,7 @@ export function startSong(params: GameSceneParams, GameState:GameStateClass) {
 	setTimeForStrum(TIME_FOR_STRUM / speed)
 	
 	// then we actually setup the conductor and play the song
-	const audioPlay = playSound(`${params.song.title}-song`, { volume: 0.1, speed: params.playbackSpeed })
+	const audioPlay = playSound(`${params.song.idTitle}-song`, { volume: 0.1, speed: params.playbackSpeed })
 	const conductor = new Conductor({ audioPlay: audioPlay, bpm: params.song.bpm * params.playbackSpeed, timeSignature: params.song.timeSignature })
 	conductor.setup(TIME_FOR_STRUM);
 	GameState.conductor = conductor;

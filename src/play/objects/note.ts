@@ -57,7 +57,7 @@ export function setTimeForStrum(value: number) {
 
 export function addNote(chartNote: ChartNote, GameState:GameStateClass) {
 	const noteObj = add([
-		sprite(GameSave.preferences.noteskin + chartNote.dancerMove),
+		sprite(GameSave.preferences.noteskin +  "_" + chartNote.dancerMove),
 		pos(width() + NOTE_WIDTH, getStrumline().pos.y),
 		note(),
 		anchor("center"),

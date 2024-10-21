@@ -36,7 +36,7 @@ export function addCursorObject() {
 		cursorComponent(),
 		stay(),
 		fixed(),
-		rotate(),
+		rotate(0),
 		z(0),
 		color(),
 		scale(),

@@ -57,6 +57,10 @@ function loadNoteSkins() {
 function loadSong(songName: string) {
 	loadSound(`${songName}-song`, `songs/${songName}/${songName}-song.ogg`)
 	const chart = loadJSON(`${songName}-chart`, `songs/${songName}/${songName}-chart.json`).onLoad(() => {
+		if (chart.data.length == 0) {
+			chart.data = new SongChart()
+		}
+		
 		songCharts[songName] = chart.data
 	})
 }
@@ -89,6 +93,7 @@ export function loadAssets() {
 	loadSound("saataandagi", "sounds/saataandagi.ogg")
 	
 	loadSong("bopeebo")
+	loadSong("fresh")
 
 	loadSound("plap", "sounds/plap.mp3")
 	loadSound("plop", "sounds/plop.mp3")
