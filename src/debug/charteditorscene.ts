@@ -116,13 +116,6 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 			vars.cameraControllerPos.y = mapc(ChartState.scrollStep, 0, ChartState.conductor.totalSteps, 25, height() - 25)
 		}
 
-		// Prevent note stacking
-		// if any note in the song has the same step as any other note in the song, remove the first note
-		ChartState.song.notes = ChartState.song.notes.filter((note, index) => {
-			const thisStep = conductorUtils.timeToStep(note.hitTime, ChartState.conductor.stepInterval)
-			return ChartState.song.notes.findIndex((n) => conductorUtils.timeToStep(n.hitTime, ChartState.conductor.stepInterval) == thisStep) == index
-		})
-
 		// Handle move change input 
 		moveChangeInputHandler(vars)
 	
@@ -150,6 +143,11 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 				vars.removeNoteFromChart(vars.selectedNote.hitTime, vars.selectedNote.dancerMove)
 			}
 		}
+
+		// mouse stuff
+		if (vars.isCursorInGrid && !isMouseDown("left")) gameCursor.do("up")
+		else if (vars.isCursorInGrid && isMouseDown("left")) gameCursor.do("down")
+		else if (!vars.isCursorInGrid) gameCursor.do("default")
 	})
 
 	/** The main event, draws everything so i don't have to use objects */

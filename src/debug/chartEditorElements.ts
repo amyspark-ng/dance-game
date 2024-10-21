@@ -98,6 +98,8 @@ export class ChartEditorVars {
 
 	/** Add a note to the chart */
 	addNoteToChart(time: number, move: Move) {
+		this.startingStepForSelectedNote = 0
+		
 		const noteWithSameTimeButDifferentMove = this.ChartState.song.notes.find(note => note.hitTime == time && note.dancerMove != move || note.hitTime == time && note.dancerMove == move)
 		// if there's a note already at that time but a different move, remove it
 		if (noteWithSameTimeButDifferentMove) {

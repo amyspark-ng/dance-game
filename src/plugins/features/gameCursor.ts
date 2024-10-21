@@ -1,25 +1,19 @@
 import { Comp } from "kaplay"
 
 export let gameCursor:cursorObjectType = null
+export type cursorDoing = "default" | "up" | "down"
 
 interface customCursorComp extends Comp {
-	/** Points */
-	point: () =>  void
-	/** Is the default animation */
-	default: () =>  void
+	do(doing:cursorDoing): void
 }
 
 function cursorComponent() : customCursorComp {
 	return {
 		id: "cursorComponent",
 		
-		point() {
-			this.sprite = "pointer"
+		do(doing) {
+			this.sprite = "cursor_" + doing
 		},
-
-		default() {
-			this.sprite = "cursor"	
-		}
 	}
 }
 
@@ -30,7 +24,7 @@ export function addCursorObject() {
 	let theMousePos = mousePos()
 	
 	const mouse = add([
-		sprite("cursor"),
+		sprite("cursor_default"),
 		anchor("topleft"),
 		pos(),
 		cursorComponent(),
@@ -51,6 +45,8 @@ export function addCursorObject() {
 		}
 	])
 
+	mouse.do("default")
+
 	return mouse;
 }
 
@@ -60,4 +56,12 @@ export type cursorObjectType = ReturnType<typeof addCursorObject>
 export function setupCursor() {
 	gameCursor = addCursorObject()
 	gameCursor.layer = "cursor"
+}
+
+export function loadCursor() {
+	const doings = ["default", "up", "down"]
+
+	doings.forEach((dongo) => {
+		loadSprite(`cursor_${dongo}`, "sprites/cursor/cursor_" + dongo + ".png")
+	})
 }

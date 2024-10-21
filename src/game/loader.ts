@@ -1,4 +1,5 @@
 import { SongChart } from "../play/song";
+import { loadCursor } from "../plugins/features/gameCursor";
 
 enum noteskins {
 	ps,
@@ -78,8 +79,7 @@ export function loadAssets() {
 	loadSprite("osaka", "osaka.png")
 	loadSound("volumeChange", "sounds/volumeChange.wav")
 	
-	loadSprite("cursor", "sprites/cursor-o.png")
-	loadSprite("pointer", "sprites/pointer-o.png")
+	loadCursor();
 
 	loadSprite("astri", "sprites/astri.png", {
 		sliceX: 5,
