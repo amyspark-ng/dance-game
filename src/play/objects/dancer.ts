@@ -29,7 +29,7 @@ export function dancer() : dancerComp {
 
 	return {
 		id: "dancerComp",
-		require: [ "sprite", "juice", "pos", "health" ],
+		require: [ "sprite", "juice", "pos" ],
 		waitForIdle: null,
 
 		add() {
@@ -55,8 +55,6 @@ export function dancer() : dancerComp {
 				this.waitForIdle = wait(TIME_FOR_IDLE, () => {
 					this.doMove("idle")
 				})
-
-				this.health += 5
 			}
 		},
 
@@ -64,9 +62,6 @@ export function dancer() : dancerComp {
 			this.play("miss");
 			this.moveBop();
 	
-			this.hurt(5);
-			debug.log("missed")
-
 			this.waitForIdle?.cancel();
 			this.waitForIdle = null;
 			this.waitForIdle = wait(TIME_FOR_IDLE, () => {
@@ -84,7 +79,6 @@ export function addDancer(initialScale?: Vec2) {
 		dancer(),
 		scale(initialScale ?? vec2(1)),
 		juice(),
-		health(100, 100),
 		"dancerObj",
 	])
 

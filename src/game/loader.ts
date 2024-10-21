@@ -1,5 +1,13 @@
 import { SongChart } from "../play/song";
 
+enum noteskins {
+	ps,
+	xbox,
+	nintendo,
+	taiko,
+	arrows,
+}
+
 /** The loading screen of the game */
 export function loadingScreen(progress: number) {
 	// Black background

@@ -1,7 +1,7 @@
 import { Key } from "kaplay";
 import { SAVE_NAME } from "../main";
 import { volumeChannel } from "../plugins/features/sound";
-import { saveSongScore } from "../play/song";
+import { saveScore } from "../play/song";
 import { Move } from "../play/objects/dancer";
 
 type gameKey = { kbKey: Key, move: Move }
@@ -54,7 +54,7 @@ export class GameSaveClass {
 	}
 
 	/** The songs that have been played, check {@link songSaveScore} type for more info */
-	songsPlayed:saveSongScore[] = [];
+	songsPlayed:saveScore[] = [];
 
 	/** Writes current instance to localStorage */
 	save() {

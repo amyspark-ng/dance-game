@@ -32,6 +32,7 @@ type conductorOpts = {
 	audioPlay: customAudioPlay;
 	bpm: number,
 	timeSignature: [number, number],
+	offset: number,
 }
 
 /** Manages the stuff related to music and beats */
@@ -78,6 +79,9 @@ export class Conductor {
 		return this.stepsPerBeat * this.totalBeats
 	}
 
+	/** Wheter the offset for the song has already passed */
+	private started: boolean = false
+
 	/** Changes the bpm */
 	changeBpm(newBpm = 100) {
 		this.BPM = newBpm
@@ -110,12 +114,18 @@ export class Conductor {
 		if (this.timeInSeconds < 0) {
 			this.timeInSeconds += dt()
 			this.audioPlay.paused = true
+			this.started = false
 		}
 
 		// if it has to start playing and hasn't started playing, play!!
 		else if (this.timeInSeconds >= 0) {
 			this.timeInSeconds = this.audioPlay.time()
 			
+			if (!this.started) {
+				this.started = true
+				getTreeRoot().trigger("conductorStart")
+			}
+
 			let oldBeat = this.currentBeat;
 			let oldStep = this.currentStep;
 			
@@ -132,21 +142,22 @@ export class Conductor {
 		}
 	}
 
-	/** Basically sets it up so we can start the song */
-	setup(offset?: number) {
-		offset = offset ?? 0
-		this.add(offset)
-		this.audioPlay?.stop();
-	
-		onUpdate(() => {
-			this.update()
-		})
+	onStart(action: () => void) {
+		return getTreeRoot().on("conductorStart", action)
 	}
 
 	constructor(opts: conductorOpts) {
 		this.audioPlay = opts.audioPlay;
 		this.BPM = opts.bpm;
 		this.timeSignature = opts.timeSignature
+
+		opts.offset = opts.offset ?? 0
+		this.add(opts.offset)
+		this.audioPlay?.stop();
+	
+		onUpdate(() => {
+			this.update()
+		})
 	}
 }
 

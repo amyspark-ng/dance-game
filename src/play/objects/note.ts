@@ -99,7 +99,7 @@ export type NoteGameObj = ReturnType<typeof addNote>
 /** Crucial function that spawns the note */
 export function notesSpawner(GameState:GameStateClass) {
 	// sets the spawnTime
-	GameState.currentSong.notes.forEach((note) => {
+	GameState.song.notes.forEach((note) => {
 		note.spawnTime = note.hitTime - TIME_FOR_STRUM
 	})
 
@@ -107,7 +107,7 @@ export function notesSpawner(GameState:GameStateClass) {
 	let waiting: ChartNote[] = [];
 	
 	function resetWaiting() {
-		waiting = GameState.currentSong.notes.toSorted((a, b) => b.spawnTime - a.spawnTime)
+		waiting = GameState.song.notes.toSorted((a, b) => b.spawnTime - a.spawnTime)
 	}
 
 	resetWaiting()

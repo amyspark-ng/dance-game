@@ -9,9 +9,10 @@ import { loadAssets, loadingScreen, songCharts } from "./loader"
 import { goScene, setupScenes } from "./scenes"
 import { setupWatch } from "../plugins/features/watcher"
 import { chartEditorParams } from "../debug/charteditorscene"
+import { GameSceneParams } from "../play/gamescene"
 
 export function goGameScene() {
-	goScene("game", { song: songCharts["fresh"] })
+	goScene("game", { song: songCharts["bopeebo"] } as GameSceneParams)
 }
 
 export function goChartEditor() {

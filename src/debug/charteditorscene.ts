@@ -55,9 +55,9 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 		audioPlay: playSound(`${params.song.idTitle}-song`, { volume: 0.1, speed: params.playbackSpeed }),
 		bpm: params.song.bpm * params.playbackSpeed,
 		timeSignature: params.song.timeSignature,
+		offset: 0,
 	})
 
-	ChartState.conductor.setup()
 	ChartState.conductor.audioPlay.seek(params.seekTime)
 
 	// IMPORTANT
@@ -128,21 +128,26 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 	
 		// move up or down the selected note 
 		if (vars.selectedNote) {
-			if (isKeyPressed("w")) {
+			const stepOfNote = conductorUtils.timeToStep(vars.selectedNote.hitTime, ChartState.conductor.stepInterval)
+			
+			if (isKeyPressedRepeat("w")) {
+				if (stepOfNote - 1  < 0) return
+
 				vars.selectedNote.hitTime -= ChartState.conductor.stepInterval
 				playSound("ClickUp", { detune: rand(-25, 50) })
-			
-				// if (conductorUtils.timeToStep(vars.selectedNote.hitTime, ChartState.conductor.stepInterval) > ChartState.scrollStep) {
-				// 	ChartState.scrollStep -= 1
-				// } 
+				ChartState.scrollStep -= 1
 			}
 			
-			else if (isKeyPressed("s")) {
+			else if (isKeyPressedRepeat("s")) {
+				if (stepOfNote + 1 > ChartState.conductor.totalSteps) return
+
 				vars.selectedNote.hitTime += ChartState.conductor.stepInterval
 				playSound("ClickUp", { detune: rand(-50, 25) })
-				if (conductorUtils.timeToStep(vars.selectedNote.hitTime, ChartState.conductor.stepInterval) > ChartState.scrollStep) {
-					ChartState.scrollStep += 1
-				} 
+				ChartState.scrollStep += 1
+			}
+
+			else if (isKeyPressed("backspace")) {
+				vars.removeNoteFromChart(vars.selectedNote.hitTime, vars.selectedNote.dancerMove)
 			}
 		}
 	})

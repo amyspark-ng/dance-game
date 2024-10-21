@@ -1,27 +1,37 @@
 import { addDancer, getDancer } from "./objects/dancer"
 import { playSound } from "../plugins/features/sound"
 import { onBeatHit, onMiss, onNoteHit, triggerEvent } from "../game/events"
-import { getNotesOnScreen, setupInput } from "./input"
+import { getNotesOnScreen, manageInput } from "./input"
 import { Conductor } from "./conductor"
 import { addStrumline } from "./objects/strumline"
 import { ChartNote, notesSpawner, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note"
 import { songCharts } from "../game/loader"
-import { SongChart, Tally } from "./song"
+import { saveScore, SongChart, Tally } from "./song"
 import { goScene } from "../game/scenes"
 import { resultsSceneParams } from "../ui/resultsscene"
-import { addJudgement, getJudgement, getScorePerDiff } from "./objects/judgement"
+import { addComboText, addJudgement, getJudgement, getScorePerDiff } from "./objects/judgement"
 import { onPause, onUnpause } from "./pausescreen"
 import { DeathSceneParams } from "../ui/deathscene"
+import { GameSave } from "../game/gamesave"
+import { addUI } from "./objects/gameUi"
+import { utils } from "../utils"
+import { ChartStateClass } from "../debug/charteditorscene"
 
 export class GameStateClass {
 	/** The current conductor */
 	conductor: Conductor = null;
 
 	/** Holds the current song chart */
-	currentSong: SongChart = new SongChart();
+	song: SongChart = new SongChart();
 	
 	/** Holds the current tallies for the song */
 	tally: Tally = new Tally();
+
+	/** The current combo */
+	combo: number = 0;
+
+	/** The current combo */
+	highestCombo: number = 0;
 
 	/** Holds all the notes that have been spawned */
 	spawnedNotes: ChartNote[] = [];
@@ -51,6 +61,8 @@ export class GameStateClass {
 		else onUnpause()
 	};
 
+	params: GameSceneParams = null;
+
 	/** Wheter the player can press keys to play */
 	gameInputEnabled: boolean = false
 }
@@ -66,63 +78,73 @@ export type GameSceneParams = {
 	seekTime?: number,
 }
 
-export function startSong(params: GameSceneParams, GameState:GameStateClass) {
+export function setupSong(params: GameSceneParams, GameState:GameStateClass) {
 	// ==== PLAYS THE AUDIO AND SETS UP THE CONDUCTOR ===
 	// Reset stuff related to gamestate
-	GameState.conductor?.audioPlay?.stop()
-	GameState.conductor = null;
-	GameState.health = 100
-	GameState.spawnedNotes = []
-	GameState.tally = new Tally();
-	GameState.currentSong = songCharts[params.song.idTitle]
 	
-	params.seekTime = params.seekTime ?? 0
-
 	// now that we have the song we can get the scroll speed multiplier and set the playback speed for funzies
 	params.playbackSpeed = params.playbackSpeed ?? 1;
-	const speed = GameState.currentSong.speedMultiplier * params.playbackSpeed
-	setTimeForStrum(TIME_FOR_STRUM / speed)
-	
-	// then we actually setup the conductor and play the song
-	const audioPlay = playSound(`${params.song.idTitle}-song`, { volume: 0.1, speed: params.playbackSpeed })
-	const conductor = new Conductor({ audioPlay: audioPlay, bpm: params.song.bpm * params.playbackSpeed, timeSignature: params.song.timeSignature })
-	conductor.setup(TIME_FOR_STRUM);
-	GameState.conductor = conductor;
-	if (getDancer()) getDancer().doMove("idle")
+	const speed = GameState.song.speedMultiplier * params.playbackSpeed
+	setTimeForStrum(TIME_FOR_STRUM / speed)	
+	params.seekTime = params.seekTime ?? 0
+	GameState.params.seekTime = params.seekTime
 
-	// all notes that should have already been spawned
-	wait(0.1, () => {
-		GameState.currentSong.notes.forEach((note) => {
-			if (note.hitTime < params.seekTime) {
-				GameState.hitNotes.push(note)
-				GameState.spawnedNotes.push(note)
-			}
-		})
+	// then we actually setup the conductor and play the song
+	GameState.conductor = new Conductor({
+		audioPlay: playSound(`${params.song.idTitle}-song`, { volume: 0.1, speed: params.playbackSpeed }),
+		bpm: params.song.bpm * params.playbackSpeed,
+		timeSignature: GameState.song.timeSignature,
+		offset: TIME_FOR_STRUM
 	})
 
-	// if (params.seekTime <= 0.5) params.seekTime = 
+	GameState.song.notes.filter((note) => note.hitTime).forEach((passedNote) => {
+		GameState.spawnedNotes.push(passedNote)
+		GameState.hitNotes.push(passedNote)
+	})
+
 	GameState.conductor.audioPlay.seek(params.seekTime)
-} 
+	if (getDancer()) getDancer().doMove("idle")
+}
 
 export function resetSong(GameState:GameStateClass) {
 	if (GameState.paused) GameState.managePause(false)
+
+	GameState.conductor.audioPlay.stop()
+
+	GameState.health = 100
+	GameState.spawnedNotes = []
+	GameState.hitNotes = []
+	GameState.tally = new Tally();
+	GameState.combo = 0
+	GameState.highestCombo = 0
+
+	GameState.song.notes.forEach((note) => {
+		if (note.hitTime < GameState.params.seekTime) {
+			GameState.hitNotes.push(note)
+			GameState.spawnedNotes.push(note)
+		}
+	})
+
+	if (GameState.params.seekTime > 0) {
+		GameState.conductor.audioPlay.seek(GameState.params.seekTime)
+	}
 
 	getNotesOnScreen().forEach((noteObj) => {
 		noteObj.destroy()
 	})
 
 	triggerEvent("onReset")
-	startSong({ song: GameState.currentSong }, GameState)
 }
 
 export function GameScene() { scene("game", (params: GameSceneParams) => {
 	setBackground(RED.lighten(60))
-	const GameState = new GameStateClass()
 
-	startSong(params, GameState)
+	const GameState = new GameStateClass()
+	GameState.params = params;
+	GameState.song = params.song;
+	setupSong(params, GameState)
 
 	// ==== SETS UP SOME IMPORTANT STUFF ====
-	setupInput(GameState);
 	addStrumline(GameState);
 	notesSpawner(GameState);
 
@@ -133,11 +155,24 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 	const DANCER_SCALE = vec2(0.5) // placeholder
 	const dancer = addDancer(DANCER_SCALE)
 	dancer.pos = DANCER_POS
-	dancer.onDeath(() => goScene("death", { song: GameState.currentSong } as DeathSceneParams))
 	dancer.onUpdate(() => {
 		if (dancer.waitForIdle) dancer.waitForIdle.paused = GameState.paused;
 	})
 
+	const ui = addUI()
+
+	onUpdate(() => {
+		manageInput(GameState);
+		ui.missesText.text = `X | ${GameState.tally.misses}`;
+		
+		const time = GameState.conductor.timeInSeconds < 0 ? 0 : GameState.conductor.timeInSeconds
+		ui.timeText.text = `${utils.formatTime(time)}`;
+		
+		ui.healthText.text = GameState.health.toString();
+	
+		ui.scoreText.text = GameState.tally.score.toString();
+	})
+	
 	onHide(() => {
 		if (!GameState.paused) {
 			GameState.managePause(true)
@@ -160,57 +195,45 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 
 		// the judgement isn't a miss
 		addJudgement(judgement)
+		addComboText(GameState.combo)
 		getDancer().doMove(chartNote.dancerMove)
 	
 		GameState.tally[judgement.toLowerCase() + "s"] += 1
+		GameState.combo += 1
+		if (GameState.combo > GameState.highestCombo) GameState.highestCombo = GameState.combo
+
 		GameState.tally.score += getScorePerDiff(GameState.conductor.timeInSeconds, chartNote)
 		GameState.hitNotes.push(chartNote)
+		
+		if (GameState.health < 100) GameState.health += 5
 	})
 
 	onMiss(() => {
 		GameState.tally.misses += 1
-		getDancer().miss()
-		playSound("missnote", { volume: 0.1 });
-		addJudgement("Miss")
+		GameState.combo = 0
+		GameState.health -= 5
+		
+		// if (getDancer().getCurAnim().name == "miss") {
+			getDancer().miss()
+			playSound("missnote", { volume: 0.1 });
+			addJudgement("Miss")
+			addComboText("break")
+		// }
+
+		if (GameState.health <= 0) goScene("death", { GameState: GameState } as DeathSceneParams)
 	})
 
 	// END SONG
 	GameState.conductor.audioPlay.onEnd(() => {
-		goScene("results", {} as resultsSceneParams)
-	})
-
-	onKeyPress("f2", () => {
-		debug.inspect = !debug.inspect
-	})
-
-	// ==== debug ====
-	let keysForDebugging = {}
-
-	const textin = add([
-		text(""),
-		pos(),
-		color(BLACK),
-	]);
-
-	onUpdate(() => {
-		GameState.health = getDancer().hp();
-		
-		function createKeys() {
-			let text = Object.keys(keysForDebugging).map((key) => `${key}: ${keysForDebugging[key]}`).join("\n")
-			return text
-		}
-	
-		keysForDebugging["timeInSeconds"] = GameState.conductor.timeInSeconds.toFixed(3);
-		keysForDebugging["currentBeat"] = GameState.conductor.currentBeat;
-		keysForDebugging["totalBeats"] = GameState.conductor.totalBeats;
-		keysForDebugging["currentStep"] = GameState.conductor.currentStep;
-		keysForDebugging["totalSteps"] = GameState.conductor.totalSteps;
-		keysForDebugging["health"] = GameState.health;
-		textin.text = createKeys()
+		const songSaveScore = new saveScore()
+		songSaveScore.idTitle = params.song.idTitle
+		songSaveScore.tally = GameState.tally
+		GameSave.songsPlayed.push(songSaveScore)
+		goScene("results", { GameState: GameState } as resultsSceneParams)
 	})
 
 	onSceneLeave(() => {
-		GameState.conductor.audioPlay.stop()
 		GameState.conductor.paused = true;
+		GameState.conductor.audioPlay.stop()
 	})
 })}

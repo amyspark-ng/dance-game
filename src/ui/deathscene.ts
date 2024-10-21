@@ -1,10 +1,11 @@
 import { GameSave } from "../game/gamesave"
 import { transitionToScene } from "../game/scenes"
 import { fadeOut } from "../game/transitions/fadeOutTransition"
+import { GameSceneParams, GameStateClass } from "../play/gamescene"
 import { SongChart } from "../play/song"
 
 export type DeathSceneParams = {
-	song: SongChart
+	GameState: GameStateClass
 }
 
 export function DeathScene() { scene("death", (params:DeathSceneParams) => {
@@ -25,6 +26,6 @@ export function DeathScene() { scene("death", (params:DeathSceneParams) => {
 	])
 
 	onKeyPress(GameSave.preferences.controls.accept, () => {
-		transitionToScene(fadeOut, "game", { song: params.song } as DeathSceneParams)
+		transitionToScene(fadeOut, "game", { song: params.GameState.song } as GameSceneParams)
 	})
 })}

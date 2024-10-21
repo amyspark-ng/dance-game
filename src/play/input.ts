@@ -7,37 +7,33 @@ import { goScene, transitionToScene } from "../game/scenes";
 import { chartEditorParams } from "../debug/charteditorscene";
 import { fadeOut } from "../game/transitions/fadeOutTransition";
 
-/** The main function that manages inputs for the game */
-export function setupInput(GameState: GameStateClass) {
+/** The function that manages input functions inside the game, must be called onUpdate */
+export function manageInput(GameState: GameStateClass) {
 	Object.values(GameSave.preferences.gameControls).forEach((gameKey) => {
-		onKeyPress(gameKey.kbKey, () => {
-			if (GameState.paused) return
-			
+		if (GameState.paused) return
+
+		if (isKeyPressed(gameKey.kbKey)) {
 			// bust a move
 			getStrumline().press(gameKey.move)
-		});
+		}
 
-		onKeyRelease(gameKey.kbKey, () => {
-			if (GameState.paused) return
-			
+		else if (isKeyReleased(gameKey.kbKey)) {
 			getStrumline().release()
-		})
+		}
 	});
 
-	onKeyPress(GameSave.preferences.controls.pause, () => {
-		if (!GameState.gameInputEnabled) return
-		
+	if (!GameState.gameInputEnabled) return
+	if (isKeyPressed(GameSave.preferences.controls.pause)) {
 		GameState.managePause();
-	})
+	}
 
-	onKeyPress(GameSave.preferences.controls.reset, () => {
-		if (!GameState.gameInputEnabled) return
+	else if (isKeyPressed(GameSave.preferences.controls.reset)) {
 		resetSong(GameState)
-	})
+	}
 
-	onKeyPress(GameSave.preferences.controls.debug, () => {
-		transitionToScene(fadeOut, "charteditor", { song: GameState.currentSong, seekTime: GameState.conductor.timeInSeconds } as chartEditorParams)
-	})
+	else if (isKeyPressed(GameSave.preferences.controls.debug)) {
+		transitionToScene(fadeOut, "charteditor", { song: GameState.song, seekTime: GameState.conductor.timeInSeconds } as chartEditorParams)
+	}
 }
 
 // TIMINGS
@@ -55,8 +51,8 @@ export function checkForNoteHit(GameState:GameStateClass, move: Move) : ChartNot
 	}
 
 	// if time in seconds is close by input_treshold to the hit note of any note in the chart
-	if (GameState.currentSong.notes.some((note) => conditionsForHit(note))) {
-		return GameState.currentSong.notes.find((note) => conditionsForHit(note))
+	if (GameState.song.notes.some((note) => conditionsForHit(note))) {
+		return GameState.song.notes.find((note) => conditionsForHit(note))
 	}
 	
 	// if no note found (the player is a dummy and didn't hit anything)

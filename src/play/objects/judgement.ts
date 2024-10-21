@@ -15,7 +15,7 @@ export function getScorePerDiff(timeInSeconds: number, chartNote: ChartNote) {
 	const max_score = 500
 	const min_score = 5
 	const diff = Math.abs(timeInSeconds - chartNote.hitTime)
-	return min_score + (max_score - min_score) * diff
+	return Math.round(min_score + (max_score - min_score) * diff)
 }
 
 /** Get the judgement the player did based on hit time */
@@ -38,6 +38,7 @@ export function addJudgement(judgement: Judgement) {
 		pos(getDancer().pos.x + 50, getDancer().pos.y),
 		anchor("left"),
 		opacity(1),
+		"judgementObj"
 	])
 
 	let direction = randi(-2, 2)
@@ -51,4 +52,24 @@ export function addJudgement(judgement: Judgement) {
 	judgementObj.fadeOut(1)
 	
 	return judgementObj;
+}
+
+export function addComboText(comboAmount: number | "break") {
+	const judgementObj = get("judgementObj")[0]
+	
+	const comboText = add([
+		text(comboAmount.toString()),
+		pos(),
+		anchor(judgementObj.anchor),
+		opacity(),
+	])
+
+	comboText.onUpdate(() => {
+		comboText.pos = vec2(judgementObj.pos.x, judgementObj.pos.y + judgementObj.height / 2 + 5)
+		comboText.opacity = judgementObj.opacity
+	})
+
+	judgementObj.onDestroy(() => comboText.destroy())
+	
+	return comboText;
 }

@@ -58,6 +58,9 @@ export class ChartEditorVars {
 	/** An array with the scales of every note */
 	noteScales: Vec2[] = []
 
+	/** The scale of the cursor */
+	cursorScale = vec2(1)
+
 	/** Is ChartState.scrollstep but it is constantly being lerped towards it */
 	smoothScrollStep = 0
 
@@ -90,6 +93,7 @@ export class ChartEditorVars {
 	/** Changes the current move */
 	changeMove(newMove:Move) {
 		this.currentMove = newMove;
+		tween(1.5, 1, 0.1, (p) => this.cursorScale.x = p)
 	}
 
 	/** Add a note to the chart */
@@ -108,6 +112,7 @@ export class ChartEditorVars {
 		// add it to note scales
 		const indexInNotes = this.ChartState.song.notes.indexOf(newNote)
 		tween(vec2(this.NOTE_BIG_SCALE), vec2(1), 0.1, (p) => this.noteScales[indexInNotes] = p)
+		this.selectedNote = newNote;
 	}
 	
 	/** Remove a note from the chart */
@@ -278,6 +283,7 @@ export function drawCursor(vars:ChartEditorVars) {
 			height: vars.SQUARE_SIZE.y - 5,
 			color: WHITE,
 			fill: false,
+			scale: vars.cursorScale,
 			outline: {
 				width: 8, color: moveToColor(vars.currentMove).darken(50)
 			},
@@ -554,8 +560,7 @@ export function setupManageTextboxes(vars:ChartEditorVars) {
 		
 		if (vars.focusedTextBox.typeofValue == "number") {
 			// if it's a number
-			if (!isNaN(parseInt(ch))) vars.focusedTextBox.value += ch
-			else shake(1)
+			if (!isNaN(parseInt(ch)) || ch == ".") vars.focusedTextBox.value += ch
 		}
 
 		else if (vars.focusedTextBox.typeofValue == "id") {
