@@ -1,4 +1,3 @@
-import { SpriteAtlasData } from "kaplay";
 import { SongChart } from "../play/song";
 
 /** The loading screen of the game */

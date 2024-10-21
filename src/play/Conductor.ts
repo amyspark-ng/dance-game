@@ -51,11 +51,11 @@ export class Conductor {
 	/** Interval between beats */
 	beatInterval: number;
 
-	/** Is the bottom (1) number of the timeSignature */
-	beatsPerMeasure: number;
-	
 	/** Is the top (0) number of the timeSignature */
 	stepsPerBeat: number; 
+
+	/** Is the bottom (1) number of the timeSignature */
+	beatsPerMeasure: number;
 
 	currentStep: number;
 	currentBeat: number;
@@ -78,11 +78,20 @@ export class Conductor {
 		return this.stepsPerBeat * this.totalBeats
 	}
 
+	/** Changes the bpm */
+	changeBpm(newBpm = 100) {
+		this.BPM = newBpm
+		this.beatInterval = 60 / this.BPM
+		this.stepInterval = this.beatInterval / this.stepsPerBeat
+	}
+
 	/** Function that runs at the start of the conductor */
 	add(offset?:number) {
 		this.beatInterval = 60 / this.BPM;
-		this.beatsPerMeasure = this.timeSignature[1];
+	
 		this.stepsPerBeat = this.timeSignature[0];
+		this.beatsPerMeasure = this.timeSignature[1];
+	
 		this.stepInterval = this.beatInterval / this.stepsPerBeat;
 	
 		this.currentBeat = 0
@@ -95,7 +104,10 @@ export class Conductor {
 		if (this.timeInSeconds >= 0) this.audioPlay.paused = this.paused;
 		if (this.paused) return;
 
-		if (this.timeInSeconds <= 0) {
+		this.timeSignature[0] = this.stepsPerBeat;
+		this.timeSignature[1] = this.beatsPerMeasure;
+
+		if (this.timeInSeconds < 0) {
 			this.timeInSeconds += dt()
 			this.audioPlay.paused = true
 		}

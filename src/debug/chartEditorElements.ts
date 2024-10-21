@@ -2,12 +2,14 @@
 import { Key, Vec2 } from "kaplay";
 import { utils } from "../utils";
 import { ChartStateClass, moveToDetune } from "./charteditorscene";
-import { Move } from "../play/objects/dancer";
+import { dancer, Move } from "../play/objects/dancer";
 import { ChartNote, moveToColor } from "../play/objects/note";
 import { GameSave } from "../game/gamesave";
 import { conductorUtils } from "../play/conductor";
 import { playSound } from "../plugins/features/sound";
 import { gameCursor } from "../plugins/features/gameCursor";
+import { positionSetter } from "../plugins/features/positionsetter";
+import { juice } from "../plugins/graphics/juiceComponent";
 
 /** Class for managing variables related to the Chart Editor */
 export class ChartEditorVars {
@@ -71,6 +73,9 @@ export class ChartEditorVars {
 	/** Is by how many steps the strumline is offseted (from top to below, 0 to 12) */
 	strumlineStepOffset = 1
 
+	/** Focused textbox */
+	focusedTextBox: textBoxObj = undefined
+
 	/** Converts a step to a position (a hawk to a) */
 	stepToPos(step: number) {
 		return utils.getPosInGrid(this.INITIAL_POS, step, 0, this.SQUARE_SIZE)
@@ -120,6 +125,54 @@ export class ChartEditorVars {
 		this.ChartState = ChartState;
 		this.noteScales = [].fill(vec2(1), 0, this.ChartState.song.notes.length)
 	}
+}
+
+/** Draws the playbar and the text with the time */
+export function drawPlayBar(vars: ChartEditorVars) {
+	const bgColor = Color.fromArray(vars.ChartState.bgColor)
+
+	// why width * 2?
+	let barWidth = map(vars.scrollTime, 0, vars.ChartState.conductor.audioPlay.duration(), 0, width() * 2)
+	let lerpedWidth = 0
+	lerpedWidth = lerp(lerpedWidth, barWidth, vars.SCROLL_LERP_VALUE)
+
+	drawRect({
+		width: width(),
+		height: 10,
+		anchor: "botleft",
+		pos: vec2(0, height()),
+		color: bgColor.darken(50),
+	})
+
+	drawRect({
+		width: lerpedWidth,
+		height: 10,
+		anchor: "botleft",
+		pos: vec2(0, height()),
+		color: bgColor.lighten(50),
+	})
+
+	const circleRad = 8
+	drawCircle({
+		radius: circleRad,
+		anchor: "center",
+		pos: vec2(lerpedWidth, height() - circleRad / 2),
+		color: bgColor.lighten(80),
+	})
+
+	let textToPut = utils.formatTime(vars.scrollTime)
+	if (vars.ChartState.paused) textToPut += " (❚❚)"
+	else textToPut += " (▶)"
+	textToPut += ` - ${vars.ChartState.scrollStep}`
+	const size = 25
+
+	drawText({
+		text: textToPut,
+		align: "right",
+		anchor: "topright",
+		size: size,
+		pos: vec2(width() - 5, height() - size * 1.5),
+	})
 }
 
 /** Draws as many steps for the song checkerboard */
@@ -237,17 +290,26 @@ export function drawCursor(vars:ChartEditorVars) {
 
 /** Draw the camera controller and the tiny notess */
 export function drawCameraControlAndNotes(vars:ChartEditorVars) {
+	let cameraControllerOpacity = 0.1
+	
 	// draws the camera controller
 	drawRect({
 		width: vars.SQUARE_SIZE.x,
 		height: vars.SQUARE_SIZE.y,
 		anchor: "center",
 		pos: vars.cameraControllerPos,
+		opacity: cameraControllerOpacity,
 		color: YELLOW,
+		outline: { 
+			width: 5,
+			color: utils.blendColors(RED, YELLOW, 0.5),
+		}
 	})
 
 	// draws the notes on the side of the camera controller
 	if (mousePos().x >= width() - vars.SQUARE_SIZE.x) {
+		cameraControllerOpacity = 0.5
+
 		vars.ChartState.song.notes.forEach((note) => {
 			const initialPos = vec2(width() - 25, 0)
 			const yPos = map(note.hitTime, 0, vars.ChartState.conductor.audioPlay.duration(), initialPos.y, height())
@@ -263,6 +325,8 @@ export function drawCameraControlAndNotes(vars:ChartEditorVars) {
 			})
 		})
 	}
+
+	else cameraControllerOpacity = 0.1
 }
 
 /** Draw the gizmo for the selected note */
@@ -303,19 +367,259 @@ export function moveChangeInputHandler(vars: ChartEditorVars) {
 			vars.changeMove(keysAndMoves[key])
 		}
 	})
+}
 
-	let currentIndex = Object.values(keysAndMoves).indexOf(vars.currentMove)
-	if (isKeyPressed("q")) {
-		if (currentIndex - 1 < 0) currentIndex = Object.keys(keysAndMoves).length - 1
-		else currentIndex -= 1
-		const newMove = Object.values(keysAndMoves)[currentIndex] as Move
-		vars.changeMove(newMove)
+/** Adds a dummy dancer for moving to the fake notes in the chart */
+export function addDummyDancer(vars: ChartEditorVars) {
+	const DANCER_POS = vec2(921, 519)
+	const DANCER_SCALE = vec2(0.25)
+	let waitEvent = wait(0)
+
+	function fakeDancerComp() {
+		return {
+			moveBop() {
+				return this.stretch({ XorY: "y", startScale: DANCER_SCALE.y * 0.9, endScale: DANCER_SCALE.y })
+			},
+
+			doMove(move:Move) {
+				this.moveBop()
+				this.play(move)
+
+				if (waitEvent) {waitEvent.cancel(); waitEvent = null}
+				waitEvent = wait(2, () => {
+					// can't do doMove because then it'll turn into a loop
+					this.play("idle")
+				})
+			},
+
+			get currentMove() {
+				return this.getCurAnim().name;
+			}
+		}
+	}
+
+	const dancer = add([
+		sprite("astri"),
+		anchor("bot"),
+		pos(DANCER_POS),
+		area(),
+		scale(DANCER_SCALE),
+		juice(),
+		fakeDancerComp(),
+	])
+
+	dancer.onClick(() => {
+		dancer.moveBop()
+	})
+
+	dancer.doMove("idle")
+
+	return dancer;
+}
+
+export type textBoxOpt = {
+	label: string,
+	typeofValue: "string" | "id" | "number",
+}
+
+export function addTextBox(opts:textBoxOpt) {
+	function textBoxComp() {
+		return {
+			id: "textBoxComp",
+			focus: false,
+			label: opts.label,
+			typeofValue: opts.typeofValue,
+			value: "",
+		}
 	}
 	
-	else if (isKeyPressed("w")) {
-		if (currentIndex + 1 > Object.values(keysAndMoves).length - 1) currentIndex = 0
-		else currentIndex += 1
-		const newMove = Object.values(keysAndMoves)[currentIndex] as Move
-		vars.changeMove(newMove)
-	}
+	let texting = add([
+		text("", { align: "left" }),
+		area(),
+		pos(),
+		anchor("left"),
+		textBoxComp(),
+		opacity(0),
+	])
+
+	texting.onUpdate(() => {
+		if (texting.focus) texting.opacity = 1
+		else if (texting.isHovering()) texting.opacity = 0.5
+		else texting.opacity = 0.25
+
+		texting.text = opts.label + ": " + (texting.value as string)
+	})
+
+	return texting;
 }
+
+export function setupManageTextboxes(vars:ChartEditorVars) {
+	const initialTextBoxPos = vec2(15, 25)
+	const sizeOfTxt = 30
+
+	const ts1label = "Steps per beat (TS0)" 
+	const ts2label = "Beats per measure (TS1)" 
+
+	const textboxesarr: textBoxObj[] = [] 
+
+	const textboxes = {
+		"Display name": "string",
+		"ID": "id",
+		"BPM": "number",
+		"Steps per beat (TS0)": "number",
+		"Beats per measure (TS1)": "number",
+		"Scroll speed": "number",
+	}
+
+	/** Gets the value of the textboxes and assigns it to the actual values on the chart */
+	function assignNewValue() {
+		vars.ChartState.song.title = textboxesarr["Display name"].value as string
+		vars.ChartState.song.idTitle = textboxesarr["ID"].value as string
+		
+		// bpm
+		vars.ChartState.song.bpm = Number(textboxesarr["BPM"].value)
+		vars.ChartState.conductor.changeBpm(vars.ChartState.song.bpm)
+		
+		// other stuff
+		vars.ChartState.conductor.stepsPerBeat = Number(textboxesarr[ts1label].value)
+		vars.ChartState.conductor.beatsPerMeasure = Number(textboxesarr[ts2label].value)
+		vars.ChartState.song.speedMultiplier = Number(textboxesarr["Scroll speed"].value)
+	}
+
+	Object.keys(textboxes).forEach((label, index) => {
+		const txtbox = addTextBox({
+			label: label,
+			typeofValue: textboxes[label as keyof typeof textboxes] as "string" | "id" | "number",
+		})
+		txtbox.textSize = sizeOfTxt
+		txtbox.pos = vec2(initialTextBoxPos.x, initialTextBoxPos.y + sizeOfTxt * index)
+		textboxesarr[label] = txtbox
+
+		switch (label) {
+			case "Display name":
+				txtbox.value = vars.ChartState.song.title;	
+			break;
+
+			case "ID":
+				txtbox.value = vars.ChartState.song.idTitle;	
+			break;
+
+			case "BPM":
+				txtbox.value = vars.ChartState.song.bpm.toString();
+			break;
+
+			case ts1label:
+				txtbox.value = vars.ChartState.conductor.stepsPerBeat.toString();
+			break;
+
+			case ts2label:
+				txtbox.value = vars.ChartState.conductor.beatsPerMeasure.toString();
+			break;
+
+			case "Scroll speed":
+				txtbox.value = vars.ChartState.song.speedMultiplier.toString();
+			break;
+		}
+	})
+
+	// manages some focus for textboxes
+	onClick(() => {
+		const allTextBoxes = get("textBoxComp") as textBoxObj[]
+
+		const hoveredTextBox = allTextBoxes.find((textbox) => textbox.isHovering())
+		if (hoveredTextBox) {
+			vars.focusedTextBox = hoveredTextBox
+			vars.focusedTextBox.focus = true
+		}
+
+		else {
+			if (vars.focusedTextBox) vars.focusedTextBox.focus = false
+			vars.focusedTextBox = undefined
+			assignNewValue()
+		}
+	
+		// get all the textboxes that aren't that one and unfocus them
+		allTextBoxes.filter((textbox) => textbox != vars.focusedTextBox).forEach((textbox) => {
+			textbox.focus = false
+		})
+	})
+
+	// manages the adding for stuff
+	onCharInput((ch) => {
+		if (vars.focusedTextBox == undefined) return
+
+		if (isKeyDown("shift")) {
+			ch = ch.toUpperCase()
+		}
+		
+		if (vars.focusedTextBox.typeofValue == "number") {
+			// if it's a number
+			if (!isNaN(parseInt(ch))) vars.focusedTextBox.value += ch
+			else shake(1)
+		}
+
+		else if (vars.focusedTextBox.typeofValue == "id") {
+			if (ch == " ") vars.focusedTextBox.value += "-"
+			else {
+				vars.focusedTextBox.value += ch.toLowerCase()
+			}
+		}
+
+		else {
+			vars.focusedTextBox.value += ch
+		}
+	})
+
+	onKeyPress("enter", () => {
+		if (vars.focusedTextBox == undefined) return
+		vars.focusedTextBox.focus = false
+		assignNewValue()
+	})
+
+	onKeyPress("backspace", () => {
+		if (vars.focusedTextBox == undefined) return
+		vars.focusedTextBox.value = vars.focusedTextBox.value.toString().slice(0, -1)
+	})
+
+	let controls = [
+		"Left click - Place note",
+		"Middle click - Copy note color",
+		"Right click - Delete note",
+		"1, 2, 3, 4 - Change the note color",
+		"W, S - Move up or down selected note",
+		"Space - Pause/Unpause",
+	]
+
+	add([
+		text(controls.join("\n"), { size: 16 }),
+		pos(vec2(15, 450)),
+		opacity(0.5),
+		anchor("topleft"),
+	])
+}
+
+export function addDownloadButton(vars:ChartEditorVars) {
+	const bpos = vec2(760, 547)
+	
+	const btn = add([
+		text("↓"),
+		pos(bpos),
+		area(),
+		anchor("center"),
+		opacity(),
+		{
+			update() {
+				if (this.isHovering()) this.opacity = 1
+				else this.opacity = 0.5
+			}
+		}
+	])
+
+	btn.onClick(() => {
+		const filename = `${vars.ChartState.song.idTitle}-chart.json`
+		downloadJSON(filename, vars.ChartState.song)
+		debug.log(`filename: ${filename} - downloaded! :)`)
+	})
+}
+
+export type textBoxObj = ReturnType<typeof addTextBox>

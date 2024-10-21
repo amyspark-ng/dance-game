@@ -26,6 +26,9 @@ export class GameStateClass {
 	/** Holds all the notes that have been spawned */
 	spawnedNotes: ChartNote[] = [];
 
+	/** Holds all the notes that have been hit */
+	hitNotes: ChartNote[] = [];
+
 	/** Current player health */
 	health: number = 100;
 
@@ -90,10 +93,14 @@ export function startSong(params: GameSceneParams, GameState:GameStateClass) {
 	// all notes that should have already been spawned
 	wait(0.1, () => {
 		GameState.currentSong.notes.forEach((note) => {
-			if (note.hitTime < params.seekTime) GameState.spawnedNotes.push(note)
+			if (note.hitTime < params.seekTime) {
+				GameState.hitNotes.push(note)
+				GameState.spawnedNotes.push(note)
+			}
 		})
 	})
 
+	// if (params.seekTime <= 0.5) params.seekTime = 
 	GameState.conductor.audioPlay.seek(params.seekTime)
 } 
 
@@ -157,6 +164,7 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 	
 		GameState.tally[judgement.toLowerCase() + "s"] += 1
 		GameState.tally.score += getScorePerDiff(GameState.conductor.timeInSeconds, chartNote)
+		GameState.hitNotes.push(chartNote)
 	})
 
 	onMiss(() => {

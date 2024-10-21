@@ -76,7 +76,7 @@ export function addNote(chartNote: ChartNote, GameState:GameStateClass) {
 		noteObj.pos.x = xPos;
 
 		// if the time has already passed to hit a note and the note is not on spawned notes
-		if (GameState.conductor.timeInSeconds >= chartNote.hitTime + INPUT_THRESHOLD && !hasMissedNote && GameState.spawnedNotes.includes(noteObj.chartNote)) {
+		if (GameState.conductor.timeInSeconds >= chartNote.hitTime + INPUT_THRESHOLD && !hasMissedNote && GameState.spawnedNotes.includes(noteObj.chartNote) && !GameState.hitNotes.includes(noteObj.chartNote)) {
 			hasMissedNote = true
 			triggerEvent("onMiss")
 		}

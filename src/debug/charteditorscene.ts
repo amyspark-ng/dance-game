@@ -1,21 +1,15 @@
-import { Key, Vec2 } from "kaplay"
-import { onBeatHit, onStepHit } from "../game/events"
-import { ChartNote, moveToColor, notesSpawner } from "../play/objects/note"
+import { onBeatHit, onNoteHit, onStepHit, triggerEvent } from "../game/events"
+import { moveToColor } from "../play/objects/note"
 import { SongChart } from "../play/song"
-import { cam } from "../plugins/features/camera"
 import { playSound } from "../plugins/features/sound"
 import { utils } from "../utils"
 import { transitionToScene } from "../game/scenes"
 import { fadeOut } from "../game/transitions/fadeOutTransition"
-import { GameSceneParams, GameStateClass } from "../play/gamescene"
+import { GameSceneParams } from "../play/gamescene"
 import { Conductor, conductorUtils } from "../play/conductor"
-import { GameSave } from "../game/gamesave"
 import { Move } from "../play/objects/dancer"
-import { INPUT_THRESHOLD } from "../play/input"
 import { gameCursor } from "../plugins/features/gameCursor"
-import { dragger } from "../plugins/features/drag"
-import { strumline } from "../play/objects/strumline"
-import { moveChangeInputHandler, ChartEditorVars, drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, drawSelectGizmo, drawStrumline } from "./chartEditorElements"
+import { moveChangeInputHandler, ChartEditorVars, drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, drawSelectGizmo, drawStrumline, drawPlayBar, addDummyDancer, addTextBox, textBoxObj, setupManageTextboxes, addDownloadButton } from "./chartEditorElements"
 
 export type chartEditorParams = {
 	song: SongChart,
@@ -24,6 +18,7 @@ export type chartEditorParams = {
 }
 
 export class ChartStateClass {
+	bgColor: [number, number, number] = [67, 21, 122]
 	song: SongChart;
 	paused: boolean;
 	conductor: Conductor;
@@ -41,14 +36,6 @@ export function moveToDetune(move: Move) {
 	}
 }
 
-/** The keys used to change the current move */
-const NOTE_KEYS = {
-	"1": "left",
-	"2": "down",
-	"3": "up",
-	"4": "right"
-}
-
 /** How lerped the scroll value is */
 const SCROLL_LERP_VALUE = 0.5
 
@@ -56,14 +43,13 @@ const SCROLL_LERP_VALUE = 0.5
 const NOTE_BIG_SCALE = 1.4
 
 export function ChartEditorScene() { scene("charteditor", (params: chartEditorParams) => {
-	setBackground(utils.blendColors(RED, BLUE, 0.65).darken(70))
-	
 	// had an issue with BPM being NaN but it was because since this wasn't defined then it was NaN
 	params.playbackSpeed = params.playbackSpeed ?? 1
 	params.seekTime = params.seekTime ?? 0
 	params.seekTime = Math.abs(params.seekTime)
 
 	const ChartState = new ChartStateClass()
+	setBackground(Color.fromArray(ChartState.bgColor))
 
 	ChartState.conductor = new Conductor({
 		audioPlay: playSound(`${params.song.idTitle}-song`, { volume: 0.1, speed: params.playbackSpeed }),
@@ -81,13 +67,6 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 	ChartState.scrollStep = conductorUtils.timeToStep(params.seekTime, ChartState.conductor.stepInterval)
 
 	const vars = new ChartEditorVars(ChartState)
-
-	const propsText = add([
-		text("Time in song: ", { align: "left" }),
-		pos(0, 0),
-		anchor("topleft"),
-		fixed(),
-	])
 
 	onUpdate(() => {
 		vars.ChartState = ChartState
@@ -109,20 +88,6 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 		const currentColor = moveToColor(vars.currentMove)
 		const mouseColor = utils.blendColors(WHITE, currentColor, 0.5)
 		gameCursor.color = lerp(gameCursor.color, mouseColor, SCROLL_LERP_VALUE)
-
-		// UPDATING TEXTS
-		const scrollStepsToTime = utils.formatTime(vars.scrollTime)
-		const formattedTime = utils.formatTime(ChartState.conductor.timeInSeconds)
-		const allProps = {
-			"Time": ChartState.paused ? scrollStepsToTime : formattedTime,
-			"Beat": Math.floor(vars.scrollTime / ChartState.conductor.beatInterval),
-			"scrollStep": ChartState.scrollStep
-		}
-		propsText.text = Object.entries(allProps).map(([key, value]) => `${key}: ${value}`).join("\n")
-
-		if (isKeyDown("control") && isKeyPressed("s")) {
-			downloadJSON(`${params.song.idTitle}-chart.json`, ChartState.song)
-		}
 
 		// MANAGES some stuff for selecting
 		vars.cursorYPos = Math.floor(mousePos().y / vars.SQUARE_SIZE.y) * vars.SQUARE_SIZE.y + vars.SQUARE_SIZE.y / 2 
@@ -160,6 +125,26 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 
 		// Handle move change input 
 		moveChangeInputHandler(vars)
+	
+		// move up or down the selected note 
+		if (vars.selectedNote) {
+			if (isKeyPressed("w")) {
+				vars.selectedNote.hitTime -= ChartState.conductor.stepInterval
+				playSound("ClickUp", { detune: rand(-25, 50) })
+			
+				// if (conductorUtils.timeToStep(vars.selectedNote.hitTime, ChartState.conductor.stepInterval) > ChartState.scrollStep) {
+				// 	ChartState.scrollStep -= 1
+				// } 
+			}
+			
+			else if (isKeyPressed("s")) {
+				vars.selectedNote.hitTime += ChartState.conductor.stepInterval
+				playSound("ClickUp", { detune: rand(-50, 25) })
+				if (conductorUtils.timeToStep(vars.selectedNote.hitTime, ChartState.conductor.stepInterval) > ChartState.scrollStep) {
+					ChartState.scrollStep += 1
+				} 
+			}
+		}
 	})
 
 	/** The main event, draws everything so i don't have to use objects */
@@ -170,6 +155,7 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 		drawCursor(vars)
 		drawSelectGizmo(vars)
 		drawCameraControlAndNotes(vars)
+		drawPlayBar(vars)
 	})
 
 	/** Gets the current note that is being hovered */
@@ -268,11 +254,13 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 
 	// Send you to the game
 	onKeyPress("enter", () => {
+		if (vars.focusedTextBox) return
 		transitionToScene(fadeOut, "game", { song: ChartState.song, seekTime: vars.scrollTime } as GameSceneParams)
 	})
 
 	// Pausing unpausing behaviour
 	onKeyPress("space", () => {
+		if (vars.focusedTextBox) return
 		ChartState.paused = !ChartState.paused
 	
 		if (ChartState.paused == false) {
@@ -282,9 +270,12 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 		}
 	})
 
+	const dummyDancer = addDummyDancer(vars)
+
 	// makes the strumline BOP
 	onBeatHit(() => {
 		tween(vec2(4.5), vec2(1), 0.1, (p) => vars.strumlineScale = p)
+		if (dummyDancer.currentMove == "idle") dummyDancer.moveBop()
 	})
 
 	// Scrolls the checkerboard
@@ -295,10 +286,19 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 			const indexOfNote = ChartState.song.notes.indexOf(someNote)
 			tween(vec2(NOTE_BIG_SCALE), vec2(1), 0.1, (p) => vars.noteScales[indexOfNote] = p)
 			playSound("ClickUp", { detune: moveToDetune(someNote.dancerMove) })
+			triggerEvent("onNoteHit", someNote)
 		}
+	})
+
+	// animate a dancer
+	onNoteHit((note) => {
+		dummyDancer.doMove(note.dancerMove)
 	})
 
 	onSceneLeave(() => {
 		gameCursor.color = WHITE
 	})
+
+	setupManageTextboxes(vars)
+	addDownloadButton(vars)
 })}
