@@ -1,9 +1,10 @@
 import { Comp, KEventController ,LoadSpriteOpt,TimerController, TweenController, Vec2 } from "kaplay"
-import { juice } from "../../plugins/graphics/juiceComponent"
+import { juice } from "../../core/plugins/graphics/juiceComponent"
 
 /** Moves available for the dancer, also handles the note type */
 export type Move = "left" | "right" | "up" | "down" | "idle"
 
+/** Time it'll take for the dancer to go back to idleing */
 const TIME_FOR_IDLE = 2
 
 export interface dancerComp extends Comp {

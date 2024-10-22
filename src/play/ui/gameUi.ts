@@ -1,5 +1,4 @@
-import { GameStateClass } from "../gamescene";
-
+/** Adds some of the ui and interface in the game scene */
 export function addUI() {
 	const size = 30
 	const padding = 5

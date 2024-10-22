@@ -1,5 +1,5 @@
-import { goScene } from "../game/scenes"
-import { fadeOut } from "../game/transitions/fadeOutTransition"
+import { goScene } from "../core/scenes"
+import { fadeOut } from "../core/transitions/fadeOutTransition"
 
 export function TitleScene() { scene("title", () => {
 	setBackground(BLUE.lighten(30))

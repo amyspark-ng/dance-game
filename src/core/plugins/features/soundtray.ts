@@ -1,5 +1,5 @@
 import { GameObj, KEventController, Key, StayComp, TimerController, TweenController } from "kaplay"
-import { GameSave } from "../../game/gamesave"
+import { GameSave } from "../../gamesave"
 import { changeAllSoundsVolume, playSound } from "./sound"
 import { juice } from "../graphics/juiceComponent"
 

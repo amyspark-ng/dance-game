@@ -1,11 +1,10 @@
-import { Color, Comp, TimerController } from "kaplay";
-import { getDancer, Move } from "./dancer";
+import { Color, Comp } from "kaplay";
+import { Move } from "./dancer";
 import { utils } from "../../utils";
-import { getStrumline, strumline } from "./strumline";
-import { INPUT_THRESHOLD } from "../input";
-import { onReset, triggerEvent } from "../../game/events";
-import { GameStateClass } from "../gamescene";
-import { GameSave } from "../../game/gamesave";
+import { getStrumline } from "./strumline";
+import { onReset, triggerEvent } from "../../core/events";
+import { GameSave } from "../../core/gamesave";
+import { StateGame, INPUT_THRESHOLD } from "../playstate";
 
 /** How much pixels per second does the note move at */
 export const NOTE_PXPERSECOND = 5;
@@ -26,6 +25,7 @@ export type ChartNote = {
 	spawnTime?: number,
 }
 
+/** Converts a move to a color (based on fnf lol) */
 export function moveToColor(move: Move) : Color {
 	switch (move) {
 		case "left": return utils.blendColors(RED, BLUE, 0.5).lighten(10)
@@ -55,7 +55,8 @@ export function setTimeForStrum(value: number) {
 	TIME_FOR_STRUM = value;
 }
 
-export function addNote(chartNote: ChartNote, GameState:GameStateClass) {
+/** Adds a note to the game */
+export function addNote(chartNote: ChartNote, GameState:StateGame) {
 	const noteObj = add([
 		sprite(GameSave.preferences.noteskin +  "_" + chartNote.dancerMove),
 		pos(width() + NOTE_WIDTH, getStrumline().pos.y),
@@ -96,8 +97,8 @@ export type NoteGameObj = ReturnType<typeof addNote>
 
 // MF you genius
 
-/** Crucial function that spawns the note */
-export function notesSpawner(GameState:GameStateClass) {
+/** Crucial function that spawns the notes in the game */
+export function notesSpawner(GameState:StateGame) {
 	// sets the spawnTime
 	GameState.song.notes.forEach((note) => {
 		note.spawnTime = note.hitTime - TIME_FOR_STRUM
@@ -140,4 +141,9 @@ export function notesSpawner(GameState:GameStateClass) {
 		if (GameState.conductor.paused) return;
 		checkNotes()
 	})
+}
+
+/** Returns an array of all the notes currently on the screen */
+export function getNotesOnScreen() {
+	return get("noteObj", { recursive: true })
 }

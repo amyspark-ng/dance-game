@@ -1,6 +1,6 @@
 import { Key } from "kaplay";
 import { SAVE_NAME } from "../main";
-import { volumeChannel } from "../plugins/features/sound";
+import { volumeChannel } from "./plugins/features/sound";
 import { saveScore } from "../play/song";
 import { Move } from "../play/objects/dancer";
 

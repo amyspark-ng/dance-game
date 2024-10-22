@@ -1,22 +1,17 @@
 import { DFEATURE_FOCUS, PRODUCT_AUTHOR, PRODUCT_NAME, PRODUCT_VERSION } from "../main"
-import { setupCamera } from "../plugins/features/camera"
-import { setupCursor } from "../plugins/features/gameCursor"
-import { drag } from "../plugins/features/drag"
-import { setupSoundtray } from "../plugins/features/soundtray"
+import { setupCamera } from "./plugins/features/camera"
+import { setupCursor } from "./plugins/features/gameCursor"
+import { drag } from "./plugins/features/drag"
+import { setupSoundtray } from "./plugins/features/soundtray"
 import { GameSave } from "./gamesave"
 import { setupLayers } from "./layers"
 import { loadAssets, loadingScreen, songCharts } from "./loader"
 import { goScene, setupScenes } from "./scenes"
-import { setupWatch } from "../plugins/features/watcher"
-import { chartEditorParams } from "../debug/charteditorscene"
-import { GameSceneParams } from "../play/gamescene"
+import { setupWatch } from "./plugins/features/watcher"
+import { paramsGameScene } from "../play/playstate"
 
 export function goGameScene() {
-	goScene("game", { song: songCharts["bopeebo"], dancer: "gru"} as GameSceneParams)
-}
-
-export function goChartEditor() {
-	goScene("charteditor", { song: songCharts["bopeebo"] } as chartEditorParams)
+	goScene("game", { song: songCharts["bopeebo"], dancer: "gru"} as paramsGameScene)
 }
 
 /** Sets up the game */
@@ -47,7 +42,6 @@ export function initGame() {
 		}
 
 		else {
-			// goChartEditor()
 			goGameScene()
 		}
 	
@@ -67,4 +61,19 @@ export function initGame() {
 			return false;
 		}
 	}
+
+	// for middle click
+	document.body.onmousedown = function(e) {
+		if(e.button == 1) {
+			e.preventDefault();
+			return false;
+		}
+	}
+
+	// prevent ctrl + s weirdness
+	document.addEventListener("keydown", function(e) {
+		if (e.key === 's' && (navigator.userAgent.includes('Mac') ? e.metaKey : e.ctrlKey)) {
+			e.preventDefault();
+		}
+	}, false);
 }

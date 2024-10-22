@@ -1,4 +1,5 @@
 import { ChartNote } from "./objects/note";
+import { Tally } from "./objects/scoring";
 
 /** Class that holds the properties a chart file will have */
 export class SongChart {
@@ -19,28 +20,6 @@ export class SongChart {
 
 	/** The time signature of the song */
 	timeSignature: [number, number] = [4, 4];
-}
-
-/** Holds the current tallies for the current song */
-export class Tally {
-	awesomes: number = 0;
-	goods: number = 0;
-	ehhs: number = 0;
-	misses: number = 0;
-	score: number = 0;
-	highestCombo: number = 0;
-	get hitNotes() {
-		return this.awesomes + this.goods + this.ehhs;
-	}
-
-	get totalNotes() {
-		return this.awesomes + this.goods + this.ehhs + this.misses;
-	}
-
-	/** Get the how much the song was cleared (0% missed all notes, 100% got all notes right) */
-	get cleared() {
-		return (this.hitNotes / this.totalNotes) * 100
-	}
 }
 
 /** When a song ends, an object of this type gets pushed to GameSave.songsPlayed*/

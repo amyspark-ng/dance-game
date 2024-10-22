@@ -1,20 +1,26 @@
 // Extra stuff for the chart editor
 import { Key, Vec2 } from "kaplay";
-import { utils } from "../utils";
-import { ChartStateClass, moveToDetune } from "./charteditorscene";
-import { dancer, Move } from "../play/objects/dancer";
-import { ChartNote, moveToColor } from "../play/objects/note";
-import { GameSave } from "../game/gamesave";
-import { conductorUtils } from "../play/conductor";
-import { playSound } from "../plugins/features/sound";
-import { gameCursor } from "../plugins/features/gameCursor";
-import { positionSetter } from "../plugins/features/positionsetter";
-import { juice } from "../plugins/graphics/juiceComponent";
+import { Move } from "../objects/dancer";
+import { ChartNote, moveToColor } from "../objects/note";
+import { utils } from "../../utils";
+import { playSound } from "../../core/plugins/features/sound";
+import { GameSave } from "../../core/gamesave";
+import { juice } from "../../core/plugins/graphics/juiceComponent";
+import { SongChart } from "../song";
+import { Conductor } from "../../conductor";
 
-/** Class for managing variables related to the Chart Editor */
-export class ChartEditorVars {
-	/** The ChartState instance corresponded */
-	ChartState: ChartStateClass
+/** Class that manages every important variable in the chart editor */
+export class StateChart {
+	bgColor: [number, number, number] = [67, 21, 122]
+	song: SongChart;
+	paused: boolean;
+	conductor: Conductor;
+	params: paramsChartEditor;
+
+	/** How many steps scrolled */
+	scrollStep: number = 0;
+
+	// SOME STUPID VARS
 
 	/** How lerped the scroll value is */
 	SCROLL_LERP_VALUE = 0.5
@@ -100,48 +106,71 @@ export class ChartEditorVars {
 	addNoteToChart(time: number, move: Move) {
 		this.startingStepForSelectedNote = 0
 		
-		const noteWithSameTimeButDifferentMove = this.ChartState.song.notes.find(note => note.hitTime == time && note.dancerMove != move || note.hitTime == time && note.dancerMove == move)
+		const noteWithSameTimeButDifferentMove = this.song.notes.find(note => note.hitTime == time && note.dancerMove != move || note.hitTime == time && note.dancerMove == move)
 		// if there's a note already at that time but a different move, remove it
 		if (noteWithSameTimeButDifferentMove) {
 			this.removeNoteFromChart(noteWithSameTimeButDifferentMove.hitTime, noteWithSameTimeButDifferentMove.dancerMove)
 		}
 		
 		const newNote:ChartNote = { hitTime: time, dancerMove: move }
-		this.ChartState.song.notes.push(newNote)
+		this.song.notes.push(newNote)
 
 		playSound("plap", { detune: moveToDetune(move) })
 	
 		// add it to note scales
-		const indexInNotes = this.ChartState.song.notes.indexOf(newNote)
+		const indexInNotes = this.song.notes.indexOf(newNote)
 		tween(vec2(this.NOTE_BIG_SCALE), vec2(1), 0.1, (p) => this.noteScales[indexInNotes] = p)
 		this.selectedNote = newNote;
 	}
 	
 	/** Remove a note from the chart */
 	removeNoteFromChart(time: number, move: Move) {
-		const oldNote = this.ChartState.song.notes.find(note => note.hitTime == time && note.dancerMove == move)
-		this.ChartState.song.notes = utils.removeFromArr(oldNote, this.ChartState.song.notes)
+		const oldNote = this.song.notes.find(note => note.hitTime == time && note.dancerMove == move)
+		this.song.notes = utils.removeFromArr(oldNote, this.song.notes)
 
 		// remove it from note scales
-		const indexInNotes = this.ChartState.song.notes.indexOf(oldNote)
+		const indexInNotes = this.song.notes.indexOf(oldNote)
 		this.noteScales.splice(indexInNotes, 1)
 		playSound("plop", { detune: moveToDetune(move) })
 	}
 
-	constructor(ChartState:ChartStateClass) {
-		this.ChartState = ChartState;
-		this.noteScales = [].fill(vec2(1), 0, this.ChartState.song.notes.length)
+	constructor() {
+		this.noteScales = [].fill(vec2(1), 0, this.song.notes.length)
 	}
 }
 
+/** The params for the chart editor */
+export type paramsChartEditor = {
+	song: SongChart,
+	playbackSpeed: number,
+	seekTime: number,
+	dancer: string,
+}
+
+/** Converts the move to a detune, sounds good i think */
+export function moveToDetune(move: Move) {
+	switch (move) {
+		case "left": return -50	
+		case "down": return -100	
+		case "up": return 100	
+		case "right": return 50	
+	}
+}
+
+/** How lerped the scroll value is */
+export const SCROLL_LERP_VALUE = 0.5
+
+/** How big will notes be when big */
+export const NOTE_BIG_SCALE = 1.4
+
 /** Draws the playbar and the text with the time */
-export function drawPlayBar(vars: ChartEditorVars) {
-	const bgColor = Color.fromArray(vars.ChartState.bgColor)
+export function drawPlayBar(ChartState: StateChart) {
+	const bgColor = Color.fromArray(ChartState.bgColor)
 
 	// why width * 2?
-	let barWidth = map(vars.scrollTime, 0, vars.ChartState.conductor.audioPlay.duration(), 0, width() * 2)
+	let barWidth = map(ChartState.scrollTime, 0, ChartState.conductor.audioPlay.duration(), 0, width() * 2)
 	let lerpedWidth = 0
-	lerpedWidth = lerp(lerpedWidth, barWidth, vars.SCROLL_LERP_VALUE)
+	lerpedWidth = lerp(lerpedWidth, barWidth, ChartState.SCROLL_LERP_VALUE)
 
 	drawRect({
 		width: width(),
@@ -167,10 +196,10 @@ export function drawPlayBar(vars: ChartEditorVars) {
 		color: bgColor.lighten(80),
 	})
 
-	let textToPut = utils.formatTime(vars.scrollTime)
-	if (vars.ChartState.paused) textToPut += " (❚❚)"
+	let textToPut = utils.formatTime(ChartState.scrollTime)
+	if (ChartState.paused) textToPut += " (❚❚)"
 	else textToPut += " (▶)"
-	textToPut += ` - ${vars.ChartState.scrollStep}`
+	textToPut += ` - ${ChartState.scrollStep}`
 	const size = 25
 
 	drawText({
@@ -183,10 +212,10 @@ export function drawPlayBar(vars: ChartEditorVars) {
 }
 
 /** Draws as many steps for the song checkerboard */
-export function drawCheckerboard(vars: ChartEditorVars) {
-	for (let i = 0; i < vars.ChartState.conductor.totalSteps; i++) {
-		const newPos = vars.stepToPos(i)
-		newPos.y -= 50 * vars.smoothScrollStep
+export function drawCheckerboard(ChartState: StateChart) {
+	for (let i = 0; i < ChartState.conductor.totalSteps; i++) {
+		const newPos = ChartState.stepToPos(i)
+		newPos.y -= 50 * ChartState.smoothScrollStep
 
 		const baseColor = WHITE.darken(100)
 		const lighter = baseColor.darken(10)
@@ -194,10 +223,10 @@ export function drawCheckerboard(vars: ChartEditorVars) {
 		const col = i % 2 == 0 ? lighter : darker
 
 		// draws the background chess board squares etc
-		if (newPos.y <= height() + vars.SQUARE_SIZE.y / 2) {
+		if (newPos.y <= height() + ChartState.SQUARE_SIZE.y / 2) {
 			drawRect({
-				width: vars.SQUARE_SIZE.x,
-				height: vars.SQUARE_SIZE.y,
+				width: ChartState.SQUARE_SIZE.x,
+				height: ChartState.SQUARE_SIZE.y,
 				color: col,
 				pos: vec2(newPos.x, newPos.y),
 				anchor: "center",
@@ -205,23 +234,23 @@ export function drawCheckerboard(vars: ChartEditorVars) {
 		}
 
 		// draws a line on every beat
-		if (i % vars.ChartState.conductor.stepsPerBeat == 0) {
+		if (i % ChartState.conductor.stepsPerBeat == 0) {
 			if (newPos.y <= height()) {
 				// the beat text
 				drawText({
-					text: `${i / vars.ChartState.conductor.stepsPerBeat}`,
+					text: `${i / ChartState.conductor.stepsPerBeat}`,
 					color: WHITE,
-					size: vars.SQUARE_SIZE.x / 2,
+					size: ChartState.SQUARE_SIZE.x / 2,
 					anchor: "center",
-					pos: vec2(newPos.x + vars.SQUARE_SIZE.x, newPos.y)
+					pos: vec2(newPos.x + ChartState.SQUARE_SIZE.x, newPos.y)
 				})
 				
 				drawRect({
-					width: vars.SQUARE_SIZE.x,
+					width: ChartState.SQUARE_SIZE.x,
 					height: 5,
 					color: darker.darken(70),
 					anchor: "center",
-					pos: vec2(newPos.x, newPos.y - vars.SQUARE_SIZE.y / 2 - 2.5),
+					pos: vec2(newPos.x, newPos.y - ChartState.SQUARE_SIZE.y / 2 - 2.5),
 				})
 			}
 		}
@@ -229,22 +258,22 @@ export function drawCheckerboard(vars: ChartEditorVars) {
 }
 
 /** Draw the hittable notes */
-export function drawAllNotes(vars:ChartEditorVars) {
+export function drawAllNotes(ChartState:StateChart) {
 	// draws the notes
-	vars.ChartState.song.notes.forEach((note, index) => {
-		let notePos = utils.getPosInGrid(vars.INITIAL_POS, conductorUtils.timeToStep(note.hitTime, vars.ChartState.conductor.stepInterval), 0, vars.SQUARE_SIZE)
-		notePos.y -= 50 * vars.smoothScrollStep
+	ChartState.song.notes.forEach((note, index) => {
+		let notePos = utils.getPosInGrid(ChartState.INITIAL_POS, ChartState.conductor.timeToStep(note.hitTime, ChartState.conductor.stepInterval), 0, ChartState.SQUARE_SIZE)
+		notePos.y -= 50 * ChartState.smoothScrollStep
 
-		const notePosLerped = lerp(notePos, notePos, vars.SCROLL_LERP_VALUE)
+		const notePosLerped = lerp(notePos, notePos, ChartState.SCROLL_LERP_VALUE)
 		
 		if (notePos.y <= height()) {
 			drawSprite({
-				width: vars.SQUARE_SIZE.x,
-				height: vars.SQUARE_SIZE.y,
-				scale: vars.noteScales[index],
+				width: ChartState.SQUARE_SIZE.x,
+				height: ChartState.SQUARE_SIZE.y,
+				scale: ChartState.noteScales[index],
 				sprite: GameSave.preferences.noteskin + "_" + note.dancerMove,
 				pos: notePosLerped,
-				opacity: vars.scrollTime >= note.hitTime ? 1 : 0.5,
+				opacity: ChartState.scrollTime >= note.hitTime ? 1 : 0.5,
 				anchor: "center",
 			})
 		}
@@ -252,12 +281,12 @@ export function drawAllNotes(vars:ChartEditorVars) {
 }
 
 /** Draw the strumline line */
-export function drawStrumline(vars:ChartEditorVars) {
+export function drawStrumline(ChartState:StateChart) {
 	// # strumlineline
-	const strumlineYPos = vars.SQUARE_SIZE.y * vars.strumlineStepOffset
+	const strumlineYPos = ChartState.SQUARE_SIZE.y * ChartState.strumlineStepOffset
 	drawLine({
-		p1: vec2((center().x - vars.SQUARE_SIZE.x / 2 * 3) - 5 * vars.strumlineScale.x, strumlineYPos),
-		p2: vec2((center().x + vars.SQUARE_SIZE.x / 2 * 3) + 5 * vars.strumlineScale.x, strumlineYPos),
+		p1: vec2((center().x - ChartState.SQUARE_SIZE.x / 2 * 3) - 5 * ChartState.strumlineScale.x, strumlineYPos),
+		p2: vec2((center().x + ChartState.SQUARE_SIZE.x / 2 * 3) + 5 * ChartState.strumlineScale.x, strumlineYPos),
 		color: RED,
 		width: 5,
 		fixed: true,
@@ -265,31 +294,31 @@ export function drawStrumline(vars:ChartEditorVars) {
 }
 
 /** Draw the cursor to highlight notes */
-export function drawCursor(vars:ChartEditorVars) {
-	const strumlineYPos = vars.SQUARE_SIZE.y * vars.strumlineStepOffset
+export function drawCursor(ChartState:StateChart) {
+	const strumlineYPos = ChartState.SQUARE_SIZE.y * ChartState.strumlineStepOffset
 	
 	// if the distance between the cursor and the square is small enough then highlight it
-	if (mousePos().x <= center().x + vars.SQUARE_SIZE.x / 2 && mousePos().x >= center().x - vars.SQUARE_SIZE.x / 2) {
-		if (vars.ChartState.scrollStep == 0 && mousePos().y <= strumlineYPos) vars.isCursorInGrid = false
-		else if (vars.ChartState.scrollStep == vars.ChartState.conductor.totalSteps && mousePos().y >= strumlineYPos) vars.isCursorInGrid = false
-		else vars.isCursorInGrid = true
+	if (mousePos().x <= center().x + ChartState.SQUARE_SIZE.x / 2 && mousePos().x >= center().x - ChartState.SQUARE_SIZE.x / 2) {
+		if (ChartState.scrollStep == 0 && mousePos().y <= strumlineYPos) ChartState.isCursorInGrid = false
+		else if (ChartState.scrollStep == ChartState.conductor.totalSteps && mousePos().y >= strumlineYPos) ChartState.isCursorInGrid = false
+		else ChartState.isCursorInGrid = true
 	}
 	
-	else vars.isCursorInGrid = false
+	else ChartState.isCursorInGrid = false
 
-	if (vars.isCursorInGrid) {
+	if (ChartState.isCursorInGrid) {
 		// cursor = the square you're hovering over
 		// draws the cursor
 		drawRect({
-			width: vars.SQUARE_SIZE.x - 5,
-			height: vars.SQUARE_SIZE.y - 5,
+			width: ChartState.SQUARE_SIZE.x - 5,
+			height: ChartState.SQUARE_SIZE.y - 5,
 			color: WHITE,
 			fill: false,
-			scale: vars.cursorScale,
+			scale: ChartState.cursorScale,
 			outline: {
-				width: 8, color: moveToColor(vars.currentMove).darken(50)
+				width: 8, color: moveToColor(ChartState.currentMove).darken(50)
 			},
-			pos: vec2(center().x, vars.smoothCursorYPos),
+			pos: vec2(center().x, ChartState.smoothCursorYPos),
 			anchor: "center",
 			fixed: true,
 		})
@@ -297,15 +326,15 @@ export function drawCursor(vars:ChartEditorVars) {
 }
 
 /** Draw the camera controller and the tiny notess */
-export function drawCameraControlAndNotes(vars:ChartEditorVars) {
+export function drawCameraControlAndNotes(ChartState:StateChart) {
 	let cameraControllerOpacity = 0.1
 	
 	// draws the camera controller
 	drawRect({
-		width: vars.SQUARE_SIZE.x,
-		height: vars.SQUARE_SIZE.y,
+		width: ChartState.SQUARE_SIZE.x,
+		height: ChartState.SQUARE_SIZE.y,
 		anchor: "center",
-		pos: vars.cameraControllerPos,
+		pos: ChartState.cameraControllerPos,
 		opacity: cameraControllerOpacity,
 		color: YELLOW,
 		outline: { 
@@ -315,17 +344,17 @@ export function drawCameraControlAndNotes(vars:ChartEditorVars) {
 	})
 
 	// draws the notes on the side of the camera controller
-	if (mousePos().x >= width() - vars.SQUARE_SIZE.x) {
+	if (mousePos().x >= width() - ChartState.SQUARE_SIZE.x) {
 		cameraControllerOpacity = 0.5
 
-		vars.ChartState.song.notes.forEach((note) => {
+		ChartState.song.notes.forEach((note) => {
 			const initialPos = vec2(width() - 25, 0)
-			const yPos = map(note.hitTime, 0, vars.ChartState.conductor.audioPlay.duration(), initialPos.y, height())
+			const yPos = map(note.hitTime, 0, ChartState.conductor.audioPlay.duration(), initialPos.y, height())
 			const xPos = initialPos.x
 
 			drawRect({
-				width: vars.SQUARE_SIZE.x / 10,
-				height: vars.SQUARE_SIZE.y / 10,
+				width: ChartState.SQUARE_SIZE.x / 10,
+				height: ChartState.SQUARE_SIZE.y / 10,
 				color: moveToColor(note.dancerMove),
 				anchor: "center",
 				pos: vec2(xPos, yPos),
@@ -338,16 +367,16 @@ export function drawCameraControlAndNotes(vars:ChartEditorVars) {
 }
 
 /** Draw the gizmo for the selected note */
-export function drawSelectGizmo(vars:ChartEditorVars) {
+export function drawSelectGizmo(ChartState:StateChart) {
 	// draw the selected gizmo
-	if (vars.selectedNote != undefined) {
-		const stepOfSelectedNote = conductorUtils.timeToStep(vars.selectedNote.hitTime, vars.ChartState.conductor.stepInterval) - vars.ChartState.scrollStep
-		const gizmoPos = vars.stepToPos(stepOfSelectedNote)
+	if (ChartState.selectedNote != undefined) {
+		const stepOfSelectedNote = ChartState.conductor.timeToStep(ChartState.selectedNote.hitTime, ChartState.conductor.stepInterval) - ChartState.scrollStep
+		const gizmoPos = ChartState.stepToPos(stepOfSelectedNote)
 		const celesteColor = BLUE.lighten(150)
 
 		drawRect({
-			width: vars.SQUARE_SIZE.x,
-			height: vars.SQUARE_SIZE.y,
+			width: ChartState.SQUARE_SIZE.x,
+			height: ChartState.SQUARE_SIZE.y,
 			anchor: "center",
 			pos: vec2(gizmoPos.x, gizmoPos.y),
 			opacity: 0.5,
@@ -362,7 +391,7 @@ export function drawSelectGizmo(vars:ChartEditorVars) {
 }
 
 /** Creates the 'isKeyPressed' event to change notes */
-export function moveChangeInputHandler(vars: ChartEditorVars) {
+export function moveChangeInputHandler(ChartState:StateChart) {
 	const keysAndMoves = {
 		"1": "left",
 		"2": "down",
@@ -372,13 +401,13 @@ export function moveChangeInputHandler(vars: ChartEditorVars) {
 
 	Object.keys(keysAndMoves).forEach((key) => {
 		if (isKeyPressed(key as Key)) {
-			vars.changeMove(keysAndMoves[key])
+			ChartState.changeMove(keysAndMoves[key])
 		}
 	})
 }
 
 /** Adds a dummy dancer for moving to the fake notes in the chart */
-export function addDummyDancer(vars: ChartEditorVars) {
+export function addDummyDancer(dancerName: string) {
 	const DANCER_POS = vec2(921, 519)
 	const DANCER_SCALE = vec2(0.25)
 	let waitEvent = wait(0)
@@ -407,7 +436,7 @@ export function addDummyDancer(vars: ChartEditorVars) {
 	}
 
 	const dancer = add([
-		sprite("dancer_" + vars.ChartState.params.dancer),
+		sprite("dancer_" + dancerName),
 		anchor("bot"),
 		pos(DANCER_POS),
 		area(),
@@ -461,7 +490,7 @@ export function addTextBox(opts:textBoxOpt) {
 	return texting;
 }
 
-export function setupManageTextboxes(vars:ChartEditorVars) {
+export function setupManageTextboxes(ChartState:StateChart) {
 	const initialTextBoxPos = vec2(15, 25)
 	const sizeOfTxt = 30
 
@@ -481,17 +510,17 @@ export function setupManageTextboxes(vars:ChartEditorVars) {
 
 	/** Gets the value of the textboxes and assigns it to the actual values on the chart */
 	function assignNewValue() {
-		vars.ChartState.song.title = textboxesarr["Display name"].value as string
-		vars.ChartState.song.idTitle = textboxesarr["ID"].value as string
+		ChartState.song.title = textboxesarr["Display name"].value as string
+		ChartState.song.idTitle = textboxesarr["ID"].value as string
 		
 		// bpm
-		vars.ChartState.song.bpm = Number(textboxesarr["BPM"].value)
-		vars.ChartState.conductor.changeBpm(vars.ChartState.song.bpm)
+		ChartState.song.bpm = Number(textboxesarr["BPM"].value)
+		ChartState.conductor.changeBpm(ChartState.song.bpm)
 		
 		// other stuff
-		vars.ChartState.conductor.stepsPerBeat = Number(textboxesarr[ts1label].value)
-		vars.ChartState.conductor.beatsPerMeasure = Number(textboxesarr[ts2label].value)
-		vars.ChartState.song.speedMultiplier = Number(textboxesarr["Scroll speed"].value)
+		ChartState.conductor.stepsPerBeat = Number(textboxesarr[ts1label].value)
+		ChartState.conductor.beatsPerMeasure = Number(textboxesarr[ts2label].value)
+		ChartState.song.speedMultiplier = Number(textboxesarr["Scroll speed"].value)
 	}
 
 	Object.keys(textboxes).forEach((label, index) => {
@@ -505,27 +534,27 @@ export function setupManageTextboxes(vars:ChartEditorVars) {
 
 		switch (label) {
 			case "Display name":
-				txtbox.value = vars.ChartState.song.title;	
+				txtbox.value = ChartState.song.title;	
 			break;
 
 			case "ID":
-				txtbox.value = vars.ChartState.song.idTitle;	
+				txtbox.value = ChartState.song.idTitle;	
 			break;
 
 			case "BPM":
-				txtbox.value = vars.ChartState.song.bpm.toString();
+				txtbox.value = ChartState.song.bpm.toString();
 			break;
 
 			case ts1label:
-				txtbox.value = vars.ChartState.conductor.stepsPerBeat.toString();
+				txtbox.value = ChartState.conductor.stepsPerBeat.toString();
 			break;
 
 			case ts2label:
-				txtbox.value = vars.ChartState.conductor.beatsPerMeasure.toString();
+				txtbox.value = ChartState.conductor.beatsPerMeasure.toString();
 			break;
 
 			case "Scroll speed":
-				txtbox.value = vars.ChartState.song.speedMultiplier.toString();
+				txtbox.value = ChartState.song.speedMultiplier.toString();
 			break;
 		}
 	})
@@ -536,56 +565,56 @@ export function setupManageTextboxes(vars:ChartEditorVars) {
 
 		const hoveredTextBox = allTextBoxes.find((textbox) => textbox.isHovering())
 		if (hoveredTextBox) {
-			vars.focusedTextBox = hoveredTextBox
-			vars.focusedTextBox.focus = true
+			ChartState.focusedTextBox = hoveredTextBox
+			ChartState.focusedTextBox.focus = true
 		}
 
 		else {
-			if (vars.focusedTextBox) vars.focusedTextBox.focus = false
-			vars.focusedTextBox = undefined
+			if (ChartState.focusedTextBox) ChartState.focusedTextBox.focus = false
+			ChartState.focusedTextBox = undefined
 			assignNewValue()
 		}
 	
 		// get all the textboxes that aren't that one and unfocus them
-		allTextBoxes.filter((textbox) => textbox != vars.focusedTextBox).forEach((textbox) => {
+		allTextBoxes.filter((textbox) => textbox != ChartState.focusedTextBox).forEach((textbox) => {
 			textbox.focus = false
 		})
 	})
 
 	// manages the adding for stuff
 	onCharInput((ch) => {
-		if (vars.focusedTextBox == undefined) return
+		if (ChartState.focusedTextBox == undefined) return
 
 		if (isKeyDown("shift")) {
 			ch = ch.toUpperCase()
 		}
 		
-		if (vars.focusedTextBox.typeofValue == "number") {
+		if (ChartState.focusedTextBox.typeofValue == "number") {
 			// if it's a number
-			if (!isNaN(parseInt(ch)) || ch == ".") vars.focusedTextBox.value += ch
+			if (!isNaN(parseInt(ch)) || ch == ".") ChartState.focusedTextBox.value += ch
 		}
 
-		else if (vars.focusedTextBox.typeofValue == "id") {
-			if (ch == " ") vars.focusedTextBox.value += "-"
+		else if (ChartState.focusedTextBox.typeofValue == "id") {
+			if (ch == " ") ChartState.focusedTextBox.value += "-"
 			else {
-				vars.focusedTextBox.value += ch.toLowerCase()
+				ChartState.focusedTextBox.value += ch.toLowerCase()
 			}
 		}
 
 		else {
-			vars.focusedTextBox.value += ch
+			ChartState.focusedTextBox.value += ch
 		}
 	})
 
 	onKeyPress("enter", () => {
-		if (vars.focusedTextBox == undefined) return
-		vars.focusedTextBox.focus = false
+		if (ChartState.focusedTextBox == undefined) return
+		ChartState.focusedTextBox.focus = false
 		assignNewValue()
 	})
 
 	onKeyPress("backspace", () => {
-		if (vars.focusedTextBox == undefined) return
-		vars.focusedTextBox.value = vars.focusedTextBox.value.toString().slice(0, -1)
+		if (ChartState.focusedTextBox == undefined) return
+		ChartState.focusedTextBox.value = ChartState.focusedTextBox.value.toString().slice(0, -1)
 	})
 
 	let controls = [
@@ -605,7 +634,7 @@ export function setupManageTextboxes(vars:ChartEditorVars) {
 	])
 }
 
-export function addDownloadButton(vars:ChartEditorVars) {
+export function addDownloadButton(ChartState:StateChart) {
 	const bpos = vec2(760, 547)
 	
 	const btn = add([
@@ -623,8 +652,8 @@ export function addDownloadButton(vars:ChartEditorVars) {
 	])
 
 	btn.onClick(() => {
-		const filename = `${vars.ChartState.song.idTitle}-chart.json`
-		downloadJSON(filename, vars.ChartState.song)
+		const filename = `${ChartState.song.idTitle}-chart.json`
+		downloadJSON(filename, ChartState.song)
 		debug.log(`filename: ${filename} - downloaded! :)`)
 	})
 }

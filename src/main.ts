@@ -3,8 +3,8 @@ import "kaplay/global"
 
 import { utils } from "./utils"
 import { getCurrent, WebviewWindow } from "@tauri-apps/api/window"
-import { sceneNameType } from "./game/scenes"
-import { initGame } from "./game/initGame"
+import { sceneNameType } from "./core/scenes"
+import { initGame } from "./core/initGame"
 
 // ===== FLAGS =====
 export let DEBUG = true

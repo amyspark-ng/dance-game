@@ -1,6 +1,6 @@
 
 import { AudioPlay, AudioPlayOpt, Key } from "kaplay";
-import { GameSave } from "../../game/gamesave";
+import { GameSave } from "../../gamesave";
 
 // ======= SOUND PLAYING ==========
 export class volumeChannel {

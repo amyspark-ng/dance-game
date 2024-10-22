@@ -1,4 +1,4 @@
-import { goScene } from "../game/scenes";
+import { goScene } from "../core/scenes";
 import { STARTING_SCENE } from "../main";
 
 export function FocusScene() { scene("focus", () => {

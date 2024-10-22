@@ -1,9 +1,9 @@
-import { ChartEditorScene } from "../debug/charteditorscene";
-import { GameScene } from "../play/gamescene";
-import { DeathScene } from "../ui/deathscene";
+import { ChartEditorScene } from "../play/chartEditor/chartEditor";
+import { GameScene } from "../play/gameScene";
+import { DeathScene } from "../play/ui/deathScene";
+import { ResultsScene } from "../play/ui/resultsScene";
 import { FocusScene } from "../ui/focusscene";
-import { MenuScene } from "../ui/menuscene";
-import { ResultsScene } from "../ui/resultsscene";
+import { MenuScene } from "../ui/menu/menuscene";
 import { SongSelectScene } from "../ui/songselectscene";
 import { TitleScene } from "../ui/titlescene";
 

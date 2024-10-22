@@ -1,9 +1,35 @@
 // # This file will manage the ranking system
-import { getDancer } from "./dancer";
+import { utils } from "../../utils";
+import { StateGame, INPUT_THRESHOLD } from "../playstate";
+import { getDancer, Move } from "./dancer";
 import { ChartNote } from "./note";
 
 /** The judgement the player did */
 export type Judgement = "Awesome" | "Good" | "Ehh" | "Miss"
+
+/** Holds the current tallies for the current song */
+export class Tally {
+	awesomes: number = 0;
+	goods: number = 0;
+	ehhs: number = 0;
+	misses: number = 0;
+	score: number = 0;
+	highestCombo: number = 0;
+	get hitNotes() {
+		return this.awesomes + this.goods + this.ehhs;
+	}
+
+	get totalNotes() {
+		return this.awesomes + this.goods + this.ehhs + this.misses;
+	}
+
+	/** Get the how much the song was cleared (0% missed all notes, 100% got all notes right) */
+	get cleared() {
+		return (this.hitNotes / this.totalNotes) * 100
+	}
+}
+
+// # JUDGEMENT
 
 export const AWESOME_TIMING = 0.045
 export const GOOD_TIMING = 0.09
@@ -32,6 +58,7 @@ export function getJudgement(timeInSeconds: number, chartNote: ChartNote) : Judg
 	else return "Miss"
 }
 
+/** Add judgement object */
 export function addJudgement(judgement: Judgement) {
 	const judgementObj = add([
 		text(judgement),
@@ -54,6 +81,7 @@ export function addJudgement(judgement: Judgement) {
 	return judgementObj;
 }
 
+/** Add combo text */
 export function addComboText(comboAmount: number | "break") {
 	const judgementObj = get("judgementObj")[0]
 	
@@ -72,4 +100,26 @@ export function addComboText(comboAmount: number | "break") {
 	judgementObj.onDestroy(() => comboText.destroy())
 	
 	return comboText;
+}
+
+/** Runs when you press and returns the note hit or null if you didn't hit anything on time */
+export function checkForNoteHit(GameState:StateGame, move: Move) : ChartNote {
+	function conditionsForHit(note: ChartNote) {
+		// i have to check if the current time in the song is between the hittime of the note
+		const t = GameState.conductor.timeInSeconds
+		const lowest = note.hitTime - INPUT_THRESHOLD
+		const highest = note.hitTime + INPUT_THRESHOLD
+
+		return utils.isInRange(t, highest, lowest)
+	}
+
+	// if time in seconds is close by input_treshold to the hit note of any note in the chart
+	if (GameState.song.notes.some((note) => conditionsForHit(note))) {
+		return GameState.song.notes.find((note) => conditionsForHit(note))
+	}
+	
+	// if no note found (the player is a dummy and didn't hit anything)
+	else {
+		return null;
+	}
 }

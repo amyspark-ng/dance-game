@@ -1,6 +1,6 @@
 import { DancerFile } from "../play/objects/dancer";
 import { SongChart } from "../play/song";
-import { loadCursor } from "../plugins/features/gameCursor";
+import { loadCursor } from "./plugins/features/gameCursor";
 
 enum noteskins {
 	ps,

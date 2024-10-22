@@ -1,11 +1,11 @@
 import { Comp } from "kaplay";
-import { juice } from "../../plugins/graphics/juiceComponent";
+import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { getDancer, Move } from "../objects/dancer"
 import { checkForNoteHit, getNotesOnScreen } from "../input";
 import { NoteGameObj } from "./note";
-import { addJudgement, getJudgement, getScorePerDiff } from "./judgement";
-import { triggerEvent } from "../../game/events";
-import { GameStateClass } from "../gamescene";
+import { addJudgement, getJudgement, getScorePerDiff } from "./scoring";
+import { triggerEvent } from "../../core/events";
+import { GameStateClass } from "../gameScene";
 
 export interface strumlineComp extends Comp {
 	/** Wheter the strumline is pressd */

@@ -1,6 +1,6 @@
-import { triggerEvent } from "../game/events";
-import { customAudioPlay } from "../plugins/features/sound";
-import { TIME_FOR_STRUM } from "./objects/note";
+import { triggerEvent } from "./core/events";
+import { customAudioPlay } from "./core/plugins/features/sound";
+import { TIME_FOR_STRUM } from "./play/objects/note";
 
 /*  
 	=== Some explanations about conducting and music ===
@@ -77,6 +77,16 @@ export class Conductor {
 	/** Gets how many steps are in the song */
 	get totalSteps() {
 		return this.stepsPerBeat * this.totalBeats
+	}
+
+	/** Get which time of a song is a certain step */
+	timeToStep(timeInSeconds: number, lengthOfStep: number) {
+		return Math.floor(timeInSeconds / lengthOfStep)
+	}
+
+	/** Get which step of a song is a certain time */
+	stepToTime(step: number, lengthOfStep: number) {
+		return step * lengthOfStep
 	}
 
 	/** Wheter the offset for the song has already passed */
@@ -158,18 +168,5 @@ export class Conductor {
 		onUpdate(() => {
 			this.update()
 		})
-	}
-}
-
-/** Extra conductor functions for converting units */
-export class conductorUtils {
-	/** Get which time of a song is a certain step */
-	static timeToStep(timeInSeconds: number, lengthOfStep: number) {
-		return Math.floor(timeInSeconds / lengthOfStep)
-	}
-
-	/** Get which step of a song is a certain time */
-	static stepToTime(step: number, lengthOfStep: number) {
-		return step * lengthOfStep
 	}
 }
