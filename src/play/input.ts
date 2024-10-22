@@ -32,7 +32,7 @@ export function manageInput(GameState: GameStateClass) {
 	}
 
 	else if (isKeyPressed(GameSave.preferences.controls.debug)) {
-		transitionToScene(fadeOut, "charteditor", { song: GameState.song, seekTime: GameState.conductor.timeInSeconds } as chartEditorParams)
+		transitionToScene(fadeOut, "charteditor", { song: GameState.song, seekTime: GameState.conductor.timeInSeconds, dancer: GameState.params.dancer } as chartEditorParams)
 	}
 }
 

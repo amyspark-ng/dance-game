@@ -71,13 +71,13 @@ export function dancer() : dancerComp {
 	}
 }
 
-export function addDancer(initialScale?: Vec2) {
+export function addDancer(dancerName: string) {
 	const dancerObj = add([
-		sprite("astri", { anim: "idle" }),
+		sprite(`dancer_${dancerName}`, { anim: "idle" }),
 		pos(center().x, height()),
 		anchor("bot"),
 		dancer(),
-		scale(initialScale ?? vec2(1)),
+		scale(),
 		juice(),
 		"dancerObj",
 	])

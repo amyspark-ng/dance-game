@@ -1,0 +1,18 @@
+{
+	"astri": {
+		"file": "sprites/dancers/astri/astri.png",
+		"spriteData": {
+			"sliceX": 5,
+			"sliceY": 3,
+			"anims": {
+				"left": 0,
+				"up": 1,
+				"down": 2,
+				"right": 3,
+				"idle": 4,
+				"victory": { "from": 5, "to": 12, "speed": 5 }, 
+				"miss": 13
+			}
+		}
+	}
+}

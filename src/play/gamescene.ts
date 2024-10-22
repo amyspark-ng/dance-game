@@ -69,8 +69,8 @@ export class GameStateClass {
 
 export type GameSceneParams = {
 	song: SongChart,
-	/** The name of the dancer, i haven't done this yet so it will stay as optional */
-	dancer?: string,
+	/** The name of the dancer */
+	dancer: string,
 	/** How fast to make the song :smiling_imp: */
 	playbackSpeed?: number,
 
@@ -153,7 +153,8 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 	// ==== DANCER + UI =====
 	const DANCER_POS = vec2(518, 377)
 	const DANCER_SCALE = vec2(0.5) // placeholder
-	const dancer = addDancer(DANCER_SCALE)
+	const dancer = addDancer(params.dancer)
+	dancer.scale = DANCER_SCALE
 	dancer.pos = DANCER_POS
 	dancer.onUpdate(() => {
 		if (dancer.waitForIdle) dancer.waitForIdle.paused = GameState.paused;

@@ -407,7 +407,7 @@ export function addDummyDancer(vars: ChartEditorVars) {
 	}
 
 	const dancer = add([
-		sprite("astri"),
+		sprite("dancer_" + vars.ChartState.params.dancer),
 		anchor("bot"),
 		pos(DANCER_POS),
 		area(),

@@ -35,6 +35,7 @@ export function loadingScreen(progress: number) {
 }
 
 export let songCharts:SongChart[] = [] 
+export let dancers:string[] = [] 
 
 function loadNoteSkins() {
 	let spriteAtlasData = {}
@@ -71,6 +72,13 @@ function loadSong(songName: string) {
 		
 		songCharts[songName] = chart.data
 	})
+
+	// load the album cover and other stuff here
+}
+
+function loadDancer(dancerName: string) {
+	loadSprite(`dancer_${dancerName}`, `sprites/dancers/${dancerName}/${dancerName}.png`, dancers[dancerName].spriteData)
+	// load the background and other stuff here
 }
 
 /** Loads all the assets of the game */
@@ -81,18 +89,11 @@ export function loadAssets() {
 	
 	loadCursor();
 
-	loadSprite("astri", "sprites/astri.png", {
-		sliceX: 5,
-		sliceY: 3,
-		anims: {
-			"left": 0,
-			"up": 1,
-			"down": 2,
-			"right": 3,
-			"idle": 4,
-			"victory": { from: 5, to: 12, speed: 5 }, 
-			"miss": 13,
-		}
+	loadJSON("dancers", "dancers.json").onLoad((data) => {
+		Object.keys(data).forEach((dancer) => {
+			dancers[dancer] = data[dancer]
+			loadDancer(dancer)
+		})
 	})
 
 	loadSound("opening", "sounds/opening.ogg")

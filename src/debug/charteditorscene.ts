@@ -15,6 +15,7 @@ export type chartEditorParams = {
 	song: SongChart,
 	playbackSpeed: number,
 	seekTime: number,
+	dancer: string,
 }
 
 export class ChartStateClass {
@@ -22,6 +23,7 @@ export class ChartStateClass {
 	song: SongChart;
 	paused: boolean;
 	conductor: Conductor;
+	params: chartEditorParams;
 
 	/** How many steps scrolled */
 	scrollStep: number = 0;
@@ -63,9 +65,9 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 	// IMPORTANT
 	ChartState.paused = true
 	ChartState.song = params.song;
+	ChartState.params = params;
 
 	ChartState.scrollStep = conductorUtils.timeToStep(params.seekTime, ChartState.conductor.stepInterval)
-
 	const vars = new ChartEditorVars(ChartState)
 
 	onUpdate(() => {
@@ -258,7 +260,7 @@ export function ChartEditorScene() { scene("charteditor", (params: chartEditorPa
 	// Send you to the game
 	onKeyPress("enter", () => {
 		if (vars.focusedTextBox) return
-		transitionToScene(fadeOut, "game", { song: ChartState.song, seekTime: vars.scrollTime } as GameSceneParams)
+		transitionToScene(fadeOut, "game", { song: ChartState.song, seekTime: vars.scrollTime, dancer: params.dancer } as GameSceneParams)
 	})
 
 	// Pausing unpausing behaviour
