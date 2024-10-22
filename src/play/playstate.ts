@@ -2,7 +2,7 @@
 import { Conductor } from "../conductor";
 import { triggerEvent } from "../core/events";
 import { GameSave } from "../core/gamesave";
-import { songCharts } from "../core/loader";
+import { getSong, songCharts } from "../core/loader";
 import { playSound } from "../core/plugins/features/sound";
 import { goScene, transitionToScene } from "../core/scenes";
 import { fadeOut } from "../core/transitions/fadeOutTransition";
@@ -13,7 +13,7 @@ import { ChartNote, getNotesOnScreen, setTimeForStrum, TIME_FOR_STRUM } from "./
 import { Tally } from "./objects/scoring";
 import { getStrumline } from "./objects/strumline";
 import { SongChart } from "./song";
-import { pauseGame, onUnpause as unPauseGame } from "./ui/pausescreen";
+import { pauseGame, unpauseGame } from "./ui/pauseScreen";
 
 /** Class that holds and manages some important variables in the game scene */
 export class StateGame {
@@ -56,14 +56,17 @@ export class StateGame {
 		this._paused = newPause;
 		this.conductor.paused = this._paused
 		
-		if (newPause) pauseGame()
-		else unPauseGame()
+		if (newPause) pauseGame(this.params.dancer)
+		else unpauseGame()
 	};
 
 	params: paramsGameScene = null;
 
 	/** Wheter the player can press keys to play */
-	gameInputEnabled: boolean = false
+	gameInputEnabled: boolean = true
+
+	/** Wheter the player can press keys to pause */
+	menuInputEnabled: boolean = true
 }
 
 export type paramsGameScene = {
@@ -150,7 +153,8 @@ export function manageInput(GameState: StateGame) {
 		}
 	});
 
-	if (!GameState.gameInputEnabled) return
+	if (!GameState.menuInputEnabled) return
+
 	if (isKeyPressed(GameSave.preferences.controls.pause)) {
 		GameState.managePause();
 	}
@@ -160,11 +164,15 @@ export function manageInput(GameState: StateGame) {
 	}
 
 	else if (isKeyPressed(GameSave.preferences.controls.debug)) {
+		GameState.menuInputEnabled = false
 		transitionToScene(fadeOut, "charteditor", { song: GameState.song, seekTime: GameState.conductor.timeInSeconds, dancer: GameState.params.dancer } as paramsChartEditor)
 	}
 
 	if (GameState.paused && isKeyPressed("shift")) {
-		transitionToScene(fadeOut, "songselect", { index: 0 } as paramsSongSelect)
+		GameState.menuInputEnabled = false
+		let song = getSong(GameState.song.idTitle)
+		let index = song ? songCharts.indexOf(song) : 0
+		transitionToScene(fadeOut, "songselect", { index: index } as paramsSongSelect)
 	}
 }
 

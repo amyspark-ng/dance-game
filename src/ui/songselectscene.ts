@@ -1,4 +1,5 @@
 import { songCharts } from "../core/loader"
+import { customAudioPlay, playSound } from "../core/plugins/features/sound";
 import { transitionToScene } from "../core/scenes";
 import { fadeOut } from "../core/transitions/fadeOutTransition";
 import { paramsGameScene } from "../play/playstate";
@@ -6,6 +7,8 @@ import { SongChart } from "../play/song"
 
 class StateSongSelect {
 	index: number = 0;
+
+	menuInputEnabled: boolean = true
 
 	/** Scrolls the index, so scrolling the songs */
 	scroll(change:number, songAmount: number) {
@@ -19,7 +22,9 @@ class StateSongSelect {
 			if (this.index - Math.abs(change) < 0) this.index = songAmount - 1
 			else this.index -= Math.abs(change)
 		}
-	}
+	};
+
+	songPreview: customAudioPlay;
 }
 
 function addSongCapsule(song: SongChart) {
@@ -67,11 +72,10 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 	const songSelectState = new StateSongSelect()
 	songSelectState.index = params.index ?? 0
 	
-	const songAmount = Object.keys(songCharts).length
-
+	const songAmount = songCharts.length
 	const LERP_AMOUNT = 0.25
 
-	Object.values(songCharts).forEach((song, index) => {
+	songCharts.forEach((song, index) => {
 		addSongCapsule(song)
 	})
 
@@ -97,18 +101,42 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 		})
 	})
 
-	onKeyPress("left", () => songSelectState.scroll(-1, songAmount))
-	onKeyPress("right", () => songSelectState.scroll(1, songAmount))
+	function updateState() {
+		songSelectState.songPreview?.windDown()
+		songSelectState.songPreview = playSound(allCapsules[songSelectState.index].song.idTitle + "-song", {
+			volume: 0.1,
+		})
+		songSelectState.songPreview.loop = true
+	}
+
+	updateState()
+
+	onKeyPress("left", () => {
+		if (!songSelectState.menuInputEnabled) return;
+		songSelectState.scroll(-1, songAmount)
+		updateState()
+	})
+
+	onKeyPress("right", () => {
+		if (!songSelectState.menuInputEnabled) return;
+		songSelectState.scroll(1, songAmount)
+		updateState()
+	})
+	
 	onScroll((delta) => {
+		if (!songSelectState.menuInputEnabled) return;
 		delta.y = clamp(delta.y, -1, 1)
 		songSelectState.scroll(delta.y, songAmount)
+		updateState()
 	})
 
 	onKeyPress("enter", () => {
+		if (!songSelectState.menuInputEnabled) return;
+		songSelectState.menuInputEnabled = false
 		const hoveredCapsule = allCapsules[songSelectState.index]
 		if (hoveredCapsule) {
+			songSelectState.songPreview.stop()
 			tween(1.25, 1, 0.25, (p) => hoveredCapsule.scale.y = p, easings.easeOutQuad).onEnd(() => {
-				
 				const song = hoveredCapsule.song
 				transitionToScene(fadeOut, "game", { song: song, dancer: "astri"  } as paramsGameScene)
 			})

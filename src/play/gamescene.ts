@@ -1,4 +1,4 @@
-import { addDancer, getDancer } from "./objects/dancer"
+import { addDancer, DANCER_POS, getDancer } from "./objects/dancer"
 import { playSound } from "../core/plugins/features/sound"
 import { onBeatHit, onMiss, onNoteHit, triggerEvent } from "../core/events"
 import { addStrumline } from "./objects/strumline"
@@ -28,9 +28,8 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 	GameState.gameInputEnabled = true
 
 	// ==== DANCER + UI =====
-	const DANCER_POS = vec2(518, 377)
 	const dancer = addDancer(params.dancer)
-	dancer.pos = DANCER_POS
+	dancer.pos = Vec2.fromArray(DANCER_POS)
 	dancer.onUpdate(() => {
 		if (dancer.waitForIdle) dancer.waitForIdle.paused = GameState.paused;
 	})

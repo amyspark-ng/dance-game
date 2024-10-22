@@ -222,12 +222,16 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	// Send you to the game
 	onKeyPress("enter", () => {
+		if (ChartState.inputDisabled) return
 		if (ChartState.focusedTextBox) return
+		ChartState.inputDisabled = true
+		ChartState.paused = true
 		transitionToScene(fadeOut, "game", { song: ChartState.song, seekTime: ChartState.scrollTime, dancer: params.dancer } as paramsGameScene)
 	})
 
 	// Pausing unpausing behaviour
 	onKeyPress("space", () => {
+		if (ChartState.inputDisabled) return
 		if (ChartState.focusedTextBox) return
 		ChartState.paused = !ChartState.paused
 	

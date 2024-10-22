@@ -5,14 +5,15 @@ import { drag } from "./plugins/features/drag"
 import { setupSoundtray } from "./plugins/features/soundtray"
 import { GameSave } from "./gamesave"
 import { setupLayers } from "./layers"
-import { loadAssets, loadingScreen, songCharts } from "./loader"
+import { getSong, loadAssets, loadingScreen, songCharts } from "./loader"
 import { goScene, setupScenes } from "./scenes"
 import { setupWatch } from "./plugins/features/watcher"
 import { paramsGameScene } from "../play/playstate"
+import { paramsSongSelect } from "../ui/songselectscene"
 
 export function INITIAL_SCENE() {
-	// goScene("game", { song: songCharts["bopeebo"], dancer: "gru"} as paramsGameScene)
-	goScene("songselect")
+	// goScene("game", { song: getSong("bopeebo"), dancer: "gru"} as paramsGameScene)
+	goScene("songselect", { index: 0 } as paramsSongSelect)
 }
 
 /** Sets up the game */

@@ -70,11 +70,15 @@ function loadSong(songName: string) {
 		if (chart.data.length == 0) {
 			chart.data = new SongChart()
 		}
-		
-		songCharts[songName] = chart.data
+
+		songCharts.push(chart.data) 
 	})
 
 	// load the album cover and other stuff here
+}
+
+export function getSong(songId: string) {
+	return songCharts.find((song) => song.idTitle == songId)
 }
 
 function loadDancer(dancerName: string) {

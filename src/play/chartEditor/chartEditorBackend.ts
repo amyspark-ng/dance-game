@@ -17,6 +17,8 @@ export class StateChart {
 	conductor: Conductor;
 	params: paramsChartEditor;
 
+	inputDisabled: boolean = false;
+
 	/** How many steps scrolled */
 	scrollStep: number = 0;
 

@@ -25,6 +25,8 @@ export interface dancerComp extends Comp {
 	waitForIdle: TimerController,
 }
 
+export const DANCER_POS = [518, 377]
+
 export function dancer() : dancerComp {
 	let onAnimEndEvent:KEventController = null
 
