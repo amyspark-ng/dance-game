@@ -20,6 +20,13 @@ export class SongChart {
 
 	/** The time signature of the song */
 	timeSignature: [number, number] = [4, 4];
+
+	constructor(idTitle?:string) {
+		// this fake idtitle is for fake songs used for testing
+		if (!idTitle) return
+		this.idTitle = idTitle;
+		this.title = this.idTitle.replace(/-/g, " ");
+	}
 }
 
 /** When a song ends, an object of this type gets pushed to GameSave.songsPlayed*/

@@ -1,5 +1,5 @@
+import { INITIAL_SCENE } from "../core/initGame";
 import { goScene } from "../core/scenes";
-import { STARTING_SCENE } from "../main";
 
 export function FocusScene() { scene("focus", () => {
 	setBackground(BLACK.lighten(50))
@@ -9,6 +9,6 @@ export function FocusScene() { scene("focus", () => {
 	])
 
 	onClick(() => {
-		goScene(STARTING_SCENE, null)  
+		INITIAL_SCENE()
 	})
 })}

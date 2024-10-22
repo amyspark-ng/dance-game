@@ -10,8 +10,9 @@ import { goScene, setupScenes } from "./scenes"
 import { setupWatch } from "./plugins/features/watcher"
 import { paramsGameScene } from "../play/playstate"
 
-export function goGameScene() {
-	goScene("game", { song: songCharts["bopeebo"], dancer: "gru"} as paramsGameScene)
+export function INITIAL_SCENE() {
+	// goScene("game", { song: songCharts["bopeebo"], dancer: "gru"} as paramsGameScene)
+	goScene("songselect")
 }
 
 /** Sets up the game */
@@ -37,12 +38,12 @@ export function initGame() {
 		
 		// determins the scene the scene
 		if (DFEATURE_FOCUS) {
-			if (isFocused()) goGameScene()
+			if (isFocused()) INITIAL_SCENE()
 			else goScene("focus")
 		}
 
 		else {
-			goGameScene()
+			INITIAL_SCENE()
 		}
 	
 		globalThis.GameSave = GameSave
