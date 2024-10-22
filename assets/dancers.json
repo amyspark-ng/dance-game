@@ -14,5 +14,21 @@
 				"miss": 13
 			}
 		}
+	},
+	"gru": {
+		"file": "sprites/dancers/gru/gru.png",
+		"spriteData": {
+			"sliceX": 6,
+			"sliceY": 2,
+			"anims": {
+				"idle": 0,
+				"up": 1,
+				"down": 2,
+				"left": 3,
+				"right": 4,
+				"miss": 5,
+				"victory": { "from": 6, "to": 11, "speed": 5 }
+			}
+		}
 	}
 }

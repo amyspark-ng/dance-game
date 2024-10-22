@@ -1,4 +1,4 @@
-import { Comp, KEventController ,TimerController, TweenController, Vec2 } from "kaplay"
+import { Comp, KEventController ,LoadSpriteOpt,TimerController, TweenController, Vec2 } from "kaplay"
 import { juice } from "../../plugins/graphics/juiceComponent"
 
 /** Moves available for the dancer, also handles the note type */
@@ -12,7 +12,7 @@ export interface dancerComp extends Comp {
 	 * Bops the dancer kinda like a FNF object
 	 * @returns The tween, check juice stretch for more info
 	 */
-	moveBop() : TweenController,
+	moveBop(theScale?:Vec2) : TweenController,
 
 	/** Gets the current move */
 	getMove() : Move,
@@ -36,7 +36,7 @@ export function dancer() : dancerComp {
 			this.waitForIdle = wait(0)
 		},
 
-		moveBop(theScale = vec2(0.5)) {
+		moveBop(theScale:Vec2 = vec2(1)) {
 			return this.stretch({ XorY: "y", startScale: theScale.y * 0.9, endScale: theScale.y })
 		},
 
@@ -90,4 +90,9 @@ export type DancerGameObj = ReturnType<typeof addDancer>
 
 export function getDancer() : DancerGameObj {
 	return get("dancerObj", { recursive: true })[0] as DancerGameObj
+}
+
+export class DancerFile {
+	file: string;
+	spriteData: LoadSpriteOpt;
 }

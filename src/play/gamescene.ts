@@ -5,7 +5,7 @@ import { getNotesOnScreen, manageInput } from "./input"
 import { Conductor } from "./conductor"
 import { addStrumline } from "./objects/strumline"
 import { ChartNote, notesSpawner, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note"
-import { songCharts } from "../game/loader"
+import { dancers, songCharts } from "../game/loader"
 import { saveScore, SongChart, Tally } from "./song"
 import { goScene } from "../game/scenes"
 import { resultsSceneParams } from "../ui/resultsscene"
@@ -152,9 +152,7 @@ export function GameScene() { scene("game", (params: GameSceneParams) => {
 
 	// ==== DANCER + UI =====
 	const DANCER_POS = vec2(518, 377)
-	const DANCER_SCALE = vec2(0.5) // placeholder
 	const dancer = addDancer(params.dancer)
-	dancer.scale = DANCER_SCALE
 	dancer.pos = DANCER_POS
 	dancer.onUpdate(() => {
 		if (dancer.waitForIdle) dancer.waitForIdle.paused = GameState.paused;

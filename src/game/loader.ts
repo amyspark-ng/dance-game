@@ -1,3 +1,4 @@
+import { DancerFile } from "../play/objects/dancer";
 import { SongChart } from "../play/song";
 import { loadCursor } from "../plugins/features/gameCursor";
 
@@ -35,7 +36,7 @@ export function loadingScreen(progress: number) {
 }
 
 export let songCharts:SongChart[] = [] 
-export let dancers:string[] = [] 
+export let dancers:DancerFile[] = []
 
 function loadNoteSkins() {
 	let spriteAtlasData = {}
@@ -91,7 +92,7 @@ export function loadAssets() {
 
 	loadJSON("dancers", "dancers.json").onLoad((data) => {
 		Object.keys(data).forEach((dancer) => {
-			dancers[dancer] = data[dancer]
+			dancers[dancer] = data[dancer] as DancerFile
 			loadDancer(dancer)
 		})
 	})

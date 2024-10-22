@@ -12,7 +12,7 @@ import { chartEditorParams } from "../debug/charteditorscene"
 import { GameSceneParams } from "../play/gamescene"
 
 export function goGameScene() {
-	goScene("game", { song: songCharts["bopeebo"], dancer: "astri"} as GameSceneParams)
+	goScene("game", { song: songCharts["bopeebo"], dancer: "gru"} as GameSceneParams)
 }
 
 export function goChartEditor() {
