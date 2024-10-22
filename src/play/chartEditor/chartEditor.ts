@@ -32,6 +32,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	ChartState.song = params.song;
 	ChartState.params = params;
 	ChartState.scrollStep = ChartState.conductor.timeToStep(params.seekTime, ChartState.conductor.stepInterval)
+	ChartState.noteScales = [].fill(vec2(1), 0, ChartState.song.notes.length)
 
 	onUpdate(() => {
 		ChartState.conductor.paused = ChartState.paused;

@@ -133,10 +133,6 @@ export class StateChart {
 		this.noteScales.splice(indexInNotes, 1)
 		playSound("plop", { detune: moveToDetune(move) })
 	}
-
-	constructor() {
-		this.noteScales = [].fill(vec2(1), 0, this.song.notes.length)
-	}
 }
 
 /** The params for the chart editor */

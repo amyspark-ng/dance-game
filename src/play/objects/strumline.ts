@@ -1,11 +1,10 @@
 import { Comp } from "kaplay";
 import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { getDancer, Move } from "../objects/dancer"
-import { checkForNoteHit, getNotesOnScreen } from "../input";
-import { NoteGameObj } from "./note";
-import { addJudgement, getJudgement, getScorePerDiff } from "./scoring";
+import { getNotesOnScreen, NoteGameObj } from "./note";
+import { addJudgement, checkForNoteHit, getJudgement, getScorePerDiff } from "./scoring";
 import { triggerEvent } from "../../core/events";
-import { GameStateClass } from "../gameScene";
+import { StateGame } from "../playstate";
 
 export interface strumlineComp extends Comp {
 	/** Wheter the strumline is pressd */
@@ -20,7 +19,7 @@ export interface strumlineComp extends Comp {
 
 const PRESS_SCALE = 1.2
 
-export function strumline(GameState:GameStateClass) : strumlineComp {
+export function strumline(GameState:StateGame) : strumlineComp {
 	return {
 		id: "strumlineComp",
 		require: [ "color", "juice" ],
@@ -65,7 +64,7 @@ export function strumline(GameState:GameStateClass) : strumlineComp {
 }
 
 /** Adds the strumline */
-export function addStrumline(GameState:GameStateClass) {
+export function addStrumline(GameState:StateGame) {
 	const STRUM_POS = vec2(center().x, height() - 60);
 	
 	const strumlineObj = add([
