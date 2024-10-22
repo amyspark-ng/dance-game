@@ -56,10 +56,17 @@ function addSongCapsule(song: SongChart) {
 
 type songCapsuleObj = ReturnType<typeof addSongCapsule> 
 
-export function SongSelectScene() { scene("songselect", () => {
+export type paramsSongSelect =  {
+	index?: number,
+}
+
+export function SongSelectScene() { scene("songselect", (params: paramsSongSelect) => {
 	setBackground(BLUE.lighten(50))
 
+	params = params ?? { index: 0 }
 	const songSelectState = new StateSongSelect()
+	songSelectState.index = params.index ?? 0
+	
 	const songAmount = Object.keys(songCharts).length
 
 	const LERP_AMOUNT = 0.25

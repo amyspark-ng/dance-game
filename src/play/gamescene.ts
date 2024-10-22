@@ -40,12 +40,9 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 	onUpdate(() => {
 		manageInput(GameState);
 		ui.missesText.text = `X | ${GameState.tally.misses}`;
-		
 		const time = GameState.conductor.timeInSeconds < 0 ? 0 : GameState.conductor.timeInSeconds
 		ui.timeText.text = `${utils.formatTime(time)}`;
-		
 		ui.healthText.text = GameState.health.toString();
-	
 		ui.scoreText.text = GameState.tally.score.toString();
 	})
 	

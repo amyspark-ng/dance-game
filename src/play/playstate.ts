@@ -2,9 +2,11 @@
 import { Conductor } from "../conductor";
 import { triggerEvent } from "../core/events";
 import { GameSave } from "../core/gamesave";
+import { songCharts } from "../core/loader";
 import { playSound } from "../core/plugins/features/sound";
-import { transitionToScene } from "../core/scenes";
+import { goScene, transitionToScene } from "../core/scenes";
 import { fadeOut } from "../core/transitions/fadeOutTransition";
+import { paramsSongSelect } from "../ui/songselectscene";
 import { paramsChartEditor } from "./chartEditor/chartEditorBackend";
 import { getDancer } from "./objects/dancer";
 import { ChartNote, getNotesOnScreen, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
@@ -159,6 +161,10 @@ export function manageInput(GameState: StateGame) {
 
 	else if (isKeyPressed(GameSave.preferences.controls.debug)) {
 		transitionToScene(fadeOut, "charteditor", { song: GameState.song, seekTime: GameState.conductor.timeInSeconds, dancer: GameState.params.dancer } as paramsChartEditor)
+	}
+
+	if (GameState.paused && isKeyPressed("shift")) {
+		transitionToScene(fadeOut, "songselect", { index: 0 } as paramsSongSelect)
 	}
 }
 
