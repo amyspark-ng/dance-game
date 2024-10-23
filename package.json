@@ -9,11 +9,11 @@
     "preview": "vite preview",
     "desktop:dev": "tauri dev",
     "desktop:build": "tauri build",
-    "update-icons": "pnpm tauri icon"
+    "update-icons": "bun tauri icon"
   },
   "dependencies": {
     "@tauri-apps/api": "^1.6.0",
-    "kaplay": "4000.0.0-alpha.4"
+    "kaplay": "4000.0.0-alpha.12"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^1.6.1",

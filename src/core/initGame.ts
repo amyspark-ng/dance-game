@@ -9,7 +9,7 @@ import { getSong, loadAssets, loadingScreen, songCharts } from "./loader"
 import { goScene, setupScenes } from "./scenes"
 import { setupWatch } from "./plugins/features/watcher"
 import { paramsGameScene } from "../play/playstate"
-import { paramsSongSelect } from "../ui/songselectscene"
+import { paramsSongSelect } from "../ui/songSelectScene"
 
 export function INITIAL_SCENE() {
 	// goScene("game", { song: getSong("bopeebo"), dancer: "gru"} as paramsGameScene)
