@@ -17,7 +17,7 @@ export function fadeOut(sceneName: sceneNameType, params: any) : void {
 		"fadeTransition"
 	])
 
-	const FADE_TIME = 1
+	const FADE_TIME = 0.5
 
 	// Changes the scene
 	fade.tween(0, 1, FADE_TIME, (p) => fade.opacity = p).onEnd(() => {

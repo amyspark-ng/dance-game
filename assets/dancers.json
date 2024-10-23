@@ -10,10 +10,11 @@
 				"down": 2,
 				"right": 3,
 				"idle": 4,
-				"victory": { "from": 5, "to": 12, "speed": 5 }, 
+				"victory": { "from": 5, "to": 12, "speed": 10 }, 
 				"miss": 13
 			}
-		}
+		},
+		"index": 0
 	},
 	"gru": {
 		"file": "sprites/dancers/gru/gru.png",
@@ -27,8 +28,9 @@
 				"left": 3,
 				"right": 4,
 				"miss": 5,
-				"victory": { "from": 6, "to": 11, "speed": 5 }
+				"victory": { "from": 6, "to": 11, "speed": 10 }
 			}
-		}
+		},
+		"index": 0
 	}
 }

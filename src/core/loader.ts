@@ -82,7 +82,8 @@ export function getSong(songId: string) {
 }
 
 function loadDancer(dancerName: string) {
-	loadSprite(`dancer_${dancerName}`, `sprites/dancers/${dancerName}/${dancerName}.png`, dancers[dancerName].spriteData)
+	const spriteData = dancers.find(dancer => dancer.file.includes(dancerName)).spriteData
+	loadSprite(`dancer_${dancerName}`, `sprites/dancers/${dancerName}/${dancerName}.png`, spriteData)
 	// load the background and other stuff here
 }
 
@@ -96,7 +97,7 @@ export function loadAssets() {
 
 	loadJSON("dancers", "dancers.json").onLoad((data) => {
 		Object.keys(data).forEach((dancer) => {
-			dancers[dancer] = data[dancer] as DancerFile
+			dancers[data[dancer].index] = data[dancer] as DancerFile
 			loadDancer(dancer)
 		})
 	})

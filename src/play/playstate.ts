@@ -6,7 +6,7 @@ import { getSong, songCharts } from "../core/loader";
 import { playSound } from "../core/plugins/features/sound";
 import { goScene, transitionToScene } from "../core/scenes";
 import { fadeOut } from "../core/transitions/fadeOutTransition";
-import { paramsSongSelect } from "../ui/songSelectScene";
+import { paramsSongSelect } from "../ui/songselectscene";
 import { paramsChartEditor } from "./chartEditor/chartEditorBackend";
 import { getDancer } from "./objects/dancer";
 import { ChartNote, getNotesOnScreen, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";

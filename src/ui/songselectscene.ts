@@ -63,7 +63,8 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 	params = params ?? { index: 0 }
 	const songSelectState = new StateSongSelect()
 	songSelectState.index = params.index ?? 0
-	
+	songSelectState.songPreview?.stop()
+
 	const songAmount = songCharts.length
 	const LERP_AMOUNT = 0.25
 
@@ -101,6 +102,10 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 		songSelectState.songPreview.loop = true
 	}
 
+	// this runs twice!!!1
+	console.log("scene started")
+
+	// what happens if that updateState gets called twice that's why the song gets played twice
 	updateState()
 
 	onKeyPress("left", () => {

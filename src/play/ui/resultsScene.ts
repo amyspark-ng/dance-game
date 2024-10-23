@@ -2,9 +2,9 @@ import { GameSave } from "../../core/gamesave"
 import { songCharts } from "../../core/loader"
 import { playSound } from "../../core/plugins/features/sound"
 import { goScene } from "../../core/scenes"
-import { paramsSongSelect } from "../../ui/songSelectScene"
+import { paramsSongSelect } from "../../ui/songselectscene"
 import { utils } from "../../utils"
-import { paramsGameScene, StateGame } from "../playstate"
+import { StateGame } from "../playstate"
 
 /** Parameters for the result scene */
 export type paramsResultsScene = {
@@ -29,7 +29,7 @@ export function ResultsScene() { scene("results", (params: paramsResultsScene) =
 	const durationPerTally = drumroll.duration() / Object.keys(tallyAndColor).length
 
 	Object.keys(tallyAndColor).forEach((tallyKey, index) => {
-		wait(durationPerTally + durationPerTally * index, () => {
+		wait((durationPerTally + durationPerTally * index) / 2, () => {
 			const tallyKeyF = tallyKey.charAt(0).toUpperCase() + tallyKey.slice(1) + ": "
 
 			const tallyText = add([
@@ -64,7 +64,7 @@ export function ResultsScene() { scene("results", (params: paramsResultsScene) =
 		}
 	})
 
-	onKeyPress(GameSave.preferences.controls.pause, () => {
+	onKeyPress("escape", () => {
 		const indexOfSong = songCharts.indexOf(params.GameState.song)
 		goScene("songselect", { index: indexOfSong > -1 ? indexOfSong : 0 } as paramsSongSelect)
 	})

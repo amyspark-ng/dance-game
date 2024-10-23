@@ -5,7 +5,7 @@ import { juice } from "../../core/plugins/graphics/juiceComponent"
 export type Move = "left" | "right" | "up" | "down" | "idle"
 
 /** Time it'll take for the dancer to go back to idleing */
-const TIME_FOR_IDLE = 2
+const TIME_FOR_IDLE = 1
 
 export interface dancerComp extends Comp {
 	doMove(move: Move) : void,
@@ -40,7 +40,12 @@ export function dancer() : dancerComp {
 		},
 
 		moveBop(theScale:Vec2 = vec2(1)) {
-			return this.stretch({ XorY: "y", startScale: theScale.y * 0.9, endScale: theScale.y })
+			return this.stretch({
+				XorY: "y",
+				startScale: theScale.y * 0.9,
+				endScale: theScale.y,
+				theTime: 0.25,
+			})
 		},
 
 		getMove() {

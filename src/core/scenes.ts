@@ -1,10 +1,10 @@
 import { ChartEditorScene } from "../play/chartEditor/chartEditor";
-import { GameScene } from "../play/gameScene";
+import { GameScene } from "../play/gamescene";
 import { DeathScene } from "../play/ui/deathScene";
 import { ResultsScene } from "../play/ui/resultsScene";
 import { FocusScene } from "../ui/focusscene";
-import { MenuScene } from "../ui/menu/menuscene";
-import { SongSelectScene } from "../ui/songselectscene";
+import { MenuScene } from "../ui/menu/menuScene";
+import { SongSelectScene } from "../ui/songSelectScene";
 import { TitleScene } from "../ui/titlescene";
 
 /** Object containing the name of all game scenes */

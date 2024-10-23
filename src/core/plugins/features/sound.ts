@@ -1,5 +1,5 @@
 
-import { AudioPlay, AudioPlayOpt, Key } from "kaplay";
+import { AudioPlay, AudioPlayOpt, Key, TweenController } from "kaplay";
 import { GameSave } from "../../gamesave";
 
 // ======= SOUND PLAYING ==========
@@ -27,10 +27,10 @@ export interface customAudioPlay extends AudioPlay {
 	/**
 	 * Scratches a sound (like a record), if the params are lesser than the current AudioPlay object then at the end of the tween it will be PAUSED
 	 */
-	scratch: (opts?:scratchOpts) => void
+	scratch: (opts?:scratchOpts) => TweenController
 
 	/** Winds down a song, like in FNF! */
-	windDown: () => void
+	windDown: () => TweenController
 }
 
 /**
@@ -89,19 +89,23 @@ export function playSound(soundName: string, opts?:customAudioPlayOpt) : customA
 
 		tween(audioPlayer.detune, opts.newDetune, opts.time, (p) => audioPlayer.detune = p)
 		tween(audioPlayer.speed, opts.newSpeed, opts.time, (p) => audioPlayer.speed = p)
-		tween(audioPlayer.volume, opts.newVolume, opts.time, (p) => audioPlayer.volume = p).onEnd(() => {
+		const tweenVolume = tween(audioPlayer.volume, opts.newVolume, opts.time, (p) => audioPlayer.volume = p)
+		tweenVolume.onEnd(() => {
 			if (direction == "backwards") {
 				audioPlayer.paused = true
 			}
 		})
+		return tweenVolume;
 	}
 
 	audioPlayer.windDown = () => {
 		const ogDetune = audioPlayer.detune
-		tween(audioPlayer.volume, 0, 0.8, (p) => audioPlayer.volume = p).onEnd(() => audioPlayer.paused = true)
 		tween(audioPlayer.detune, ogDetune + 300, 0.1, (p) => audioPlayer.detune = p).onEnd(() => {
 			tween(audioPlayer.detune, ogDetune - 150, 0.4, (p) => audioPlayer.detune = p)
 		})
+		const tweenVolume = tween(audioPlayer.volume, 0, 0.8, (p) => audioPlayer.volume = p)
+		tweenVolume.onEnd(() => audioPlayer.paused = true)
+		return tweenVolume;
 	}
 
 	allSoundHandlers.add(audioPlayer)
