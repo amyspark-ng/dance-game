@@ -407,7 +407,7 @@ export function moveChangeInputHandler(ChartState:StateChart) {
 /** Adds a dummy dancer for moving to the fake notes in the chart */
 export function addDummyDancer(dancerName: string) {
 	const DANCER_POS = vec2(921, 519)
-	const DANCER_SCALE = vec2(0.25)
+	const DANCER_SCALE = vec2(0.5)
 	let waitEvent = wait(0)
 
 	function fakeDancerComp() {

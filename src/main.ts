@@ -27,6 +27,7 @@ export const libraryOpts = {
 	stretch: false,
 	letterbox: false,
 	maxFPS: 90,
+	font: "lambdao",
 } as KAPLAYOpt
 
 // ===== GLOBALS =====

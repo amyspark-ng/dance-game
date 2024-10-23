@@ -18,13 +18,13 @@ export function DeathScene() { scene("death", (params:paramsDeathScene) => {
 	])
 
 	add([
-		sprite("astri", { anim: "miss" }),
+		sprite("dancer_" + params.GameState.params.dancer, { anim: "miss" }),
 		pos(center().x - 100, center().y + 50),
 		anchor("center"),
 		scale(0.5),
 	])
 
 	onKeyPress(GameSave.preferences.controls.accept, () => {
-		transitionToScene(fadeOut, "game", { song: params.GameState.song } as paramsGameScene)
+		transitionToScene(fadeOut, "game", { song: params.GameState.song, dancer: params.GameState.params.dancer } as paramsGameScene)
 	})
 })}

@@ -30,9 +30,8 @@ export class Tally {
 }
 
 // # JUDGEMENT
-
-export const AWESOME_TIMING = 0.045
-export const GOOD_TIMING = 0.09
+export const AWESOME_TIMING = 0.088
+export const GOOD_TIMING = 0.1
 export const EHH_TIMING = 0.135
 export const MISS_TIMING = 0.16
 
@@ -49,13 +48,10 @@ export function getJudgement(timeInSeconds: number, chartNote: ChartNote) : Judg
 	const diff = timeInSeconds - chartNote.hitTime
 	const absDiff = Math.abs(diff)
 
-	// if the diff is less than 0 then the player hit early, just a note
-
-	// The lesser the difference the better the judgement
 	if (absDiff <= AWESOME_TIMING) return "Awesome"
 	else if (absDiff <= GOOD_TIMING) return "Good"
 	else if (absDiff <= EHH_TIMING) return "Ehh"
-	else return "Miss"
+	else if (absDiff <= MISS_TIMING) return "Miss"
 }
 
 /** Add judgement object */
@@ -83,17 +79,16 @@ export function addJudgement(judgement: Judgement) {
 
 /** Add combo text */
 export function addComboText(comboAmount: number | "break") {
-	const judgementObj = get("judgementObj")[0]
+	const judgementObj = get("judgementObj").reverse()[0]
 	
-	const comboText = add([
+	const comboText = judgementObj.add([
 		text(comboAmount.toString()),
-		pos(),
+		pos(judgementObj.width / 2, judgementObj.height / 2),
 		anchor(judgementObj.anchor),
 		opacity(),
 	])
 
 	comboText.onUpdate(() => {
-		comboText.pos = vec2(judgementObj.pos.x, judgementObj.pos.y + judgementObj.height / 2 + 5)
 		comboText.opacity = judgementObj.opacity
 	})
 
@@ -110,7 +105,7 @@ export function checkForNoteHit(GameState:StateGame, move: Move) : ChartNote {
 		const lowest = note.hitTime - INPUT_THRESHOLD
 		const highest = note.hitTime + INPUT_THRESHOLD
 
-		return utils.isInRange(t, highest, lowest)
+		return utils.isInRange(t, highest, lowest) && (note.dancerMove === move)
 	}
 
 	// if time in seconds is close by input_treshold to the hit note of any note in the chart

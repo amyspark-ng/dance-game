@@ -6,14 +6,14 @@ import { getSong, songCharts } from "../core/loader";
 import { playSound } from "../core/plugins/features/sound";
 import { goScene, transitionToScene } from "../core/scenes";
 import { fadeOut } from "../core/transitions/fadeOutTransition";
-import { paramsSongSelect } from "../ui/songselectscene";
+import { paramsSongSelect } from "../ui/songSelectScene";
 import { paramsChartEditor } from "./chartEditor/chartEditorBackend";
 import { getDancer } from "./objects/dancer";
 import { ChartNote, getNotesOnScreen, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
 import { Tally } from "./objects/scoring";
 import { getStrumline } from "./objects/strumline";
 import { SongChart } from "./song";
-import { pauseGame, unpauseGame } from "./ui/pauseScreen";
+import { managePauseUI } from "./ui/pauseScreen";
 
 /** Class that holds and manages some important variables in the game scene */
 export class StateGame {
@@ -56,8 +56,7 @@ export class StateGame {
 		this._paused = newPause;
 		this.conductor.paused = this._paused
 		
-		if (newPause) pauseGame(this.params.dancer)
-		else unpauseGame()
+		managePauseUI(newPause, this)
 	};
 
 	params: paramsGameScene = null;
@@ -99,7 +98,8 @@ export function setupSong(params: paramsGameScene, GameState:StateGame) {
 		offset: TIME_FOR_STRUM
 	})
 
-	GameState.song.notes.filter((note) => note.hitTime).forEach((passedNote) => {
+	// there are the notes that have been spawned yet
+	GameState.song.notes.filter((note) => note.hitTime <= params.seekTime).forEach((passedNote) => {
 		GameState.spawnedNotes.push(passedNote)
 		GameState.hitNotes.push(passedNote)
 	})
@@ -121,7 +121,7 @@ export function resetSong(GameState:StateGame) {
 	GameState.highestCombo = 0
 
 	GameState.song.notes.forEach((note) => {
-		if (note.hitTime < GameState.params.seekTime) {
+		if (note.hitTime <= GameState.params.seekTime) {
 			GameState.hitNotes.push(note)
 			GameState.spawnedNotes.push(note)
 		}
@@ -129,6 +129,10 @@ export function resetSong(GameState:StateGame) {
 
 	if (GameState.params.seekTime > 0) {
 		GameState.conductor.audioPlay.seek(GameState.params.seekTime)
+	}
+
+	else {
+		GameState.conductor.timeInSeconds = -TIME_FOR_STRUM
 	}
 
 	getNotesOnScreen().forEach((noteObj) => {

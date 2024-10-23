@@ -65,32 +65,32 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 			return;
 		}
 
-		// the judgement isn't a miss
-		addJudgement(judgement)
-		addComboText(GameState.combo)
-		getDancer().doMove(chartNote.dancerMove)
-	
+		// the judgement isn't a miss, you did well :)
 		GameState.tally[judgement.toLowerCase() + "s"] += 1
 		GameState.combo += 1
 		if (GameState.combo > GameState.highestCombo) GameState.highestCombo = GameState.combo
 
 		GameState.tally.score += getScorePerDiff(GameState.conductor.timeInSeconds, chartNote)
 		GameState.hitNotes.push(chartNote)
-		
+
 		if (GameState.health < 100) GameState.health += 5
+
+		addJudgement(judgement)
+		addComboText(GameState.combo)
+		getDancer().doMove(chartNote.dancerMove)
 	})
 
 	onMiss(() => {
+		getDancer().miss()
+		playSound("missnote", { volume: 0.1 });
+		addJudgement("Miss")
+		if (GameState.combo > 0) {
+			addComboText("break")
+		}
+
 		GameState.tally.misses += 1
 		GameState.combo = 0
 		GameState.health -= 5
-		
-		// if (getDancer().getCurAnim().name == "miss") {
-			getDancer().miss()
-			playSound("missnote", { volume: 0.1 });
-			addJudgement("Miss")
-			addComboText("break")
-		// }
 
 		if (GameState.health <= 0) goScene("death", { GameState: GameState } as paramsDeathScene)
 	})

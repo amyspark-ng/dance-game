@@ -114,6 +114,16 @@ export function loadAssets() {
 	loadSound("pauseScratch", "sounds/pauseScratch.mp3")
 	loadSound("missnote", "sounds/missnote.mp3")
 
+	loadSound("drumroll", "sounds/drumroll.mp3")
+
+	loadFont("lambda", "Lambda-Regular.ttf")
+	loadFont("lambdao", "Lambda-Regular.ttf", {
+		outline: {
+			width: 5,
+			color: BLACK,
+		}
+	})
+
 	loadNoteSkins()
 
 	// Written by MF
