@@ -1,5 +1,4 @@
 import { Key } from "kaplay";
-import { SAVE_NAME } from "../main";
 import { volumeChannel } from "./plugins/features/sound";
 import { saveScore } from "../play/song";
 import { Move } from "../play/objects/dancer";
@@ -44,7 +43,7 @@ export class GameSaveClass {
 
 	/** Writes current instance to localStorage */
 	save() {
-		setData(SAVE_NAME, this)
+		setData("dsnjdvsjdsj", this)
 	};
 
 	/**
@@ -73,7 +72,7 @@ export class GameSaveClass {
 		}
 
 		const newGameSave = new GameSaveClass()
-		const data = getData(SAVE_NAME, newGameSave) as GameSaveClass
+		const data = getData("", newGameSave) as GameSaveClass
 		return deepMerge(data, newGameSave);
 	}
 

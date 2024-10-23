@@ -1,4 +1,3 @@
-import { DFEATURE_FOCUS, PRODUCT_AUTHOR, PRODUCT_NAME, PRODUCT_VERSION } from "../main"
 import { setupCamera } from "./plugins/features/camera"
 import { setupCursor } from "./plugins/features/gameCursor"
 import { drag } from "./plugins/features/drag"
@@ -10,18 +9,35 @@ import { goScene, setupScenes } from "./scenes"
 import { setupWatch } from "./plugins/features/watcher"
 import { paramsGameScene } from "../play/playstate"
 import { paramsSongSelect } from "../ui/songSelectScene"
+import { utils } from "../utils"
+import { getCurrent, WebviewWindow } from "@tauri-apps/api/window"
+
+/** Class that handles some variables related to the game as a product */
+export class PRODUCT {
+	static DEBUG = true
+	static AUTHOR = "amyspark-ng"
+	static NAME = "dance-game"
+	static VERSION = "0.0.0"
+	
+	// FEATURES
+	static FEATURE_FOCUS = false
+}
+
+/** The window (in case you're using desktop) */
+export let appWindow:WebviewWindow = null
 
 export function INITIAL_SCENE() {
 	// goScene("game", { song: getSong("bopeebo"), dancer: "gru"} as paramsGameScene)
 	goScene("songselect", { index: 0 } as paramsSongSelect)
 }
 
-/** Sets up the game */
 export function initGame() {
-	document.title = PRODUCT_NAME
-
+	
+	utils.runInDesktop(() => appWindow = getCurrent())
+	document.title = PRODUCT.NAME
+	
 	setCursor("none")
-
+	
 	loadAssets()
 	onLoading((progress:number) => loadingScreen(progress))
 	onLoad(() => {
@@ -34,15 +50,15 @@ export function initGame() {
 		setupCamera(); // sets up the camera
 		setupSoundtray(); // sets up the soundtray
 		setupWatch(); // sets up the watcher
-
-		console.log(`${PRODUCT_AUTHOR}.${PRODUCT_NAME} v: ${PRODUCT_VERSION}`)
+	
+		console.log(`${PRODUCT.AUTHOR}.${PRODUCT.NAME} v: ${PRODUCT.VERSION}`)
 		
 		// determins the scene the scene
-		if (DFEATURE_FOCUS) {
+		if (false) {
 			if (isFocused()) INITIAL_SCENE()
 			else goScene("focus")
 		}
-
+	
 		else {
 			INITIAL_SCENE()
 		}
@@ -55,7 +71,7 @@ export function initGame() {
 		// all of the objects that are draggable have this function
 		if (drag.getCurDragging()) drag.getCurDragging().drop()
 	}, false);
-
+	
 	// for middle click
 	document.body.onmousedown = function(e) {
 		if(e.button == 1) {
@@ -63,7 +79,7 @@ export function initGame() {
 			return false;
 		}
 	}
-
+	
 	// for middle click
 	document.body.onmousedown = function(e) {
 		if(e.button == 1) {
@@ -71,7 +87,7 @@ export function initGame() {
 			return false;
 		}
 	}
-
+	
 	// prevent ctrl + s weirdness
 	document.addEventListener("keydown", function(e) {
 		if (e.key === 's' && (navigator.userAgent.includes('Mac') ? e.metaKey : e.ctrlKey)) {
