@@ -51,11 +51,11 @@ export class StateGame {
 
 	/** Will set the pause to true or false, if a parameter isn't passed it will be toggled */
 	managePause(newPause?:boolean) {
-		newPause = newPause ?? !this.paused
+		newPause = newPause ?? !this._paused
 
 		this._paused = newPause;
 		this.conductor.paused = this._paused
-		
+
 		managePauseUI(newPause, this)
 	};
 
@@ -108,7 +108,7 @@ export function setupSong(params: paramsGameScene, GameState:StateGame) {
 	if (getDancer()) getDancer().doMove("idle")
 }
 
-export function resetSong(GameState:StateGame) {
+export function restartSong(GameState:StateGame) {
 	if (GameState.paused) GameState.managePause(false)
 
 	GameState.conductor.audioPlay.stop()
@@ -142,6 +142,19 @@ export function resetSong(GameState:StateGame) {
 	triggerEvent("onReset")
 }
 
+export function stopPlay(GameState:StateGame) {
+	GameState.conductor.paused = true
+	GameState.conductor.audioPlay.stop()
+	GameState.menuInputEnabled = true
+}
+
+/** Function to exit to the song select menu from the gamescene */
+export function exitToMenu(GameState:StateGame) {
+	let song = getSong(GameState.song.idTitle)
+	let index = song ? songCharts.indexOf(song) : 0
+	transitionToScene(fadeOut, "songselect", { index: index } as paramsSongSelect)
+}
+
 /** The function that manages input functions inside the game, must be called onUpdate */
 export function manageInput(GameState: StateGame) {
 	Object.values(GameSave.preferences.gameControls).forEach((gameKey) => {
@@ -159,24 +172,22 @@ export function manageInput(GameState: StateGame) {
 
 	if (!GameState.menuInputEnabled) return
 
-	if (isKeyPressed(GameSave.preferences.controls.pause)) {
+	if (isKeyPressed("escape")) {
 		GameState.managePause();
 	}
 
-	else if (isKeyPressed(GameSave.preferences.controls.reset)) {
-		resetSong(GameState)
+	else if (isKeyDown("shift") && isKeyDown("r")) {
+		restartSong(GameState)
 	}
 
-	else if (isKeyPressed(GameSave.preferences.controls.debug)) {
+	else if (isKeyPressed("7")) {
+		stopPlay(GameState)
 		GameState.menuInputEnabled = false
 		transitionToScene(fadeOut, "charteditor", { song: GameState.song, seekTime: GameState.conductor.timeInSeconds, dancer: GameState.params.dancer } as paramsChartEditor)
 	}
 
 	if (GameState.paused && isKeyPressed("shift")) {
-		GameState.menuInputEnabled = false
-		let song = getSong(GameState.song.idTitle)
-		let index = song ? songCharts.indexOf(song) : 0
-		transitionToScene(fadeOut, "songselect", { index: index } as paramsSongSelect)
+		exitToMenu(GameState)
 	}
 }
 

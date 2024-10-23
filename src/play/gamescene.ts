@@ -9,7 +9,7 @@ import { addComboText, addJudgement, getJudgement, getScorePerDiff } from "./obj
 import { GameSave } from "../core/gamesave"
 import { utils } from "../utils"
 import { addUI } from "./ui/gameUi"
-import { paramsGameScene, StateGame, manageInput, setupSong } from "./playstate"
+import { paramsGameScene, StateGame, manageInput, setupSong, stopPlay } from "./playstate"
 import { paramsDeathScene } from "./ui/deathScene"
 import { paramsResultsScene } from "./ui/resultsScene"
 
@@ -101,11 +101,7 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 		songSaveScore.idTitle = params.song.idTitle
 		songSaveScore.tally = GameState.tally
 		GameSave.songsPlayed.push(songSaveScore)
+		GameSave.save()
 		goScene("results", { GameState: GameState } as paramsResultsScene)
-	})
-
-	onSceneLeave(() => {
-		GameState.conductor.paused = true;
-		GameState.conductor.audioPlay.stop()
 	})
 })}

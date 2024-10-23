@@ -36,14 +36,17 @@ export function onStepHit(action: () => void) {
 	return getTreeRoot().on("onStepHit", action)
 }
 
+/** Runs when player hit a note, you can grab the note in action */
 export function onNoteHit(action: (note: ChartNote) => void) {
 	return getTreeRoot().on("onNoteHit", action)
 }
 
+/** Runs when player misses */
 export function onMiss(action: () => void) {
 	return getTreeRoot().on("onMiss", action)
 }
 
+/** Runs when the gamescene has been reset */
 export function onReset(action: () => void) {
 	return getTreeRoot().on("onReset", action)
 }

@@ -14,13 +14,6 @@ export type Preferences = {
 		up: gameKey,
 	},
 
-	controls: {
-		pause: Key,
-		accept: Key,
-		reset: Key,
-		debug: Key,
-	},
-
 	noteskin: "P" | "T" | "A"
 }
 
@@ -41,13 +34,6 @@ export class GameSaveClass {
 			down: { kbKey: "down", move: "down" },
 			up: { kbKey: "up", move: "up" },
 			right: { kbKey: "right", move: "right" },
-		},
-
-		controls: {
-			pause: "escape",
-			accept: "enter",
-			reset: "r",
-			debug: "l",
 		},
 
 		noteskin: "P",

@@ -65,4 +65,25 @@ export class utils {
 	static blendColors(col1: Color, col2: Color, blendFactor: number) {
 		return col1.lerp(col2, blendFactor) as Color
 	}
+
+	/**
+	 * Does the thing where if the number is below then goes to top and visceversa
+	 * @param index The current index
+	 * @param change The change between the indexes
+	 * @param totalAmount The total amounts of elements
+	 */
+	static scrollIndex(index: number, change: number, totalAmount: number) {
+		// why was this so hard to figure out??
+		if (change > 0) {
+			if (index + change > totalAmount - 1) index = 0
+			else index += change
+		}
+
+		else if (change < 0) {
+			if (index - Math.abs(change) < 0) index = totalAmount - 1
+			else index -= Math.abs(change)
+		}
+
+		return index;
+	}
 }

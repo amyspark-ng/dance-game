@@ -4,6 +4,7 @@ import { transitionToScene } from "../core/scenes";
 import { fadeOut } from "../core/transitions/fadeOutTransition";
 import { paramsGameScene } from "../play/playstate";
 import { SongChart } from "../play/song"
+import { utils } from "../utils";
 
 class StateSongSelect {
 	index: number = 0;
@@ -12,16 +13,7 @@ class StateSongSelect {
 
 	/** Scrolls the index, so scrolling the songs */
 	scroll(change:number, songAmount: number) {
-		// why was this so hard to figure out??
-		if (change > 0) {
-			if (this.index + change > songAmount - 1) this.index = 0
-			else this.index += change
-		}
-
-		else if (change < 0) {
-			if (this.index - Math.abs(change) < 0) this.index = songAmount - 1
-			else this.index -= Math.abs(change)
-		}
+		this.index = utils.scrollIndex(this.index, change, songAmount)
 	};
 
 	songPreview: customAudioPlay;
