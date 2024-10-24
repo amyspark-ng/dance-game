@@ -120,10 +120,6 @@ export function addSoundTray(opts: addSoundTrayOpt) : SoundTray {
 					soundTrayEvents.trigger("show", 1, false)
 				}
 
-				if (isKeyPressed(opts.downVolumeKey) || isKeyPressed(opts.upVolumeKey)) {
-					GameSave.save()
-				}
-
 				// // The volume are multiplied by the master volume
 				// if (GameSave.sound.masterVolume != 0) {
 				// 	GameSave.sound.sfx.muted = false

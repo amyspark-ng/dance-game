@@ -2,10 +2,13 @@ import { Key } from "kaplay";
 import { volumeChannel } from "./plugins/features/sound";
 import { saveScore } from "../play/song";
 import { Move } from "../play/objects/dancer";
+import { PRODUCT } from "./initGame";
 
 type gameKey = { kbKey: Key, move: Move }
 
 export type Preferences = {
+	dancer: string,
+
 	gameControls: {
 		left: gameKey,
 		right: gameKey,
@@ -28,6 +31,8 @@ export class GameSaveClass {
 	}
 
 	preferences:Preferences = {
+		dancer: "astri",
+		
 		gameControls: {
 			left: { kbKey: "left", move: "left" },
 			down: { kbKey: "down", move: "down" },
@@ -43,7 +48,7 @@ export class GameSaveClass {
 
 	/** Writes current instance to localStorage */
 	save() {
-		setData("dsnjdvsjdsj", this)
+		setData(PRODUCT.SAVE_NAME, this)
 	};
 
 	/**
@@ -72,13 +77,15 @@ export class GameSaveClass {
 		}
 
 		const newGameSave = new GameSaveClass()
-		const data = getData("", newGameSave) as GameSaveClass
+		const data = getData(PRODUCT.SAVE_NAME)
+
 		return deepMerge(data, newGameSave);
 	}
 
 	/** Assigns itself to {@link getLatestSave `getLatestSave()`}  */
 	load() {
-		Object.assign(this, this.getLatestSave())
+		const data = getData(PRODUCT.SAVE_NAME)
+		this.set(data as GameSaveClass)
 	}
 }
 

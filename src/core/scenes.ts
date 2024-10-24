@@ -1,10 +1,11 @@
 import { ChartEditorScene } from "../play/chartEditor/chartEditor";
 import { GameScene } from "../play/gamescene";
+import { CharSelectScene } from "../play/ui/chartSelectScene";
 import { DeathScene } from "../play/ui/deathScene";
 import { ResultsScene } from "../play/ui/resultsScene";
 import { FocusScene } from "../ui/focusscene";
 import { MenuScene } from "../ui/menu/menuScene";
-import { SongSelectScene } from "../ui/songSelectScene";
+import { SongSelectScene } from "../ui/songselectscene";
 import { TitleScene } from "../ui/titlescene";
 
 /** Object containing the name of all game scenes */
@@ -15,6 +16,7 @@ const allGameScenes = {
 	"menu": MenuScene,
 	"results": ResultsScene,
 	"songselect": SongSelectScene,
+	"charselect": CharSelectScene,
 	"death": DeathScene,
 	"charteditor": ChartEditorScene,
 }

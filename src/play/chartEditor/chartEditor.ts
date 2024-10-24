@@ -92,16 +92,19 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 				if (stepOfNote - 1  < 0) return
 
 				ChartState.selectedNote.hitTime -= ChartState.conductor.stepInterval
-				playSound("noteHit", { detune: rand(-25, 50) })
-				ChartState.scrollStep -= 1
+				playSound("noteMove", { detune: rand(-25, 50) })
+				
+				if (ChartState.scrollStep > stepOfNote) ChartState.scrollStep -= 1
 			}
 			
 			else if (isKeyPressedRepeat("s")) {
 				if (stepOfNote + 1 > ChartState.conductor.totalSteps) return
 
 				ChartState.selectedNote.hitTime += ChartState.conductor.stepInterval
-				playSound("noteHit", { detune: rand(-50, 25) })
+				playSound("noteMove", { detune: rand(-50, 25) })
 				ChartState.scrollStep += 1
+				
+				if (stepOfNote > ChartState.scrollStep) ChartState.scrollStep += 1
 			}
 
 			else if (isKeyPressed("backspace")) {

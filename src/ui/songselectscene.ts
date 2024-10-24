@@ -1,6 +1,7 @@
+import { GameSave } from "../core/gamesave";
 import { songCharts } from "../core/loader"
 import { customAudioPlay, playSound } from "../core/plugins/features/sound";
-import { transitionToScene } from "../core/scenes";
+import { goScene, transitionToScene } from "../core/scenes";
 import { fadeOut } from "../core/transitions/fadeOutTransition";
 import { paramsGameScene } from "../play/playstate";
 import { SongChart } from "../play/song"
@@ -133,8 +134,13 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 			songSelectState.songPreview.stop()
 			tween(1.25, 1, 0.25, (p) => hoveredCapsule.scale.y = p, easings.easeOutQuad).onEnd(() => {
 				const song = hoveredCapsule.song
-				transitionToScene(fadeOut, "game", { song: song, dancer: "astri"  } as paramsGameScene)
+				transitionToScene(fadeOut, "game", { song: song, dancer: GameSave.preferences.dancer  } as paramsGameScene)
 			})
 		}
+	})
+
+	onKeyPress("tab", () => {
+		songSelectState.songPreview.stop()
+		goScene("charselect", params)
 	})
 })}

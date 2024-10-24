@@ -12,6 +12,8 @@ import { addUI } from "./ui/gameUi"
 import { paramsGameScene, StateGame, manageInput, setupSong, stopPlay } from "./playstate"
 import { paramsDeathScene } from "./ui/deathScene"
 import { paramsResultsScene } from "./ui/resultsScene"
+import { appWindow } from "@tauri-apps/api/window"
+import { PRODUCT } from "../core/initGame"
 
 export function GameScene() { scene("game", (params: paramsGameScene) => {
 	setBackground(RED.lighten(60))
@@ -106,5 +108,9 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 		GameSave.songsPlayed.push(songSaveScore)
 		GameSave.save()
 		goScene("results", { GameState: GameState } as paramsResultsScene)
+	})
+
+	utils.runInDesktop(() => {
+		appWindow.setTitle(PRODUCT.NAME + " - " + params.song.title)
 	})
 })}
