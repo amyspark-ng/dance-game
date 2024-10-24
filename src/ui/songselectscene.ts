@@ -95,6 +95,8 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 	})
 
 	function updateState() {
+		if (!allCapsules[songSelectState.index]) return
+
 		songSelectState.songPreview?.windDown()
 		songSelectState.songPreview = playSound(allCapsules[songSelectState.index].song.idTitle + "-song", {
 			volume: 0.1,
@@ -102,7 +104,7 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 		songSelectState.songPreview.loop = true
 	}
 
-	updateState()
+	wait(0.01, () => updateState())
 
 	onKeyPress("left", () => {
 		if (!songSelectState.menuInputEnabled) return;

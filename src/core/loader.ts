@@ -1,14 +1,7 @@
+import { LoadSpriteOpt, SpriteData } from "kaplay";
 import { DancerFile } from "../play/objects/dancer";
 import { SongChart } from "../play/song";
 import { loadCursor } from "./plugins/features/gameCursor";
-
-enum noteskins {
-	ps,
-	xbox,
-	nintendo,
-	taiko,
-	arrows,
-}
 
 /** The loading screen of the game */
 export function loadingScreen(progress: number) {
@@ -35,9 +28,12 @@ export function loadingScreen(progress: number) {
 	});
 }
 
+/** Holds all the charts in the game */
 export let songCharts:SongChart[] = [] 
+/** Holds all the dancers in the game */
 export let dancers:DancerFile[] = []
 
+/** Loads the noteskins */
 function loadNoteSkins() {
 	let spriteAtlasData = {}
 
@@ -64,27 +60,78 @@ function loadNoteSkins() {
 	loadSpriteAtlas("sprites/noteSkins.png", spriteAtlasData)
 }
 
-function loadSong(songName: string) {
-	loadSound(`${songName}-song`, `songs/${songName}/${songName}-song.ogg`)
-	const chart = loadJSON(`${songName}-chart`, `songs/${songName}/${songName}-chart.json`).onLoad(() => {
-		if (chart.data.length == 0) {
-			chart.data = new SongChart()
-		}
+function loadDancer(dancerName: string, spriteData: LoadSpriteOpt) {
+	loadSprite(`dancer_${dancerName}`, `sprites/dancers/${dancerName}/${dancerName}.png`, spriteData)
+	// load the background and other stuff here
+}
 
-		songCharts.push(chart.data) 
+async function loadSong(songName: string) {
+	// loads the chart
+	let chart = null;
+	
+	await loadJSON(`${songName}-chart`, `songs/${songName}/${songName}-chart.json`).onLoad((data) => {
+		chart = data
+		loadSound(`${songName}-song`, `songs/${songName}/${songName}-song.ogg`)
 	})
+	
+	return chart;
+
 
 	// load the album cover and other stuff here
 }
 
-export function getSong(songId: string) {
-	return songCharts.find((song) => song.idTitle == songId)
+/** Loads songs, dancers and noteskins */
+async function loadContent() {
+	// LOADS DANCERS
+	const dancersToLoad = {
+		"astri": {
+			sliceX: 5,
+			sliceY: 3,
+			"anims": {
+				"left": 0,
+				"up": 1,
+				"down": 2,
+				"right": 3,
+				"idle": 4,
+				"victory": { "from": 5, "to": 12, "speed": 10 }, 
+				"miss": 13
+			}
+		},
+		"gru": {
+			"sliceX": 6,
+			"sliceY": 2,
+			"anims": {
+				"idle": 0,
+				"up": 1,
+				"down": 2,
+				"left": 3,
+				"right": 4,
+				"miss": 5,
+				"victory": { "from": 6, "to": 11, "speed": 10 }
+			}
+		},
+	}
+	
+	Object.keys(dancersToLoad).forEach((dancer, index) => {
+		dancers[index] = { dancerName: dancer, dancerBg: dancer }
+		loadDancer(dancer, dancersToLoad[dancer])
+	})
+
+	// LOADS SONGS
+	let songsToLoad = ["bopeebo", "fresh"]
+	songsToLoad.forEach(async (song, index) => {
+		const newSong = await loadSong(song)
+		songCharts[index] = newSong
+		// songCharts[index] = loadSong(song) 
+	})
+
+	// loads noteskins
+	loadNoteSkins()
 }
 
-function loadDancer(dancerName: string) {
-	const spriteData = dancers.find(dancer => dancer.file.includes(dancerName)).spriteData
-	loadSprite(`dancer_${dancerName}`, `sprites/dancers/${dancerName}/${dancerName}.png`, spriteData)
-	// load the background and other stuff here
+/** Gets a song */
+export function getSong(songId: string) {
+	return songCharts.find((song) => song.idTitle == songId)
 }
 
 /** Loads all the assets of the game */
@@ -95,20 +142,11 @@ export function loadAssets() {
 	
 	loadCursor();
 
-	loadJSON("dancers", "dancers.json").onLoad((data) => {
-		Object.keys(data).forEach((dancer) => {
-			dancers[data[dancer].index] = data[dancer] as DancerFile
-			loadDancer(dancer)
-		})
-	})
+	loadContent()
 
 	loadSound("opening", "sounds/opening.ogg")
 	loadSound("ending", "sounds/ending.mp3")
 	loadSound("saataandagi", "sounds/saataandagi.ogg")
-	
-	loadSong("bopeebo")
-	loadSong("fresh")
-
 	
 	// # GAMEPLAY
 	loadSound("pauseScratch", "sounds/pauseScratch.mp3")

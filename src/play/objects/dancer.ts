@@ -101,6 +101,6 @@ export function getDancer() : DancerGameObj {
 }
 
 export class DancerFile {
-	file: string;
-	spriteData: LoadSpriteOpt;
+	dancerName: string;
+	dancerBg: string;
 }

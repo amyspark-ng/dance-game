@@ -8,7 +8,7 @@ import { getSong, loadAssets, loadingScreen, songCharts } from "./loader"
 import { goScene, setupScenes } from "./scenes"
 import { setupWatch } from "./plugins/features/watcher"
 import { paramsGameScene } from "../play/playstate"
-import { paramsSongSelect } from "../ui/songSelectScene"
+import { paramsSongSelect } from "../ui/songselectscene"
 import { utils } from "../utils"
 import { getCurrent, WebviewWindow } from "@tauri-apps/api/window"
 
@@ -20,6 +20,7 @@ export class PRODUCT {
 	static VERSION = "0.0.0"
 	
 	// FEATURES
+	/** Wheter the game should get you to the focus scene if the canvas isn't focused at start */
 	static FEATURE_FOCUS = false
 }
 
@@ -54,7 +55,7 @@ export function initGame() {
 		console.log(`${PRODUCT.AUTHOR}.${PRODUCT.NAME} v: ${PRODUCT.VERSION}`)
 		
 		// determins the scene the scene
-		if (false) {
+		if (PRODUCT.FEATURE_FOCUS) {
 			if (isFocused()) INITIAL_SCENE()
 			else goScene("focus")
 		}
@@ -94,4 +95,7 @@ export function initGame() {
 			e.preventDefault();
 		}
 	}, false);
+
+	GameSave.preferences.noteskin = "A"
+	GameSave.save()
 }

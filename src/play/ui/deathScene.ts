@@ -24,7 +24,7 @@ export function DeathScene() { scene("death", (params:paramsDeathScene) => {
 		scale(0.5),
 	])
 
-	onKeyPress(GameSave.preferences.controls.accept, () => {
+	onKeyPress("enter", () => {
 		transitionToScene(fadeOut, "game", { song: params.GameState.song, dancer: params.GameState.params.dancer } as paramsGameScene)
 	})
 })}

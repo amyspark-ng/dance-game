@@ -92,7 +92,10 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 		GameState.combo = 0
 		GameState.health -= 5
 
-		if (GameState.health <= 0) goScene("death", { GameState: GameState } as paramsDeathScene)
+		if (GameState.health <= 0) {
+			GameState.conductor.audioPlay.windDown()
+			goScene("death", { GameState: GameState } as paramsDeathScene)
+		}
 	})
 
 	// END SONG

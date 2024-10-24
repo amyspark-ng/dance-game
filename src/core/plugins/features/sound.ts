@@ -30,7 +30,7 @@ export interface customAudioPlay extends AudioPlay {
 	scratch: (opts?:scratchOpts) => TweenController
 
 	/** Winds down a song, like in FNF! */
-	windDown: () => TweenController
+	windDown: () => void
 }
 
 /**
@@ -105,7 +105,6 @@ export function playSound(soundName: string, opts?:customAudioPlayOpt) : customA
 		})
 		const tweenVolume = tween(audioPlayer.volume, 0, 0.8, (p) => audioPlayer.volume = p)
 		tweenVolume.onEnd(() => audioPlayer.paused = true)
-		return tweenVolume;
 	}
 
 	allSoundHandlers.add(audioPlayer)
