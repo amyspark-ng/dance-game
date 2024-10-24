@@ -121,6 +121,15 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 				else if (!isMouseDown("left") && isMouseDown("right")) gameCursor.do("x")
 			}
 		}
+
+		// moving strumline
+		// if (isKeyDown("shift") && isKeyPressed("down")) {
+		// 	ChartState.strumlineStepOffset += 1
+		// }
+
+		// else if (isKeyDown("shift") && isKeyPressed("up")) {
+		// 	ChartState.strumlineStepOffset -= 1
+		// }
 	})
 
 	/** The main event, draws everything so i don't have to use objects */

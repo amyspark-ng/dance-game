@@ -66,6 +66,7 @@ export function strumline(GameState:StateGame) : strumlineComp {
 			this.bop({
 				startScale: vec2(PRESS_SCALE),
 				endScale: vec2(1),
+				// theTime: 0.25,
 			})
 		},
 	}

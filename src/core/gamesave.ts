@@ -35,7 +35,7 @@ export class GameSaveClass {
 			right: { kbKey: "right", move: "right" },
 		},
 
-		noteskin: "P",
+		noteskin: "A",
 	}
 
 	/** The songs that have been played, check {@link songSaveScore} type for more info */
