@@ -1,8 +1,9 @@
 import { GameObj, KEventController, OpacityComp } from "kaplay"
 import { playSound } from "../../core/plugins/features/sound"
 import { DANCER_POS, getDancer } from "../objects/dancer"
-import { exitToMenu, restartSong, StateGame } from "../playstate"
+import { exitToChartEditor, exitToMenu, restartSong, StateGame } from "../playstate"
 import { utils } from "../../utils"
+import { PRODUCT } from "../../core/initGame"
 
 /** Runs when the game is paused */
 export function managePauseUI(pause:boolean, GameState:StateGame) {
@@ -11,47 +12,8 @@ export function managePauseUI(pause:boolean, GameState:StateGame) {
 	const baseZ = 100
 	let pauseBlack = get("pauseBlack")[0]
 
-	let downKeyEvent:KEventController = null
-	let upKeyEvent:KEventController = null
-	let enterKeyEvent:KEventController = null
-
-	/** Cancels all the key events */
-	function cancelTheKeyEvents() {
-		downKeyEvent?.cancel()
-		downKeyEvent = null
-
-		upKeyEvent?.cancel()
-		upKeyEvent = null
-
-		enterKeyEvent?.cancel()
-		enterKeyEvent = null
-	}
-
-	class button {
-		name: string;
-		action: () => void;
-		constructor(name:string, action: () => void) {
-			this.name = name
-			this.action = action
-		}
-	}
-
-	const allButtons = [
-		new button("CONTINUE", () => {
-			debug.log("continue")
-			GameState.managePause(false)
-		}),
-		new button("RESTART", () => {
-			debug.log("restart")
-			restartSong(GameState)
-		}),
-		new button("EXIT TO MENU", () => {
-			debug.log("exit to menu")
-		})
-	]
-
-	function addPauseButton(buttonName: string, buttonIndex: number, buttonAction: () => void) {
-		const buttonObj = add([
+	function makePauseButton(buttonName: string, buttonIndex: number, buttonAction: () => void) {
+		const buttonObj = make([
 			text(buttonName, { size: 60 }),
 			pos(-100, 100 + 100 * buttonIndex),
 			anchor("left"),
@@ -84,31 +46,20 @@ export function managePauseUI(pause:boolean, GameState:StateGame) {
 		return buttonObj;
 	}
 
-	type buttonGameObjType = ReturnType<typeof addPauseButton>
-	let buttonsArray:buttonGameObjType[] = []
-
 	if (pause == true) {
 		const pauseScratch = playSound("pauseScratch", { volume: 0.1, detune: 0, speed: 1 })
 		pauseScratch.detune = rand(-100, 100)
 	
-		cancelTheKeyEvents()
+		const allButtons = [
+			makePauseButton("CONTINUE", 0, () => { GameState.managePause(false) }),
+			makePauseButton("RESTART", 1, () => { restartSong(GameState) }),
+			makePauseButton("EXIT TO MENU", 2, () => { exitToMenu(GameState) }),
+		]
 
-		// for input in buttons and stuff
-		downKeyEvent = onKeyPress("down", () => {
-			if (!GameState.paused) return
-			currentIndex = utils.scrollIndex(currentIndex, 1, 3)
-		})
-		
-		upKeyEvent = onKeyPress("up", () => {
-			if (!GameState.paused) return
-			currentIndex = utils.scrollIndex(currentIndex, -1, 3)
-		})
-		
-		enterKeyEvent = onKeyPress("enter", () => {
-			if (!GameState.paused) return
-			allButtons[currentIndex].action()
-		})
-		
+		if (PRODUCT.DEBUG) {
+			allButtons.push(makePauseButton("CHART EDITOR", 3, () => { exitToChartEditor(GameState) }))
+		}
+
 		// not found pauseBlack
 		if (!pauseBlack) {
 			
@@ -121,6 +72,15 @@ export function managePauseUI(pause:boolean, GameState:StateGame) {
 				opacity(0.5),
 				"pauseBlack",
 			])
+
+			pauseBlack.onUpdate(() => {
+				if (!GameState.paused) return 
+				
+				// using these because key events were being little biiiiitches
+				if (isKeyPressed("down")) currentIndex = utils.scrollIndex(currentIndex, 1, allButtons.length)
+				else if (isKeyPressed("up")) currentIndex = utils.scrollIndex(currentIndex, -1, allButtons.length)
+				else if (isKeyPressed("enter")) allButtons[currentIndex].action()
+			})
 	
 			pauseBlack.fadeIn(0.1)
 		
@@ -159,8 +119,7 @@ export function managePauseUI(pause:boolean, GameState:StateGame) {
 
 			allButtons.forEach((button, index) => {
 				wait(0.1 * (index + 1), () => {
-					const newButton = addPauseButton(button.name, index, allButtons[index].action)
-					buttonsArray[index] = newButton
+					add(button)
 				})
 			})
 		}
@@ -179,13 +138,10 @@ export function managePauseUI(pause:boolean, GameState:StateGame) {
 			tween(button.pos.x, -100, 0.1, (p) => button.pos.x = p, easings.easeOutQuint).onEnd(() => {
 				button.destroy()
 			})
-			buttonsArray.pop()
 		})
 		
 		const ogDancer = getDancer()
 		tween(ogDancer.pos, Vec2.fromArray(DANCER_POS), 0.1, (p) => getDancer().pos = p)
 		tween(ogDancer.scale, vec2(1), 0.1, (p) => getDancer().scale = p)
-
-		cancelTheKeyEvents()
 	}
 }

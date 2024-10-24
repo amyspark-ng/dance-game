@@ -92,7 +92,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 				if (stepOfNote - 1  < 0) return
 
 				ChartState.selectedNote.hitTime -= ChartState.conductor.stepInterval
-				playSound("ClickUp", { detune: rand(-25, 50) })
+				playSound("noteHit", { detune: rand(-25, 50) })
 				ChartState.scrollStep -= 1
 			}
 			
@@ -100,7 +100,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 				if (stepOfNote + 1 > ChartState.conductor.totalSteps) return
 
 				ChartState.selectedNote.hitTime += ChartState.conductor.stepInterval
-				playSound("ClickUp", { detune: rand(-50, 25) })
+				playSound("noteHit", { detune: rand(-50, 25) })
 				ChartState.scrollStep += 1
 			}
 
@@ -109,10 +109,18 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 			}
 		}
 
-		// mouse stuff
-		if (ChartState.isCursorInGrid && !isMouseDown("left")) gameCursor.do("up")
-		else if (ChartState.isCursorInGrid && isMouseDown("left")) gameCursor.do("down")
-		else if (!ChartState.isCursorInGrid) gameCursor.do("default")
+		// mouse animation stuff
+		if (ChartState.focusedTextBox != undefined) gameCursor.do("text")
+		else {
+			if (!ChartState.isCursorInGrid) {
+				gameCursor.do("default")
+			}
+			else {
+				if (!isMouseDown("left") && !isMouseDown("right")) gameCursor.do("up")
+				else if (isMouseDown("left") && !isMouseDown("right")) gameCursor.do("down")
+				else if (!isMouseDown("left") && isMouseDown("right")) gameCursor.do("x")
+			}
+		}
 	})
 
 	/** The main event, draws everything so i don't have to use objects */
@@ -147,7 +155,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 				// select the note
 				if (ChartState.selectedNote != note) {
 					ChartState.selectedNote = note
-					ChartState.startingStepForSelectedNote = ChartState.conductor.timeToStep(ChartState.selectedNote.hitTime, ChartState.conductor.stepInterval)	
+					ChartState.startingStepForSelectedNote = ChartState.conductor.timeToStep(note.hitTime, ChartState.conductor.stepInterval)
 				}
 			}
 		}
@@ -162,7 +170,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	// Resets the detune for moving notes
 	onMouseRelease("left", () => {
 		if (!ChartState.selectedNote) return 
-		ChartState.startingStepForSelectedNote = 0
+		ChartState.startingStepForSelectedNote = ChartState.conductor.timeToStep(ChartState.selectedNote.hitTime, ChartState.conductor.stepInterval)
 	})
 
 	// Removing notes
@@ -177,24 +185,16 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	onMouseDown("left", () => {
 		if (ChartState.selectedNote == undefined) return
 		
-		const note = ChartState.song.notes.find((note) => note == ChartState.selectedNote)
-		if (note) {
-			const indexOfNote = ChartState.song.notes.indexOf(note)
+		const indexOfNote = ChartState.song.notes.indexOf(ChartState.selectedNote)
 
-			let oldStep = ChartState.conductor.timeToStep(ChartState.song.notes[indexOfNote].hitTime, ChartState.conductor.stepInterval)
-			ChartState.song.notes[indexOfNote].hitTime = ChartState.conductor.stepToTime(ChartState.hoveredStep, ChartState.conductor.stepInterval)
-			let newStep = ChartState.conductor.timeToStep(ChartState.song.notes[indexOfNote].hitTime, ChartState.conductor.stepInterval)
+		// moves the note
+		const oldStep = ChartState.conductor.timeToStep(ChartState.song.notes[indexOfNote].hitTime, ChartState.conductor.stepInterval)
+		ChartState.song.notes[indexOfNote].hitTime = ChartState.conductor.stepToTime(ChartState.hoveredStep, ChartState.conductor.stepInterval)
+		const newStep = ChartState.conductor.timeToStep(ChartState.song.notes[indexOfNote].hitTime, ChartState.conductor.stepInterval)
 
-			const differenceInSteps = newStep - ChartState.startingStepForSelectedNote
-			if (oldStep != newStep) playSound("ClickUp", { detune: 25 * differenceInSteps })
-
-			// check if there was already a note at that position, if so we just move it one step ahead
-			const occupiedNote = ChartState.song.notes.find(note => ChartState.conductor.stepToTime(newStep, ChartState.conductor.stepInterval) == note.hitTime)
-			if (occupiedNote) {
-				const indexOfOccupied = ChartState.song.notes.indexOf(occupiedNote)
-				ChartState.song.notes[indexOfOccupied].hitTime = ChartState.conductor.stepToTime(newStep + 1, ChartState.conductor.stepInterval)
-			}
-		}
+		// difference in steps for the detune
+		const differenceInSteps = ChartState.startingStepForSelectedNote - newStep
+		if (oldStep != newStep) playSound("noteMove", { detune: 25 * differenceInSteps })
 	})
 
 	// Copies the color of a note
@@ -230,7 +230,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	})
 
 	// Pausing unpausing behaviour
-	onKeyPress("space", () => {
+	onKeyPress(["space", "escape"], () => {
 		if (ChartState.inputDisabled) return
 		if (ChartState.focusedTextBox) return
 		ChartState.paused = !ChartState.paused
@@ -257,7 +257,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 			// get the note and make its scale bigger
 			const indexOfNote = ChartState.song.notes.indexOf(someNote)
 			tween(vec2(NOTE_BIG_SCALE), vec2(1), 0.1, (p) => ChartState.noteScales[indexOfNote] = p)
-			playSound("ClickUp", { detune: moveToDetune(someNote.dancerMove) })
+			playSound("noteHit", { detune: moveToDetune(someNote.dancerMove) })
 			triggerEvent("onNoteHit", someNote)
 		}
 	})

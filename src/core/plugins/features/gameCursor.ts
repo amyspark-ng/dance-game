@@ -1,7 +1,7 @@
 import { Comp } from "kaplay"
 
 export let gameCursor:cursorObjectType = null
-export type cursorDoing = "default" | "up" | "down"
+export type cursorDoing = "default" | "up" | "down" | "x" | "text"
 
 interface customCursorComp extends Comp {
 	do(doing:cursorDoing): void
@@ -59,7 +59,7 @@ export function setupCursor() {
 }
 
 export function loadCursor() {
-	const doings = ["default", "up", "down"]
+	const doings = ["default", "up", "down", "x", "text"]
 
 	doings.forEach((dongo) => {
 		loadSprite(`cursor_${dongo}`, "sprites/cursor/cursor_" + dongo + ".png")

@@ -222,11 +222,11 @@ export function setupSoundtray() {
 				bars.forEach((bar) => bar.bop({ startScale: 1.2, endScale: 1 }))
 			}
 
-			play("plap")
+			play("noteAdd")
 		}
 
 		else if (change < 0) {
-			play("plop")
+			play("noteRemove")
 		
 			const bar = getSoundElements().filter((obj) => obj.volume == GameSave.sound.masterVolume)[0]
 			

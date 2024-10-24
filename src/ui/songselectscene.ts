@@ -102,10 +102,6 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 		songSelectState.songPreview.loop = true
 	}
 
-	// this runs twice!!!1
-	console.log("scene started")
-
-	// what happens if that updateState gets called twice that's why the song gets played twice
 	updateState()
 
 	onKeyPress("left", () => {

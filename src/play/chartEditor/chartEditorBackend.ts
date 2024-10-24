@@ -117,7 +117,7 @@ export class StateChart {
 		const newNote:ChartNote = { hitTime: time, dancerMove: move }
 		this.song.notes.push(newNote)
 
-		playSound("plap", { detune: moveToDetune(move) })
+		playSound("noteAdd", { detune: moveToDetune(move) })
 	
 		// add it to note scales
 		const indexInNotes = this.song.notes.indexOf(newNote)
@@ -133,7 +133,7 @@ export class StateChart {
 		// remove it from note scales
 		const indexInNotes = this.song.notes.indexOf(oldNote)
 		this.noteScales.splice(indexInNotes, 1)
-		playSound("plop", { detune: moveToDetune(move) })
+		playSound("noteRemove", { detune: moveToDetune(move) })
 	}
 }
 
@@ -153,6 +153,12 @@ export function moveToDetune(move: Move) {
 		case "up": return 100	
 		case "right": return 50	
 	}
+}
+
+
+/** Returns if a certain Y position mets the conditions to be drawn on the screen */
+function conditionsForDrawing(YPos: number, square_size: Vec2) {
+	return utils.isInRange(YPos, height() + square_size.y, -square_size.y)
 }
 
 /** How lerped the scroll value is */
@@ -221,7 +227,7 @@ export function drawCheckerboard(ChartState: StateChart) {
 		const col = i % 2 == 0 ? lighter : darker
 
 		// draws the background chess board squares etc
-		if (newPos.y <= height() + ChartState.SQUARE_SIZE.y / 2) {
+		if (conditionsForDrawing(newPos.y, ChartState.SQUARE_SIZE)) {
 			drawRect({
 				width: ChartState.SQUARE_SIZE.x,
 				height: ChartState.SQUARE_SIZE.y,
@@ -233,7 +239,7 @@ export function drawCheckerboard(ChartState: StateChart) {
 
 		// draws a line on every beat
 		if (i % ChartState.conductor.stepsPerBeat == 0) {
-			if (newPos.y <= height()) {
+			if (conditionsForDrawing(newPos.y, ChartState.SQUARE_SIZE)) {
 				// the beat text
 				drawText({
 					text: `${i / ChartState.conductor.stepsPerBeat}`,
@@ -264,7 +270,7 @@ export function drawAllNotes(ChartState:StateChart) {
 
 		const notePosLerped = lerp(notePos, notePos, ChartState.SCROLL_LERP_VALUE)
 		
-		if (notePos.y <= height()) {
+		if (conditionsForDrawing(notePos.y, ChartState.SQUARE_SIZE)) {
 			drawSprite({
 				width: ChartState.SQUARE_SIZE.x,
 				height: ChartState.SQUARE_SIZE.y,
@@ -413,7 +419,7 @@ export function addDummyDancer(dancerName: string) {
 	function fakeDancerComp() {
 		return {
 			moveBop() {
-				return this.stretch({ XorY: "y", startScale: DANCER_SCALE.y * 0.9, endScale: DANCER_SCALE.y })
+				return this.stretch({ XorY: "y", startScale: DANCER_SCALE.y * 0.9, endScale: DANCER_SCALE.y, theTime: 0.25 })
 			},
 
 			doMove(move:Move) {
@@ -421,7 +427,7 @@ export function addDummyDancer(dancerName: string) {
 				this.play(move)
 
 				if (waitEvent) {waitEvent.cancel(); waitEvent = null}
-				waitEvent = wait(2, () => {
+				waitEvent = wait(1, () => {
 					// can't do doMove because then it'll turn into a loop
 					this.play("idle")
 				})
@@ -507,7 +513,7 @@ export function setupManageTextboxes(ChartState:StateChart) {
 	}
 
 	/** Gets the value of the textboxes and assigns it to the actual values on the chart */
-	function assignNewValue() {
+	function updateSongState() {
 		ChartState.song.title = textboxesarr["Display name"].value as string
 		ChartState.song.idTitle = textboxesarr["ID"].value as string
 		
@@ -570,7 +576,7 @@ export function setupManageTextboxes(ChartState:StateChart) {
 		else {
 			if (ChartState.focusedTextBox) ChartState.focusedTextBox.focus = false
 			ChartState.focusedTextBox = undefined
-			assignNewValue()
+			updateSongState()
 		}
 	
 		// get all the textboxes that aren't that one and unfocus them
@@ -607,7 +613,8 @@ export function setupManageTextboxes(ChartState:StateChart) {
 	onKeyPress("enter", () => {
 		if (ChartState.focusedTextBox == undefined) return
 		ChartState.focusedTextBox.focus = false
-		assignNewValue()
+		ChartState.focusedTextBox = undefined
+		updateSongState()
 	})
 
 	onKeyPress("backspace", () => {

@@ -109,14 +109,20 @@ export function loadAssets() {
 	loadSong("bopeebo")
 	loadSong("fresh")
 
-	loadSound("plap", "sounds/plap.mp3")
-	loadSound("plop", "sounds/plop.mp3")
-	loadSound("ClickUp", "sounds/ClickUp.ogg")
+	
+	// # GAMEPLAY
 	loadSound("pauseScratch", "sounds/pauseScratch.mp3")
 	loadSound("missnote", "sounds/missnote.mp3")
-
+	
+	// RESULTS SCREEN
 	loadSound("drumroll", "sounds/drumroll.mp3")
 
+	// # CHART-EDITOR
+	loadSound("noteAdd", "sounds/chart-editor/noteAdd.mp3")
+	loadSound("noteRemove", "sounds/chart-editor/noteRemove.mp3")
+	loadSound("noteHit", "sounds/chart-editor/noteHit.ogg")
+	loadSound("noteMove", "sounds/chart-editor/noteMove.ogg")
+	
 	loadFont("lambda", "Lambda-Regular.ttf")
 	loadFont("lambdao", "Lambda-Regular.ttf", {
 		outline: {

@@ -2,6 +2,7 @@
 import { Conductor } from "../conductor";
 import { triggerEvent } from "../core/events";
 import { GameSave } from "../core/gamesave";
+import { PRODUCT } from "../core/initGame";
 import { getSong, songCharts } from "../core/loader";
 import { playSound } from "../core/plugins/features/sound";
 import { goScene, transitionToScene } from "../core/scenes";
@@ -155,6 +156,13 @@ export function exitToMenu(GameState:StateGame) {
 	transitionToScene(fadeOut, "songselect", { index: index } as paramsSongSelect)
 }
 
+/** Function to exit to the song select menu from the gamescene */
+export function exitToChartEditor(GameState:StateGame) {
+	stopPlay(GameState)
+	GameState.menuInputEnabled = false
+	transitionToScene(fadeOut, "charteditor", { song: GameState.song, seekTime: GameState.conductor.timeInSeconds, dancer: GameState.params.dancer } as paramsChartEditor)
+}
+
 /** The function that manages input functions inside the game, must be called onUpdate */
 export function manageInput(GameState: StateGame) {
 	Object.values(GameSave.preferences.gameControls).forEach((gameKey) => {
@@ -180,10 +188,10 @@ export function manageInput(GameState: StateGame) {
 		restartSong(GameState)
 	}
 
-	else if (isKeyPressed("7")) {
-		stopPlay(GameState)
-		GameState.menuInputEnabled = false
-		transitionToScene(fadeOut, "charteditor", { song: GameState.song, seekTime: GameState.conductor.timeInSeconds, dancer: GameState.params.dancer } as paramsChartEditor)
+	if (PRODUCT.DEBUG) {
+		if (isKeyPressed("7")) {
+			exitToChartEditor(GameState)
+		}
 	}
 
 	if (GameState.paused && isKeyPressed("shift")) {
