@@ -76,7 +76,6 @@ async function loadSong(songName: string) {
 	
 	return chart;
 
-
 	// load the album cover and other stuff here
 }
 
@@ -96,6 +95,19 @@ async function loadContent() {
 				"victory": { "from": 5, "to": 12, "speed": 10 }, 
 				"miss": 13
 			}
+		},
+		"astri-blight": {
+			"sliceX": 6,
+			"sliceY": 2,
+			"anims": {
+				"idle": 0,
+				"down": 1,
+				"up": 2,
+				"left": 3,
+				"right": 4,
+				"miss": 5,
+				"victory": { "from": 6, "to": 7, "speed": 10 }
+			}	
 		},
 		"gru": {
 			"sliceX": 6,
