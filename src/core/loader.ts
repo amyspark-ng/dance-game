@@ -32,6 +32,8 @@ export function loadingScreen(progress: number) {
 export let songCharts:SongChart[] = [] 
 /** Holds all the dancers in the game */
 export let dancers:DancerFile[] = []
+/** Holds all the noteskins in the game */
+export let noteskins:string[] = []
 
 /** Loads the noteskins */
 function loadNoteSkins() {
@@ -39,6 +41,7 @@ function loadNoteSkins() {
 
 	let noteSkinTypes = ["P", "T", "A"]
 	let movements = ["up", "down", "left", "right"]
+	noteskins = noteSkinTypes
 	
 	let x = 0
 	let y = 0

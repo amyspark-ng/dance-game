@@ -143,4 +143,9 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 		songSelectState.songPreview.stop()
 		goScene("charselect", params)
 	})
+
+	onKeyPress("escape", () => {
+		songSelectState.songPreview.stop()
+		goScene("options")
+	})
 })}

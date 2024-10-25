@@ -5,6 +5,7 @@ import { DeathScene } from "../play/ui/deathScene";
 import { ResultsScene } from "../play/ui/resultsScene";
 import { FocusScene } from "../ui/focusscene";
 import { MenuScene } from "../ui/menu/menuScene";
+import { OptionsScene } from "../ui/menu/optionsScene";
 import { SongSelectScene } from "../ui/songselectscene";
 import { TitleScene } from "../ui/titlescene";
 
@@ -19,6 +20,7 @@ const allGameScenes = {
 	"charselect": CharSelectScene,
 	"death": DeathScene,
 	"charteditor": ChartEditorScene,
+	"options": OptionsScene,
 }
 
 /** Custom type for scene names */

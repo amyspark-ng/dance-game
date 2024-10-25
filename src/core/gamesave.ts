@@ -16,7 +16,7 @@ export type Preferences = {
 		up: gameKey,
 	},
 
-	noteskin: "P" | "T" | "A"
+	noteskin: string
 }
 
 /** Holds all the info that should be saved and loaded through sessions */

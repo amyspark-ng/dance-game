@@ -19,11 +19,18 @@ function addDancerChar(dancerName: string) {
 }
 
 export function CharSelectScene() { scene("charselect", (params: paramsSongSelect) => {
-	/** The index of the currently selected dancer */
-	console.log("CURRENT DANCER ACCORDING TO SAVE: " + GameSave.preferences.dancer)
-
+	/** The index in dancers of the currently selected dancer */
 	let curIndex = dancers.map(dancer => dancer.dancerName).indexOf(GameSave.preferences.dancer)
 	const dancerNames = dancers.map(dancer => dancer.dancerName)
+
+	const bg = add([
+		sprite("dancer_" + dancers[curIndex].dancerName, { anim: "idle", tiled: true, width: width(), height: height() }),
+		opacity(0.5),
+	])
+
+	bg.onUpdate(() => {
+		bg.sprite = "dancer_" + dancers[curIndex].dancerName
+	})
 
 	dancers.forEach((dancer, index) => {
 		let intendedYPos = center().y

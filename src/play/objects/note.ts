@@ -3,8 +3,8 @@ import { Move } from "./dancer";
 import { utils } from "../../utils";
 import { getStrumline } from "./strumline";
 import { onReset, triggerEvent } from "../../core/events";
-import { GameSave } from "../../core/gamesave";
 import { StateGame, INPUT_THRESHOLD } from "../playstate";
+import { GameSave } from "../../core/gamesave";
 
 /** How much pixels per second does the note move at */
 export const NOTE_PXPERSECOND = 5;
@@ -58,7 +58,7 @@ export function setTimeForStrum(value: number) {
 /** Adds a note to the game */
 export function addNote(chartNote: ChartNote, GameState:StateGame) {
 	const noteObj = add([
-		sprite("A" +  "_" + chartNote.dancerMove),
+		sprite(GameSave.preferences.noteskin +  "_" + chartNote.dancerMove),
 		pos(width() + NOTE_WIDTH, getStrumline().pos.y),
 		note(),
 		anchor("center"),
