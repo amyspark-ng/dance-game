@@ -130,7 +130,7 @@ async function loadContent() {
 	})
 
 	// LOADS SONGS
-	let songsToLoad = ["bopeebo", "fresh"]
+	let songsToLoad = ["bopeebo", "fresh", "unholy-blight"]
 	songsToLoad.forEach(async (song, index) => {
 		const newSong = await loadSong(song)
 		songCharts[index] = newSong
