@@ -162,7 +162,9 @@ export function loadAssets() {
 	loadSound("opening", "sounds/opening.ogg")
 	loadSound("ending", "sounds/ending.mp3")
 	loadSound("saataandagi", "sounds/saataandagi.ogg")
-	
+
+	loadSprite("optionsCursor", "sprites/optionsCursor.png")
+
 	// # GAMEPLAY
 	loadSound("pauseScratch", "sounds/pauseScratch.mp3")
 	loadSound("missnote", "sounds/missnote.mp3")
