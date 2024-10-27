@@ -1,9 +1,35 @@
+import { Key, Vec2 } from "kaplay";
 import { GameSave } from "../../core/gamesave";
 import { noteskins } from "../../core/loader";
 import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { goScene } from "../../core/scenes"
 import { utils } from "../../utils";
 import { paramsSongSelect } from "../songselectscene"
+
+// draws a key "sprite"
+function drawKey(key: string, position: Vec2) {
+	drawRect({
+		width: 60,
+		height: 60,
+		pos: position,
+		color: BLACK.lighten(40),
+		anchor: "center",
+	})
+
+	if (key == "left") key = "←"
+	else if (key == "down") key = "↓"
+	else if (key == "up") key = "↑"
+	else if (key == "right") key = "→"
+	
+	else key = key.toUpperCase()
+
+	drawText({
+		text: key,
+		size: 30,
+		anchor: "center",
+		pos: position,
+	})
+}
 
 class StateOptions {
 	/** The current ui element in the current page */
@@ -21,7 +47,12 @@ function manageOptionsState(page: number, OptionsState:StateOptions) {
 	const tagForUI = "optionsUIEl"
 	
 	function clearElements() {
-		get(tagForUI).forEach((obj) => obj.destroy())
+		get(tagForUI).forEach((obj) => {
+			obj.paused = true
+			tween(obj.pos.x, obj.pos.x - width(), 0.1, (p) => obj.pos.x = p).onEnd(() => {
+				obj.destroy()
+			})
+		})
 	}
 
 	if (page == 0 || page == 1 || page == 2) {
@@ -104,6 +135,7 @@ function manageOptionsState(page: number, OptionsState:StateOptions) {
 		})
 	}
 	
+	// control keys
 	else if (page == 1) {
 		OptionsState.index = 0
 		const title = add([
@@ -113,6 +145,7 @@ function manageOptionsState(page: number, OptionsState:StateOptions) {
 			tagForUI,
 		])
 
+		// according to the spritesheet
 		const moves = ["left", "right", "down", "up"]
 
 		moves.forEach((move, index) => {
@@ -133,10 +166,7 @@ function manageOptionsState(page: number, OptionsState:StateOptions) {
 			})
 
 			key.onDraw(() => {
-				drawText({
-					text: GameSave.preferences.gameControls[indexToMove].kbKey,
-					pos: vec2(0, 50)
-				})
+				drawKey(GameSave.preferences.gameControls[indexToMove].kbKey, vec2(0, 60))
 			})
 		})
 
@@ -187,14 +217,44 @@ export function OptionsScene() { scene("options", () => {
 
 	manageOptionsState(0, optionsState)
 
-	onKeyPress("right", () => {
-		optionsState.page = utils.scrollIndex(optionsState.page, 1, 3)
-		manageOptionsState(optionsState.page, optionsState)
-	})
-	
-	onKeyPress("left", () => {
-		optionsState.page = utils.scrollIndex(optionsState.page, -1, 3)
-		manageOptionsState(optionsState.page, optionsState)
+	const keysManager = add([
+		pos(0, 0),
+		anchor("left"),
+		opacity(0),
+		"keysManager",
+	])
+
+	// must reach 1 or -1 to get to the next page
+	let progressOnPage = 0
+
+	/** How long it'll take to reach the next page */
+	const timeToChange = 0.5
+
+	// i don't like key events
+	keysManager.onUpdate(() => {
+		if (isKeyDown("left")) {
+			if (progressOnPage >= timeToChange) {
+				progressOnPage = 0
+				optionsState.page = utils.scrollIndex(optionsState.page, -1, 3)
+				manageOptionsState(optionsState.page, optionsState)
+			}
+
+			else {
+				progressOnPage += dt()
+			}
+		}
+
+		else if (isKeyDown("right")) {
+			if (progressOnPage <= -timeToChange) {
+				progressOnPage = 0
+				optionsState.page = utils.scrollIndex(optionsState.page, 1, 3)
+				manageOptionsState(optionsState.page, optionsState)
+			}
+
+			else {
+				progressOnPage -= dt()
+			}
+		}
 	})
 
 	add([
