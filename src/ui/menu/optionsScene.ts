@@ -3,6 +3,8 @@ import { GameSave, GameSaveClass } from "../../core/gamesave";
 import { goScene } from "../../core/scenes"
 import { utils } from "../../utils";
 import { paramsSongSelect } from "../songselectscene"
+import { noteskins } from "../../core/loader";
+import { juice } from "../../core/plugins/graphics/juiceComponent";
 
 // draws a key "sprite"
 function drawKey(opts: { key: string, position: Vec2, opacity: number }) {
@@ -211,6 +213,74 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 					key: GameSave.preferences.gameControls[curMove].kbKey,
 					position: vec2(0, noteForKey.height),
 					opacity: noteForKey.opacity
+				})
+			})
+		})
+	}
+
+	// noteskins
+	else if (page == 1) {
+		const moves = ["left", "up", "down", "right"]
+
+		OptionsState.optionIndex = noteskins.indexOf(GameSave.preferences.noteskin)
+		if (OptionsState.optionIndex < 0) OptionsState.optionIndex = 0
+
+		let canPressEnter = false
+		wait(0.1, () => canPressEnter = true)
+
+		const inputManager = add([tagForUI, tagForNoteskins])
+		inputManager.onUpdate(() => {
+			if (isKeyPressed("up")) OptionsState.optionIndex = utils.scrollIndex(OptionsState.optionIndex, -1, noteskins.length)
+			else if (isKeyPressed("down")) OptionsState.optionIndex = utils.scrollIndex(OptionsState.optionIndex, 1, noteskins.length)
+		
+			else if (isKeyPressed("enter") && canPressEnter) {
+				OptionsState.inPage = true
+				GameSave.preferences.noteskin = noteskins[OptionsState.optionIndex]
+				GameSave.save()
+				manageOptionsState(OptionsState.pageIndex, OptionsState, false)
+			
+				get("noteskinMov").forEach((obj) => {
+					if (obj.noteskinIndex == OptionsState.optionIndex) obj.bop({
+						startScale: vec2(1.2),
+						endScale: vec2(1),
+					})
+				})
+			}
+
+			const noteskinMov = get("noteskinMov").find((obj) => obj.noteskinIndex == OptionsState.optionIndex && obj.movIndex == 3)
+			if (noteskinMov != undefined) {
+				OptionsState.cursorProps.pos.y = noteskinMov.pos.y
+				OptionsState.cursorProps.pos.x = noteskinMov.pos.x + 90
+				OptionsState.cursorProps.angle = 180
+			}
+		})
+
+		const initialPos = vec2(width() / 2, height() / 2)
+		noteskins.forEach((curNoteskin, noteskinIndex) => {
+			moves.forEach((curMove, movIndex) => {
+				const thePos = utils.getPosInGrid(initialPos, noteskinIndex, movIndex, vec2(90))
+
+				const movenoteskin = add([
+					sprite(curNoteskin + "_" + curMove),
+					pos(thePos),
+					anchor("center"),
+					opacity(),
+					scale(),
+					juice(),
+					"noteskinMov",
+					tagForUI,
+					tagForNoteskins,
+					{
+						movIndex: movIndex,
+						noteskinIndex: noteskinIndex
+					}
+				])
+
+				movenoteskin.onUpdate(() => {
+					if (!OptionsState.inPage) {
+						if (OptionsState.optionIndex == noteskinIndex) movenoteskin.opacity = 1
+						else movenoteskin.opacity = 0.5
+					}
 				})
 			})
 		})
