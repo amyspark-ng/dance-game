@@ -4,10 +4,20 @@ import { cam } from "../core/plugins/features/camera";
 import { customAudioPlay, playSound } from "../core/plugins/features/sound";
 import { goScene, transitionToScene } from "../core/scenes";
 import { fadeOut } from "../core/transitions/fadeOutTransition";
-import { rankings } from "../play/objects/scoring";
+import { rankings, tallyUtils } from "../play/objects/scoring";
 import { paramsGameScene } from "../play/playstate";
-import { SongChart } from "../play/song"
+import { saveScore, SongChart } from "../play/song"
 import { utils } from "../utils";
+
+/** Gets the saveScore for a song name */
+function getHighscore(songName:string) {
+	const scoresOfSong = GameSave.songsPlayed.filter((song) => song.idTitle == songName)
+	if (scoresOfSong.length < 1) return new saveScore()
+	else {
+		// get the highest score
+		return scoresOfSong.reduce((a, b) => a.tally.score > b.tally.score ? a : b)
+	}
+}
 
 class StateSongSelect {
 	index: number = 0;
@@ -22,9 +32,9 @@ class StateSongSelect {
 	songPreview: customAudioPlay;
 }
 
-function addSongCapsule(song: SongChart) {
+function addSongCapsule(curSong: SongChart) {
 	const albumCover = add([
-		sprite(song.idTitle + "-cover"),
+		sprite(curSong.idTitle + "-cover"),
 		pos(center().x, center().y),
 		anchor("center"),
 	])
@@ -38,7 +48,7 @@ function addSongCapsule(song: SongChart) {
 		scale(),
 		"songCapsule",
 		{
-			song: song,
+			song: curSong,
 			intendedXPos: 0,
 		}
 	])
@@ -53,7 +63,7 @@ function addSongCapsule(song: SongChart) {
 	albumCover.height = 396
 
 	const capsuleName = add([
-		text(song.title, { align: "center" }),
+		text(curSong.title, { align: "center" }),
 		pos(),
 		anchor("center"),
 		opacity(),
@@ -63,6 +73,26 @@ function addSongCapsule(song: SongChart) {
 		capsuleName.pos.x = cdCase.pos.x
 		capsuleName.pos.y = cdCase.pos.y + cdCase.height / 2 + 15
 		capsuleName.opacity = cdCase.opacity;
+	})
+
+	// if this song isn't played yet don't add the ranking sticker why'd you do that
+	if (!(GameSave.songsPlayed.some((song) => song.idTitle == curSong.idTitle))) return
+	
+	const tally = getHighscore(curSong.idTitle).tally
+	const ranking = tallyUtils.ranking(tally)
+	
+	const maxOffset = 50
+	const offset = vec2(rand(-maxOffset, maxOffset), rand(-maxOffset, maxOffset))
+	const randAngle = rand(-20, 20)
+	const rankingSticker = add([
+		sprite("rank_" + ranking),
+		pos(),
+		rotate(randAngle),
+		anchor("center"),
+	])
+
+	rankingSticker.onUpdate(() => {
+		rankingSticker.pos = cdCase.pos.add(offset)
 	})
 
 	return cdCase;
@@ -111,8 +141,25 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 		})
 	})
 
+	const highscoreText = add([
+		text("", { align: "right" }),
+		pos(width(), 0),
+		anchor("topright"),
+		fixed(),
+		{
+			solidScoreValue: 0,
+		}
+	])
+
+	highscoreText.onUpdate(() => {
+		const lerpedValue = lerp(Number(highscoreText.text), highscoreText.solidScoreValue, 0.5)
+		highscoreText.text = Math.round(lerpedValue).toString()
+	})
+
 	function updateState() {
 		if (!allCapsules[songSelectState.index]) return
+
+		highscoreText.solidScoreValue = getHighscore(allCapsules[songSelectState.index].song.idTitle).tally.score
 
 		songSelectState.songPreview?.windDown()
 		songSelectState.songPreview = playSound(allCapsules[songSelectState.index].song.idTitle + "-song", {

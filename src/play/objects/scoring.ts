@@ -9,6 +9,20 @@ export let rankings = ["S++", "S", "A", "B", "C", "F"]
 /** The judgement the player did */
 export type Judgement = "Awesome" | "Good" | "Ehh" | "Miss"
 
+export class tallyUtils {
+	static hitNotes(tally: Tally) { return tally.awesomes + tally.goods + tally.ehhs }
+	static totalNotes(tally: Tally) { return this.hitNotes(tally) + tally.misses }
+	static cleared(tally:Tally) { return (this.hitNotes(tally) / this.totalNotes(tally)) * 100 }
+	static ranking(tally:Tally) {
+		if (tally.awesomes == this.totalNotes(tally) && tally.score > 1) return "S++"
+		else if (tally.misses == 0 && tally.score > 1) return "S"
+		else if (this.cleared(tally) > 85) return "A"
+		else if (this.cleared(tally) > 65) return "B"
+		else if (this.cleared(tally) > 45) return "C"
+		else return "F"
+	}
+}
+
 /** Holds the current tallies for the current song */
 export class Tally {
 	awesomes: number = 0;
@@ -17,24 +31,6 @@ export class Tally {
 	misses: number = 0;
 	score: number = 0;
 	highestCombo: number = 0;
-	get hitNotes() {
-		return this.awesomes + this.goods + this.ehhs;
-	}
-
-	get totalNotes() {
-		return this.awesomes + this.goods + this.ehhs + this.misses;
-	}
-
-	/** Get the how much the song was cleared (0% missed all notes, 100% got all notes right) */
-	get cleared() {
-		return (this.hitNotes / this.totalNotes) * 100
-	}
-
-	get ranking() {
-		if (this.awesomes == this.totalNotes) return "S++"
-		else if (this.misses == 0) return "S"
-		else return "A"
-	}
 }
 
 // # JUDGEMENT
