@@ -1,8 +1,10 @@
 import { GameSave } from "../core/gamesave";
 import { songCharts } from "../core/loader"
+import { cam } from "../core/plugins/features/camera";
 import { customAudioPlay, playSound } from "../core/plugins/features/sound";
 import { goScene, transitionToScene } from "../core/scenes";
 import { fadeOut } from "../core/transitions/fadeOutTransition";
+import { rankings } from "../play/objects/scoring";
 import { paramsGameScene } from "../play/playstate";
 import { SongChart } from "../play/song"
 import { utils } from "../utils";
@@ -21,14 +23,18 @@ class StateSongSelect {
 }
 
 function addSongCapsule(song: SongChart) {
-	const CAPSULE_SIZE = vec2(100)
-	
-	const bg = add([
+	const albumCover = add([
+		sprite(song.idTitle + "-cover"),
 		pos(center().x, center().y),
-		rect(CAPSULE_SIZE.x, CAPSULE_SIZE.y, { radius: 5 }),
-		color(BLACK.lighten(50)),
 		anchor("center"),
-		opacity(),
+	])
+	
+	const cdCase = add([
+		sprite("cdCase"),
+		pos(center().x, center().y),
+		color(),
+		anchor("center"),
+		opacity(0.5),
 		scale(),
 		"songCapsule",
 		{
@@ -36,20 +42,30 @@ function addSongCapsule(song: SongChart) {
 			intendedXPos: 0,
 		}
 	])
-	
-	const capsuleText = bg.add([
+
+	const barWidth = 46
+	albumCover.onUpdate(() => {
+		albumCover.pos.x = cdCase.pos.x + barWidth / 2
+		albumCover.pos.y = cdCase.pos.y
+	})
+
+	albumCover.width = 396
+	albumCover.height = 396
+
+	const capsuleName = add([
 		text(song.title, { align: "center" }),
 		pos(),
 		anchor("center"),
 		opacity(),
 	])
 
-	capsuleText.onUpdate(() => {
-		capsuleText.pos.y = bg.height / 2 + 15
-		capsuleText.opacity = bg.opacity;
+	capsuleName.onUpdate(() => {
+		capsuleName.pos.x = cdCase.pos.x
+		capsuleName.pos.y = cdCase.pos.y + cdCase.height / 2 + 15
+		capsuleName.opacity = cdCase.opacity;
 	})
 
-	return bg;
+	return cdCase;
 }
 
 type songCapsuleObj = ReturnType<typeof addSongCapsule> 
@@ -131,11 +147,21 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 		songSelectState.menuInputEnabled = false
 		const hoveredCapsule = allCapsules[songSelectState.index]
 		if (hoveredCapsule) {
+			let fadeout = add([
+				rect(width() * 5, height() * 5),
+				pos(center()),
+				anchor("center"),
+				opacity(0),
+			])
+			
 			songSelectState.songPreview.stop()
-			tween(1.25, 1, 0.25, (p) => hoveredCapsule.scale.y = p, easings.easeOutQuad).onEnd(() => {
-				const song = hoveredCapsule.song
-				transitionToScene(fadeOut, "game", { song: song, dancer: GameSave.preferences.dancer  } as paramsGameScene)
+			tween(cam.zoom, vec2(5), 1, (p) => cam.zoom = p, easings.easeInBack).onEnd(() => {
+				camFlash(WHITE, 0.25)
+				cam.zoom = vec2(1)
+				goScene("game", { song: hoveredCapsule.song, dancer: GameSave.preferences.dancer } as paramsGameScene)
 			})
+
+			tween(fadeout.opacity, 1, 0.75, (p) => fadeout.opacity = p)
 		}
 	})
 

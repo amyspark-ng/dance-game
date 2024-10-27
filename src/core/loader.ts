@@ -77,6 +77,8 @@ async function loadSong(songName: string) {
 		loadSound(`${songName}-song`, `songs/${songName}/${songName}-song.ogg`)
 	})
 	
+	loadSprite(`${songName}-cover`, `songs/${songName}/${songName}-cover.png`)
+
 	return chart;
 
 	// load the album cover and other stuff here
@@ -165,11 +167,27 @@ export function loadAssets() {
 
 	loadSprite("optionsCursor", "sprites/optionsCursor.png")
 
+	const ranks = ["S++", "S", "A", "B", "C", "F"]
+	let songRanksAtlasData = {}
+	ranks.forEach((rank, index) => {
+		songRanksAtlasData[`rank_${rank}`] = {
+			width: 130,
+			height: 130,
+			x: 130 * index + 20 * index,
+			y: 0,
+		}
+	})
+
+	loadSpriteAtlas("sprites/songRanks.png", songRanksAtlasData)
+
+	// # SONG SELECT
+	loadSprite("cdCase", "sprites/songSelect/cdCase.png")
+
 	// # GAMEPLAY
 	loadSound("pauseScratch", "sounds/pauseScratch.mp3")
 	loadSound("missnote", "sounds/missnote.mp3")
 	
-	// RESULTS SCREEN
+	// # RESULTS SCREEN
 	loadSound("drumroll", "sounds/drumroll.mp3")
 
 	// # CHART-EDITOR

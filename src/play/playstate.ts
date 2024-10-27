@@ -78,6 +78,9 @@ export type paramsGameScene = {
 
 	/** If the song should start at a specific second */
 	seekTime?: number,
+
+	/** Wheter the player is coming from the chart editor or from regular gameplay */
+	fromChartEditor: boolean,
 }
 
 export function setupSong(params: paramsGameScene, GameState:StateGame) {

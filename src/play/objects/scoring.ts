@@ -4,6 +4,8 @@ import { StateGame, INPUT_THRESHOLD } from "../playstate";
 import { getDancer, Move } from "./dancer";
 import { ChartNote } from "./note";
 
+export let rankings = ["S++", "S", "A", "B", "C", "F"]
+
 /** The judgement the player did */
 export type Judgement = "Awesome" | "Good" | "Ehh" | "Miss"
 
@@ -26,6 +28,12 @@ export class Tally {
 	/** Get the how much the song was cleared (0% missed all notes, 100% got all notes right) */
 	get cleared() {
 		return (this.hitNotes / this.totalNotes) * 100
+	}
+
+	get ranking() {
+		if (this.awesomes == this.totalNotes) return "S++"
+		else if (this.misses == 0) return "S"
+		else return "A"
 	}
 }
 
