@@ -1,4 +1,4 @@
-import { Color, Vec2 } from "kaplay";
+import { Color, Rect, Vec2 } from "kaplay";
 
 /** A simple utility class */
 export class utils {
@@ -60,7 +60,21 @@ export class utils {
 	static widthAndHeightToRadius(size: Vec2) {
 		return (size.y / 2) + ((size.x) / (8 * size.y))
 	}
-	
+
+	/**
+	 * If a certain position is within a range of points (like a square)
+	 * @param posPoint The point to check
+	 * @param squarePoints 0: topleft, 1: topright, 2: botleft: 3: botright 
+	 */
+	static isPosInSquare(posPoint: Vec2, squarePoints: [Vec2, Vec2, Vec2, Vec2] | Vec2[]) {
+		const topleft = squarePoints[0]
+		const topright = squarePoints[1]
+		const botleft = squarePoints[2]
+		const botright = squarePoints[3]
+
+		return this.isInRange(posPoint.x, topleft.x, topright.x) && this.isInRange(posPoint.y, topright.y, botright.y)
+	}
+
 	/** A real roundabout of just doing col1.lerp(col2, 0.5) */
 	static blendColors(col1: Color, col2: Color, blendFactor: number) {
 		return col1.lerp(col2, blendFactor) as Color

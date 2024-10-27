@@ -80,12 +80,12 @@ export class Conductor {
 	}
 
 	/** Get which time of a song is a certain step */
-	timeToStep(timeInSeconds: number, lengthOfStep: number) {
+	timeToStep(timeInSeconds: number, lengthOfStep: number = this.stepInterval) {
 		return Math.floor(timeInSeconds / lengthOfStep)
 	}
 
 	/** Get which step of a song is a certain time */
-	stepToTime(step: number, lengthOfStep: number) {
+	stepToTime(step: number, lengthOfStep: number = this.stepInterval) {
 		return step * lengthOfStep
 	}
 

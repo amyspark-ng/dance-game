@@ -1,10 +1,9 @@
-// Extra stuff for the chart editor
+// File that stores some of the chart editor behaviour backend
 import { Key, Vec2 } from "kaplay";
 import { Move } from "../objects/dancer";
-import { ChartNote, moveToColor } from "../objects/note";
+import { ChartNote } from "../objects/note";
 import { utils } from "../../utils";
 import { playSound } from "../../core/plugins/features/sound";
-import { GameSave } from "../../core/gamesave";
 import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { SongChart } from "../song";
 import { Conductor } from "../../conductor";
@@ -21,6 +20,18 @@ export class StateChart {
 
 	/** How many steps scrolled */
 	scrollStep: number = 0;
+
+	/** Wheter the selection box is being shown */
+	selectionBox = {
+		wasCursorInGrid: false,
+		width: 0,
+		height: 0,
+		/** The position it'll be drawn at */
+		pos: vec2(0),
+		/** The last click position (initial pos) */
+		clickPos: vec2(0),
+		points: [vec2(), vec2(), vec2(), vec2()]
+	};
 
 	// SOME STUPID VARS
 
@@ -76,10 +87,10 @@ export class StateChart {
 	smoothCursorYPos = 0
 
 	/** The current selected note */
-	selectedNote:ChartNote = undefined
+	selectedNotes: ChartNote[] = []
 
 	/** The step that selected note started in before it was moved */
-	startingStepForSelectedNote = 0
+	startingStepForDetune = 0
 
 	/** Is by how many steps the strumline is offseted (from top to below, 0 to 12) */
 	strumlineStepOffset = 1
@@ -93,9 +104,9 @@ export class StateChart {
 	}
 
 	/** Unselects any note and the detune */
-	resetSelectedNote() {
-		this.selectedNote = undefined
-		this.startingStepForSelectedNote = 0
+	resetSelectedNotes() {
+		this.selectedNotes = []
+		this.startingStepForDetune = 0
 	}
 
 	/** Changes the current move */
@@ -106,12 +117,13 @@ export class StateChart {
 
 	/** Add a note to the chart */
 	addNoteToChart(time: number, move: Move) {
-		this.startingStepForSelectedNote = 0
+		debug.log("added note to chart")
+		this.startingStepForDetune = 0
 		
 		const noteWithSameTimeButDifferentMove = this.song.notes.find(note => note.hitTime == time && note.dancerMove != move || note.hitTime == time && note.dancerMove == move)
 		// if there's a note already at that time but a different move, remove it
 		if (noteWithSameTimeButDifferentMove) {
-			this.removeNoteFromChart(noteWithSameTimeButDifferentMove.hitTime, noteWithSameTimeButDifferentMove.dancerMove)
+			this.removeNoteFromChart(noteWithSameTimeButDifferentMove)
 		}
 		
 		const newNote:ChartNote = { hitTime: time, dancerMove: move }
@@ -122,18 +134,19 @@ export class StateChart {
 		// add it to note scales
 		const indexInNotes = this.song.notes.indexOf(newNote)
 		tween(vec2(this.NOTE_BIG_SCALE), vec2(1), 0.1, (p) => this.noteScales[indexInNotes] = p)
-		this.selectedNote = newNote;
+		this.selectedNotes.push(newNote)
 	}
 	
 	/** Remove a note from the chart */
-	removeNoteFromChart(time: number, move: Move) {
-		const oldNote = this.song.notes.find(note => note.hitTime == time && note.dancerMove == move)
+	removeNoteFromChart(noteToRemove:ChartNote) {
+		const oldNote = this.song.notes.find(note => note == noteToRemove)
 		this.song.notes = utils.removeFromArr(oldNote, this.song.notes)
 
 		// remove it from note scales
 		const indexInNotes = this.song.notes.indexOf(oldNote)
-		this.noteScales.splice(indexInNotes, 1)
-		playSound("noteRemove", { detune: moveToDetune(move) })
+		this.noteScales = utils.removeFromArr(this.noteScales[indexInNotes], this.noteScales)
+		this.selectedNotes = utils.removeFromArr(oldNote, this.selectedNotes)
+		playSound("noteRemove", { detune: moveToDetune(noteToRemove.dancerMove) })
 	}
 }
 
@@ -155,247 +168,86 @@ export function moveToDetune(move: Move) {
 	}
 }
 
-
-/** Returns if a certain Y position mets the conditions to be drawn on the screen */
-function conditionsForDrawing(YPos: number, square_size: Vec2) {
-	return utils.isInRange(YPos, height() + square_size.y, -square_size.y)
-}
-
-/** How lerped the scroll value is */
-export const SCROLL_LERP_VALUE = 0.5
-
-/** How big will notes be when big */
-export const NOTE_BIG_SCALE = 1.4
-
-/** Draws the playbar and the text with the time */
-export function drawPlayBar(ChartState: StateChart) {
-	const bgColor = Color.fromArray(ChartState.bgColor)
-
-	// why width * 2?
-	let barWidth = map(ChartState.scrollTime, 0, ChartState.conductor.audioPlay.duration(), 0, width() * 2)
-	let lerpedWidth = 0
-	lerpedWidth = lerp(lerpedWidth, barWidth, ChartState.SCROLL_LERP_VALUE)
-
-	drawRect({
-		width: width(),
-		height: 10,
-		anchor: "botleft",
-		pos: vec2(0, height()),
-		color: bgColor.darken(50),
-	})
-
-	drawRect({
-		width: lerpedWidth,
-		height: 10,
-		anchor: "botleft",
-		pos: vec2(0, height()),
-		color: bgColor.lighten(50),
-	})
-
-	const circleRad = 8
-	drawCircle({
-		radius: circleRad,
-		anchor: "center",
-		pos: vec2(lerpedWidth, height() - circleRad / 2),
-		color: bgColor.lighten(80),
-	})
-
-	let textToPut = utils.formatTime(ChartState.scrollTime)
-	if (ChartState.paused) textToPut += " (❚❚)"
-	else textToPut += " (▶)"
-	textToPut += ` - ${ChartState.scrollStep}`
-	const size = 25
-
-	drawText({
-		text: textToPut,
-		align: "right",
-		anchor: "topright",
-		size: size,
-		pos: vec2(width() - 5, height() - size * 1.5),
-	})
-}
-
-/** Draws as many steps for the song checkerboard */
-export function drawCheckerboard(ChartState: StateChart) {
-	for (let i = 0; i < ChartState.conductor.totalSteps; i++) {
-		const newPos = ChartState.stepToPos(i)
-		newPos.y -= 50 * ChartState.smoothScrollStep
-
-		const baseColor = WHITE.darken(100)
-		const lighter = baseColor.darken(10)
-		const darker = baseColor.darken(50)
-		const col = i % 2 == 0 ? lighter : darker
-
-		// draws the background chess board squares etc
-		if (conditionsForDrawing(newPos.y, ChartState.SQUARE_SIZE)) {
-			drawRect({
-				width: ChartState.SQUARE_SIZE.x,
-				height: ChartState.SQUARE_SIZE.y,
-				color: col,
-				pos: vec2(newPos.x, newPos.y),
-				anchor: "center",
-			})
-		}
-
-		// draws a line on every beat
-		if (i % ChartState.conductor.stepsPerBeat == 0) {
-			if (conditionsForDrawing(newPos.y, ChartState.SQUARE_SIZE)) {
-				// the beat text
-				drawText({
-					text: `${i / ChartState.conductor.stepsPerBeat}`,
-					color: WHITE,
-					size: ChartState.SQUARE_SIZE.x / 2,
-					anchor: "center",
-					pos: vec2(newPos.x + ChartState.SQUARE_SIZE.x, newPos.y)
-				})
-				
-				drawRect({
-					width: ChartState.SQUARE_SIZE.x,
-					height: 5,
-					color: darker.darken(70),
-					anchor: "center",
-					pos: vec2(newPos.x, newPos.y - ChartState.SQUARE_SIZE.y / 2 - 2.5),
-				})
-			}
-		}
-	}
-}
-
-/** Draw the hittable notes */
-export function drawAllNotes(ChartState:StateChart) {
-	// draws the notes
-	ChartState.song.notes.forEach((note, index) => {
-		let notePos = utils.getPosInGrid(ChartState.INITIAL_POS, ChartState.conductor.timeToStep(note.hitTime, ChartState.conductor.stepInterval), 0, ChartState.SQUARE_SIZE)
-		notePos.y -= 50 * ChartState.smoothScrollStep
-
-		const notePosLerped = lerp(notePos, notePos, ChartState.SCROLL_LERP_VALUE)
-		
-		if (conditionsForDrawing(notePos.y, ChartState.SQUARE_SIZE)) {
-			drawSprite({
-				width: ChartState.SQUARE_SIZE.x,
-				height: ChartState.SQUARE_SIZE.y,
-				scale: ChartState.noteScales[index],
-				sprite: GameSave.preferences.noteskin + "_" + note.dancerMove,
-				pos: notePosLerped,
-				opacity: ChartState.scrollTime >= note.hitTime ? 1 : 0.5,
-				anchor: "center",
-			})
-		}
-	})
-}
-
-/** Draw the strumline line */
-export function drawStrumline(ChartState:StateChart) {
-	// # strumlineline
-	const strumlineYPos = ChartState.SQUARE_SIZE.y * ChartState.strumlineStepOffset
-	drawLine({
-		p1: vec2((center().x - ChartState.SQUARE_SIZE.x / 2 * 3) - 5 * ChartState.strumlineScale.x, strumlineYPos),
-		p2: vec2((center().x + ChartState.SQUARE_SIZE.x / 2 * 3) + 5 * ChartState.strumlineScale.x, strumlineYPos),
-		color: RED,
-		width: 5,
-		fixed: true,
-	})
-}
-
-/** Draw the cursor to highlight notes */
-export function drawCursor(ChartState:StateChart) {
-	const strumlineYPos = ChartState.SQUARE_SIZE.y * ChartState.strumlineStepOffset
-	
-	// if the distance between the cursor and the square is small enough then highlight it
-	if (mousePos().x <= center().x + ChartState.SQUARE_SIZE.x / 2 && mousePos().x >= center().x - ChartState.SQUARE_SIZE.x / 2) {
-		if (ChartState.scrollStep == 0 && mousePos().y <= strumlineYPos) ChartState.isCursorInGrid = false
-		else if (ChartState.scrollStep == ChartState.conductor.totalSteps && mousePos().y >= strumlineYPos) ChartState.isCursorInGrid = false
-		else ChartState.isCursorInGrid = true
+/** RUns on update */
+export function selectionBoxHandler(ChartState:StateChart) {
+	if (isMousePressed("left")) {
+		ChartState.selectionBox.clickPos = mousePos()
 	}
 	
-	else ChartState.isCursorInGrid = false
-
-	if (ChartState.isCursorInGrid) {
-		// cursor = the square you're hovering over
-		// draws the cursor
-		drawRect({
-			width: ChartState.SQUARE_SIZE.x - 5,
-			height: ChartState.SQUARE_SIZE.y - 5,
-			color: WHITE,
-			fill: false,
-			scale: ChartState.cursorScale,
-			outline: {
-				width: 8, color: moveToColor(ChartState.currentMove).darken(50)
-			},
-			pos: vec2(center().x, ChartState.smoothCursorYPos),
-			anchor: "center",
-			fixed: true,
-		})
-	}
-}
-
-/** Draw the camera controller and the tiny notess */
-export function drawCameraControlAndNotes(ChartState:StateChart) {
-	let cameraControllerOpacity = 0.1
+	if (isMouseDown("left")) {
+		ChartState.selectionBox.width = Math.abs(mousePos().x - ChartState.selectionBox.clickPos.x)
+		ChartState.selectionBox.height = Math.abs(mousePos().y - ChartState.selectionBox.clickPos.y)
 	
-	// draws the camera controller
-	drawRect({
-		width: ChartState.SQUARE_SIZE.x,
-		height: ChartState.SQUARE_SIZE.y,
-		anchor: "center",
-		pos: ChartState.cameraControllerPos,
-		opacity: cameraControllerOpacity,
-		color: YELLOW,
-		outline: { 
-			width: 5,
-			color: utils.blendColors(RED, YELLOW, 0.5),
-		}
-	})
+		ChartState.selectionBox.pos.x = Math.min(ChartState.selectionBox.clickPos.x, mousePos().x)
+		ChartState.selectionBox.pos.y = Math.min(ChartState.selectionBox.clickPos.y, mousePos().y)
+	
+		// # topleft
+		// the pos will just be the pos of the selectionbox since it's anchor topleft
+		ChartState.selectionBox.points[0] = ChartState.selectionBox.pos
 
-	// draws the notes on the side of the camera controller
-	if (mousePos().x >= width() - ChartState.SQUARE_SIZE.x) {
-		cameraControllerOpacity = 0.5
+		// # topright
+		// the x will be the same as topleft.x + width
+		ChartState.selectionBox.points[1].x = ChartState.selectionBox.pos.x + ChartState.selectionBox.width
+		// y will be the same as topleft.y
+		ChartState.selectionBox.points[1].y = ChartState.selectionBox.pos.y
+
+		// # bottomleft
+		// the x will be the same as points[0].x
+		ChartState.selectionBox.points[2].x = ChartState.selectionBox.pos.x
+		// the y will be pos.y + height
+		ChartState.selectionBox.points[2].y = ChartState.selectionBox.pos.y + ChartState.selectionBox.height
+
+		// # bottomright
+		// the x will be the same as topright x pos
+		ChartState.selectionBox.points[3].x = ChartState.selectionBox.points[1].x
+		// the y will be the same as bottom left
+		ChartState.selectionBox.points[3].y = ChartState.selectionBox.points[2].y
+	}
+
+	if (isMouseReleased("left")) {
+		const theRect = new Rect(ChartState.selectionBox.pos, ChartState.selectionBox.width, ChartState.selectionBox.height)
 
 		ChartState.song.notes.forEach((note) => {
-			const initialPos = vec2(width() - 25, 0)
-			const yPos = map(note.hitTime, 0, ChartState.conductor.audioPlay.duration(), initialPos.y, height())
-			const xPos = initialPos.x
+			let notePos = ChartState.stepToPos(ChartState.conductor.timeToStep(note.hitTime))
+			notePos.y -= 50 * ChartState.smoothScrollStep
 
-			drawRect({
-				width: ChartState.SQUARE_SIZE.x / 10,
-				height: ChartState.SQUARE_SIZE.y / 10,
-				color: moveToColor(note.dancerMove),
-				anchor: "center",
-				pos: vec2(xPos, yPos),
-				opacity: 0.5
-			})
+			const posInScreen = vec2(
+				notePos.x - ChartState.SQUARE_SIZE.x / 2,
+				notePos.y - ChartState.SQUARE_SIZE.y / 2
+			)
+	
+			if (theRect.contains(posInScreen)) {
+				// ChartState.removeNoteFromChart(note)
+				ChartState.selectedNotes.push(note)	
+			}
 		})
-	}
 
-	else cameraControllerOpacity = 0.1
+		ChartState.selectionBox.clickPos = vec2(0, 0)
+		ChartState.selectionBox.points = [vec2(0, 0), vec2(0, 0), vec2(0, 0), vec2(0, 0)]
+		ChartState.selectionBox.pos = vec2(0, 0)
+		ChartState.selectionBox.width = 0
+		ChartState.selectionBox.height = 0
+	}
 }
 
-/** Draw the gizmo for the selected note */
-export function drawSelectGizmo(ChartState:StateChart) {
-	// draw the selected gizmo
-	if (ChartState.selectedNote != undefined) {
-		const stepOfSelectedNote = ChartState.conductor.timeToStep(ChartState.selectedNote.hitTime, ChartState.conductor.stepInterval) - ChartState.scrollStep
-		const gizmoPos = ChartState.stepToPos(stepOfSelectedNote)
-		const celesteColor = BLUE.lighten(150)
-
+export function drawSelectionBox(ChartState:StateChart) {
+	if (ChartState.selectionBox.width > 0 && ChartState.selectionBox.height > 0) {
 		drawRect({
-			width: ChartState.SQUARE_SIZE.x,
-			height: ChartState.SQUARE_SIZE.y,
-			anchor: "center",
-			pos: vec2(gizmoPos.x, gizmoPos.y),
-			opacity: 0.5,
-			color: celesteColor,
+			width: ChartState.selectionBox.width,
+			height: ChartState.selectionBox.height,
+			pos: vec2(ChartState.selectionBox.pos.x, ChartState.selectionBox.pos.y),
+			color: BLUE,
+			opacity: 0.1,
 			outline: {
-				width: 5,
-				opacity: 1,
-				color: celesteColor
+				color: BLUE,
+				width: 5
 			},
 		})
 	}
 }
 
 /** Creates the 'isKeyPressed' event to change notes */
-export function moveChangeInputHandler(ChartState:StateChart) {
+export function handlerForChangingInput(ChartState:StateChart) {
 	const keysAndMoves = {
 		"1": "left",
 		"2": "down",
