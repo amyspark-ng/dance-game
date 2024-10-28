@@ -215,15 +215,13 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		ChartState.selectedNotes.forEach((selectedNote, indexInSelectedNotes) => {
 			const indexInNotes = ChartState.song.notes.indexOf(selectedNote)
 
-			// moves the note
-			const oldStep = ChartState.conductor.timeToStep(noteHitTimes[indexInNotes])
-			const differenceInSteps = ChartState.hoveredStep - oldStep
-			const newStep = ChartState.hoveredStep - oldStep
+			const oldStep = noteHitTimes[indexInNotes]
 
-			// i have to store all the hittimes when the mouse is pressed
-			// then hoveredStep - stepToTime() is the difference between them
-			// ChartState.song.notes[indexInNotes].hitTime = ChartState.conductor.stepToTime(newStep)
-			
+			const differenceToHover = ChartState.hoveredStep - oldStep
+			const newStep = ChartState.conductor.timeToStep(ChartState.conductor.stepToTime(oldStep + differenceToHover))
+
+			selectedNote.hitTime = ChartState.conductor.stepToTime(newStep)
+
 			// difference in steps for the detune
 			// if (oldStep != newStep){
 			// 	const noteMoveSound = playSound("noteMove", { detune: 25 * differenceInSteps })

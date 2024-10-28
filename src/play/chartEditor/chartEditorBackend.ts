@@ -117,7 +117,6 @@ export class StateChart {
 
 	/** Add a note to the chart */
 	addNoteToChart(time: number, move: Move) {
-		debug.log("added note to chart")
 		this.startingStepForDetune = 0
 		
 		const noteWithSameTimeButDifferentMove = this.song.notes.find(note => note.hitTime == time && note.dancerMove != move || note.hitTime == time && note.dancerMove == move)
