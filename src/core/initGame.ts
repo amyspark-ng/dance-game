@@ -32,8 +32,8 @@ export let appWindow:WebviewWindow = null
 
 export function INITIAL_SCENE() {
 	// goScene("game", { song: getSong("bopeebo"), dancer: "gru"} as paramsGameScene)
-	// goScene("songselect", { index: 0 } as paramsSongSelect)
-	goScene("charteditor", { song: getSong("bopeebo") } as paramsChartEditor )
+	goScene("songselect", { index: 0 } as paramsSongSelect)
+	// goScene("charteditor", { song: getSong("bopeebo") } as paramsChartEditor )
 }
 
 export function initGame() {
@@ -88,18 +88,16 @@ export function initGame() {
 		}
 	}
 	
-	// for middle click
-	document.body.onmousedown = function(e) {
-		if(e.button == 1) {
-			e.preventDefault();
-			return false;
-		}
-	}
-	
 	// prevent ctrl + s weirdness
 	document.addEventListener("keydown", function(e) {
 		if (e.key === 's' && (navigator.userAgent.includes('Mac') ? e.metaKey : e.ctrlKey)) {
 			e.preventDefault();
 		}
 	}, false);
+
+	// update fullscreen
+	document.addEventListener("fullscreenchange", (event) => {
+		if (document.fullscreenElement) GameSave.preferences.fullscreen = true
+		else GameSave.preferences.fullscreen = false
+	});
 }

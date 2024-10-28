@@ -1,10 +1,12 @@
 import { KEventController, Key, Vec2 } from "kaplay";
-import { GameSave, GameSaveClass } from "../../core/gamesave";
-import { goScene } from "../../core/scenes"
-import { utils } from "../../utils";
-import { paramsSongSelect } from "../songselectscene"
-import { noteskins } from "../../core/loader";
-import { juice } from "../../core/plugins/graphics/juiceComponent";
+import { GameSave, GameSaveClass } from "../../../core/gamesave";
+import { goScene } from "../../../core/scenes"
+import { utils } from "../../../utils";
+import { paramsSongSelect } from "../../songselectscene"
+import { noteskins } from "../../../core/loader";
+import { juice } from "../../../core/plugins/graphics/juiceComponent";
+import { makeCheckbox, makeVolumeSlider } from "./optionsUI";
+import { appWindow } from "@tauri-apps/api/window";
 
 // draws a key "sprite"
 function drawKey(opts: { key: string, position: Vec2, opacity: number }) {
@@ -33,29 +35,43 @@ function drawKey(opts: { key: string, position: Vec2, opacity: number }) {
 	})
 }
 
-type cursorProps = {
-	pos: Vec2,
-	angle: number,
-	opacity: number,
-	scale: Vec2,
-	lerpValue: number,
-}
-
 class StateOptions {
 	/** The current ui element in the current page */
 	optionIndex: number = 0;
 	
 	/** The current "page" will either be 0, 1 or 2 referring to controls, noteskins and etc */
-	pageIndex: number = 0;
+	leftIndex: number = 0;
 
 	/** Will be false when the player is choosing their new keys to play */
 	inputEnabled: boolean = true;
 
 	/** Wheter the player is on the left side, like changing the page of the options */
-	inPage: boolean = true;
+	inLeft: boolean = true;
 
-	/** The position the cursor should have */
-	cursorProps: cursorProps = { angle: 0, opacity: 1, pos: vec2(0), scale: vec2(1), lerpValue: 0.5 }
+	/** Some properties of the cursor */
+	cursorProps = { 
+		angle: 0,
+		opacity: 1,
+		pos: vec2(0),
+		scale: vec2(1),
+		lerpValue: 0.5,
+	}
+
+	/** Runs when pressing escape */
+	exitAction() {
+		// is in page so i think they're done setting stuff
+		if (!this.inputEnabled) return
+
+		if (this.inLeft) {
+			goScene("songselect", { index: 0 } as paramsSongSelect)
+			GameSave.save()
+		}
+		
+		else {
+			this.inLeft = true
+			manageOptionsState(this.leftIndex, this, false)
+		}
+	}
 }
 
 /**
@@ -65,8 +81,9 @@ class StateOptions {
  * @param workThem If work them is true then they should start working and not only be shown
  */
 function manageOptionsState(page: number, OptionsState:StateOptions, workThem:boolean = false) {
-	
-	// KEY EVENTS NEEDED FOR SPECIFIC OPTIONS SHOULD BE ATTACHED TO AN OBJECT IN THAT PAGE
+	// NOTE: KEY INPUT EVENTS NEEDED FOR SPECIFIC OPTIONS SHOULD BE ATTACHED TO AN OBJECT IN THAT PAGE
+
+	// tags for some elements
 	const tagForUI = "optionsUIEl"
 	const tagForControls = "optionsUIEl_Controls"
 	const tagForNoteskins = "optionsUIEl_Noteskins"
@@ -104,7 +121,7 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 				
 				else if (isKeyPressed("enter") && canChangeKeys) {
 					OptionsState.inputEnabled = false
-					let newKey = ""
+					let newKey:string = undefined
 
 					let arrowKeyPressEvents:KEventController[] = []
 					let charInputEv:KEventController = null
@@ -114,9 +131,9 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 						charInputEv.cancel()
 						escapeEvent.cancel()
 						arrowKeyPressEvents.forEach((ev) => ev.cancel())
-					
+						
 						const defaultKeys = Object.keys(new GameSaveClass().preferences.gameControls)
-
+						
 						// checks if any key is the same as the new key
 						if (Object.values(GameSave.preferences.gameControls).some((key) => key.kbKey == newKey)) {
 							// if that key is in another gameControl then set that game control to the default else don't do anything
@@ -132,13 +149,19 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 							}
 						}
 
-						GameSave.preferences.gameControls[hoveredKey.curMove].kbKey = newKey
+						if (newKey != undefined) {
+							GameSave.preferences.gameControls[hoveredKey.curMove].kbKey = newKey
+						}
+
 						// so iskeypressed left and right can't run inmediately after choosing an arrow key
 						wait(0.05, () => {
 							OptionsState.inputEnabled = true
 						})
-					}
 
+						// does little anim
+						tween(hoveredKey.pos.y - 10, hoveredKey.pos.y, 0.1, (p) => hoveredKey.pos.y = p, easings.easeOutQuad)
+					}
+					
 					const arrowKeys = ["left", "down", "up", "right"]
 					arrowKeys.forEach((dumbKey) => {
 						let keyPressEvent = onKeyPress(dumbKey, () => {
@@ -150,7 +173,7 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 					})
 
 					charInputEv = onCharInput((ch) => {
-						if (ch == " " || ch == "+" || ch == "-") shake(1)
+						if (ch == " " || ch == "+" || ch == "-" || ch == "") shake(1)
 						else {
 							newKey = ch
 						}
@@ -234,10 +257,10 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 			else if (isKeyPressed("down")) OptionsState.optionIndex = utils.scrollIndex(OptionsState.optionIndex, 1, noteskins.length)
 		
 			else if (isKeyPressed("enter") && canPressEnter) {
-				OptionsState.inPage = true
+				OptionsState.inLeft = true
 				GameSave.preferences.noteskin = noteskins[OptionsState.optionIndex]
 				GameSave.save()
-				manageOptionsState(OptionsState.pageIndex, OptionsState, false)
+				manageOptionsState(OptionsState.leftIndex, OptionsState, false)
 			
 				get("noteskinMov").forEach((obj) => {
 					if (obj.noteskinIndex == OptionsState.optionIndex) obj.bop({
@@ -277,12 +300,124 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 				])
 
 				movenoteskin.onUpdate(() => {
-					if (!OptionsState.inPage) {
+					if (!OptionsState.inLeft) {
 						if (OptionsState.optionIndex == noteskinIndex) movenoteskin.opacity = 1
 						else movenoteskin.opacity = 0.5
 					}
 				})
 			})
+		})
+	}
+
+	// etc
+	else if (page == 2) {
+		let inDesktop = false
+		utils.runInDesktop(() => inDesktop = true)
+		
+		const initialY = center().y - 100
+
+		OptionsState.optionIndex = 0
+		let canPressEnter = false
+		wait(0.1, () => canPressEnter = true)
+
+		const volumeSliders = [ makeVolumeSlider(), makeVolumeSlider(), makeVolumeSlider() ]
+		const checkboxes = [ makeCheckbox() ]
+		utils.runInDesktop(() => {
+			// adds the fullscreen checkbox
+			checkboxes.push(makeCheckbox())
+		})
+
+		const inputHandler = add([
+			tagForUI,
+			tagForEtc,
+		])
+
+		inputHandler.onUpdate(() => {
+			if (OptionsState.inLeft) return
+
+			if (isKeyPressed("down")) OptionsState.optionIndex = utils.scrollIndex(OptionsState.optionIndex, 1, checkboxes.length)
+			if (isKeyPressed("up")) OptionsState.optionIndex = utils.scrollIndex(OptionsState.optionIndex, -1, checkboxes.length)
+		
+			const hoveredObj = get(tagForEtc).find((obj) => obj.index == OptionsState.optionIndex)
+			if (hoveredObj != undefined) {
+				if (hoveredObj.is("checkbox")) {
+					OptionsState.cursorProps.pos.y = hoveredObj.pos.y
+					OptionsState.cursorProps.pos.x = hoveredObj.pos.x - hoveredObj.width * 1.2
+				
+					if (isKeyPressed("enter") && canPressEnter) {
+						hoveredObj.check()
+					}
+				}
+			}
+		})
+		
+		volumeSliders.forEach((slider, index) => {
+			const rectangle = add(slider.rect)
+			const cursor = add(slider.cursor)
+
+			rectangle.use(tagForUI)
+			cursor.use(tagForUI)
+			cursor.index = index
+
+			rectangle.use(tagForEtc)
+			cursor.use(tagForEtc)
+		})
+
+		checkboxes.forEach((madeObj, index) => {
+			const obj = add(madeObj)
+			
+			obj.use(tagForUI)
+			obj.use(tagForEtc)
+
+			obj.index = index
+			obj.pos.x = center().x + 60
+			obj.pos.y = (initialY + initialY * index) + (50 * volumeSliders.length)
+
+			// fullscreen checkbox
+			if (inDesktop && obj.index == 0) {
+				obj.onCheck((checked:boolean) => {
+					GameSave.preferences.fullscreen = checked
+					appWindow.setFullscreen(GameSave.preferences.fullscreen)
+				})
+
+				obj.onUpdate(() => {
+					if (GameSave.preferences.fullscreen) obj.color = GREEN
+					else obj.color = RED
+				})
+			}
+
+			// funky textbox (for testing)
+			else if ((obj.index == 0 && !inDesktop) || (obj.index == 1 && inDesktop)) {
+				obj.onCheck((checked:boolean) => {
+					debug.log("grooving: " + checked ? "on" : "off")
+				})
+			}
+			
+			obj.onUpdate(() => {
+				if (OptionsState.inLeft) return;
+				
+				if (obj.index == OptionsState.optionIndex) obj.opacity = 1
+				else obj.opacity = 0.5
+			})
+		})
+
+		const fullscreenCheckbox = makeCheckbox()
+		fullscreenCheckbox.use(tagForUI)
+		fullscreenCheckbox.use(tagForEtc)
+		fullscreenCheckbox.selected = isFullscreen()
+		fullscreenCheckbox.pos = vec2(center().x + 300, center().y)
+
+		get(tagForEtc).forEach((etcObj, index) => {
+			etcObj.onUpdate(() => {
+				if (!OptionsState.inLeft) return
+
+				if (OptionsState.optionIndex == index) etcObj.opacity = 1
+				else etcObj.opacity = 0.5
+			})
+		})
+
+		fullscreenCheckbox.onCheck((checked) => {
+			setFullscreen(checked)
 		})
 	}
 
@@ -320,8 +455,8 @@ export function OptionsScene() { scene("options", () => {
 	])
 
 	optionsCursor.onUpdate(() => {
-		if (optionsState.inPage) {
-			const hoveredPage = get("pageText").find(page => page.index == optionsState.pageIndex)
+		if (optionsState.inLeft) {
+			const hoveredPage = get("pageText").find(page => page.index == optionsState.leftIndex)
 	
 			if (hoveredPage != undefined) {
 				optionsState.cursorProps.pos.x = hoveredPage.pos.x - 25
@@ -355,13 +490,13 @@ export function OptionsScene() { scene("options", () => {
 
 		let targetOpacity = 1
 		curPage.onUpdate(() => {
-			if (optionsState.inPage) {
-				if (optionsState.pageIndex == index) targetOpacity = 1
+			if (optionsState.inLeft) {
+				if (optionsState.leftIndex == index) targetOpacity = 1
 				else targetOpacity = 0.5
 			}
 			
 			else {
-				if (optionsState.pageIndex == index) targetOpacity = 0.5
+				if (optionsState.leftIndex == index) targetOpacity = 0.5
 				else targetOpacity = 0.25
 			}
 
@@ -369,48 +504,42 @@ export function OptionsScene() { scene("options", () => {
 		})
 	})
 
-	manageOptionsState(optionsState.pageIndex, optionsState, false)
+	manageOptionsState(optionsState.leftIndex, optionsState, false)
 
 	onKeyPress("down", () => {
 		if (!optionsState.inputEnabled) return
 		
-		if (optionsState.inPage) {
-			optionsState.pageIndex = utils.scrollIndex(optionsState.pageIndex, 1, pages.length)
-			manageOptionsState(optionsState.pageIndex, optionsState, false)
+		if (optionsState.inLeft) {
+			optionsState.leftIndex = utils.scrollIndex(optionsState.leftIndex, 1, pages.length)
+			manageOptionsState(optionsState.leftIndex, optionsState, false)
 		}
 	})
 	
 	onKeyPress("up", () => {
 		if (!optionsState.inputEnabled) return
 		
-		if (optionsState.inPage) {
-			optionsState.pageIndex = utils.scrollIndex(optionsState.pageIndex, -1, pages.length)
-			manageOptionsState(optionsState.pageIndex, optionsState, false)
+		if (optionsState.inLeft) {
+			optionsState.leftIndex = utils.scrollIndex(optionsState.leftIndex, -1, pages.length)
+			manageOptionsState(optionsState.leftIndex, optionsState, false)
 		}
 	})
 
 	onKeyPress("escape", () => {
-		// is in page so i think they're done setting stuff
-		if (!optionsState.inputEnabled) return
-		
-		if (optionsState.inPage) {
-			goScene("songselect", { index: 0 } as paramsSongSelect)
-			GameSave.save()
-		}
-		
-		else {
-			optionsState.inPage = true
-			manageOptionsState(optionsState.pageIndex, optionsState, false)
-		}
+		optionsState.exitAction()
 	})
 
 	onKeyPress("enter", () => {
 		if (!optionsState.inputEnabled) return
 		
-		if (optionsState.inPage == true) {
-			optionsState.inPage = false
+		if (optionsState.inLeft == true) {
+			optionsState.inLeft = false
 			// this will set the inPage value
-			manageOptionsState(optionsState.pageIndex, optionsState, true)
+			manageOptionsState(optionsState.leftIndex, optionsState, true)
 		}
+	})
+
+	onSceneLeave(() => {
+		// just in case
+		GameSave.save()
 	})
 })}

@@ -7,6 +7,8 @@ import { PRODUCT } from "./initGame";
 type gameKey = { kbKey: Key, move: Move }
 
 export type Preferences = {
+	fullscreen: boolean,
+	
 	dancer: string,
 
 	gameControls: {
@@ -31,6 +33,8 @@ export class GameSaveClass {
 	}
 
 	preferences:Preferences = {
+		fullscreen: false,
+		
 		dancer: "astri",
 		
 		gameControls: {

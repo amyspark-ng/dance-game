@@ -5,7 +5,7 @@ import { DeathScene } from "../play/ui/deathScene";
 import { ResultsScene } from "../play/ui/resultsScene";
 import { FocusScene } from "../ui/focusscene";
 import { MenuScene } from "../ui/menu/menuScene";
-import { OptionsScene } from "../ui/menu/optionsScene";
+import { OptionsScene } from "../ui/menu/options/optionsScene";
 import { SongSelectScene } from "../ui/songselectscene";
 import { TitleScene } from "../ui/titlescene";
 

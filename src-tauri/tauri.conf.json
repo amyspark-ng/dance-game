@@ -14,7 +14,8 @@
     "allowlist": {
       "all": false,
       "window": {
-        "setTitle": true
+        "setTitle": true,
+        "setFullscreen": true
       },
       "shell": {
         "all": false,
