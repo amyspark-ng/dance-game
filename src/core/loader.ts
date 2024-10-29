@@ -180,6 +180,9 @@ export function loadAssets() {
 
 	loadSpriteAtlas("sprites/songRanks.png", songRanksAtlasData)
 
+	loadSound("uiMove", "sounds/uiMove.wav")
+	loadSound("uiSelect", "sounds/uiSelect.wav")
+
 	// # SONG SELECT
 	loadSprite("cdCase", "sprites/songSelect/cdCase.png")
 

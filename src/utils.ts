@@ -27,6 +27,19 @@ export class utils {
 		return arr.filter((e) => e != el)
 	}
 
+	/** Gets the value of a path in a given object */
+	static getVar(obj:any, path:string) {
+		const parts = path.split(".")
+		const target = parts.slice(0, -1).reduce((o, p) => o[p], obj)
+		return target[parts[parts.length-1]]
+	}
+
+	static setVar(obj:any, path:string, value:any) {
+		const parts = path.split(".")
+		const target = parts.slice(0, -1).reduce((o, p) => o[p], obj)
+		target[parts[parts.length-1]] = value
+	}
+
 	// 3 columns means 3 objects laid horizontally, 3 rows is 3 objects laid vertically
 	// from top to bottom
 	//   ccc

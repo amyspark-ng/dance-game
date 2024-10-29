@@ -84,7 +84,7 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 
 	onMiss(() => {
 		getDancer().miss()
-		playSound("missnote", { volume: 0.1 });
+		playSound("missnote");
 		addJudgement("Miss")
 		if (GameState.combo > 0) {
 			addComboText("break")

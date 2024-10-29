@@ -163,7 +163,7 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 
 		songSelectState.songPreview?.windDown()
 		songSelectState.songPreview = playSound(allCapsules[songSelectState.index].song.idTitle + "-song", {
-			volume: 0.1,
+			channel: GameSave.sound.music
 		})
 		songSelectState.songPreview.loop = true
 	}
@@ -227,4 +227,6 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 		stopPreview()
 		goScene("options")
 	})
+
+	onSceneLeave(() => { stopPreview() })
 })}

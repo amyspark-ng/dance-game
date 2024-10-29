@@ -100,4 +100,8 @@ export function initGame() {
 		if (document.fullscreenElement) GameSave.preferences.fullscreen = true
 		else GameSave.preferences.fullscreen = false
 	});
+
+	utils.runInDesktop(() => {
+		if (GameSave.preferences.fullscreen) appWindow.setFullscreen(GameSave.preferences.fullscreen)
+	})
 }

@@ -1,12 +1,21 @@
-import { KEventController, Key, Vec2 } from "kaplay";
+import { GameObj, KEventController, Key, Vec2 } from "kaplay";
 import { GameSave, GameSaveClass } from "../../../core/gamesave";
 import { goScene } from "../../../core/scenes"
 import { utils } from "../../../utils";
 import { paramsSongSelect } from "../../songselectscene"
 import { noteskins } from "../../../core/loader";
 import { juice } from "../../../core/plugins/graphics/juiceComponent";
-import { makeCheckbox, makeVolumeSlider } from "./optionsUI";
+import { addCheckbox, addVolumeSlider, tagForCheckbox, tagForSlider } from "./optionsUI";
 import { appWindow } from "@tauri-apps/api/window";
+import { playSound } from "../../../core/plugins/features/sound";
+
+function uiMoveSound(change: 1 | -1) {
+	playSound("uiMove", { detune: 50 * change * -1 })
+}
+
+function uiSelectSound() {
+	playSound("uiSelect")
+}
 
 // draws a key "sprite"
 function drawKey(opts: { key: string, position: Vec2, opacity: number }) {
@@ -50,6 +59,7 @@ class StateOptions {
 
 	/** Some properties of the cursor */
 	cursorProps = { 
+		obj: null,
 		angle: 0,
 		opacity: 1,
 		pos: vec2(0),
@@ -68,6 +78,10 @@ class StateOptions {
 		}
 		
 		else {
+			this.cursorProps.angle = 0
+			this.cursorProps.scale.x = 1
+			this.cursorProps.scale.y = 1
+
 			this.inLeft = true
 			manageOptionsState(this.leftIndex, this, false)
 		}
@@ -116,8 +130,15 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 			const hoveredKey = get("noteForKey").find(obj => obj.index == OptionsState.optionIndex)
 			
 			if (OptionsState.inputEnabled) {
-				if (isKeyPressed("right")) OptionsState.optionIndex = utils.scrollIndex(OptionsState.optionIndex, 1, moves.length)
-				else if (isKeyPressed("left")) OptionsState.optionIndex = utils.scrollIndex(OptionsState.optionIndex, -1, moves.length)
+				if (isKeyPressed("right")) {
+					OptionsState.optionIndex = utils.scrollIndex(OptionsState.optionIndex, 1, moves.length)
+					uiMoveSound(1)
+				}
+
+				else if (isKeyPressed("left")) {
+					uiMoveSound(-1)
+					OptionsState.optionIndex = utils.scrollIndex(OptionsState.optionIndex, -1, moves.length)
+				} 
 				
 				else if (isKeyPressed("enter") && canChangeKeys) {
 					OptionsState.inputEnabled = false
@@ -128,6 +149,7 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 					let escapeEvent:KEventController = null
 
 					function doneIt() {
+						uiSelectSound()
 						charInputEv.cancel()
 						escapeEvent.cancel()
 						arrowKeyPressEvents.forEach((ev) => ev.cancel())
@@ -253,10 +275,18 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 
 		const inputManager = add([tagForUI, tagForNoteskins])
 		inputManager.onUpdate(() => {
-			if (isKeyPressed("up")) OptionsState.optionIndex = utils.scrollIndex(OptionsState.optionIndex, -1, noteskins.length)
-			else if (isKeyPressed("down")) OptionsState.optionIndex = utils.scrollIndex(OptionsState.optionIndex, 1, noteskins.length)
-		
+			if (isKeyPressed("up")) {
+				uiMoveSound(-1)
+				OptionsState.optionIndex = utils.scrollIndex(OptionsState.optionIndex, -1, noteskins.length)
+			} 
+			
+			else if (isKeyPressed("down")) {
+				uiMoveSound(1)
+				OptionsState.optionIndex = utils.scrollIndex(OptionsState.optionIndex, 1, noteskins.length)
+			} 
+			
 			else if (isKeyPressed("enter") && canPressEnter) {
+				uiSelectSound()
 				OptionsState.inLeft = true
 				GameSave.preferences.noteskin = noteskins[OptionsState.optionIndex]
 				GameSave.save()
@@ -311,113 +341,130 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 
 	// etc
 	else if (page == 2) {
+		OptionsState.optionIndex = 0
 		let inDesktop = false
 		utils.runInDesktop(() => inDesktop = true)
 		
-		const initialY = center().y - 100
-
-		OptionsState.optionIndex = 0
 		let canPressEnter = false
 		wait(0.1, () => canPressEnter = true)
-
-		const volumeSliders = [ makeVolumeSlider(), makeVolumeSlider(), makeVolumeSlider() ]
-		const checkboxes = [ makeCheckbox() ]
-		utils.runInDesktop(() => {
-			// adds the fullscreen checkbox
-			checkboxes.push(makeCheckbox())
-		})
-
-		const inputHandler = add([
-			tagForUI,
-			tagForEtc,
-		])
-
-		inputHandler.onUpdate(() => {
-			if (OptionsState.inLeft) return
-
-			if (isKeyPressed("down")) OptionsState.optionIndex = utils.scrollIndex(OptionsState.optionIndex, 1, checkboxes.length)
-			if (isKeyPressed("up")) OptionsState.optionIndex = utils.scrollIndex(OptionsState.optionIndex, -1, checkboxes.length)
 		
-			const hoveredObj = get(tagForEtc).find((obj) => obj.index == OptionsState.optionIndex)
-			if (hoveredObj != undefined) {
-				if (hoveredObj.is("checkbox")) {
-					OptionsState.cursorProps.pos.y = hoveredObj.pos.y
-					OptionsState.cursorProps.pos.x = hoveredObj.pos.x - hoveredObj.width * 1.2
-				
-					if (isKeyPressed("enter") && canPressEnter) {
-						hoveredObj.check()
-					}
-				}
-			}
-		})
-		
-		volumeSliders.forEach((slider, index) => {
-			const rectangle = add(slider.rect)
-			const cursor = add(slider.cursor)
+		const initialY = center().y - 100
+		const initialX = center().x + 100
 
-			rectangle.use(tagForUI)
-			cursor.use(tagForUI)
-			cursor.index = index
-
-			rectangle.use(tagForEtc)
-			cursor.use(tagForEtc)
-		})
-
-		checkboxes.forEach((madeObj, index) => {
-			const obj = add(madeObj)
-			
+		function setupItem(obj:GameObj<any>, index:number) {
 			obj.use(tagForUI)
 			obj.use(tagForEtc)
-
 			obj.index = index
-			obj.pos.x = center().x + 60
-			obj.pos.y = (initialY + initialY * index) + (50 * volumeSliders.length)
+			
+			obj.pos.x = initialX
+			obj.pos.y = initialY + ((obj.height * 1.15) * index)
+		}
 
-			// fullscreen checkbox
-			if (inDesktop && obj.index == 0) {
-				obj.onCheck((checked:boolean) => {
-					GameSave.preferences.fullscreen = checked
-					appWindow.setFullscreen(GameSave.preferences.fullscreen)
-				})
+		const testCheckbox = addCheckbox("Grooving")
+		testCheckbox.onCheck((selected) => {
+			debug.log(selected)
+		})
 
-				obj.onUpdate(() => {
-					if (GameSave.preferences.fullscreen) obj.color = GREEN
-					else obj.color = RED
-				})
-			}
+		const masterVolume = addVolumeSlider()
+		const musicVolume = addVolumeSlider()
+		musicVolume.use("musicSlider")
+		const sfxVolume = addVolumeSlider()
+		sfxVolume.use("sfxSlider")
+		
+		masterVolume.onUpdate(() => {
+			let blendValue = 0
+			blendValue = map(GameSave.sound.masterVolume, 0, 1, 0, 1)
+			masterVolume.color = utils.blendColors(GREEN, RED, blendValue)
+		})
 
-			// funky textbox (for testing)
-			else if ((obj.index == 0 && !inDesktop) || (obj.index == 1 && inDesktop)) {
-				obj.onCheck((checked:boolean) => {
-					debug.log("grooving: " + checked ? "on" : "off")
-				})
+		const allElements = [
+			masterVolume,
+			musicVolume,
+			sfxVolume,
+			testCheckbox
+		]
+		
+		utils.runInDesktop(() => {
+			const fullscreenBox = addCheckbox("Fullscreen")
+			fullscreenBox.onCheck((selected) => {
+				GameSave.preferences.fullscreen = selected
+				appWindow.setFullscreen(selected)
+			})
+
+			allElements.push(fullscreenBox)
+		})
+		
+		allElements.forEach((element, index) => {
+			setupItem(element, index)
+		})
+		
+		const inputHandler = add([tagForUI, tagForEtc])
+		inputHandler.onUpdate(() => {
+			if (isKeyPressed("down")) {
+				uiMoveSound(1)
+				OptionsState.optionIndex = utils.scrollIndex(OptionsState.optionIndex, 1, allElements.length)
+			} 
+			
+			else if (isKeyPressed("up")) {
+				uiMoveSound(-1)
+				OptionsState.optionIndex = utils.scrollIndex(OptionsState.optionIndex, -1, allElements.length)
+			} 
+			
+			const hoveredObj = get(tagForEtc).find((obj) => obj.index == OptionsState.optionIndex)
+			if (hoveredObj == undefined) return
+			
+			if (hoveredObj.is(tagForSlider)) {
+				let valuepath = "";
+				if (hoveredObj.is("musicSlider")) valuepath = "music.volume"
+				else if (hoveredObj.is("sfxSlider")) valuepath = "sfx.volume"
+				else valuepath = "masterVolume"
+
+				let theVol = utils.getVar(GameSave.sound, valuepath)
+
+				const cursorObj = OptionsState.cursorProps.obj
+				const cursorObjWidth = cursorObj.width * OptionsState.cursorProps.scale.x
+				const cursorObjHeight = cursorObj.height * OptionsState.cursorProps.scale.y
+				
+				OptionsState.cursorProps.pos.y = hoveredObj.pos.y - cursorObjHeight
+				let cursorPosX = map(theVol, 0, 1, hoveredObj.pos.x - cursorObjWidth / 2, hoveredObj.pos.x + hoveredObj.width)
+				OptionsState.cursorProps.pos.x = cursorPosX
+				OptionsState.cursorProps.lerpValue = 0.7
+
+				OptionsState.cursorProps.angle = 90
+				OptionsState.cursorProps.scale.x = 0.5
+				OptionsState.cursorProps.scale.y = 0.5
+			
+				if (isKeyPressedRepeat("left")) {
+					if (theVol - 0.1 >= 0) theVol -= 0.1
+					utils.setVar(GameSave.sound, valuepath, theVol)
+					volume(GameSave.sound.masterVolume)
+					uiMoveSound(1)
+				}
+				
+				else if (isKeyPressedRepeat("right")) {
+					if (theVol + 0.1 <= 1) theVol += 0.1
+					utils.setVar(GameSave.sound, valuepath, theVol)
+					volume(GameSave.sound.masterVolume)
+					uiMoveSound(-1)
+				}
 			}
 			
-			obj.onUpdate(() => {
-				if (OptionsState.inLeft) return;
-				
-				if (obj.index == OptionsState.optionIndex) obj.opacity = 1
-				else obj.opacity = 0.5
-			})
-		})
+			else if (hoveredObj.is(tagForCheckbox)) {
+				OptionsState.cursorProps.pos.x = hoveredObj.pos.x - hoveredObj.width * 1.25
+				OptionsState.cursorProps.pos.y = hoveredObj.pos.y
+				OptionsState.cursorProps.angle = 0
 
-		const fullscreenCheckbox = makeCheckbox()
-		fullscreenCheckbox.use(tagForUI)
-		fullscreenCheckbox.use(tagForEtc)
-		fullscreenCheckbox.selected = isFullscreen()
-		fullscreenCheckbox.pos = vec2(center().x + 300, center().y)
+				if (isKeyPressed("enter") && canPressEnter) {
+					hoveredObj.check()
+					uiSelectSound()
+				}
+			}
 
-		get(tagForEtc).forEach((etcObj, index) => {
-			etcObj.onUpdate(() => {
-				if (!OptionsState.inLeft) return
-
-				if (OptionsState.optionIndex == index) etcObj.opacity = 1
-				else etcObj.opacity = 0.5
-			})
-		})
-
-		fullscreenCheckbox.onCheck((checked) => {
-			setFullscreen(checked)
+			if (!hoveredObj.is(tagForSlider)) {
+				OptionsState.cursorProps.scale.x = 1
+				OptionsState.cursorProps.scale.y = 1
+				OptionsState.cursorProps.lerpValue = 0.5
+			}
 		})
 	}
 
@@ -432,6 +479,20 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 			obj.opacity = 1
 		})
 	}
+
+	get(tagForEtc).forEach((obj) => {
+		obj.onUpdate(() => {
+			if (!OptionsState.inLeft) {
+				if (obj.index == OptionsState.optionIndex) {
+					obj.opacity = 1
+				}
+	
+				else {
+					obj.opacity = 0.5
+				}
+			}
+		})
+	})
 }
 
 export function OptionsScene() { scene("options", () => {
@@ -452,6 +513,12 @@ export function OptionsScene() { scene("options", () => {
 		opacity(),
 		scale(),
 		rotate(0),
+		z(10),
+		{
+			update() {
+				optionsState.cursorProps.obj = this;
+			}
+		}
 	])
 
 	optionsCursor.onUpdate(() => {
@@ -464,13 +531,16 @@ export function OptionsScene() { scene("options", () => {
 			}
 		
 			optionsState.cursorProps.angle = 0
+			optionsState.cursorProps.scale.x = 1
+			optionsState.cursorProps.scale.y = 1
 		}
 
 		// lerp stuff
 		optionsCursor.pos = lerp(optionsCursor.pos, optionsState.cursorProps.pos, optionsState.cursorProps.lerpValue)
 		optionsCursor.angle = lerp(optionsCursor.angle, optionsState.cursorProps.angle, optionsState.cursorProps.lerpValue)
 		optionsCursor.opacity = lerp(optionsCursor.opacity, optionsState.cursorProps.opacity, optionsState.cursorProps.lerpValue)
-		optionsCursor.scale = lerp(optionsCursor.scale, optionsState.cursorProps.scale, optionsState.cursorProps.lerpValue)
+		optionsCursor.scale.x = lerp(optionsCursor.scale.x, optionsState.cursorProps.scale.x, optionsState.cursorProps.lerpValue)
+		optionsCursor.scale.y = lerp(optionsCursor.scale.y, optionsState.cursorProps.scale.y, optionsState.cursorProps.lerpValue)
 	})
 
 	const pages = ["Controls", "Noteskins", "Etc"]
@@ -511,6 +581,7 @@ export function OptionsScene() { scene("options", () => {
 		
 		if (optionsState.inLeft) {
 			optionsState.leftIndex = utils.scrollIndex(optionsState.leftIndex, 1, pages.length)
+			uiMoveSound(1)
 			manageOptionsState(optionsState.leftIndex, optionsState, false)
 		}
 	})
@@ -520,6 +591,7 @@ export function OptionsScene() { scene("options", () => {
 		
 		if (optionsState.inLeft) {
 			optionsState.leftIndex = utils.scrollIndex(optionsState.leftIndex, -1, pages.length)
+			uiMoveSound(-1)
 			manageOptionsState(optionsState.leftIndex, optionsState, false)
 		}
 	})
@@ -535,6 +607,7 @@ export function OptionsScene() { scene("options", () => {
 			optionsState.inLeft = false
 			// this will set the inPage value
 			manageOptionsState(optionsState.leftIndex, optionsState, true)
+			uiSelectSound()
 		}
 	})
 
