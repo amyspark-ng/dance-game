@@ -217,11 +217,13 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 	}
 
 	onKeyPress("tab", () => {
-		stopPreview( )
+		if (!songSelectState.menuInputEnabled) return
+		stopPreview()
 		goScene("charselect", params)
 	})
 
 	onKeyPress("escape", () => {
+		if (!songSelectState.menuInputEnabled) return
 		stopPreview()
 		goScene("options")
 	})
