@@ -1,4 +1,5 @@
 // The actual scene for the chart editor
+import { getCurrent } from "@tauri-apps/api/window";
 import { Conductor } from "../../conductor";
 import { onBeatHit, onNoteHit, onStepHit, triggerEvent } from "../../core/events";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
@@ -6,10 +7,10 @@ import { playSound } from "../../core/plugins/features/sound";
 import { transitionToScene } from "../../core/scenes";
 import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { utils } from "../../utils";
-import { moveToColor, note } from "../objects/note";
+import { ChartNote, moveToColor, note } from "../objects/note";
 import { paramsGameScene } from "../playstate";
-import { addDownloadButton, addDummyDancer, drawSelectionBox, handlerForChangingInput, moveToDetune, paramsChartEditor, selectionBoxHandler, setupManageTextboxes, StateChart } from "./chartEditorBackend";
-import { drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, drawPlayBar, drawSelectGizmo, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE } from "./chartEditorElements";
+import { addDownloadButton, addDummyDancer, cameraControllerHandling, handlerForChangingInput, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, setupManageTextboxes, StateChart } from "./chartEditorBackend";
+import { drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, drawPlayBar, drawSelectGizmo, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE } from "./chartEditorElements";
 
 export function ChartEditorScene() { scene("charteditor", (params: paramsChartEditor) => {
 	// had an issue with BPM being NaN but it was because since this wasn't defined then it was NaN
@@ -63,83 +64,23 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		ChartState.smoothCursorYPos = lerp(ChartState.smoothCursorYPos, ChartState.cursorYPos, SCROLL_LERP_VALUE)
 		ChartState.hoveredStep = ChartState.scrollStep + ChartState.cursorGridRow
 
-		// Camera controller moving
-		if (isMousePressed("left") && mousePos().x >= width() - 50 && ChartState.isMovingCamera == false) {
-			ChartState.isMovingCamera = true
-			if (!ChartState.paused) ChartState.paused = true
-		}
-
-		else if (isMouseReleased("left") && ChartState.isMovingCamera == true) {
-			ChartState.isMovingCamera = false
-		}
-
-		if (ChartState.isMovingCamera) {
-			ChartState.cameraControllerPos.y = mousePos().y
-			ChartState.cameraControllerPos.y = clamp(ChartState.cameraControllerPos.y, 25, height() - 25)
-			ChartState.scrollStep = mapc(ChartState.cameraControllerPos.y, 25, height() - 25, 0, ChartState.conductor.totalSteps)
-			ChartState.scrollStep = Math.round(ChartState.scrollStep)
-		}
-
-		else {
-			ChartState.cameraControllerPos.y = mapc(ChartState.scrollStep, 0, ChartState.conductor.totalSteps, 25, height() - 25)
-		}
-
 		// Handle move change input 
 		handlerForChangingInput(ChartState)
 	
-		// move up or down the selected note 
-		if (ChartState.selectedNotes.length > 0) {
-			ChartState.selectedNotes.forEach((selectedNote) => {
-				const stepOfNote = ChartState.conductor.timeToStep(selectedNote.hitTime)
-				
-				if (isKeyPressedRepeat("w")) {
-					if (stepOfNote - 1  < 0) return
-		
-					selectedNote.hitTime -= ChartState.conductor.stepInterval
-					playSound("noteMove", { detune: rand(-25, 50) })
-					
-					if (ChartState.scrollStep > stepOfNote) ChartState.scrollStep -= 1
-				}
-				
-				else if (isKeyPressedRepeat("s")) {
-					if (stepOfNote + 1 > ChartState.conductor.totalSteps) return
-		
-					selectedNote.hitTime += ChartState.conductor.stepInterval
-					playSound("noteMove", { detune: rand(-50, 25) })
-					ChartState.scrollStep += 1
-					
-					if (stepOfNote > ChartState.scrollStep) ChartState.scrollStep += 1
-				}
-		
-				else if (isKeyPressed("backspace")) {
-					ChartState.removeNoteFromChart(selectedNote)
-				}
-			})
-		}
-		
-		// mouse animation stuff
-		if (ChartState.focusedTextBox != undefined) gameCursor.do("text")
-		else {
-			if (!ChartState.isCursorInGrid) {
-				gameCursor.do("default")
-			}
-			else {
-				if (!isMouseDown("left") && !isMouseDown("right")) gameCursor.do("up")
-				else if (isMouseDown("left") && !isMouseDown("right")) gameCursor.do("down")
-				else if (!isMouseDown("left") && isMouseDown("right")) gameCursor.do("x")
-			}
-		}
+		if (isKeyPressedRepeat("w")) ChartState.scrollStep--
+		if (isKeyPressedRepeat("s")) ChartState.scrollStep++
 
 		selectionBoxHandler(ChartState)
+		cameraControllerHandling(ChartState)
+		
+		mouseAnimationHandling(ChartState)
 
-		// moving strumline
-		// if (isKeyDown("shift") && isKeyPressed("down")) {
-		// 	ChartState.strumlineStepOffset += 1
-		// }
-
-		// else if (isKeyDown("shift") && isKeyPressed("up")) {
-		// 	ChartState.strumlineStepOffset -= 1
-		// }
+		if (isKeyPressed("backspace")) {
+			ChartState.selectedNotes.forEach((note) => {
+				ChartState.removeNoteFromChart(note)
+			})
+			playSound("noteRemove", { detune: rand(-50, 50) })
+		}
 	})
 
 	// this is done like this so it's drawn on top of everything
@@ -168,68 +109,91 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		return ChartState.song.notes.find((note) => ChartState.conductor.timeToStep(note.hitTime, ChartState.conductor.stepInterval) == ChartState.conductor.timeToStep(time, ChartState.conductor.stepInterval))
 	}
 
-	/** When the mouse is pressed the this array gets filled with all the hit times, then i can get the difference in steps between the starting step (gotten from this hittime array) and the changed step */
-	let noteHitTimes = []
+	/** When you press left this stores the difference of that note to the leading note, this way i can move several notes */
+	let differencesToLeading = ChartState.song.notes.map((note) => {
+		if (ChartState.selectionBox.leadingNote == undefined) return
+		return ChartState.conductor.timeToStep(note.hitTime) - ChartState.conductor.timeToStep(ChartState.selectionBox.leadingNote.hitTime)
+	})
 
 	// Behaviour for placing and selecting notes
 	onMousePress("left", () => {
 		const time = ChartState.conductor.stepToTime(ChartState.hoveredStep, ChartState.conductor.stepInterval)
-		const note = getCurrentHoveredNote()
-
-		if (!ChartState.isCursorInGrid || ChartState.selectedNotes.length == 1) ChartState.resetSelectedNotes()
+		let note = getCurrentHoveredNote()
+	
+		if (!ChartState.isCursorInGrid) {
+			ChartState.resetSelectedNotes()
+			return;	
+		}
 
 		// there's already a note in that place
 		if (note) {
-			if (!ChartState.isCursorInGrid) ChartState.resetSelectedNotes()
-
-			else {
-				if (!ChartState.selectedNotes.includes(note)) ChartState.selectedNotes.push(note)
-				ChartState.startingStepForDetune = ChartState.conductor.timeToStep(note.hitTime, ChartState.conductor.stepInterval)
+			// if the note is not already selected
+			if (!ChartState.selectedNotes.includes(note)) {
+				// if control is not down then reset the selected notes
+				if (!isKeyDown("control")) ChartState.resetSelectedNotes()
+				ChartState.selectedNotes.push(note) 
 			}
 		}
 
 		// there's no note in that place
 		else {
-			if (!ChartState.isCursorInGrid) return;
-			ChartState.addNoteToChart(time, ChartState.currentMove)
-			noteHitTimes[ChartState.song.notes.length - 1] = time
+			ChartState.resetSelectedNotes()
+			note = ChartState.addNoteToChart(time, ChartState.currentMove)
 		}
+
+		ChartState.selectionBox.leadingNote = note
+		ChartState.stepForDetune = ChartState.conductor.timeToStep(note.hitTime)
+		differencesToLeading = ChartState.song.notes.map((note) => {
+			if (ChartState.selectionBox.leadingNote == undefined) return
+			return ChartState.conductor.timeToStep(note.hitTime) - ChartState.conductor.timeToStep(ChartState.selectionBox.leadingNote.hitTime)
+		})
 	})
 
 	// Resets the detune for moving notes
 	onMouseRelease("left", () => {
-
+		ChartState.selectionBox.leadingNote = undefined;
 	})
 
 	// Removing notes
 	onMousePress("right", () => {
 		if (!ChartState.isCursorInGrid) return
 		const note = getCurrentHoveredNote()
-		if (note) ChartState.removeNoteFromChart(note)
+		if (!note) return
+		ChartState.removeNoteFromChart(note)
+		playSound("noteRemove", { detune: moveToDetune(note.dancerMove) })
 	})
 
 	// Behaviour for moving notes
 	onMouseDown("left", () => {
-		if (ChartState.selectedNotes.length < 1) return
+		if (!ChartState.selectionBox.leadingNote) return;
 		
-		ChartState.selectedNotes.forEach((selectedNote, indexInSelectedNotes) => {
-			const indexInNotes = ChartState.song.notes.indexOf(selectedNote)
+		let oldStepOfLeading = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingNote.hitTime)
+		
+		ChartState.selectedNotes.forEach((selectedNote, index) => {
+			if (selectedNote == ChartState.selectionBox.leadingNote) {
+				selectedNote.hitTime = ChartState.conductor.stepToTime(ChartState.hoveredStep)
+				ChartState.selectionBox.leadingNote = selectedNote
+			}
 
-			const oldStep = noteHitTimes[indexInNotes]
+			else {
+				const indexInNotes = ChartState.song.notes.indexOf(selectedNote)
+				const leadingNoteStep = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingNote.hitTime)
 
-			const differenceToHover = ChartState.hoveredStep - oldStep
-			const newStep = ChartState.conductor.timeToStep(ChartState.conductor.stepToTime(oldStep + differenceToHover))
-
-			selectedNote.hitTime = ChartState.conductor.stepToTime(newStep)
-
-			// difference in steps for the detune
-			// if (oldStep != newStep){
-			// 	const noteMoveSound = playSound("noteMove", { detune: 25 * differenceInSteps })
-			// 	noteMoveSound.onEnd(() => {
-			// 		noteMoveSound.stop()
-			// 	})
-			// } 
+				// this is some big brain code i swear
+				const stepDiff = differencesToLeading[indexInNotes]
+				const newStep = leadingNoteStep + stepDiff
+				selectedNote.hitTime = ChartState.conductor.stepToTime(newStep)
+			}
 		})
+	
+		let newStepOfLeading = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingNote.hitTime)
+		
+		if (newStepOfLeading != oldStepOfLeading) {
+			// thinking WAY too hard for a simple sound effect lol!
+			const diff = newStepOfLeading - ChartState.stepForDetune
+			const baseDetune = Math.abs(moveToDetune(ChartState.selectionBox.leadingNote.dancerMove)) * 0.5
+			playSound("noteMove", { detune: baseDetune * diff })
+		}
 	})
 
 	// Copies the color of a note

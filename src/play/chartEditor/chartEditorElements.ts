@@ -180,15 +180,19 @@ export function drawCursor(ChartState:StateChart) {
 
 /** Draw the camera controller and the tiny notess */
 export function drawCameraControlAndNotes(ChartState:StateChart) {
-	let cameraControllerOpacity = 0.1
+	let cameraOp = 0
+
+	if (ChartState.cameraController.isMovingCamera) cameraOp = 0.5
+	else if (ChartState.cameraController.canMoveCamera) cameraOp = 0.25
+	else cameraOp = 0.1
 	
 	// draws the camera controller
 	drawRect({
 		width: ChartState.SQUARE_SIZE.x,
 		height: ChartState.SQUARE_SIZE.y,
 		anchor: "center",
-		pos: ChartState.cameraControllerPos,
-		opacity: cameraControllerOpacity,
+		pos: ChartState.cameraController.pos,
+		opacity: cameraOp,
 		color: YELLOW,
 		outline: { 
 			width: 5,
@@ -197,26 +201,20 @@ export function drawCameraControlAndNotes(ChartState:StateChart) {
 	})
 
 	// draws the notes on the side of the camera controller
-	if (mousePos().x >= width() - ChartState.SQUARE_SIZE.x) {
-		cameraControllerOpacity = 0.5
+	ChartState.song.notes.forEach((note) => {
+		const initialPos = vec2(width() - 25, 0)
+		const yPos = map(note.hitTime, 0, ChartState.conductor.audioPlay.duration(), initialPos.y, height())
+		const xPos = initialPos.x
 
-		ChartState.song.notes.forEach((note) => {
-			const initialPos = vec2(width() - 25, 0)
-			const yPos = map(note.hitTime, 0, ChartState.conductor.audioPlay.duration(), initialPos.y, height())
-			const xPos = initialPos.x
-
-			drawRect({
-				width: ChartState.SQUARE_SIZE.x / 10,
-				height: ChartState.SQUARE_SIZE.y / 10,
-				color: moveToColor(note.dancerMove),
-				anchor: "center",
-				pos: vec2(xPos, yPos),
-				opacity: 0.5
-			})
+		drawRect({
+			width: ChartState.SQUARE_SIZE.x / 10,
+			height: ChartState.SQUARE_SIZE.y / 10,
+			color: moveToColor(note.dancerMove),
+			anchor: "center",
+			pos: vec2(xPos, yPos),
+			opacity: 0.5
 		})
-	}
-
-	else cameraControllerOpacity = 0.1
+	})
 }
 
 /** Draw the gizmo for the selected note */
@@ -242,4 +240,20 @@ export function drawSelectGizmo(ChartState:StateChart) {
 			},
 		})
 	})
+}
+
+export function drawSelectionBox(ChartState:StateChart) {
+	if (ChartState.selectionBox.width > 0 && ChartState.selectionBox.height > 0) {
+		drawRect({
+			width: ChartState.selectionBox.width,
+			height: ChartState.selectionBox.height,
+			pos: vec2(ChartState.selectionBox.pos.x, ChartState.selectionBox.pos.y),
+			color: BLUE,
+			opacity: 0.1,
+			outline: {
+				color: BLUE,
+				width: 5
+			},
+		})
+	}
 }

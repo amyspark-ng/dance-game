@@ -32,8 +32,8 @@ export let appWindow:WebviewWindow = null
 
 export function INITIAL_SCENE() {
 	// goScene("game", { song: getSong("bopeebo"), dancer: "gru"} as paramsGameScene)
-	goScene("songselect", { index: 0 } as paramsSongSelect)
-	// goScene("charteditor", { song: getSong("bopeebo") } as paramsChartEditor )
+	// goScene("songselect", { index: 0 } as paramsSongSelect)
+	goScene("charteditor", { song: getSong("bopeebo") } as paramsChartEditor )
 }
 
 export function initGame() {

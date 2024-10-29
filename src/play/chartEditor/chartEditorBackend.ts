@@ -7,6 +7,7 @@ import { playSound } from "../../core/plugins/features/sound";
 import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { SongChart } from "../song";
 import { Conductor } from "../../conductor";
+import { gameCursor } from "../../core/plugins/features/gameCursor";
 
 /** Class that manages every important variable in the chart editor */
 export class StateChart {
@@ -23,15 +24,26 @@ export class StateChart {
 
 	/** Wheter the selection box is being shown */
 	selectionBox = {
-		wasCursorInGrid: false,
+		/** The note that is the note the other notes move around when you're moving a bunch of notes */
+		leadingNote: undefined as ChartNote,
+		/** Wheter the selection box can be triggered */
+		canSelect: false,
 		width: 0,
 		height: 0,
-		/** The position it'll be drawn at */
+		/** The position it'll be drawn at (topleft) */
 		pos: vec2(0),
 		/** The last click position (initial pos) */
 		clickPos: vec2(0),
 		points: [vec2(), vec2(), vec2(), vec2()]
 	};
+
+	cameraController = {
+		canMoveCamera: false,
+		/** Wheter the camera is being moved by the camera controller */
+		isMovingCamera: false,
+		/** The position of the camera controller */
+		pos: vec2(width() - 25, 25),
+	}
 
 	// SOME STUPID VARS
 
@@ -65,12 +77,6 @@ export class StateChart {
 	/** Wheter the cursor is in a grid or not (allows for click) */
 	isCursorInGrid = false
 
-	/** The position of the camera controller */
-	cameraControllerPos = vec2(width() - 25, 25)
-
-	/** Wheter the camera is being moved with the camera controller */
-	isMovingCamera = false
-
 	/** The scale of the strumline line */
 	strumlineScale = vec2(1)
 
@@ -90,7 +96,7 @@ export class StateChart {
 	selectedNotes: ChartNote[] = []
 
 	/** The step that selected note started in before it was moved */
-	startingStepForDetune = 0
+	stepForDetune = 0
 
 	/** Is by how many steps the strumline is offseted (from top to below, 0 to 12) */
 	strumlineStepOffset = 1
@@ -106,7 +112,7 @@ export class StateChart {
 	/** Unselects any note and the detune */
 	resetSelectedNotes() {
 		this.selectedNotes = []
-		this.startingStepForDetune = 0
+		this.stepForDetune = 0
 	}
 
 	/** Changes the current move */
@@ -117,7 +123,7 @@ export class StateChart {
 
 	/** Add a note to the chart */
 	addNoteToChart(time: number, move: Move) {
-		this.startingStepForDetune = 0
+		this.stepForDetune = 0
 		
 		const noteWithSameTimeButDifferentMove = this.song.notes.find(note => note.hitTime == time && note.dancerMove != move || note.hitTime == time && note.dancerMove == move)
 		// if there's a note already at that time but a different move, remove it
@@ -134,6 +140,7 @@ export class StateChart {
 		const indexInNotes = this.song.notes.indexOf(newNote)
 		tween(vec2(this.NOTE_BIG_SCALE), vec2(1), 0.1, (p) => this.noteScales[indexInNotes] = p)
 		this.selectedNotes.push(newNote)
+		return newNote;
 	}
 	
 	/** Remove a note from the chart */
@@ -145,7 +152,6 @@ export class StateChart {
 		const indexInNotes = this.song.notes.indexOf(oldNote)
 		this.noteScales = utils.removeFromArr(this.noteScales[indexInNotes], this.noteScales)
 		this.selectedNotes = utils.removeFromArr(oldNote, this.selectedNotes)
-		playSound("noteRemove", { detune: moveToDetune(noteToRemove.dancerMove) })
 	}
 }
 
@@ -169,11 +175,17 @@ export function moveToDetune(move: Move) {
 
 /** RUns on update */
 export function selectionBoxHandler(ChartState:StateChart) {
+	
 	if (isMousePressed("left")) {
+		if (ChartState.cameraController.canMoveCamera || ChartState.isCursorInGrid) {
+			ChartState.selectionBox.canSelect = false
+		} 
+	
+		else ChartState.selectionBox.canSelect = true
 		ChartState.selectionBox.clickPos = mousePos()
 	}
 	
-	if (isMouseDown("left")) {
+	if (isMouseDown("left") && ChartState.selectionBox.canSelect) {
 		ChartState.selectionBox.width = Math.abs(mousePos().x - ChartState.selectionBox.clickPos.x)
 		ChartState.selectionBox.height = Math.abs(mousePos().y - ChartState.selectionBox.clickPos.y)
 	
@@ -220,7 +232,7 @@ export function selectionBoxHandler(ChartState:StateChart) {
 				ChartState.selectedNotes.push(note)	
 			}
 		})
-
+		
 		ChartState.selectionBox.clickPos = vec2(0, 0)
 		ChartState.selectionBox.points = [vec2(0, 0), vec2(0, 0), vec2(0, 0), vec2(0, 0)]
 		ChartState.selectionBox.pos = vec2(0, 0)
@@ -229,19 +241,46 @@ export function selectionBoxHandler(ChartState:StateChart) {
 	}
 }
 
-export function drawSelectionBox(ChartState:StateChart) {
-	if (ChartState.selectionBox.width > 0 && ChartState.selectionBox.height > 0) {
-		drawRect({
-			width: ChartState.selectionBox.width,
-			height: ChartState.selectionBox.height,
-			pos: vec2(ChartState.selectionBox.pos.x, ChartState.selectionBox.pos.y),
-			color: BLUE,
-			opacity: 0.1,
-			outline: {
-				color: BLUE,
-				width: 5
-			},
-		})
+export function cameraControllerHandling(ChartState:StateChart) {
+	if (mousePos().x >= width() - 50 && !ChartState.cameraController.isMovingCamera) ChartState.cameraController.canMoveCamera = true
+	else if (mousePos().x < width() - 50 && !ChartState.cameraController.isMovingCamera) ChartState.cameraController.canMoveCamera = false
+
+	if (!ChartState.cameraController.isMovingCamera) {
+		ChartState.cameraController.pos.y = mapc(ChartState.scrollStep, 0, ChartState.conductor.totalSteps, 25, height() - 25)
+	}
+
+	if (ChartState.cameraController.canMoveCamera) {
+		if (isMousePressed("left")) {
+			ChartState.cameraController.isMovingCamera = true
+			if (!ChartState.paused) ChartState.paused = true
+		}
+
+		else if (isMouseReleased("left") && ChartState.cameraController.isMovingCamera) {
+			ChartState.cameraController.isMovingCamera = false
+		}
+
+		if (ChartState.cameraController.isMovingCamera) {
+			ChartState.cameraController.pos.y = mousePos().y
+			ChartState.cameraController.pos.y = clamp(ChartState.cameraController.pos.y, 25, height() - 25)
+			ChartState.scrollStep = mapc(ChartState.cameraController.pos.y, 25, height() - 25, 0, ChartState.conductor.totalSteps)
+			ChartState.scrollStep = Math.round(ChartState.scrollStep)
+		}
+	}
+}
+
+export function mouseAnimationHandling(ChartState:StateChart) {
+	if (ChartState.focusedTextBox != undefined) gameCursor.do("text")
+	else {
+		if (!ChartState.isCursorInGrid) {
+			if (isMouseDown("left") && ChartState.cameraController.isMovingCamera) gameCursor.do("down")
+			else gameCursor.do("default")
+		}
+
+		else {
+			if (!isMouseDown("left") && !isMouseDown("right")) gameCursor.do("up")
+			else if (isMouseDown("left") && !isMouseDown("right")) gameCursor.do("down")
+			else if (!isMouseDown("left") && isMouseDown("right")) gameCursor.do("x")
+		}
 	}
 }
 
@@ -478,7 +517,7 @@ export function setupManageTextboxes(ChartState:StateChart) {
 		"Middle click - Copy note color",
 		"Right click - Delete note",
 		"1, 2, 3, 4 - Change the note color",
-		"W, S - Move up or down selected note",
+		"W, S - Moves up or down the camera",
 		"Space - Pause/Unpause",
 	]
 
