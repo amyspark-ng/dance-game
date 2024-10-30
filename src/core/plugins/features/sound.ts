@@ -53,7 +53,7 @@ export function playSound(soundName: string, opts?:customAudioPlayOpt) : customA
 			channel: GameSave.sound.sfx
 		}
 	}
-
+	
 	// cases where opts.channel might be undefined
 	// the chhanel will be set to default (sfx)
 	if ((opts && !opts.channel) || (!opts.channel)) {
@@ -61,7 +61,8 @@ export function playSound(soundName: string, opts?:customAudioPlayOpt) : customA
 	}
 
 	const audioPlayer = play(soundName, { 
-		...opts,
+		volume: opts.channel?.volume ?? 1,
+		...opts
 	}) as customAudioPlay
 
 	audioPlayer.randomizePitch = (minMax?: [number, number]) => {

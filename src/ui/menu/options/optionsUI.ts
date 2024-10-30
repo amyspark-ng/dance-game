@@ -8,15 +8,47 @@ function optionItem() {
 }
 
 export const tagForSlider = "slider"
-
-export function addVolumeSlider() {
+export function addVolumeSlider(title: string) {
 	const rectangle = add([
 		rect(300, 50),
 		pos(),
 		anchor("left"),
 		optionItem(),
 		color(),
+		opacity(),
 		tagForSlider,
+		title,
+		{
+			valuePath: ""
+		}
+	])
+
+	const titleText = rectangle.add([
+		text(title, { align: "center" }),
+		pos(),
+		anchor("center"),
+		opacity(),
+		"title",
+		{
+			update() {
+				this.pos.x = rectangle.width / 2
+				this.opacity = rectangle.opacity
+			}
+		}
+	])
+
+	const valueText = rectangle.add([
+		text("1", { align: "left" }),
+		pos(),
+		anchor("right"),
+		opacity(),
+		"value",
+		{
+			update() {
+				this.pos.x = rectangle.width + this.width * 1.1
+				this.opacity = rectangle.opacity;
+			}
+		}
 	])
 
 	return rectangle;

@@ -79,7 +79,14 @@ function addSoundElements() {
 }
 
 const getSoundElements = () => get("volElement", { recursive: true })
-const fixVolume = () => GameSave.sound.masterVolume = parseFloat(GameSave.sound.masterVolume.toFixed(1))
+
+/** Adds +-0.1 but actually making it work, so no weird values */
+export function fixVolume(vol: number, add: number) {
+	let newVol = vol += add
+	newVol = parseFloat(newVol.toFixed(1))
+	newVol = clamp(newVol, 0, 1)
+	return newVol
+}
 
 /**
  * Adds the soundtray, helps you manage the MASTER VOLUME found in {@link GameSave `GameSave`}
@@ -104,35 +111,21 @@ export function addSoundTray(opts: addSoundTrayOpt) : SoundTray {
 				
 				if (isKeyPressed(opts.downVolumeKey)) {
 					if (GameSave.sound.masterVolume > 0) {
-						GameSave.sound.masterVolume -= 0.1
-						fixVolume()
+						GameSave.sound.masterVolume = fixVolume(GameSave.sound.masterVolume, -0.1)
 						volume(GameSave.sound.masterVolume)
 					}
+					
 					soundTrayEvents.trigger("show", -1, false)
 				}
-
+				
 				else if (isKeyPressed(opts.upVolumeKey)) {
 					if (GameSave.sound.masterVolume <= 0.9) {
-						GameSave.sound.masterVolume += 0.1
-						fixVolume()
+						GameSave.sound.masterVolume = fixVolume(GameSave.sound.masterVolume, 0.1)
 						volume(GameSave.sound.masterVolume)
 					}
+
 					soundTrayEvents.trigger("show", 1, false)
 				}
-
-				// // The volume are multiplied by the master volume
-				// if (GameSave.sound.masterVolume != 0) {
-				// 	GameSave.sound.sfx.muted = false
-				// 	GameSave.sound.music.muted = false
-					
-				// 	GameSave.sound.sfx.volume *= GameSave.sound.masterVolume
-				// 	GameSave.sound.music.volume *= GameSave.sound.masterVolume
-				// }
-
-				// else {
-				// 	GameSave.sound.sfx.muted = true
-				// 	GameSave.sound.music.muted = true
-				// }
 			}
 		}
 	])

@@ -161,11 +161,12 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 
 		highscoreText.solidScoreValue = getHighscore(allCapsules[songSelectState.index].song.idTitle).tally.score
 
-		songSelectState.songPreview?.windDown()
+		songSelectState.songPreview?.stop()
 		songSelectState.songPreview = playSound(allCapsules[songSelectState.index].song.idTitle + "-song", {
-			channel: GameSave.sound.music
+			channel: GameSave.sound.music,
 		})
 		songSelectState.songPreview.loop = true
+		tween(0, GameSave.sound.music.volume, 0.25, (p) => songSelectState.songPreview.volume = p)
 	}
 
 	wait(0.01, () => updateState())

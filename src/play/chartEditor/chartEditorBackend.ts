@@ -403,7 +403,7 @@ export function setupManageTextboxes(ChartState:StateChart) {
 	}
 
 	/** Gets the value of the textboxes and assigns it to the actual values on the chart */
-	function updateSongState() {
+	function updateTextboxesValue() {
 		ChartState.song.title = textboxesarr["Display name"].value as string
 		ChartState.song.idTitle = textboxesarr["ID"].value as string
 		
@@ -466,7 +466,7 @@ export function setupManageTextboxes(ChartState:StateChart) {
 		else {
 			if (ChartState.focusedTextBox) ChartState.focusedTextBox.focus = false
 			ChartState.focusedTextBox = undefined
-			updateSongState()
+			updateTextboxesValue()
 		}
 	
 		// get all the textboxes that aren't that one and unfocus them
@@ -500,11 +500,11 @@ export function setupManageTextboxes(ChartState:StateChart) {
 		}
 	})
 
-	onKeyPress("enter", () => {
+	onKeyPress(["escape", "enter"], () => {
 		if (ChartState.focusedTextBox == undefined) return
 		ChartState.focusedTextBox.focus = false
 		ChartState.focusedTextBox = undefined
-		updateSongState()
+		updateTextboxesValue()
 	})
 
 	onKeyPress("backspace", () => {

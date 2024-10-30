@@ -171,7 +171,10 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		
 		ChartState.selectedNotes.forEach((selectedNote, index) => {
 			if (selectedNote == ChartState.selectionBox.leadingNote) {
-				selectedNote.hitTime = ChartState.conductor.stepToTime(ChartState.hoveredStep)
+				let newStep = ChartState.hoveredStep
+				newStep = clamp(newStep, 0, ChartState.conductor.totalSteps - 1)
+
+				selectedNote.hitTime = ChartState.conductor.stepToTime(newStep)
 				ChartState.selectionBox.leadingNote = selectedNote
 			}
 
@@ -181,7 +184,8 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 				// this is some big brain code i swear
 				const stepDiff = differencesToLeading[indexInNotes]
-				const newStep = leadingNoteStep + stepDiff
+				let newStep = leadingNoteStep + stepDiff
+				newStep = clamp(newStep, 0, ChartState.conductor.totalSteps - 1)
 				selectedNote.hitTime = ChartState.conductor.stepToTime(newStep)
 			}
 		})
@@ -229,7 +233,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	})
 
 	// Pausing unpausing behaviour
-	onKeyPress(["space", "escape"], () => {
+	onKeyPress("space", () => {
 		if (ChartState.inputDisabled) return
 		if (ChartState.focusedTextBox) return
 		ChartState.paused = !ChartState.paused

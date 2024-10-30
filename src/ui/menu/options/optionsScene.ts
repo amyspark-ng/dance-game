@@ -8,6 +8,7 @@ import { juice } from "../../../core/plugins/graphics/juiceComponent";
 import { addCheckbox, addVolumeSlider, tagForCheckbox, tagForSlider } from "./optionsUI";
 import { appWindow } from "@tauri-apps/api/window";
 import { playSound } from "../../../core/plugins/features/sound";
+import { fixVolume } from "../../../core/plugins/features/soundtray";
 
 function uiMoveSound(change: 1 | -1) {
 	playSound("uiMove", { detune: 50 * change * -1 })
@@ -136,8 +137,8 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 				}
 
 				else if (isKeyPressed("left")) {
-					uiMoveSound(-1)
 					OptionsState.optionIndex = utils.scrollIndex(OptionsState.optionIndex, -1, moves.length)
+					uiMoveSound(-1)
 				} 
 				
 				else if (isKeyPressed("enter") && canChangeKeys) {
@@ -365,11 +366,12 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 			debug.log(selected)
 		})
 
-		const masterVolume = addVolumeSlider()
-		const musicVolume = addVolumeSlider()
-		musicVolume.use("musicSlider")
-		const sfxVolume = addVolumeSlider()
-		sfxVolume.use("sfxSlider")
+		const masterVolume = addVolumeSlider("Master")
+		masterVolume.valuePath = "masterVolume"
+		const musicVolume = addVolumeSlider("Music")
+		musicVolume.valuePath = "music.volume"
+		const sfxVolume = addVolumeSlider("Sfx")
+		sfxVolume.valuePath = "sfx.volume"
 		
 		masterVolume.onUpdate(() => {
 			let blendValue = 0
@@ -414,12 +416,7 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 			if (hoveredObj == undefined) return
 			
 			if (hoveredObj.is(tagForSlider)) {
-				let valuepath = "";
-				if (hoveredObj.is("musicSlider")) valuepath = "music.volume"
-				else if (hoveredObj.is("sfxSlider")) valuepath = "sfx.volume"
-				else valuepath = "masterVolume"
-
-				let theVol = utils.getVar(GameSave.sound, valuepath)
+				let theVol = utils.getVar(GameSave.sound, hoveredObj.valuePath)
 
 				const cursorObj = OptionsState.cursorProps.obj
 				const cursorObjWidth = cursorObj.width * OptionsState.cursorProps.scale.x
@@ -435,17 +432,21 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 				OptionsState.cursorProps.scale.y = 0.5
 			
 				if (isKeyPressedRepeat("left")) {
-					if (theVol - 0.1 >= 0) theVol -= 0.1
-					utils.setVar(GameSave.sound, valuepath, theVol)
-					volume(GameSave.sound.masterVolume)
+					if (!(theVol - 0.1 >= 0)) return;
+					theVol = fixVolume(theVol, -0.1)
 					uiMoveSound(1)
+					
+					utils.setVar(GameSave.sound, hoveredObj.valuePath, theVol)
+					volume(GameSave.sound.masterVolume)
 				}
 				
 				else if (isKeyPressedRepeat("right")) {
-					if (theVol + 0.1 <= 1) theVol += 0.1
-					utils.setVar(GameSave.sound, valuepath, theVol)
-					volume(GameSave.sound.masterVolume)
+					if (!(theVol + 0.1 <= 1)) return;
+					theVol = fixVolume(theVol, 0.1)
 					uiMoveSound(-1)
+					
+					utils.setVar(GameSave.sound, hoveredObj.valuePath, theVol)
+					volume(GameSave.sound.masterVolume)
 				}
 			}
 			
@@ -490,6 +491,11 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 				else {
 					obj.opacity = 0.5
 				}
+			}
+
+			if (obj.is(tagForSlider)) {
+				let val = utils.getVar(GameSave.sound, obj.valuePath)
+				obj.get("value")[0].text = val.toString( ) 
 			}
 		})
 	})
