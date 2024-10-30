@@ -115,7 +115,7 @@ export function playSound(soundName: string, opts?:customAudioPlayOpt) : customA
 		allSoundHandlers.delete(audioPlayer)
 	})
 
-	return audioPlayer
+	return audioPlayer;
 }
 
 export function changeAllSoundsVolume(set: Set<customAudioPlay>, volume: number) {

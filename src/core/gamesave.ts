@@ -6,21 +6,6 @@ import { PRODUCT } from "./initGame";
 
 type gameKey = { kbKey: Key, move: Move }
 
-export type Preferences = {
-	fullscreen: boolean,
-	
-	dancer: string,
-
-	gameControls: {
-		left: gameKey,
-		right: gameKey,
-		down: gameKey,
-		up: gameKey,
-	},
-
-	noteskin: string
-}
-
 /** Holds all the info that should be saved and loaded through sessions */
 export class GameSaveClass {
 	/** Player highscore */
@@ -32,16 +17,17 @@ export class GameSaveClass {
 		masterVolume: 1,
 	}
 
-	preferences:Preferences = {
+	preferences = {
+		scrollSpeed: 1,
 		fullscreen: false,
 		
 		dancer: "astri",
 		
 		gameControls: {
-			left: { kbKey: "left", move: "left" },
-			down: { kbKey: "down", move: "down" },
-			up: { kbKey: "up", move: "up" },
-			right: { kbKey: "right", move: "right" },
+			left: { kbKey: "left", move: "left" } as gameKey,
+			down: { kbKey: "down", move: "down" } as gameKey,
+			up: { kbKey: "up", move: "up" } as gameKey,
+			right: { kbKey: "right", move: "right" } as gameKey,
 		},
 
 		noteskin: "A",

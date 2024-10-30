@@ -2,6 +2,7 @@ import { GameObj, KEventController, Key, StayComp, TimerController, TweenControl
 import { GameSave } from "../../gamesave"
 import { changeAllSoundsVolume, playSound } from "./sound"
 import { juice } from "../graphics/juiceComponent"
+import { utils } from "../../../utils"
 
 export interface SoundTray {
 	show: (keepAround?: boolean) => void,
@@ -83,14 +84,6 @@ function addSoundElements() {
 
 const getSoundElements = () => get("volElement", { recursive: true })
 
-/** Adds +-0.1 but actually making it work, so no weird values */
-export function fixVolume(vol: number, add: number) {
-	let newVol = vol += add
-	newVol = parseFloat(newVol.toFixed(1))
-	newVol = clamp(newVol, 0, 1)
-	return newVol
-}
-
 /**
  * Adds the soundtray, helps you manage the MASTER VOLUME found in {@link GameSave `GameSave`}
  * @param opts 
@@ -114,7 +107,8 @@ export function addSoundTray(opts: addSoundTrayOpt) : SoundTray {
 				
 				if (isKeyPressed(opts.downVolumeKey)) {
 					if (GameSave.sound.masterVolume > 0) {
-						GameSave.sound.masterVolume = fixVolume(GameSave.sound.masterVolume, -0.1)
+						GameSave.sound.masterVolume = utils.fixDecimal(GameSave.sound.masterVolume - 0.1)
+						GameSave.sound.masterVolume = clamp(GameSave.sound.masterVolume, 0, 1)
 						volume(GameSave.sound.masterVolume)
 					}
 					
@@ -123,7 +117,8 @@ export function addSoundTray(opts: addSoundTrayOpt) : SoundTray {
 				
 				else if (isKeyPressed(opts.upVolumeKey)) {
 					if (GameSave.sound.masterVolume <= 0.9) {
-						GameSave.sound.masterVolume = fixVolume(GameSave.sound.masterVolume, 0.1)
+						GameSave.sound.masterVolume = utils.fixDecimal(GameSave.sound.masterVolume + 0.1)
+						GameSave.sound.masterVolume = clamp(GameSave.sound.masterVolume, 0, 1)
 						volume(GameSave.sound.masterVolume)
 					}
 

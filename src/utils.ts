@@ -1,5 +1,13 @@
 import { Color, Rect, Vec2 } from "kaplay";
 
+type coolFormatNumberOpt = {
+	/**
+	 * Simple - Idk
+	 * Decimal - 1 = 1.0 | 0 = 0.0
+	 */
+	type: "simple" | "decimal"
+}
+
 /** A simple utility class */
 export class utils {
 	/**
@@ -31,9 +39,11 @@ export class utils {
 	static getVar(obj:any, path:string) {
 		const parts = path.split(".")
 		const target = parts.slice(0, -1).reduce((o, p) => o[p], obj)
+		console.log(target)
 		return target[parts[parts.length-1]]
 	}
 
+	/** Sets the value of a property in a given object and path */
 	static setVar(obj:any, path:string, value:any) {
 		const parts = path.split(".")
 		const target = parts.slice(0, -1).reduce((o, p) => o[p], obj)
@@ -63,9 +73,20 @@ export class utils {
 		return `${Math.floor(timeInSeconds / 60)}:${("0" + Math.floor(timeInSeconds % 60)).slice(-2)}${includeMs ? `:${("0" + Math.floor((timeInSeconds % 1) * 1000)).slice(-3)}` : ""}`
 	}
 
-	static formatNumber(num: number) : string {
-		return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")
-		debug.log(num)
+	/** Makes it so it's always fixed to 0.1 or 1.2 or 0.0 */
+	static fixDecimal(num: number) {
+		return parseFloat(num.toFixed(1))
+	}
+
+	/** Formats a number */
+	static formatNumber(num:number, opts: coolFormatNumberOpt) {
+		if (opts.type == "decimal") {
+			return num.toFixed(1)
+		}
+
+		else {
+			return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+		}
 	}
 
 	/** Returns if a number is between a range */

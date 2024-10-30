@@ -5,10 +5,9 @@ import { utils } from "../../../utils";
 import { paramsSongSelect } from "../../songselectscene"
 import { noteskins } from "../../../core/loader";
 import { juice } from "../../../core/plugins/graphics/juiceComponent";
-import { addCheckbox, addVolumeSlider, tagForCheckbox, tagForSlider } from "./optionsUI";
+import { addCheckbox, addNumberItem, addVolumeSlider, tagForCheckbox, tagForNumItem, tagForSlider } from "./optionsUI";
 import { appWindow } from "@tauri-apps/api/window";
 import { playSound } from "../../../core/plugins/features/sound";
-import { fixVolume } from "../../../core/plugins/features/soundtray";
 
 function uiMoveSound(change: 1 | -1) {
 	playSound("uiMove", { detune: 50 * change * -1 })
@@ -358,6 +357,7 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 			obj.index = index
 			
 			obj.pos.x = initialX
+			if (obj.is(tagForSlider)) obj.pos.x -= 25
 			obj.pos.y = initialY + ((obj.height * 1.15) * index)
 		}
 
@@ -367,11 +367,11 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 		})
 
 		const masterVolume = addVolumeSlider("Master")
-		masterVolume.valuePath = "masterVolume"
+		masterVolume.value = GameSave.sound.masterVolume
 		const musicVolume = addVolumeSlider("Music")
-		musicVolume.valuePath = "music.volume"
+		musicVolume.value = GameSave.sound.music.volume
 		const sfxVolume = addVolumeSlider("Sfx")
-		sfxVolume.valuePath = "sfx.volume"
+		sfxVolume.value = GameSave.sound.sfx.volume
 		
 		masterVolume.onUpdate(() => {
 			let blendValue = 0
@@ -379,11 +379,15 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 			masterVolume.color = utils.blendColors(GREEN, RED, blendValue)
 		})
 
+		const scrollSpeedItem = addNumberItem("Scroll speed")
+		scrollSpeedItem.value = GameSave.preferences.scrollSpeed
+
 		const allElements = [
 			masterVolume,
 			musicVolume,
 			sfxVolume,
-			testCheckbox
+			testCheckbox,
+			scrollSpeedItem,
 		]
 		
 		utils.runInDesktop(() => {
@@ -416,44 +420,50 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 			if (hoveredObj == undefined) return
 			
 			if (hoveredObj.is(tagForSlider)) {
-				let theVol = utils.getVar(GameSave.sound, hoveredObj.valuePath)
+				function updateVolumeSave() {
+					if (hoveredObj.is("Master")) GameSave.sound.masterVolume = hoveredObj.value
+					else if (hoveredObj.is("Music")) GameSave.sound.music.volume = hoveredObj.value
+					else if (hoveredObj.is("Sfx")) GameSave.sound.sfx.volume = hoveredObj.value
+					volume(GameSave.sound.masterVolume)
+				}
+
+				if (hoveredObj.is("Master")) hoveredObj.value = GameSave.sound.masterVolume
+				else if (hoveredObj.is("Music")) hoveredObj.value = GameSave.sound.music.volume
+				else if (hoveredObj.is("Sfx")) hoveredObj.value = GameSave.sound.sfx.volume
 
 				const cursorObj = OptionsState.cursorProps.obj
 				const cursorObjWidth = cursorObj.width * OptionsState.cursorProps.scale.x
 				const cursorObjHeight = cursorObj.height * OptionsState.cursorProps.scale.y
 				
 				OptionsState.cursorProps.pos.y = hoveredObj.pos.y - cursorObjHeight
-				let cursorPosX = map(theVol, 0, 1, hoveredObj.pos.x - cursorObjWidth / 2, hoveredObj.pos.x + hoveredObj.width)
+				let cursorPosX = map(hoveredObj.value, 0, 1, hoveredObj.pos.x - cursorObjWidth / 2, hoveredObj.pos.x + hoveredObj.width)
 				OptionsState.cursorProps.pos.x = cursorPosX
 				OptionsState.cursorProps.lerpValue = 0.7
 
 				OptionsState.cursorProps.angle = 90
 				OptionsState.cursorProps.scale.x = 0.5
 				OptionsState.cursorProps.scale.y = 0.5
-			
+
 				if (isKeyPressedRepeat("left")) {
-					if (!(theVol - 0.1 >= 0)) return;
-					theVol = fixVolume(theVol, -0.1)
+					if (!(hoveredObj.value - 0.1 >= 0)) return;
+					hoveredObj.value = utils.fixDecimal(hoveredObj.value - 0.1)
+					hoveredObj.value = clamp(hoveredObj.value, 0, 1)
 					uiMoveSound(1)
-					
-					utils.setVar(GameSave.sound, hoveredObj.valuePath, theVol)
-					volume(GameSave.sound.masterVolume)
+					updateVolumeSave()
 				}
 				
 				else if (isKeyPressedRepeat("right")) {
-					if (!(theVol + 0.1 <= 1)) return;
-					theVol = fixVolume(theVol, 0.1)
+					if (!(hoveredObj.value + 0.1 <= 1)) return;
+					hoveredObj.value = utils.fixDecimal(hoveredObj.value + 0.1)
+					hoveredObj.value = clamp(hoveredObj.value, 0, 1)
 					uiMoveSound(-1)
-					
-					utils.setVar(GameSave.sound, hoveredObj.valuePath, theVol)
-					volume(GameSave.sound.masterVolume)
+					updateVolumeSave()
 				}
 			}
 			
 			else if (hoveredObj.is(tagForCheckbox)) {
 				OptionsState.cursorProps.pos.x = hoveredObj.pos.x - hoveredObj.width * 1.25
 				OptionsState.cursorProps.pos.y = hoveredObj.pos.y
-				OptionsState.cursorProps.angle = 0
 
 				if (isKeyPressed("enter") && canPressEnter) {
 					hoveredObj.check()
@@ -461,9 +471,20 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 				}
 			}
 
+			else if (hoveredObj.is(tagForNumItem)) {
+				OptionsState.cursorProps.pos.x = hoveredObj.pos.x - hoveredObj.width * 1.25
+				OptionsState.cursorProps.pos.y = hoveredObj.pos.y
+				
+				if (isKeyPressedRepeat("right")) hoveredObj.value = utils.fixDecimal(hoveredObj.value + 0.1)
+				else if (isKeyPressedRepeat("left")) hoveredObj.value = utils.fixDecimal(hoveredObj.value - 0.1)
+				hoveredObj.value = clamp(hoveredObj.value, 0.1, 10)
+				GameSave.preferences.scrollSpeed = hoveredObj.value
+			}
+
 			if (!hoveredObj.is(tagForSlider)) {
 				OptionsState.cursorProps.scale.x = 1
 				OptionsState.cursorProps.scale.y = 1
+				OptionsState.cursorProps.angle = 0
 				OptionsState.cursorProps.lerpValue = 0.5
 			}
 		})
@@ -491,11 +512,6 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 				else {
 					obj.opacity = 0.5
 				}
-			}
-
-			if (obj.is(tagForSlider)) {
-				let val = utils.getVar(GameSave.sound, obj.valuePath)
-				obj.get("value")[0].text = val.toString( ) 
 			}
 		})
 	})

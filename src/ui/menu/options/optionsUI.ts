@@ -1,3 +1,4 @@
+import { utils } from "../../../utils"
 
 function optionItem() {
 	return {
@@ -19,7 +20,7 @@ export function addVolumeSlider(title: string) {
 		tagForSlider,
 		title,
 		{
-			valuePath: ""
+			value: 0,
 		}
 	])
 
@@ -38,18 +39,19 @@ export function addVolumeSlider(title: string) {
 	])
 
 	const valueText = rectangle.add([
-		text("1", { align: "left" }),
+		text("", { align: "left" }),
 		pos(),
 		anchor("right"),
 		opacity(),
-		"value",
-		{
-			update() {
-				this.pos.x = rectangle.width + this.width * 1.1
-				this.opacity = rectangle.opacity;
-			}
-		}
+		"value"
 	])
+	
+	valueText.onUpdate(() => {
+		rectangle.value = utils.fixDecimal(rectangle.value)
+		valueText.text =  utils.formatNumber(rectangle.value, { type: "decimal" }) 
+		valueText.pos.x = rectangle.width + valueText.width * 1.1
+		valueText.opacity = rectangle.opacity;
+	})
 
 	return rectangle;
 }
@@ -96,4 +98,45 @@ export function addCheckbox(title: string) {
 	})
 
 	return checkbox;
+}
+
+export const tagForNumItem = "numItem"
+export function addNumberItem(title: string) {
+	const height = 50
+	
+	const item = add([
+		text("0", { size: height }),
+		pos(),
+		anchor("center"),
+		optionItem(),
+		opacity(),
+		tagForNumItem,
+		{
+			value: 0,
+			update() {
+				this.text = this.value.toFixed(1)
+			}
+		}
+	])
+
+	item.height = height;
+
+	const texty = add([
+		text(title, { align: "left" }),
+		pos(),
+		anchor("left"),
+		opacity(),
+	])
+
+	texty.onUpdate(() => {
+		texty.pos.x = item.pos.x + item.width * 1.1
+		texty.pos.y = item.pos.y
+		texty.opacity = item.opacity
+
+		item.tags.forEach((tag) => {
+			if (!texty.is(tag)) texty.use(tag)
+		})
+	})
+
+	return item;
 }

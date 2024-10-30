@@ -7,7 +7,7 @@ export class SongChart {
 	title: string = "X Song";
 
 	/** Actually divides the time it'll take the note to reach the strum by this */
-	speedMultiplier: number = 1;
+	scrollSpeed: number = 1;
 
 	/** Id of the song (like title but id with - and all that) */
 	idTitle: string = "x-song";

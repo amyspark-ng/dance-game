@@ -1,8 +1,8 @@
 import { addDancer, DANCER_POS, getDancer } from "./objects/dancer"
 import { playSound } from "../core/plugins/features/sound"
-import { onBeatHit, onMiss, onNoteHit, triggerEvent } from "../core/events"
+import { onBeatHit, onMiss, onNoteHit, onReset, triggerEvent } from "../core/events"
 import { addStrumline } from "./objects/strumline"
-import { ChartNote, notesSpawner } from "./objects/note"
+import { ChartNote, notesSpawner, TIME_FOR_STRUM } from "./objects/note"
 import { saveScore } from "./song"
 import { goScene } from "../core/scenes"
 import { addComboText, addJudgement, getJudgement, getScorePerDiff, tallyUtils } from "./objects/scoring"
@@ -75,7 +75,7 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 		GameState.tally.score += getScorePerDiff(GameState.conductor.timeInSeconds, chartNote)
 		GameState.hitNotes.push(chartNote)
 
-		if (GameState.health < 100) GameState.health += 5
+		if (GameState.health < 100) GameState.health += randi(2, 6)
 
 		const judgementText = addJudgement(judgement)
 		
@@ -96,13 +96,15 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 
 		GameState.tally.misses += 1
 		GameState.combo = 0
-		GameState.health -= 5
+		GameState.health -= randi(2, 8)
 
 		if (GameState.health <= 0) {
 			GameState.conductor.audioPlay.windDown()
 			goScene("death", { GameState: GameState } as paramsDeathScene)
 		}
 	})
+
+	onReset(() => getDancer().doMove("idle"))
 
 	// END SONG
 	GameState.conductor.audioPlay.onEnd(() => {

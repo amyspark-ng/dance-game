@@ -89,7 +89,11 @@ export function setupSong(params: paramsGameScene, GameState:StateGame) {
 	
 	// now that we have the song we can get the scroll speed multiplier and set the playback speed for funzies
 	params.playbackSpeed = params.playbackSpeed ?? 1;
-	const speed = GameState.song.speedMultiplier * params.playbackSpeed
+	
+	const speed = (GameState.song.scrollSpeed * GameSave.preferences.scrollSpeed)
+
+	// Set it back to the original value
+	setTimeForStrum(1.25)
 	setTimeForStrum(TIME_FOR_STRUM / speed)
 	params.seekTime = params.seekTime ?? 0
 	GameState.params.seekTime = params.seekTime

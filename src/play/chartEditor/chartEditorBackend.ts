@@ -414,7 +414,7 @@ export function setupManageTextboxes(ChartState:StateChart) {
 		// other stuff
 		ChartState.conductor.stepsPerBeat = Number(textboxesarr[ts1label].value)
 		ChartState.conductor.beatsPerMeasure = Number(textboxesarr[ts2label].value)
-		ChartState.song.speedMultiplier = Number(textboxesarr["Scroll speed"].value)
+		ChartState.song.scrollSpeed = Number(textboxesarr["Scroll speed"].value)
 	}
 
 	Object.keys(textboxes).forEach((label, index) => {
@@ -448,7 +448,7 @@ export function setupManageTextboxes(ChartState:StateChart) {
 			break;
 
 			case "Scroll speed":
-				txtbox.value = ChartState.song.speedMultiplier.toString();
+				txtbox.value = ChartState.song.scrollSpeed.toString();
 			break;
 		}
 	})

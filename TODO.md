@@ -1,6 +1,9 @@
-- Options: Add scroll speed multiplier
-- Options: Fix weird stuttering on volumes
 - Options: Add something to the noteskins to signify which one is currently selected
+
+- Game: Judgements are not paused with the game
+- Game: Add low health sound that plays on beat 
+- Game: Playback speed doesn't work at all
+- Save: Deep merge didn't work, added scroll speed to preferences and it didn't show up when loading
 
 - Pause: Doesn't say the song that is currently playing (bad)
 - Pause: Dancer doesn't move leave fast enough so there's 2 dancers at the same time
