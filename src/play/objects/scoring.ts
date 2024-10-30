@@ -1,6 +1,7 @@
 // # This file will manage the ranking system
 import { utils } from "../../utils";
 import { StateGame, INPUT_THRESHOLD } from "../playstate";
+import { SongChart } from "../song";
 import { getDancer, Move } from "./dancer";
 import { ChartNote } from "./note";
 
@@ -9,17 +10,31 @@ export let rankings = ["S++", "S", "A", "B", "C", "F"]
 /** The judgement the player did */
 export type Judgement = "Awesome" | "Good" | "Ehh" | "Miss"
 
+export type Ranking = "S++" | "S" | "A" | "B" | "C" | "F"
+
 export class tallyUtils {
 	static hitNotes(tally: Tally) { return tally.awesomes + tally.goods + tally.ehhs }
 	static totalNotes(tally: Tally) { return this.hitNotes(tally) + tally.misses }
 	static cleared(tally:Tally) { return (this.hitNotes(tally) / this.totalNotes(tally)) * 100 }
-	static ranking(tally:Tally) {
+	static ranking(tally:Tally) : Ranking {
 		if (tally.awesomes == this.totalNotes(tally) && tally.score > 1) return "S++"
 		else if (tally.misses == 0 && tally.score > 1) return "S"
 		else if (this.cleared(tally) > 85) return "A"
 		else if (this.cleared(tally) > 65) return "B"
 		else if (this.cleared(tally) > 45) return "C"
 		else return "F"
+	}
+
+	/** Returns a tally with random properties for a song */
+	static random() : Tally {
+		return {
+			awesomes: rand(0, 10),
+			goods: rand(0, 10),
+			ehhs: rand(0, 10),
+			misses: rand(0, 10),
+			score: 2000,
+			highestCombo: 100,
+		}
 	}
 }
 

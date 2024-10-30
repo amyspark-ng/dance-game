@@ -10,9 +10,13 @@ import { saveScore, SongChart } from "../play/song"
 import { utils } from "../utils";
 
 /** Gets the saveScore for a song name */
-function getHighscore(songName:string) {
+function getHighscore(songName:string) : saveScore {
 	const scoresOfSong = GameSave.songsPlayed.filter((song) => song.idTitle == songName)
-	if (scoresOfSong.length < 1) return new saveScore()
+	
+	if (scoresOfSong.length < 1) {
+		return new saveScore()
+	}
+
 	else {
 		// get the highest score
 		return scoresOfSong.reduce((a, b) => a.tally.score > b.tally.score ? a : b)
@@ -32,47 +36,66 @@ class StateSongSelect {
 	songPreview: customAudioPlay;
 }
 
+/** Should add this to album cover, just because  */
+const barWidth = 46
 function addSongCapsule(curSong: SongChart) {
-	const albumCover = add([
-		sprite(curSong.idTitle + "-cover"),
+	const capsuleContainer = add([
+		opacity(),
 		pos(center().x, center().y),
-		anchor("center"),
-	])
-	
-	const cdCase = add([
-		sprite("cdCase"),
-		pos(center().x, center().y),
-		color(),
-		anchor("center"),
-		opacity(0.5),
-		scale(),
 		"songCapsule",
 		{
+			width: 0,
+			height: 0,
 			song: curSong,
 			intendedXPos: 0,
 		}
 	])
-
-	const barWidth = 46
-	albumCover.onUpdate(() => {
-		albumCover.pos.x = cdCase.pos.x + barWidth / 2
-		albumCover.pos.y = cdCase.pos.y
-	})
-
-	albumCover.width = 396
-	albumCover.height = 396
-
-	const capsuleName = add([
-		text(curSong.title, { align: "center" }),
+	
+	const albumCover = capsuleContainer.add([
+		sprite(curSong.idTitle + "-cover"),
 		pos(),
 		anchor("center"),
 		opacity(),
+		z(0),
+	])
+	albumCover.pos.x += barWidth / 2
+	albumCover.width = 396
+	albumCover.height = 396
+	capsuleContainer.width = albumCover.width
+	capsuleContainer.height = albumCover.height
+
+	const cdCase = capsuleContainer.add([
+		sprite("cdCase"),
+		pos(),
+		color(),
+		anchor("center"),
+		opacity(),
+		scale(),
+		z(1),
+	])
+	
+	const capsuleName = capsuleContainer.add([
+		text(curSong.title, { align: "center" }),
+		pos(),
+		anchor("top"),
+		opacity(),
 	])
 
-	capsuleName.onUpdate(() => {
-		capsuleName.pos.x = cdCase.pos.x
-		capsuleName.pos.y = cdCase.pos.y + cdCase.height / 2 + 15
-		capsuleName.opacity = cdCase.opacity;
+	capsuleContainer.onUpdate(() => {
+		let clear = Math.round(tallyUtils.cleared(getHighscore(curSong.idTitle).tally))
+		if (isNaN(clear)) clear = 0
+	
+		let songDuration = "0"
+		getSound(`${curSong.idTitle}-song`).onLoad((data) => {
+			songDuration = utils.formatTime(data.buf.duration)
+		}) 
+	
+		capsuleName.text = `${curSong.title} (${clear}%)\n${songDuration}`
+		capsuleName.pos.y = (capsuleContainer.height / 2)
+		
+		albumCover.opacity = capsuleContainer.opacity;
+		cdCase.opacity = capsuleContainer.opacity;
+		capsuleName.opacity = capsuleContainer.opacity;
 	})
 
 	// if this song isn't played yet don't add the ranking sticker why'd you do that
@@ -84,18 +107,17 @@ function addSongCapsule(curSong: SongChart) {
 	const maxOffset = 50
 	const offset = vec2(rand(-maxOffset, maxOffset), rand(-maxOffset, maxOffset))
 	const randAngle = rand(-20, 20)
-	const rankingSticker = add([
+	const rankingSticker = capsuleContainer.add([
 		sprite("rank_" + ranking),
 		pos(),
 		rotate(randAngle),
 		anchor("center"),
+		z(3),
 	])
 
-	rankingSticker.onUpdate(() => {
-		rankingSticker.pos = cdCase.pos.add(offset)
-	})
+	rankingSticker.pos = offset
 
-	return cdCase;
+	return capsuleContainer;
 }
 
 type songCapsuleObj = ReturnType<typeof addSongCapsule> 
@@ -142,7 +164,7 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 	})
 
 	const highscoreText = add([
-		text("", { align: "right" }),
+		text("0", { align: "right" }),
 		pos(width(), 0),
 		anchor("topright"),
 		fixed(),
@@ -152,14 +174,15 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 	])
 
 	highscoreText.onUpdate(() => {
-		const lerpedValue = lerp(Number(highscoreText.text), highscoreText.solidScoreValue, 0.5)
-		highscoreText.text = Math.round(lerpedValue).toString()
+		const lerpedValue = lerp(Number(highscoreText.text.replace("★", "")), highscoreText.solidScoreValue, 0.5)
+		highscoreText.text = Math.floor(lerpedValue).toString() + "★"
 	})
 
 	function updateState() {
 		if (!allCapsules[songSelectState.index]) return
 
-		highscoreText.solidScoreValue = getHighscore(allCapsules[songSelectState.index].song.idTitle).tally.score
+		const tallyScore = getHighscore(allCapsules[songSelectState.index].song.idTitle).tally.score 
+		highscoreText.solidScoreValue = Math.floor(tallyScore)
 
 		songSelectState.songPreview?.stop()
 		songSelectState.songPreview = playSound(allCapsules[songSelectState.index].song.idTitle + "-song", {

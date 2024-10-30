@@ -59,8 +59,13 @@ export class utils {
 	}
 
 	/** Formats time with miutes, seconds and miliseconds */
-	static formatTime(timeInSeconds: number) : string {
-		return `${Math.floor(timeInSeconds / 60)}:${(timeInSeconds % 60).toFixed(2).padStart(5, "0")}`
+	static formatTime(timeInSeconds: number, includeMs:boolean = false) : string {
+		return `${Math.floor(timeInSeconds / 60)}:${("0" + Math.floor(timeInSeconds % 60)).slice(-2)}${includeMs ? `:${("0" + Math.floor((timeInSeconds % 1) * 1000)).slice(-3)}` : ""}`
+	}
+
+	static formatNumber(num: number) : string {
+		return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+		debug.log(num)
 	}
 
 	/** Returns if a number is between a range */
