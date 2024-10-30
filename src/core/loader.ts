@@ -154,16 +154,9 @@ export function getSong(songId: string) {
 /** Loads all the assets of the game */
 export function loadAssets() {
 	loadBean()
-	loadSprite("osaka", "osaka.png")
 	loadSound("volumeChange", "sounds/volumeChange.wav")
-	
 	loadCursor();
-
-	loadContent()
-
-	loadSound("opening", "sounds/opening.ogg")
-	loadSound("ending", "sounds/ending.mp3")
-	loadSound("saataandagi", "sounds/saataandagi.ogg")
+	loadContent();
 
 	loadSprite("optionsCursor", "sprites/optionsCursor.png")
 

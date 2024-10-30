@@ -5,7 +5,7 @@
 		{
 			"label": "Build: Build kaplay for html5",
 			"type": "shell",
-			"command": "bun build ; 7z a -tzip ./builds/web-build.zip ./dist/*",
+			"command": "bun vite build ; 7z a -tzip ./builds/web-build.zip ./dist/*",
 			"group": {
 				"kind": "build",
 			}
@@ -13,24 +13,24 @@
 		{
 			"label": "Build: Build kaplay for desktop",
 			"type": "shell",
-			"command": "bun build ; 7z a -tzip ./builds/desktop-build.zip ./src-tauri/target/release/*.exe",
+			"command": "bun vite build ; 7z a -tzip ./builds/desktop-build.zip ./src-tauri/target/release/*.exe",
 			"group": {
 				"kind": "build",
 			}
 		},
 		{
-			// This runs the bun build and then runs the butler to send it to itch.io
+			// This runs the bun vite build and then runs the butler to send it to itch.io
 			// Needs 7zip
 			"label": "Itch.io: Deliver kaplay for html5",
 			"type": "shell",
-			"command": "bun build ; 7z a -tzip ./builds/web-build.zip ./dist/* ; butler push builds/web-build.zip amyspark-ng/dance-game:html5 --userversion 1.0",
+			"command": "bun vite build ; 7z a -tzip ./builds/web-build.zip ./dist/* ; butler push builds/web-build.zip amyspark-ng/dance-game:html5 --userversion 1.0",
 		},
 		{
-			// This runs the bun build and then runs the butler to send it to itch.io
+			// This runs the bun vite build and then runs the butler to send it to itch.io
 			// Needs 7zip
 			"label": "Itch.io: Deliver kaplay desktop",
 			"type": "shell",
-			"command": "bun build ; 7z a -tzip ./builds/desktop-build.zip ./src-tauri/target/release/*.exe ; butler push builds/desktop-build.zip your_name_here/your_game_here:windows --userversion 1.0",
+			"command": "bun vite build ; 7z a -tzip ./builds/desktop-build.zip ./src-tauri/target/release/*.exe ; butler push builds/desktop-build.zip your_name_here/your_game_here:windows --userversion 1.0",
 		},
 	]
 }

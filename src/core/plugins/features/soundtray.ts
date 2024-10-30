@@ -30,6 +30,7 @@ function addSoundElements() {
 		color(BLACK),
 		stay(),
 		opacity(0.75),
+		fixed(),
 		z(0),
 		layer("cursor"),
 		scale(),
@@ -42,6 +43,7 @@ function addSoundElements() {
 		pos(0, bg.height - 12),
 		anchor("center"),
 		scale(0.6),
+		fixed(),
 		z(1),
 		layer("cursor"),
 		"volElement",
@@ -63,6 +65,7 @@ function addSoundElements() {
 			z(2),
 			scale(),
 			layer("cursor"),
+			fixed(),
 			juice(),
 			timer(),
 			"volElement",
@@ -211,11 +214,11 @@ export function setupSoundtray() {
 				bars.forEach((bar) => bar.bop({ startScale: 1.2, endScale: 1 }))
 			}
 
-			play("noteAdd")
+			play("volumeChange")
 		}
 
 		else if (change < 0) {
-			play("noteRemove")
+			play("volumeChange")
 		
 			const bar = getSoundElements().filter((obj) => obj.volume == GameSave.sound.masterVolume)[0]
 			

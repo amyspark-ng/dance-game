@@ -7,6 +7,8 @@
 - Pause: Sometimes the buttons stay after pausing and unpausing too fast
 	Should rehaul the pause ui system it's kinda sucky
 
+- Results: Add combo and name of the song
+
 <!-- - Add events for bpm changes, this can be done with having an array of ChartBPM which would have something like this
 ```ts
 class ChartBPM {

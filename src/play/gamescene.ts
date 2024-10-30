@@ -5,7 +5,7 @@ import { addStrumline } from "./objects/strumline"
 import { ChartNote, notesSpawner } from "./objects/note"
 import { saveScore } from "./song"
 import { goScene } from "../core/scenes"
-import { addComboText, addJudgement, getJudgement, getScorePerDiff } from "./objects/scoring"
+import { addComboText, addJudgement, getJudgement, getScorePerDiff, tallyUtils } from "./objects/scoring"
 import { GameSave } from "../core/gamesave"
 import { utils } from "../utils"
 import { addUI } from "./ui/gameUi"
@@ -77,7 +77,11 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 
 		if (GameState.health < 100) GameState.health += 5
 
-		addJudgement(judgement)
+		const judgementText = addJudgement(judgement)
+		
+		if (tallyUtils.perfectSoFar(GameState.tally)) judgementText.text += "!!"
+		else if (GameState.tally.misses < 1) judgementText.text += "!"
+		
 		addComboText(GameState.combo)
 		getDancer().doMove(chartNote.dancerMove)
 	})

@@ -90,7 +90,7 @@ export function setupSong(params: paramsGameScene, GameState:StateGame) {
 	// now that we have the song we can get the scroll speed multiplier and set the playback speed for funzies
 	params.playbackSpeed = params.playbackSpeed ?? 1;
 	const speed = GameState.song.speedMultiplier * params.playbackSpeed
-	setTimeForStrum(TIME_FOR_STRUM / speed)	
+	setTimeForStrum(TIME_FOR_STRUM / speed)
 	params.seekTime = params.seekTime ?? 0
 	GameState.params.seekTime = params.seekTime
 
@@ -141,6 +141,26 @@ export function restartSong(GameState:StateGame) {
 
 	getNotesOnScreen().forEach((noteObj) => {
 		noteObj.destroy()
+
+		let rotationDirection = choose([-10, 10])
+		const newdumbnote = add([
+			sprite(GameSave.preferences.noteskin +  "_" + noteObj.chartNote.dancerMove),
+			pos(noteObj.pos),
+			anchor(noteObj.anchor),
+			opacity(noteObj.opacity),
+			z(noteObj.z),
+			body(),
+			area(),
+			rotate(0),
+			{
+				update() {
+					this.angle += rotationDirection
+				}
+			}
+		])
+
+		newdumbnote.fadeOut(TIME_FOR_STRUM)
+		newdumbnote.jump(rand(250, 500))
 	})
 
 	triggerEvent("onReset")

@@ -4,16 +4,13 @@ import { drag } from "./plugins/features/drag"
 import { setupSoundtray } from "./plugins/features/soundtray"
 import { GameSave } from "./gamesave"
 import { setupLayers } from "./layers"
-import { getSong, loadAssets, loadingScreen, songCharts } from "./loader"
+import { getSong, loadAssets, loadingScreen } from "./loader"
 import { goScene, setupScenes } from "./scenes"
 import { setupWatch } from "./plugins/features/watcher"
-import { paramsGameScene } from "../play/playstate"
 import { paramsSongSelect } from "../ui/songselectscene"
 import { utils } from "../utils"
 import { getCurrent, WebviewWindow } from "@tauri-apps/api/window"
-import { paramsChartEditor } from "../play/chartEditor/chartEditorBackend"
-import { paramsResultsScene } from "../play/ui/resultsScene"
-import { tallyUtils } from "../play/objects/scoring"
+import { paramsGameScene } from "../play/playstate"
 
 /** Class that handles some variables related to the game as a product */
 export class PRODUCT {
@@ -34,13 +31,13 @@ export let appWindow:WebviewWindow = null
 
 export function INITIAL_SCENE() {
 	// goScene("game", { song: getSong("bopeebo"), dancer: "gru"} as paramsGameScene)
-	// goScene("songselect", { index: 0 } as paramsSongSelect)
+	goScene("songselect", { index: 0 } as paramsSongSelect)
 	// goScene("charteditor", { song: getSong("bopeebo") } as paramsChartEditor )
-	goScene("results", { GameState: {
-		song: getSong("bopeebo"),
-		params: { dancer: "gru" },
-		tally: tallyUtils.random()
-	}} as paramsResultsScene )
+	// goScene("results", { GameState: {
+	// 	song: getSong("bopeebo"),
+	// 	params: { dancer: "gru" },
+	// 	tally: tallyUtils.random()
+	// }} as paramsResultsScene )
 }
 
 export function initGame() {
@@ -76,7 +73,8 @@ export function initGame() {
 		else {
 			INITIAL_SCENE()
 		}
-	
+
+		setGravity(1000)
 		globalThis.GameSave = GameSave
 	})
 	

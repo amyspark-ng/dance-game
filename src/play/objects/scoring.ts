@@ -25,6 +25,11 @@ export class tallyUtils {
 		else return "F"
 	}
 
+	/** Wheter the player has gotten a 'not-awesome' */
+	static perfectSoFar(tally:Tally) {
+		return tally.awesomes == this.hitNotes(tally) && tally.misses == 0
+	}
+
 	/** Returns a tally with random properties for a song */
 	static random() : Tally {
 		return {

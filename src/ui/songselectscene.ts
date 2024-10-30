@@ -3,6 +3,7 @@ import { songCharts } from "../core/loader"
 import { cam } from "../core/plugins/features/camera";
 import { customAudioPlay, playSound } from "../core/plugins/features/sound";
 import { goScene, transitionToScene } from "../core/scenes";
+import { enterSongTrans } from "../core/transitions/enterSongTransition";
 import { fadeOut } from "../core/transitions/fadeOutTransition";
 import { rankings, tallyUtils } from "../play/objects/scoring";
 import { paramsGameScene } from "../play/playstate";
@@ -218,21 +219,12 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 		songSelectState.menuInputEnabled = false
 		const hoveredCapsule = allCapsules[songSelectState.index]
 		if (hoveredCapsule) {
-			let fadeout = add([
-				rect(width() * 5, height() * 5),
-				pos(center()),
-				anchor("center"),
-				opacity(0),
-			])
-			
 			songSelectState.songPreview.stop()
-			tween(cam.zoom, vec2(5), 1, (p) => cam.zoom = p, easings.easeInBack).onEnd(() => {
-				camFlash(WHITE, 0.25)
-				cam.zoom = vec2(1)
-				goScene("game", { song: hoveredCapsule.song, dancer: GameSave.preferences.dancer } as paramsGameScene)
-			})
-
-			tween(fadeout.opacity, 1, 0.75, (p) => fadeout.opacity = p)
+			transitionToScene(enterSongTrans, "game", { 
+					song: hoveredCapsule.song,
+					dancer: GameSave.preferences.dancer
+				} as paramsGameScene
+			)
 		}
 	})
 

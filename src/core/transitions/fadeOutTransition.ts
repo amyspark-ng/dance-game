@@ -1,4 +1,3 @@
-import { SceneName } from "kaplay";
 import { triggerEvent } from "../events";
 import { goScene, sceneNameType } from "../scenes";
 
