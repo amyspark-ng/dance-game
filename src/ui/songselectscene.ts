@@ -242,7 +242,7 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 	onKeyPress("escape", () => {
 		if (!songSelectState.menuInputEnabled) return
 		stopPreview()
-		goScene("options")
+		goScene("menu", { index: 0 })
 	})
 
 	onSceneLeave(() => { stopPreview() })

@@ -46,7 +46,6 @@ export class utils {
 	static getVar(obj:any, path:string) {
 		const parts = path.split(".")
 		const target = parts.slice(0, -1).reduce((o, p) => o[p], obj)
-		console.log(target)
 		return target[parts[parts.length-1]]
 	}
 

@@ -73,7 +73,7 @@ class StateOptions {
 		if (!this.inputEnabled) return
 
 		if (this.inLeft) {
-			goScene("songselect", { index: 0 } as paramsSongSelect)
+			goScene("menu", { index: 1 })
 			GameSave.save()
 		}
 		
