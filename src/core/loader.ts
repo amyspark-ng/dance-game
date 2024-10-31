@@ -2,6 +2,7 @@ import { LoadSpriteOpt, SpriteData } from "kaplay";
 import { DancerFile } from "../play/objects/dancer";
 import { SongChart } from "../play/song";
 import { loadCursor } from "./plugins/features/gameCursor";
+import { rankings } from "../play/objects/scoring";
 
 /** The loading screen of the game */
 export function loadingScreen(progress: number) {
@@ -160,9 +161,8 @@ export function loadAssets() {
 
 	loadSprite("optionsCursor", "sprites/optionsCursor.png")
 
-	const ranks = ["S++", "S", "A", "B", "C", "F"]
 	let songRanksAtlasData = {}
-	ranks.forEach((rank, index) => {
+	rankings.forEach((rank, index) => {
 		songRanksAtlasData[`rank_${rank}`] = {
 			width: 130,
 			height: 130,
@@ -180,6 +180,8 @@ export function loadAssets() {
 	loadSprite("cdCase", "sprites/songSelect/cdCase.png")
 
 	// # GAMEPLAY
+	loadSound("introGo", "sounds/introgo.mp3")
+	loadSound("lowhealth", "sounds/lowhealth.ogg")
 	loadSound("pauseScratch", "sounds/pauseScratch.mp3")
 	loadSound("missnote", "sounds/missnote.mp3")
 	

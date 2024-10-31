@@ -190,6 +190,24 @@ export function exitToChartEditor(GameState:StateGame) {
 	transitionToScene(fadeOut, "charteditor", { song: GameState.song, seekTime: GameState.conductor.timeInSeconds, dancer: GameState.params.dancer } as paramsChartEditor)
 }
 
+export function introGo() {
+	playSound("introGo", { volume: 1 })
+	const goText = add([
+		pos(center()),
+		text("GO!", { size: height() / 4 }),
+		color(RED),
+		rotate(rand(-20, 20)),
+		anchor("center"),
+		opacity(),
+		timer(),
+	])
+
+	// goText.tween(goText.pos.y, height() + goText.height, TIME_FOR_STRUM / 2, (p) => goText.pos.y = p).onEnd(() => goText.destroy())
+	goText.fadeIn(TIME_FOR_STRUM / 4).onEnd(() => {
+		goText.fadeOut()
+	})
+}
+
 /** The function that manages input functions inside the game, must be called onUpdate */
 export function manageInput(GameState: StateGame) {
 	Object.values(GameSave.preferences.gameControls).forEach((gameKey) => {

@@ -77,7 +77,7 @@ export function addStrumline(GameState:StateGame) {
 	const STRUM_POS = vec2(center().x, height() - 60);
 	
 	const strumlineObj = add([
-		rect(80, 80, { radius: 5 }),
+		rect(80, 80, { radius: 5}),
 		juice(),
 		pos(vec2(0)),
 		anchor("center"),

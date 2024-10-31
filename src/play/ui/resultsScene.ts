@@ -7,7 +7,6 @@ import { paramsSongSelect } from "../../ui/songselectscene"
 import { utils } from "../../utils"
 import { Ranking, tallyUtils } from "../objects/scoring"
 import { StateGame } from "../playstate"
-import { positionSetter } from "../../core/plugins/features/positionsetter"
 
 /** Parameters for the result scene */
 export type paramsResultsScene = {
@@ -15,7 +14,7 @@ export type paramsResultsScene = {
 }
 
 export function getAnimsAccordingToRanking(ranking: Ranking) {
-	if (ranking == "S++" || ranking == "S" || ranking == "A") return { initial: "idle", end: "victory" }
+	if (ranking == "S+" || ranking == "S" || ranking == "A") return { initial: "idle", end: "victory" }
 	else if (ranking == "B" || ranking == "C") return { initial: "miss", end: "victory" }
 	else if (ranking == "F") return { initial: "victory", end: "miss" }
 }
@@ -45,7 +44,7 @@ export function ResultsScene() { scene("results", (params: paramsResultsScene) =
 
 	/** How cleared was the song */
 	const cleared = tallyUtils.cleared(params.GameState.tally)
-	
+
 	/** The ranking you're gonna get */
 	const ranking = tallyUtils.ranking(params.GameState.tally)
 
@@ -106,12 +105,14 @@ export function ResultsScene() { scene("results", (params: paramsResultsScene) =
 	})
 
 	const dancer = add([
-		sprite("dancer_" + params.GameState.params.dancer, { anim: anims.initial }),
+		sprite("dancer_" + params.GameState.params.dancer),
 		pos(),
 		anchor("bot"),
 		scale(0.8),
 		z(1),
-	])	
+	])
+
+	dancer.play(anims.initial, { loop: true })
 
 	const clearObj = add([
 		text("0%", { align: "center", size: 65 }),

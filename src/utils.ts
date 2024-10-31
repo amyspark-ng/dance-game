@@ -19,7 +19,14 @@ export class utils {
 			action()
 		}
 	}
-	
+
+	static addInIndex(arr: any[], element:any, index:number) {
+		return arr.splice(index, 0, element)
+	}
+
+	/** A pretty cool star */
+	static star = "★"
+
 	/** Gets a random position between 0 and width and height */
 	static randomPos() {
 		return vec2(rand(0, width()), rand(0, height()))

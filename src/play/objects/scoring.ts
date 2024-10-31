@@ -5,29 +5,47 @@ import { SongChart } from "../song";
 import { getDancer, Move } from "./dancer";
 import { ChartNote } from "./note";
 
-export let rankings = ["S++", "S", "A", "B", "C", "F"]
+/** Rankings for the game */
+export const rankings = ["S+", "S", "A", "B", "C", "F"] as const
 
-/** The judgement the player did */
-export type Judgement = "Awesome" | "Good" | "Ehh" | "Miss"
+/** Ranking for a song */
+export type Ranking = typeof rankings[number]
 
-export type Ranking = "S++" | "S" | "A" | "B" | "C" | "F"
+/** Judgements for the game */
+export const judgements = ["Awesome", "Good", "Ehh", "Miss"] as const
 
+/** The judgement the player got when hitting a note */
+export type Judgement = typeof judgements[number]
+
+/** Extra class for utils related to tallies */
 export class tallyUtils {
+	
+	/** Current hit notes */
 	static hitNotes(tally: Tally) { return tally.awesomes + tally.goods + tally.ehhs }
+	
+	/** Total notes pressed */
 	static totalNotes(tally: Tally) { return this.hitNotes(tally) + tally.misses }
-	static cleared(tally:Tally) { return (this.hitNotes(tally) / this.totalNotes(tally)) * 100 }
+	
+	/** How many notes did the player hit, from 0% to 100% */
+	static cleared(tally:Tally) { 
+		let division = this.hitNotes(tally) / this.totalNotes(tally)
+		if (isNaN(division)) return 0
+		else return division * 100
+	}
+
+	/** Wheter the player has gotten a 'not-awesome' */
+	static isPerfect(tally:Tally) {
+		return tally.awesomes == this.hitNotes(tally) && tally.misses == 0
+	}
+
+	/** Gets the ranking for a given tally */
 	static ranking(tally:Tally) : Ranking {
-		if (tally.awesomes == this.totalNotes(tally) && tally.score > 1) return "S++"
+		if (tally.awesomes == this.totalNotes(tally) && tally.score > 1) return "S+"
 		else if (tally.misses == 0 && tally.score > 1) return "S"
 		else if (this.cleared(tally) > 85) return "A"
 		else if (this.cleared(tally) > 65) return "B"
 		else if (this.cleared(tally) > 45) return "C"
 		else return "F"
-	}
-
-	/** Wheter the player has gotten a 'not-awesome' */
-	static perfectSoFar(tally:Tally) {
-		return tally.awesomes == this.hitNotes(tally) && tally.misses == 0
 	}
 
 	/** Returns a tally with random properties for a song */
@@ -43,7 +61,7 @@ export class tallyUtils {
 	}
 }
 
-/** Holds the current tallies for the current song */
+/** Class for the current tallies of a song */
 export class Tally {
 	awesomes: number = 0;
 	goods: number = 0;
@@ -61,10 +79,11 @@ export const MISS_TIMING = 0.16
 
 /** Maps the difference and gets score based on that */
 export function getScorePerDiff(timeInSeconds: number, chartNote: ChartNote) {
-	const max_score = 500
+	const max_score = 50
 	const min_score = 5
 	const diff = Math.abs(timeInSeconds - chartNote.hitTime)
-	return Math.round(min_score + (max_score - min_score) * diff)
+	const score = Math.round(map(diff, 0, INPUT_THRESHOLD, max_score, min_score))
+	return score
 }
 
 /** Get the judgement the player did based on hit time */
@@ -85,6 +104,7 @@ export function addJudgement(judgement: Judgement) {
 		pos(getDancer().pos.x + 50, getDancer().pos.y),
 		anchor("left"),
 		opacity(1),
+		timer(),
 		"judgementObj"
 	])
 
@@ -96,7 +116,7 @@ export function addJudgement(judgement: Judgement) {
 		if (judgementObj.opacity <= 0) judgementObj.destroy()
 	})
 
-	judgementObj.fadeOut(1)
+	judgementObj.tween(1, 0, 1, (p) => judgementObj.opacity = p)
 	
 	return judgementObj;
 }
@@ -110,6 +130,7 @@ export function addComboText(comboAmount: number | "break") {
 		pos(judgementObj.width / 2, judgementObj.height / 2),
 		anchor(judgementObj.anchor),
 		opacity(),
+		"judgementObj",
 	])
 
 	comboText.onUpdate(() => {
@@ -119,6 +140,11 @@ export function addComboText(comboAmount: number | "break") {
 	judgementObj.onDestroy(() => comboText.destroy())
 	
 	return comboText;
+}
+
+// get the closest note to the current time
+export function getClosestNote(arr: ChartNote[], time: number) : ChartNote {
+	return arr.reduce((acc, obj) => Math.abs(time - obj.hitTime) < Math.abs(time - acc.hitTime) ? obj : acc);
 }
 
 /** Runs when you press and returns the note hit or null if you didn't hit anything on time */

@@ -4,6 +4,7 @@ import { DANCER_POS, getDancer } from "../objects/dancer"
 import { exitToChartEditor, exitToMenu, restartSong, StateGame } from "../playstate"
 import { utils } from "../../utils"
 import { PRODUCT } from "../../core/initGame"
+import { getStrumline } from "../objects/strumline"
 
 /** Runs when the game is paused */
 export function managePauseUI(pause:boolean, GameState:StateGame) {
@@ -11,6 +12,13 @@ export function managePauseUI(pause:boolean, GameState:StateGame) {
 	
 	const baseZ = 100
 	let pauseBlack = get("pauseBlack")[0]
+
+	const tagsToPause = [ "judgementObj", "strumlineObj" ]
+
+	// get all the objects and filter the ones that have any tag that is included in tagsToPause
+	get("*").filter((obj) => obj.tags.some((tag) => tagsToPause.includes(tag))).forEach((obj) => {
+		obj.paused = pause
+	})
 
 	function makePauseButton(buttonName: string, buttonIndex: number, buttonAction: () => void) {
 		const buttonObj = make([

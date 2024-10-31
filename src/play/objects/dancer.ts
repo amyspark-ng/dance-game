@@ -1,5 +1,6 @@
 import { Comp, KEventController ,LoadSpriteOpt,TimerController, TweenController, Vec2 } from "kaplay"
 import { juice } from "../../core/plugins/graphics/juiceComponent"
+import { GameSave } from "../../core/gamesave"
 
 /** Moves available for the dancer, also handles the note type */
 export type Move = "left" | "right" | "up" | "down" | "idle"
@@ -61,7 +62,10 @@ export function dancer() : dancerComp {
 	
 				this.waitForIdle?.cancel()
 				this.waitForIdle = wait(TIME_FOR_IDLE, () => {
-					this.doMove("idle")
+					const keyForMove = Object.values(GameSave.preferences.gameControls).find((gameKey) => gameKey.move == move).kbKey
+					if (!isKeyDown(keyForMove)) {
+						this.doMove("idle")
+					}
 				})
 			}
 		},

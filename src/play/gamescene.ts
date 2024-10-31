@@ -1,15 +1,15 @@
 import { addDancer, DANCER_POS, getDancer } from "./objects/dancer"
 import { playSound } from "../core/plugins/features/sound"
 import { onBeatHit, onMiss, onNoteHit, onReset, triggerEvent } from "../core/events"
-import { addStrumline } from "./objects/strumline"
+import { addStrumline, getStrumline } from "./objects/strumline"
 import { ChartNote, notesSpawner, TIME_FOR_STRUM } from "./objects/note"
 import { saveScore } from "./song"
 import { goScene } from "../core/scenes"
-import { addComboText, addJudgement, getJudgement, getScorePerDiff, tallyUtils } from "./objects/scoring"
+import { addComboText, addJudgement, getClosestNote, getJudgement, getScorePerDiff, tallyUtils } from "./objects/scoring"
 import { GameSave } from "../core/gamesave"
 import { utils } from "../utils"
 import { addUI } from "./ui/gameUi"
-import { paramsGameScene, StateGame, manageInput, setupSong, stopPlay } from "./playstate"
+import { paramsGameScene, StateGame, manageInput, setupSong, stopPlay, introGo } from "./playstate"
 import { paramsDeathScene } from "./ui/deathScene"
 import { paramsResultsScene } from "./ui/resultsScene"
 import { appWindow } from "@tauri-apps/api/window"
@@ -38,13 +38,21 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 
 	const ui = addUI()
 
+	let hasPlayedGo = false
+
 	onUpdate(() => {
+		if (GameState.conductor.timeInSeconds >= -(TIME_FOR_STRUM / 2) && !hasPlayedGo) {
+			introGo()
+			hasPlayedGo = true
+		}
+		
 		manageInput(GameState);
 		ui.missesText.text = `X | ${GameState.tally.misses}`;
 		const time = GameState.conductor.timeInSeconds < 0 ? 0 : GameState.conductor.timeInSeconds
 		ui.timeText.text = `${utils.formatTime(time)}`;
-		ui.healthText.text = GameState.health.toString();
-		ui.scoreText.text = GameState.tally.score.toString();
+		
+		ui.healthText.value = lerp(ui.healthText.value, GameState.health, 0.5)
+		ui.scoreText.value = lerp(ui.scoreText.value, GameState.tally.score, 0.5)
 	})
 	
 	onHide(() => {
@@ -54,6 +62,8 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 	})
 
 	onBeatHit(() => {
+		if (GameState.health <= 25) playSound("lowhealth", { detune: GameState.conductor.currentBeat % 2 == 0 ? 0 : 25 })
+
 		if (dancer.getMove() == "idle") {
 			dancer.moveBop()
 		}
@@ -72,14 +82,20 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 		GameState.combo += 1
 		if (GameState.combo > GameState.highestCombo) GameState.highestCombo = GameState.combo
 
-		GameState.tally.score += getScorePerDiff(GameState.conductor.timeInSeconds, chartNote)
+		// score stuff
+		let scorePerDiff = getScorePerDiff(GameState.conductor.timeInSeconds, chartNote)
+		GameState.tally.score += scorePerDiff
 		GameState.hitNotes.push(chartNote)
+
+		ui.scoreDiffText.value = scorePerDiff
+		ui.scoreDiffText.opacity = 1
+		ui.scoreDiffText.bop({ startScale: vec2(1.1), endScale: vec2(1) })
 
 		if (GameState.health < 100) GameState.health += randi(2, 6)
 
 		const judgementText = addJudgement(judgement)
 		
-		if (tallyUtils.perfectSoFar(GameState.tally)) judgementText.text += "!!"
+		if (tallyUtils.isPerfect(GameState.tally)) judgementText.text += "!!"
 		else if (GameState.tally.misses < 1) judgementText.text += "!"
 		
 		addComboText(GameState.combo)
@@ -92,6 +108,16 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 		addJudgement("Miss")
 		if (GameState.combo > 0) {
 			addComboText("break")
+		}
+
+		const closestNote = getClosestNote(GameState.song.notes, GameState.conductor.timeInSeconds)
+		const scoreDiff = getScorePerDiff(GameState.conductor.timeInSeconds, closestNote)
+
+		if (ui.scoreDiffText.value - scoreDiff > 0) {
+			ui.scoreDiffText.value = -(ui.scoreDiffText.value - scoreDiff)
+			GameState.tally.score -= scoreDiff
+			ui.scoreDiffText.opacity = 1
+			ui.scoreDiffText.bop({ startScale: vec2(1.1), endScale: vec2(1) })
 		}
 
 		GameState.tally.misses += 1

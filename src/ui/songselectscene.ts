@@ -170,20 +170,21 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 		anchor("topright"),
 		fixed(),
 		{
-			solidScoreValue: 0,
+			value: 0,
+			solidValue: 0,
 		}
 	])
 
 	highscoreText.onUpdate(() => {
-		const lerpedValue = lerp(Number(highscoreText.text.replace("★", "")), highscoreText.solidScoreValue, 0.5)
-		highscoreText.text = Math.floor(lerpedValue).toString() + "★"
+		highscoreText.value = Math.floor(lerp(highscoreText.value, highscoreText.solidValue, 0.5))
+		highscoreText.text = utils.formatNumber(highscoreText.value, { type: "simple" }) + utils.star
 	})
 
 	function updateState() {
 		if (!allCapsules[songSelectState.index]) return
 
 		const tallyScore = getHighscore(allCapsules[songSelectState.index].song.idTitle).tally.score 
-		highscoreText.solidScoreValue = Math.floor(tallyScore)
+		highscoreText.solidValue = Math.floor(tallyScore)
 
 		songSelectState.songPreview?.stop()
 		songSelectState.songPreview = playSound(allCapsules[songSelectState.index].song.idTitle + "-song", {
