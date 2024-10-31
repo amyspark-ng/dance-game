@@ -1,3 +1,5 @@
+- Chart Editor: Work out some of the kinks of the undo/redo system
+
 - Options: Add something to the noteskins to signify which one is currently selected
 
 - Game: Playback speed doesn't work at all

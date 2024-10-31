@@ -193,6 +193,7 @@ export function loadAssets() {
 	loadSound("noteRemove", "sounds/chart-editor/noteRemove.mp3")
 	loadSound("noteHit", "sounds/chart-editor/noteHit.ogg")
 	loadSound("noteMove", "sounds/chart-editor/noteMove.ogg")
+	loadSound("noteUndo", "sounds/chart-editor/noteUndo.wav")
 	
 	loadFont("lambda", "Lambda-Regular.ttf")
 	loadFont("lambdao", "Lambda-Regular.ttf", {

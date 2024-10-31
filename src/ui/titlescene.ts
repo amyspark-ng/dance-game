@@ -44,6 +44,6 @@ export function TitleScene() { scene("title", () => {
 
 	onKeyPress("enter", () => {
 		if (!inputEnabled) return;
-		goScene("menu")
+		goScene("menu", { index: 0 })
 	})
 })} // END OF SCENE

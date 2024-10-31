@@ -9,7 +9,7 @@ import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { utils } from "../../utils";
 import { ChartNote, moveToColor, note } from "../objects/note";
 import { paramsGameScene } from "../playstate";
-import { addDownloadButton, addDummyDancer, cameraControllerHandling, handlerForChangingInput, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, setupManageTextboxes, StateChart } from "./chartEditorBackend";
+import { addDownloadButton, addDummyDancer, cameraControllerHandling, ChartSnapshot, handlerForChangingInput, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, setupManageTextboxes, StateChart } from "./chartEditorBackend";
 import { drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, drawPlayBar, drawSelectGizmo, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE } from "./chartEditorElements";
 
 export function ChartEditorScene() { scene("charteditor", (params: paramsChartEditor) => {
@@ -37,6 +37,8 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	ChartState.params = params;
 	ChartState.scrollStep = ChartState.conductor.timeToStep(params.seekTime, ChartState.conductor.stepInterval)
 	ChartState.noteScales = [].fill(vec2(1), 0, ChartState.song.notes.length)
+	ChartState.curSnapshotIndex = 0
+	ChartState.snapshots = [JSON.parse(JSON.stringify(ChartState))]; 
 
 	onUpdate(() => {
 		ChartState.conductor.paused = ChartState.paused;
@@ -80,6 +82,26 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 				ChartState.removeNoteFromChart(note)
 			})
 			playSound("noteRemove", { detune: rand(-50, 50) })
+		}
+
+		// undo
+		else if (isKeyDown("control") && isKeyPressedRepeat("z")) {
+			let oldSongState = ChartState.song
+			ChartState.undo()
+			
+			if (oldSongState != ChartState.song) {
+				playSound("noteUndo", { detune: rand(-50, -25) })
+			}
+		}
+
+		// redo
+		else if (isKeyDown("control") && isKeyPressedRepeat("y")) {
+			let oldSongState = ChartState.song
+			ChartState.redo()
+			
+			if (oldSongState != ChartState.song) {
+				playSound("noteUndo", { detune: rand(25, 50) })
+			}
 		}
 	})
 
@@ -132,6 +154,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 				// if control is not down then reset the selected notes
 				if (!isKeyDown("control")) ChartState.resetSelectedNotes()
 				ChartState.selectedNotes.push(note) 
+				ChartState.takeSnapshot();
 			}
 		}
 
@@ -139,6 +162,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		else {
 			ChartState.resetSelectedNotes()
 			note = ChartState.addNoteToChart(time, ChartState.currentMove)
+			playSound("noteAdd", { detune: moveToDetune(note.dancerMove) })
 		}
 
 		ChartState.selectionBox.leadingNote = note
@@ -197,6 +221,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 			const diff = newStepOfLeading - ChartState.stepForDetune
 			const baseDetune = Math.abs(moveToDetune(ChartState.selectionBox.leadingNote.dancerMove)) * 0.5
 			playSound("noteMove", { detune: baseDetune * diff })
+			ChartState.takeSnapshot();
 		}
 	})
 

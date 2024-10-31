@@ -9,6 +9,16 @@ import { SongChart } from "../song";
 import { Conductor } from "../../conductor";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
 
+/** Class that manages the snapshots of the chart */
+export class ChartSnapshot {
+	song: SongChart;
+	selectedNotes: ChartNote[];
+	constructor(song: SongChart, selectedNotes: ChartNote[]) {
+		this.song = song;
+		this.selectedNotes = selectedNotes;
+	}
+}
+
 /** Class that manages every important variable in the chart editor */
 export class StateChart {
 	bgColor: [number, number, number] = [67, 21, 122]
@@ -92,8 +102,11 @@ export class StateChart {
 	/** is the cursorYPos but it is constantly being lerped towards it */
 	smoothCursorYPos = 0
 
-	/** The current selected note */
+	/** Array of selected notes */
 	selectedNotes: ChartNote[] = []
+
+	/** Every time you do something, the new state will be pushed to this array */
+	snapshots:StateChart[] = []
 
 	/** The step that selected note started in before it was moved */
 	stepForDetune = 0
@@ -121,7 +134,9 @@ export class StateChart {
 		tween(1.5, 1, 0.1, (p) => this.cursorScale.x = p)
 	}
 
-	/** Add a note to the chart */
+	/** Add a note to the chart
+	 * @returns The added note
+	 */
 	addNoteToChart(time: number, move: Move) {
 		this.stepForDetune = 0
 		
@@ -134,24 +149,66 @@ export class StateChart {
 		const newNote:ChartNote = { hitTime: time, dancerMove: move }
 		this.song.notes.push(newNote)
 
-		playSound("noteAdd", { detune: moveToDetune(move) })
-	
 		// add it to note scales
 		const indexInNotes = this.song.notes.indexOf(newNote)
 		tween(vec2(this.NOTE_BIG_SCALE), vec2(1), 0.1, (p) => this.noteScales[indexInNotes] = p)
 		this.selectedNotes.push(newNote)
+		this.takeSnapshot();
+		
 		return newNote;
 	}
 	
-	/** Remove a note from the chart */
-	removeNoteFromChart(noteToRemove:ChartNote) {
+	/** Remove a note from the chart
+	 * @returns The removed note
+	 */
+	removeNoteFromChart(noteToRemove:ChartNote) : ChartNote {
 		const oldNote = this.song.notes.find(note => note == noteToRemove)
+		if (oldNote == undefined) return;
 		this.song.notes = utils.removeFromArr(oldNote, this.song.notes)
 
 		// remove it from note scales
 		const indexInNotes = this.song.notes.indexOf(oldNote)
 		this.noteScales = utils.removeFromArr(this.noteScales[indexInNotes], this.noteScales)
 		this.selectedNotes = utils.removeFromArr(oldNote, this.selectedNotes)
+		this.takeSnapshot();
+		
+		return oldNote;
+	}
+
+	/** Current index of the current snapshot blah */
+	curSnapshotIndex = 0;
+
+	/** Pushes a snapshot of the current state of the chart */
+	takeSnapshot() {
+		const snapshot = new ChartSnapshot(this.song, this.selectedNotes);
+		// Remove any states ahead of the current index for redo to behave correctly
+		this.snapshots = this.snapshots.slice(0, this.curSnapshotIndex + 1);
+
+		// Add new state as a deep copy to avoid reference issues
+		this.snapshots.push(JSON.parse(JSON.stringify(snapshot)));
+		this.curSnapshotIndex++;
+	}
+
+	/** Undos the song and selected notes to latest snapshot */
+	undo() {
+		if (this.curSnapshotIndex > 0) {
+			this.curSnapshotIndex--;
+			const newState = JSON.parse(JSON.stringify(this.snapshots[this.curSnapshotIndex])); // Return deep copy of the state
+			this.selectedNotes = newState.selectedNotes
+			this.song = newState.song
+		}
+		return null; // No more states to undo
+	}
+
+	/** Redoes the song and selected notes to latest snapshot */
+	redo() {
+		if (this.curSnapshotIndex < this.snapshots.length - 1) {
+			this.curSnapshotIndex++;
+			const newState = JSON.parse(JSON.stringify(this.snapshots[this.curSnapshotIndex])); // Return deep copy of the state
+			this.selectedNotes = newState.selectedNotes
+			this.song = newState.song
+		}
+		return null; // No more states to redo
 	}
 }
 
@@ -230,6 +287,7 @@ export function selectionBoxHandler(ChartState:StateChart) {
 			if (theRect.contains(posInScreen)) {
 				// ChartState.removeNoteFromChart(note)
 				ChartState.selectedNotes.push(note)	
+				ChartState.takeSnapshot();
 			}
 		})
 		
