@@ -194,6 +194,7 @@ export function loadAssets() {
 	loadSound("noteHit", "sounds/chart-editor/noteHit.ogg")
 	loadSound("noteMove", "sounds/chart-editor/noteMove.ogg")
 	loadSound("noteUndo", "sounds/chart-editor/noteUndo.wav")
+	loadSound("noteCopy", "sounds/chart-editor/noteCopy.wav")
 	
 	loadFont("lambda", "Lambda-Regular.ttf")
 	loadFont("lambdao", "Lambda-Regular.ttf", {

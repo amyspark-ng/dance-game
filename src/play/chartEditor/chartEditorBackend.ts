@@ -1,9 +1,8 @@
 // File that stores some of the chart editor behaviour backend
-import { Key, Vec2 } from "kaplay";
+import { GameObj, Key, Vec2 } from "kaplay";
 import { Move } from "../objects/dancer";
 import { ChartNote } from "../objects/note";
 import { utils } from "../../utils";
-import { playSound } from "../../core/plugins/features/sound";
 import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { SongChart } from "../song";
 import { Conductor } from "../../conductor";
@@ -17,6 +16,11 @@ export class ChartSnapshot {
 		this.song = song;
 		this.selectedNotes = selectedNotes;
 	}
+}
+
+type notePropThing = { 
+	angle: number,
+	scale: Vec2,
 }
 
 /** Class that manages every important variable in the chart editor */
@@ -88,10 +92,10 @@ export class StateChart {
 	isCursorInGrid = false
 
 	/** The scale of the strumline line */
-	strumlineScale = vec2(1)
+	strumlineScale = vec2(1);
 
-	/** An array with the scales of every note */
-	noteScales: Vec2[] = []
+	/** Scale and angle of all notes */
+	noteProps: notePropThing[] = [];
 
 	/** The scale of the cursor */
 	cursorScale = vec2(1)
@@ -107,6 +111,9 @@ export class StateChart {
 
 	/** Every time you do something, the new state will be pushed to this array */
 	snapshots:StateChart[] = []
+	
+	/** The notes currently copied */
+	clipboard:ChartNote[] = []
 
 	/** The step that selected note started in before it was moved */
 	stepForDetune = 0
@@ -116,6 +123,9 @@ export class StateChart {
 
 	/** Focused textbox */
 	focusedTextBox: textBoxObj = undefined
+
+	/** Current index of the current snapshot blah */
+	curSnapshotIndex = 0;
 
 	/** Converts a step to a position (a hawk to a) */
 	stepToPos(step: number) {
@@ -149,11 +159,10 @@ export class StateChart {
 		const newNote:ChartNote = { hitTime: time, dancerMove: move }
 		this.song.notes.push(newNote)
 
-		// add it to note scales
 		const indexInNotes = this.song.notes.indexOf(newNote)
-		tween(vec2(this.NOTE_BIG_SCALE), vec2(1), 0.1, (p) => this.noteScales[indexInNotes] = p)
+		this.noteProps[indexInNotes] = { scale: vec2(1), angle: 0 }
+		tween(vec2(this.NOTE_BIG_SCALE), vec2(1), 0.1, (p) => this.noteProps[indexInNotes].scale = p)
 		this.selectedNotes.push(newNote)
-		this.takeSnapshot();
 		
 		return newNote;
 	}
@@ -164,19 +173,14 @@ export class StateChart {
 	removeNoteFromChart(noteToRemove:ChartNote) : ChartNote {
 		const oldNote = this.song.notes.find(note => note == noteToRemove)
 		if (oldNote == undefined) return;
-		this.song.notes = utils.removeFromArr(oldNote, this.song.notes)
-
-		// remove it from note scales
+		
 		const indexInNotes = this.song.notes.indexOf(oldNote)
-		this.noteScales = utils.removeFromArr(this.noteScales[indexInNotes], this.noteScales)
+		this.song.notes = utils.removeFromArr(oldNote, this.song.notes)
+		this.noteProps = utils.removeFromArr(this.noteProps[indexInNotes], this.noteProps)
 		this.selectedNotes = utils.removeFromArr(oldNote, this.selectedNotes)
-		this.takeSnapshot();
 		
 		return oldNote;
 	}
-
-	/** Current index of the current snapshot blah */
-	curSnapshotIndex = 0;
 
 	/** Pushes a snapshot of the current state of the chart */
 	takeSnapshot() {
@@ -236,7 +240,7 @@ export function selectionBoxHandler(ChartState:StateChart) {
 	if (isMousePressed("left")) {
 		if (ChartState.cameraController.canMoveCamera || ChartState.isCursorInGrid) {
 			ChartState.selectionBox.canSelect = false
-		} 
+		}
 	
 		else ChartState.selectionBox.canSelect = true
 		ChartState.selectionBox.clickPos = mousePos()
@@ -272,8 +276,10 @@ export function selectionBoxHandler(ChartState:StateChart) {
 		ChartState.selectionBox.points[3].y = ChartState.selectionBox.points[2].y
 	}
 
-	if (isMouseReleased("left")) {
+	if (isMouseReleased("left") && ChartState.selectionBox.canSelect) {
 		const theRect = new Rect(ChartState.selectionBox.pos, ChartState.selectionBox.width, ChartState.selectionBox.height)
+		const oldSelectedNotes = ChartState.selectedNotes
+		ChartState.selectedNotes = []
 
 		ChartState.song.notes.forEach((note) => {
 			let notePos = ChartState.stepToPos(ChartState.conductor.timeToStep(note.hitTime))
@@ -285,11 +291,12 @@ export function selectionBoxHandler(ChartState:StateChart) {
 			)
 	
 			if (theRect.contains(posInScreen)) {
-				// ChartState.removeNoteFromChart(note)
-				ChartState.selectedNotes.push(note)	
-				ChartState.takeSnapshot();
+				ChartState.selectedNotes.push(note)
 			}
 		})
+
+		const newSelectedNotes = ChartState.selectedNotes
+		if (oldSelectedNotes != newSelectedNotes) ChartState.takeSnapshot();
 		
 		ChartState.selectionBox.clickPos = vec2(0, 0)
 		ChartState.selectionBox.points = [vec2(0, 0), vec2(0, 0), vec2(0, 0), vec2(0, 0)]
@@ -461,7 +468,7 @@ export function setupManageTextboxes(ChartState:StateChart) {
 	}
 
 	/** Gets the value of the textboxes and assigns it to the actual values on the chart */
-	function updateTextboxesValue() {
+	function updateSongValues() {
 		ChartState.song.title = textboxesarr["Display name"].value as string
 		ChartState.song.idTitle = textboxesarr["ID"].value as string
 		
@@ -475,16 +482,8 @@ export function setupManageTextboxes(ChartState:StateChart) {
 		ChartState.song.scrollSpeed = Number(textboxesarr["Scroll speed"].value)
 	}
 
-	Object.keys(textboxes).forEach((label, index) => {
-		const txtbox = addTextBox({
-			label: label,
-			typeofValue: textboxes[label as keyof typeof textboxes] as "string" | "id" | "number",
-		})
-		txtbox.textSize = sizeOfTxt
-		txtbox.pos = vec2(initialTextBoxPos.x, initialTextBoxPos.y + sizeOfTxt * index)
-		textboxesarr[label] = txtbox
-
-		switch (label) {
+	function updateTextboxes(txtbox: GameObj) {
+		switch (txtbox.label) {
 			case "Display name":
 				txtbox.value = ChartState.song.title;	
 			break;
@@ -509,6 +508,24 @@ export function setupManageTextboxes(ChartState:StateChart) {
 				txtbox.value = ChartState.song.scrollSpeed.toString();
 			break;
 		}
+	}
+
+	Object.keys(textboxes).forEach((label, index) => {
+		const txtbox = addTextBox({
+			label: label,
+			typeofValue: textboxes[label as keyof typeof textboxes] as "string" | "id" | "number",
+		})
+		txtbox.textSize = sizeOfTxt
+		txtbox.pos = vec2(initialTextBoxPos.x, initialTextBoxPos.y + sizeOfTxt * index)
+		textboxesarr[label] = txtbox
+		updateTextboxes(txtbox)
+	})
+
+	onUpdate(() => {
+		const hoveredTextbox = get("textBoxComp").find((textbox) => textbox.focus)
+		if (!hoveredTextbox) return;
+		if (hoveredTextbox.focus) return;
+		updateTextboxes(hoveredTextbox)
 	})
 
 	// manages some focus for textboxes
@@ -524,7 +541,7 @@ export function setupManageTextboxes(ChartState:StateChart) {
 		else {
 			if (ChartState.focusedTextBox) ChartState.focusedTextBox.focus = false
 			ChartState.focusedTextBox = undefined
-			updateTextboxesValue()
+			updateSongValues()
 		}
 	
 		// get all the textboxes that aren't that one and unfocus them
@@ -562,29 +579,33 @@ export function setupManageTextboxes(ChartState:StateChart) {
 		if (ChartState.focusedTextBox == undefined) return
 		ChartState.focusedTextBox.focus = false
 		ChartState.focusedTextBox = undefined
-		updateTextboxesValue()
+		updateSongValues()
+		ChartState.takeSnapshot()
 	})
 
 	onKeyPress("backspace", () => {
 		if (ChartState.focusedTextBox == undefined) return
 		ChartState.focusedTextBox.value = ChartState.focusedTextBox.value.toString().slice(0, -1)
 	})
+}
 
-	let controls = [
-		"Left click - Place note",
-		"Middle click - Copy note color",
-		"Right click - Delete note",
-		"1, 2, 3, 4 - Change the note color",
-		"W, S - Moves up or down the camera",
-		"Space - Pause/Unpause",
-	]
-
-	add([
-		text(controls.join("\n"), { size: 16 }),
-		pos(vec2(15, 450)),
-		opacity(0.5),
-		anchor("topleft"),
+/** Adds a cool little floating text */
+export function addFloatingText(texting: string) {
+	const copyText = add([
+		text(texting, { align: "left", size: 20 }),
+		pos(mousePos()),
+		anchor("left"),
+		fixed(),
+		color(3, 252, 73),
+		opacity(),
+		timer(),
 	])
+
+	copyText.tween(copyText.pos.y, copyText.pos.y - 25, 0.5, (p) => copyText.pos.y = p, easings.easeOutQuint).onEnd(() => {
+		copyText.fadeOut(0.25).onEnd(() => copyText.destroy())
+	})
+
+	return copyText;
 }
 
 export function addDownloadButton(ChartState:StateChart) {

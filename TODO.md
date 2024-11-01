@@ -1,5 +1,7 @@
-- Chart Editor: Work out some of the kinks of the undo/redo system
+- Chart editor: Crashes after copying a note, pasting it and trying to paste it again, something related to note and angle scale props
 
+
+- Chart Editor: Make camera follow the leading note in a way that it's always in the center of the grid row
 - Options: Add something to the noteskins to signify which one is currently selected
 
 - Game: Playback speed doesn't work at all

@@ -9,7 +9,7 @@ import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { utils } from "../../utils";
 import { ChartNote, moveToColor, note } from "../objects/note";
 import { paramsGameScene } from "../playstate";
-import { addDownloadButton, addDummyDancer, cameraControllerHandling, ChartSnapshot, handlerForChangingInput, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, setupManageTextboxes, StateChart } from "./chartEditorBackend";
+import { addDownloadButton, addDummyDancer, addFloatingText, cameraControllerHandling, ChartSnapshot, handlerForChangingInput, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, setupManageTextboxes, StateChart } from "./chartEditorBackend";
 import { drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, drawPlayBar, drawSelectGizmo, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE } from "./chartEditorElements";
 
 export function ChartEditorScene() { scene("charteditor", (params: paramsChartEditor) => {
@@ -36,11 +36,26 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	ChartState.song = params.song;
 	ChartState.params = params;
 	ChartState.scrollStep = ChartState.conductor.timeToStep(params.seekTime, ChartState.conductor.stepInterval)
-	ChartState.noteScales = [].fill(vec2(1), 0, ChartState.song.notes.length)
 	ChartState.curSnapshotIndex = 0
-	ChartState.snapshots = [JSON.parse(JSON.stringify(ChartState))]; 
+	
+	ChartState.snapshots = [JSON.parse(JSON.stringify(ChartState))];
+	ChartState.selectedNotes = []
+	ChartState.clipboard = []
+
+	let songDuration = 0
+	getSound(`${ChartState.song.idTitle}-song`).onLoad((data) => {
+		songDuration = data.buf.duration
+	})
 
 	onUpdate(() => {
+		ChartState.song.notes.forEach((note, index) => {
+			note.hitTime = clamp(note.hitTime, 0, songDuration)
+			
+			if (!ChartState.noteProps[index]) {
+				ChartState.noteProps[index] = { scale: vec2(1), angle: 0 }
+			}
+		})
+		
 		ChartState.conductor.paused = ChartState.paused;
 
 		// SCROLL STEP
@@ -78,6 +93,8 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		mouseAnimationHandling(ChartState)
 
 		if (isKeyPressed("backspace")) {
+			if (ChartState.selectedNotes.length == 0) return
+			ChartState.takeSnapshot()
 			ChartState.selectedNotes.forEach((note) => {
 				ChartState.removeNoteFromChart(note)
 			})
@@ -102,6 +119,48 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 			if (oldSongState != ChartState.song) {
 				playSound("noteUndo", { detune: rand(25, 50) })
 			}
+		}
+
+		// copy
+		else if (isKeyDown("control") && isKeyPressed("c")) {
+			if (ChartState.selectedNotes.length == 0) return;
+			playSound("noteCopy", { detune: rand(25, 50) })
+			ChartState.clipboard = ChartState.selectedNotes
+			addFloatingText(`Copied ${ChartState.selectedNotes.length} notes!`);
+		
+			ChartState.selectedNotes.forEach((note) => {
+				const indexInNotes = ChartState.song.notes.indexOf(note)
+				tween(choose([-1, 1]) * 20, 0, 0.5, (p) => ChartState.noteProps[indexInNotes].angle = p, easings.easeOutExpo)
+				tween(vec2(1.2), vec2(1), 0.5, (p) => ChartState.noteProps[indexInNotes].scale = p, easings.easeOutExpo)
+			})
+		}
+
+		// cut
+		else if (isKeyDown("control") && isKeyPressed("x")) {
+			if (ChartState.selectedNotes.length == 0) return;
+			playSound("noteCopy", { detune: rand(0, 25) })
+			ChartState.clipboard = ChartState.selectedNotes
+			addFloatingText(`Cut ${ChartState.selectedNotes.length} notes!`);
+			ChartState.selectedNotes.forEach((note) => ChartState.removeNoteFromChart(note))
+		}
+		
+		// paste
+		else if (isKeyDown("control") && isKeyPressed("v")) {
+			if (ChartState.clipboard.length == 0) return;
+			playSound("noteCopy", { detune: rand(-50, -25) })
+			addFloatingText(`Pasted ${ChartState.clipboard.length} notes!`);
+			
+			const scrollStepToTime = ChartState.conductor.stepToTime(ChartState.scrollStep) - ChartState.conductor.stepInterval * 3
+			ChartState.clipboard.forEach((note) => {
+				const newNote = ChartState.addNoteToChart(scrollStepToTime + note.hitTime, note.dancerMove)
+				// i have to add it and thenn find  the index in notes :)
+				const indexInNotes = ChartState.song.notes.indexOf(newNote)
+				if (indexInNotes == -1) return
+				tween(choose([-1, 1]) * 20, 0, 0.5, (p) => ChartState.noteProps[indexInNotes].angle = p, easings.easeOutExpo)
+			})
+
+			// shickiiii
+			ChartState.takeSnapshot();
 		}
 	})
 
@@ -163,6 +222,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 			ChartState.resetSelectedNotes()
 			note = ChartState.addNoteToChart(time, ChartState.currentMove)
 			playSound("noteAdd", { detune: moveToDetune(note.dancerMove) })
+			ChartState.takeSnapshot();
 		}
 
 		ChartState.selectionBox.leadingNote = note
@@ -185,6 +245,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		if (!note) return
 		ChartState.removeNoteFromChart(note)
 		playSound("noteRemove", { detune: moveToDetune(note.dancerMove) })
+		ChartState.takeSnapshot();
 	})
 
 	// Behaviour for moving notes
@@ -284,7 +345,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		if (someNote) {
 			// get the note and make its scale bigger
 			const indexOfNote = ChartState.song.notes.indexOf(someNote)
-			tween(vec2(NOTE_BIG_SCALE), vec2(1), 0.1, (p) => ChartState.noteScales[indexOfNote] = p)
+			tween(vec2(NOTE_BIG_SCALE), vec2(1), 0.1, (p) => ChartState.noteProps[indexOfNote].scale = p)
 			playSound("noteHit", { detune: moveToDetune(someNote.dancerMove) })
 			triggerEvent("onNoteHit", someNote)
 		}
@@ -301,4 +362,25 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	setupManageTextboxes(ChartState)
 	addDownloadButton(ChartState)
+
+	let controls = [
+		"Left click - Place note",
+		"Middle click - Copy note color",
+		"Right click - Delete note",
+		"1, 2, 3, 4 - Change the note color",
+		"W, S - Moves up or down the camera",
+		"Space - Pause/Unpause",
+		"Ctrl + C - Copy notes",
+		"Ctrl + V - Paste notes",
+		"Ctrl + X - Cut notes",
+		"Ctrl + Z - Undo",
+		"Ctrl + Y - Redo",
+	]
+
+	const controlsText = add([
+		text(controls.join("\n"), { size: 16 }),
+		pos(vec2(15, height() - 20)),
+		opacity(0.5),
+		anchor("botleft"),
+	])
 })}

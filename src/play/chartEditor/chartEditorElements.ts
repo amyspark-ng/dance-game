@@ -49,7 +49,7 @@ export function drawPlayBar(ChartState: StateChart) {
 		color: bgColor.lighten(80),
 	})
 
-	let textToPut = utils.formatTime(ChartState.scrollTime)
+	let textToPut = utils.formatTime(ChartState.scrollTime, true)
 	if (ChartState.paused) textToPut += " (❚❚)"
 	else textToPut += " (▶)"
 	textToPut += ` - ${ChartState.scrollStep}`
@@ -123,7 +123,8 @@ export function drawAllNotes(ChartState:StateChart) {
 			drawSprite({
 				width: ChartState.SQUARE_SIZE.x,
 				height: ChartState.SQUARE_SIZE.y,
-				scale: ChartState.noteScales[index],
+				scale: ChartState.noteProps[index].scale,
+				angle: ChartState.noteProps[index].angle,
 				sprite: GameSave.preferences.noteskin + "_" + note.dancerMove,
 				pos: notePosLerped,
 				opacity: ChartState.scrollTime >= note.hitTime ? 1 : 0.5,
