@@ -1,12 +1,14 @@
+- SORTA BUNCH OF STUFF like all of the input being on playstate, all of that system could be better organized
+- Game: Add the backgrounds system
+- Game: Playback speed doesn't work at all
+- Game: Fix the score increase/decrease text workings when missing, they don't display - when missing
+
 - Chart editor: Crashes after copying a note, pasting it and trying to paste it again, something related to note and angle scale props
 
-
 - Chart Editor: Make camera follow the leading note in a way that it's always in the center of the grid row
-- Options: Add something to the noteskins to signify which one is currently selected
 
-- Game: Playback speed doesn't work at all
-- Game: REWORK input, note getting, buncha stuff
-- Game: Fix the score increase/decrease text workings whe missing
+- Results: Rehaul it, AGAIN, make it so it smoothly transitions from gameplay
+- Results: Add combo and name of the song
 
 - Pause: Doesn't say the song that is currently playing (bad)
 - Pause: Dancer doesn't move leave fast enough so there's 2 dancers at the same time
@@ -14,7 +16,7 @@
 	Should rehaul the pause ui system it's kinda sucky
 
 - Save: Add unlocked dancers system
-- Results: Add combo and name of the song
+- Options: Add something to the noteskins to signify which one is currently selected
 
 <!-- - Add events for bpm changes, this can be done with having an array of ChartBPM which would have something like this
 ```ts

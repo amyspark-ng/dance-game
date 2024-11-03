@@ -1,4 +1,4 @@
-import { Comp, KEventController ,LoadSpriteOpt,TimerController, TweenController, Vec2 } from "kaplay"
+import { Comp, KEventController, TimerController, TweenController, Vec2 } from "kaplay"
 import { juice } from "../../core/plugins/graphics/juiceComponent"
 import { GameSave } from "../../core/gamesave"
 
@@ -8,90 +8,78 @@ export type Move = "left" | "right" | "up" | "down" | "idle"
 /** Time it'll take for the dancer to go back to idleing */
 const TIME_FOR_IDLE = 1
 
-export interface dancerComp extends Comp {
-	doMove(move: Move) : void,
-	/**
-	 * Bops the dancer kinda like a FNF object
-	 * @returns The tween, check juice stretch for more info
-	 */
-	moveBop(theScale?:Vec2) : TweenController,
-
-	/** Gets the current move */
-	getMove() : Move,
-
-	/** miss */
-	miss(): void,
-
-	/** The timer controller for the wait for the idle */
-	waitForIdle: TimerController,
-}
-
 export const DANCER_POS = [518, 377]
-
-export function dancer() : dancerComp {
-	let onAnimEndEvent:KEventController = null
-
-	return {
-		id: "dancerComp",
-		require: [ "sprite", "juice", "pos" ],
-		waitForIdle: null,
-
-		add() {
-			this.waitForIdle = wait(0)
-		},
-
-		moveBop(theScale:Vec2 = vec2(1)) {
-			return this.stretch({
-				XorY: "y",
-				startScale: theScale.y * 0.9,
-				endScale: theScale.y,
-				theTime: 0.25,
-			})
-		},
-
-		getMove() {
-			return this.getCurAnim().name as Move;
-		},
-
-		doMove(move: Move) {
-			onAnimEndEvent?.cancel()
-			this.play(move)
-
-			if (move != "idle") {
-				this.moveBop()
-	
-				this.waitForIdle?.cancel()
-				this.waitForIdle = wait(TIME_FOR_IDLE, () => {
-					const keyForMove = Object.values(GameSave.preferences.gameControls).find((gameKey) => gameKey.move == move).kbKey
-					if (!isKeyDown(keyForMove)) {
-						this.doMove("idle")
-					}
-				})
-			}
-		},
-
-		miss() {
-			this.play("miss");
-			this.moveBop();
-	
-			this.waitForIdle?.cancel();
-			this.waitForIdle = null;
-			this.waitForIdle = wait(TIME_FOR_IDLE, () => {
-				this.doMove("idle");
-			})
-		},
-	}
-}
-
 export function addDancer(dancerName: string) {
+	let onAnimEndEvent:KEventController = null
+	
 	const dancerObj = add([
 		sprite(`dancer_${dancerName}`, { anim: "idle" }),
 		pos(center().x, height()),
 		anchor("bot"),
-		dancer(),
 		scale(),
 		juice(),
 		"dancerObj",
+		{
+			/** The timer controller for the wait for the idle */
+			waitForIdle: null,
+			add() {
+				this.waitForIdle = wait(0)
+			},
+
+			doMove(move: Move) : void {
+				onAnimEndEvent?.cancel()
+				this.play(move)
+	
+				if (move != "idle") {
+					this.moveBop()
+		
+					this.waitForIdle?.cancel()
+					this.waitForIdle = wait(TIME_FOR_IDLE, () => {
+						const keyForMove = Object.values(GameSave.preferences.gameControls).find((gameKey) => gameKey.move == move).kbKey
+						if (!isKeyDown(keyForMove)) {
+							this.doMove("idle")
+						}
+						
+						else {
+							let checkforkeyrelease = onKeyRelease(() => {
+								checkforkeyrelease.cancel()
+								this.doMove("idle")
+							})
+						}
+					})
+				}
+			},
+
+			/**
+			 * Bops the dancer kinda like a FNF object
+			 * @returns The tween, check juice stretch for more info
+			 */
+			moveBop(theScale:Vec2 = vec2(1, 1)) : TweenController {
+				return this.stretch({
+					XorY: "y",
+					startScale: theScale.y * 0.9,
+					endScale: theScale.y,
+					theTime: 0.25,
+				})
+			},
+		
+			/** Gets the current move */
+			getMove() : Move {
+				return this.getCurAnim().name;
+			},
+		
+			/** miss */
+			miss() : void {
+				this.play("miss");
+				this.moveBop();
+		
+				this.waitForIdle?.cancel();
+				this.waitForIdle = null;
+				this.waitForIdle = wait(TIME_FOR_IDLE, () => {
+					this.doMove("idle");
+				})
+			}
+		}
 	])
 
 	return dancerObj;
@@ -100,10 +88,12 @@ export function addDancer(dancerName: string) {
 /** The type that a dancer game object would be */
 export type DancerGameObj = ReturnType<typeof addDancer>
 
+/** Gets the current dancer */
 export function getDancer() : DancerGameObj {
 	return get("dancerObj", { recursive: true })[0] as DancerGameObj
 }
 
+/** Class that holds some info related to a dancer */
 export class DancerFile {
 	dancerName: string;
 	dancerBg: string;

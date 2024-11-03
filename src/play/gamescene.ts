@@ -112,10 +112,10 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 
 		const closestNote = getClosestNote(GameState.song.notes, GameState.conductor.timeInSeconds)
 		const scoreDiff = getScorePerDiff(GameState.conductor.timeInSeconds, closestNote)
+		GameState.tally.score -= scoreDiff
 
 		if (ui.scoreDiffText.value - scoreDiff > 0) {
 			ui.scoreDiffText.value = -(ui.scoreDiffText.value - scoreDiff)
-			GameState.tally.score -= scoreDiff
 			ui.scoreDiffText.opacity = 1
 			ui.scoreDiffText.bop({ startScale: vec2(1.1), endScale: vec2(1) })
 		}

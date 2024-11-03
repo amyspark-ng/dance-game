@@ -1,5 +1,5 @@
 // The actual scene for the chart editor
-import { getCurrent } from "@tauri-apps/api/window";
+import { version } from "@tauri-apps/api/os";
 import { Conductor } from "../../conductor";
 import { onBeatHit, onNoteHit, onStepHit, triggerEvent } from "../../core/events";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
@@ -7,9 +7,9 @@ import { playSound } from "../../core/plugins/features/sound";
 import { transitionToScene } from "../../core/scenes";
 import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { utils } from "../../utils";
-import { ChartNote, moveToColor, note } from "../objects/note";
+import { moveToColor } from "../objects/note";
 import { paramsGameScene } from "../playstate";
-import { addDownloadButton, addDummyDancer, addFloatingText, cameraControllerHandling, ChartSnapshot, handlerForChangingInput, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, setupManageTextboxes, StateChart } from "./chartEditorBackend";
+import { addDownloadButton, addDummyDancer, addFloatingText, cameraControllerHandling, handlerForChangingInput, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, setupManageTextboxes, StateChart } from "./chartEditorBackend";
 import { drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, drawPlayBar, drawSelectGizmo, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE } from "./chartEditorElements";
 
 export function ChartEditorScene() { scene("charteditor", (params: paramsChartEditor) => {
@@ -150,7 +150,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 			playSound("noteCopy", { detune: rand(-50, -25) })
 			addFloatingText(`Pasted ${ChartState.clipboard.length} notes!`);
 			
-			const scrollStepToTime = ChartState.conductor.stepToTime(ChartState.scrollStep) - ChartState.conductor.stepInterval * 3
+			const scrollStepToTime = ChartState.conductor.stepToTime(ChartState.scrollStep)
 			ChartState.clipboard.forEach((note) => {
 				const newNote = ChartState.addNoteToChart(scrollStepToTime + note.hitTime, note.dancerMove)
 				// i have to add it and thenn find  the index in notes :)

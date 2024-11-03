@@ -55,10 +55,14 @@ export function addUI() {
 			value: 0,
 			update() {
 				this.opacity -= dt()
+				if (this.value > 0) {
+					this.text = "+" + utils.formatNumber(Math.abs(this.value), { type: "simple" })
+				}
 				
-				let t = this.value > 0 ? "+" : "-"
+				else {
+					this.text = "-" + utils.formatNumber(Math.abs(this.value), { type: "simple" })
+				}
 				this.value = Math.abs(this.value)
-				this.text = t + utils.formatNumber(this.value, { type: "simple" })
 			}
 		}
 	])

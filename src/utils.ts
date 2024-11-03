@@ -3,6 +3,7 @@ import { Color, Rect, Vec2 } from "kaplay";
 type coolFormatNumberOpt = {
 	/**
 	 * Simple - Idk
+	 * 
 	 * Decimal - 1 = 1.0 | 0 = 0.0
 	 */
 	type: "simple" | "decimal"
@@ -62,11 +63,10 @@ export class utils {
 	//  r...
 	//  r...
 	/**
-	 * Function to get the position of an object in a grid, it works like this:
-	 * Row 0 and Column 0 mean initialPos btw
+	 * Function to get the position of an object in a grid
 	 * @param initialpos It's the initial pos the objects will be at, column 0 and row 0 means this exact position
 	 * @param row These are objects displayed vertically, the greater it is the more to the bottom they'll be
-	 * @param column These are objects displayed horizontally, the greater then column the more to the right 
+	 * @param column These are objects displayed horizontally, the greater it is the more to the right they'll be 
 	 * @param spacing It's the spacing objects will have, if you set Y spacing to 0, the objects won't be more apart when changing the row  
 	 * @returns A Vec2 with the position of the object
 	 */
@@ -74,7 +74,7 @@ export class utils {
 		return vec2(initialpos.x + spacing.x * (column), initialpos.y + spacing.y * (row));
 	}
 
-	/** Formats time with miutes, seconds and miliseconds */
+	/** Formats time with minutes, seconds and miliseconds */
 	static formatTime(timeInSeconds: number, includeMs:boolean = false) : string {
 		return `${Math.floor(timeInSeconds / 60)}:${("0" + Math.floor(timeInSeconds % 60)).slice(-2)}${includeMs ? `:${("0" + Math.floor((timeInSeconds % 1) * 1000)).slice(-3)}` : ""}`
 	}
@@ -101,7 +101,7 @@ export class utils {
 	}
 
 	// thank you u/LambentLight
-	/** Converts with and height to a radius of a circle */
+	/** Converts width and height to the radius of a circle */
 	static widthAndHeightToRadius(size: Vec2) {
 		return (size.y / 2) + ((size.x) / (8 * size.y))
 	}

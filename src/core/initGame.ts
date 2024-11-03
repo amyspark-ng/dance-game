@@ -9,9 +9,9 @@ import { goScene, setupScenes } from "./scenes"
 import { setupWatch } from "./plugins/features/watcher"
 import { paramsSongSelect } from "../ui/songselectscene"
 import { utils } from "../utils"
-import { getCurrent, WebviewWindow } from "@tauri-apps/api/window"
 import { paramsGameScene } from "../play/playstate"
 import { paramsChartEditor } from "../play/chartEditor/chartEditorBackend"
+import { getCurrent, WebviewWindow } from "@tauri-apps/api/window"
 
 /** Class that handles some variables related to the game as a product */
 export class PRODUCT {
@@ -31,14 +31,14 @@ export class PRODUCT {
 export let appWindow:WebviewWindow = null
 
 export function INITIAL_SCENE() {
-	// goScene("game", { song: getSong("bopeebo"), dancer: "gru"} as paramsGameScene)
-	
 	// goScene("title")
 	// goScene("menu", { index: 0 })
-
-	// goScene("songselect", { index: 0 } as paramsSongSelect)
 	
-	goScene("charteditor", { song: getSong("bopeebo") } as paramsChartEditor )
+	// goScene("game", { song: getSong("bopeebo"), dancer: "gru"} as paramsGameScene)
+	
+	goScene("songselect", { index: 0 } as paramsSongSelect)
+	
+	// goScene("charteditor", { song: getSong("bopeebo") } as paramsChartEditor )
 	
 	// goScene("results", { GameState: {
 	// 	song: getSong("bopeebo"),

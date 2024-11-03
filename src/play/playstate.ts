@@ -159,6 +159,7 @@ export function restartSong(GameState:StateGame) {
 			{
 				update() {
 					this.angle += rotationDirection
+					if (this.pos.y >= height() + this.height) this.destroy()
 				}
 			}
 		])

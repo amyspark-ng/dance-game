@@ -72,10 +72,10 @@ export class Tally {
 }
 
 // # JUDGEMENT
-export const AWESOME_TIMING = 0.088
-export const GOOD_TIMING = 0.1
-export const EHH_TIMING = 0.135
-export const MISS_TIMING = 0.16
+export const AWESOME_TIMING = 0.05
+export const GOOD_TIMING = 0.11
+export const EHH_TIMING = 0.1355
+export const MISS_TIMING = 0.166
 
 /** Maps the difference and gets score based on that */
 export function getScorePerDiff(timeInSeconds: number, chartNote: ChartNote) {
@@ -147,24 +147,14 @@ export function getClosestNote(arr: ChartNote[], time: number) : ChartNote {
 	return arr.reduce((acc, obj) => Math.abs(time - obj.hitTime) < Math.abs(time - acc.hitTime) ? obj : acc);
 }
 
-/** Runs when you press and returns the note hit or null if you didn't hit anything on time */
+/** Runs when you press and returns the note hit or undefined if you didn't hit anything on time */
 export function checkForNoteHit(GameState:StateGame, move: Move) : ChartNote {
-	function conditionsForHit(note: ChartNote) {
-		// i have to check if the current time in the song is between the hittime of the note
-		const t = GameState.conductor.timeInSeconds
-		const lowest = note.hitTime - INPUT_THRESHOLD
-		const highest = note.hitTime + INPUT_THRESHOLD
-
-		return utils.isInRange(t, highest, lowest) && (note.dancerMove === move)
-	}
-
-	// if time in seconds is close by input_treshold to the hit note of any note in the chart
-	if (GameState.song.notes.some((note) => conditionsForHit(note))) {
-		return GameState.song.notes.find((note) => conditionsForHit(note))
+	const time = GameState.conductor.timeInSeconds
+	const closestNote = getClosestNote(GameState.song.notes, time)
+	
+	if (utils.isInRange(time, closestNote.hitTime + INPUT_THRESHOLD, closestNote.hitTime - INPUT_THRESHOLD) && closestNote.dancerMove == move) {
+		return closestNote
 	}
 	
-	// if no note found (the player is a dummy and didn't hit anything)
-	else {
-		return null;
-	}
+	return undefined
 }
