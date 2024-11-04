@@ -1,5 +1,5 @@
 // File that draws all the chart editor stuff
-import { Vec2 } from "kaplay"
+import { DrawRectOpt, Vec2 } from "kaplay"
 import { GameSave } from "../../core/gamesave"
 import { utils } from "../../utils"
 import { moveToColor } from "../objects/note"
@@ -203,18 +203,33 @@ export function drawCameraControlAndNotes(ChartState:StateChart) {
 
 	// draws the notes on the side of the camera controller
 	ChartState.song.notes.forEach((note) => {
-		const initialPos = vec2(width() - 25, 0)
-		const yPos = map(note.hitTime, 0, ChartState.conductor.audioPlay.duration(), initialPos.y, height())
-		const xPos = initialPos.x
+		const noteStep = ChartState.conductor.timeToStep(note.hitTime)
+		const xPos = width() - 25
+		const yPos = map(noteStep, 0, ChartState.conductor.totalSteps, 0, height() - ChartState.SQUARE_SIZE.y)
 
-		drawRect({
-			width: ChartState.SQUARE_SIZE.x / 10,
-			height: ChartState.SQUARE_SIZE.y / 10,
-			color: moveToColor(note.dancerMove),
+		const isInSelected = ChartState.selectedNotes.includes(note)
+
+		const selectColor = BLUE.lighten(50)
+		let theColor = moveToColor(note.dancerMove)
+		if (isInSelected) theColor = utils.blendColors(theColor, selectColor, 0.25)
+
+		const noteOpts = {
+			width: ChartState.SQUARE_SIZE.x / 5,
+			height: ChartState.SQUARE_SIZE.y / 20,
+			color: theColor,
 			anchor: "center",
 			pos: vec2(xPos, yPos),
-			opacity: 0.5
-		})
+			opacity: 0.5,
+		} as DrawRectOpt
+
+		if (isInSelected) {
+			noteOpts.outline = {
+				color: selectColor,
+				width: 2,
+			}
+		}
+
+		drawRect(noteOpts)
 	})
 }
 

@@ -66,6 +66,8 @@ function loadNoteSkins() {
 
 function loadDancer(dancerName: string, spriteData: LoadSpriteOpt) {
 	loadSprite(`dancer_${dancerName}`, `sprites/dancers/${dancerName}/${dancerName}.png`, spriteData)
+	loadSprite(`bg_${dancerName}`, `sprites/dancers/${dancerName}/bg_${dancerName}.png`)
+	
 	// load the background and other stuff here
 }
 

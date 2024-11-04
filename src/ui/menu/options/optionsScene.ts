@@ -148,8 +148,15 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 					let charInputEv:KEventController = null
 					let escapeEvent:KEventController = null
 
+					/** Runs when the user is done picking a key */
 					function doneIt() {
-						uiSelectSound()
+						// if the chosen key is new || good
+						if (newKey != undefined && newKey != GameSave.preferences.gameControls[hoveredKey.curMove].kbKey) {
+							// does little anim
+							uiSelectSound()
+							tween(hoveredKey.pos.y - 10, hoveredKey.pos.y, 0.1, (p) => hoveredKey.pos.y = p, easings.easeOutQuad)
+						}
+						
 						charInputEv.cancel()
 						escapeEvent.cancel()
 						arrowKeyPressEvents.forEach((ev) => ev.cancel())
@@ -160,7 +167,7 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 						if (Object.values(GameSave.preferences.gameControls).some((key) => key.kbKey == newKey)) {
 							// if that key is in another gameControl then set that game control to the default else don't do anything
 
-							// runs  through each gameControl
+							// runs through each gameControl
 							for (const key in GameSave.preferences.gameControls) {
 								if (newKey == key) continue
 
@@ -179,9 +186,6 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 						wait(0.05, () => {
 							OptionsState.inputEnabled = true
 						})
-
-						// does little anim
-						tween(hoveredKey.pos.y - 10, hoveredKey.pos.y, 0.1, (p) => hoveredKey.pos.y = p, easings.easeOutQuad)
 					}
 					
 					const arrowKeys = ["left", "down", "up", "right"]

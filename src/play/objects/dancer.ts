@@ -18,6 +18,7 @@ export function addDancer(dancerName: string) {
 		anchor("bot"),
 		scale(),
 		juice(),
+		z(1),
 		"dancerObj",
 		{
 			/** The timer controller for the wait for the idle */

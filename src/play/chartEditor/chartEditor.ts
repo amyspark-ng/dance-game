@@ -150,9 +150,11 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 			playSound("noteCopy", { detune: rand(-50, -25) })
 			addFloatingText(`Pasted ${ChartState.clipboard.length} notes!`);
 			
-			const scrollStepToTime = ChartState.conductor.stepToTime(ChartState.scrollStep)
+			ChartState.selectedNotes = []
+
+			const newStepToTime = ChartState.conductor.stepToTime(ChartState.hoveredStep - 2.5)
 			ChartState.clipboard.forEach((note) => {
-				const newNote = ChartState.addNoteToChart(scrollStepToTime + note.hitTime, note.dancerMove)
+				const newNote = ChartState.addNoteToChart(newStepToTime + note.hitTime, note.dancerMove)
 				// i have to add it and thenn find  the index in notes :)
 				const indexInNotes = ChartState.song.notes.indexOf(newNote)
 				if (indexInNotes == -1) return

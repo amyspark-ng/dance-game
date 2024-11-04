@@ -19,6 +19,7 @@ export function addStrumline(GameState:StateGame) {
 		pos(vec2(0)),
 		anchor("center"),
 		scale(),
+		z(1),
 		color(WHITE.darken(80)),
 		"strumlineObj",
 		{

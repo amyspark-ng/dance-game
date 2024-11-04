@@ -152,9 +152,12 @@ export function checkForNoteHit(GameState:StateGame, move: Move) : ChartNote {
 	const time = GameState.conductor.timeInSeconds
 	const closestNote = getClosestNote(GameState.song.notes, time)
 	
+	// if time in seconds is in range by input_treshold 
+	// to the hit note of any note in the chart
 	if (utils.isInRange(time, closestNote.hitTime + INPUT_THRESHOLD, closestNote.hitTime - INPUT_THRESHOLD) && closestNote.dancerMove == move) {
 		return closestNote
 	}
 	
+	// if no note found (the player is a dummy and didn't hit anything)
 	return undefined
 }

@@ -200,6 +200,7 @@ export function introGo() {
 		rotate(rand(-20, 20)),
 		anchor("center"),
 		opacity(),
+		z(1),
 		timer(),
 	])
 
@@ -211,15 +212,18 @@ export function introGo() {
 
 /** The function that manages input functions inside the game, must be called onUpdate */
 export function manageInput(GameState: StateGame) {
-	Object.values(GameSave.preferences.gameControls).forEach((gameKey) => {
+	Object.values(GameSave.preferences.gameControls).forEach((gameKey, index) => {
 		if (GameState.paused) return
 
-		if (isKeyPressed(gameKey.kbKey)) {
+		const kbKey = gameKey.kbKey
+		const defaultKey = Object.keys(GameSave.preferences.gameControls)[index]
+
+		if (isKeyPressed(kbKey) || isKeyPressed(defaultKey)) {
 			// bust a move
 			getStrumline().press(gameKey.move)
 		}
 
-		else if (isKeyReleased(gameKey.kbKey)) {
+		else if (isKeyReleased(kbKey) || isKeyReleased(defaultKey)) {
 			getStrumline().release()
 		}
 	});
@@ -234,14 +238,11 @@ export function manageInput(GameState: StateGame) {
 		restartSong(GameState)
 	}
 
-	if (PRODUCT.DEBUG) {
+	// if no game key is 7 then it will exit to the chart editor
+	if (!Object.values(GameSave.preferences.gameControls).some((gameKey) => gameKey.kbKey == "7")) {
 		if (isKeyPressed("7")) {
 			exitToChartEditor(GameState)
 		}
-	}
-
-	if (GameState.paused && isKeyPressed("shift")) {
-		exitToMenu(GameState)
 	}
 }
 

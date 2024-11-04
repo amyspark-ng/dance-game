@@ -63,6 +63,7 @@ export function addNote(chartNote: ChartNote, GameState:StateGame) {
 		note(),
 		anchor("center"),
 		opacity(),
+		z(2),
 		"noteObj",
 	])
 

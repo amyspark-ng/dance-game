@@ -36,6 +36,21 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 		if (dancer.waitForIdle) dancer.waitForIdle.paused = GameState.paused;
 	})
 
+	let dancerHasBg = false
+	getSprite(`bg_` + params.dancer).onLoad((data) => {
+		if (data != null) dancerHasBg = true
+	})
+
+	if (dancerHasBg) {
+		add([
+			sprite("bg_" + params.dancer),
+			pos(center()),
+			anchor("center"),
+			layer("background"),
+			z(0),
+		])
+	}
+
 	const ui = addUI()
 
 	let hasPlayedGo = false

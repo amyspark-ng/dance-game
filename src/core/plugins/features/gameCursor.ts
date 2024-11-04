@@ -33,6 +33,7 @@ export function addCursorObject() {
 		rotate(0),
 		z(0),
 		color(),
+		opacity(),
 		scale(),
 		layer("cursor"),
 		"gameCursor",
@@ -41,6 +42,10 @@ export function addCursorObject() {
 				theMousePos = lerp(theMousePos, mousePos(), 0.8)
 
 				if (isMouseMoved()) this.pos = theMousePos
+			
+				// this should be extended somewhere sorry
+				if (getSceneName() != "charteditor") this.opacity = lerp(this.opacity, 0, 0.1)
+				else this.opacity = lerp(this.opacity, 1, 0.1)
 			}
 		}
 	])

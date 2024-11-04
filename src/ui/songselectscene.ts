@@ -59,7 +59,7 @@ function addSongCapsule(curSong: SongChart) {
 		opacity(),
 		z(0),
 	])
-	albumCover.pos.x += barWidth / 2
+	albumCover.pos.x += (barWidth / 2) - 5
 	albumCover.width = 396
 	albumCover.height = 396
 	capsuleContainer.width = albumCover.width
