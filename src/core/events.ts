@@ -5,6 +5,7 @@ const possibleEvents = [
 	"transitionEnd",
 	"onBeatHit",
 	"onStepHit",
+	"onMeasureHit",
 	"onNoteHit",
 	"onMiss",
 	"onReset",
@@ -34,6 +35,10 @@ export function onBeatHit(action: () => void) {
 
 export function onStepHit(action: () => void) {
 	return getTreeRoot().on("onStepHit", action)
+}
+
+export function onMeasureHit(action: () => void) {
+	return getTreeRoot().on("onMeasureHit", action)
 }
 
 /** Runs when player hit a note, you can grab the note in action */

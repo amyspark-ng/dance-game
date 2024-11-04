@@ -1,31 +1,36 @@
 import { triggerEvent } from "./core/events";
 import { customAudioPlay } from "./core/plugins/features/sound";
-import { TIME_FOR_STRUM } from "./play/objects/note";
 
 /*  
 	=== Some explanations about conducting and music ===
-	I had to learn music theory from start, props to flagBearer for teaching some of the code related stuff.
-	measure = bar, btw.
+	I had to learn music theory from start, props to flagBearer for teaching some of the code related stuff
+	And webadazzz <3 for teaching me some other music theory
 
-	A time signature, is how we dictate the steps, a 4/4 time signature means every 4th beat will be accentuated
-	4/4 = 1, 2, 3, 4!!, 1, 2, 3, 4!!
-	3/4 = 1, 2, 3!!, 1, 2, 3!!
+	'Time signature' is the way we dictate the beat/rhythm of a song will go
+		4/4 = 1, 2, 3, 4!!, 1, 2, 3, 4!!
+		3/4 = 1, 2, 3!!, 1, 2, 3!!
 
-	This 4th beat being the numerator (the number on the left)
+		It's presented in the format of a fraction
+		eg: 4/4, 3/4, 4/2, etc
 
-	- 4/4 = 4 beats per measure = 16 steps per measure
-	- 3/4 = 3 beats per measure = 12 steps per measure 
+		The numerator (0, first number) will mean the number of steps in a beat
+		The denominator (1, second number) will mean the number of beats in a measure
 
-	The numerator in a time signature is the number of beats in a measure.
-	It dictates how many times we count before going back to 1.
+		eg:
+		- 4/4 = 4 beats per measure = 16 steps per measure
+		- 3/4 = 3 beats per measure = 12 steps per measure 
 
-	The denominator is the 'type of beat'
+	'Step' is every little square we can place a note in, the numerator of the time signature.
+		Dictates how many steps there will be in a beat
 
-	# For charting
-	* A measure is every 'chunk' of the track, holds 16 steps
-	* onBeatHit (aka a Beat) are the 4 bigger lines on each measure. 4 beats per measure
-	* onStepHit (aka a Step) are the 16 spaces you can place notes in each measure (by default).
-	4 steps per beat, so 16 steps per measure
+	'Beat' will be every (numerator) steps in a song.
+		Is pretty crucial y'know makes everything look cool and boppy
+
+	'Measure' is simply a chunk of the song that changes every (denominator) beats.
+		A measure is also known as a 'Bar'
+
+	This is some basic knowledge about music theory and it's terminology
+	Mostly used in fnf and rhythm games, but it's pretty helpful to code tons of stuff :)
 */
 
 type conductorOpts = {
@@ -60,6 +65,7 @@ export class Conductor {
 
 	currentStep: number;
 	currentBeat: number;
+	currentMeasure: number;
 
 	/** The bpm of the song on the audioPlay */
 	BPM: number = 100;
@@ -138,9 +144,11 @@ export class Conductor {
 
 			let oldBeat = this.currentBeat;
 			let oldStep = this.currentStep;
+			let oldMeasure = this.currentMeasure;
 			
 			this.currentBeat = Math.floor(this.timeInSeconds / this.beatInterval);
 			this.currentStep = Math.floor(this.timeInSeconds / this.stepInterval);
+			this.currentMeasure = Math.floor(this.currentBeat / this.beatsPerMeasure);
 
 			if (oldBeat != this.currentBeat) {
 				triggerEvent("onBeatHit")
@@ -148,6 +156,10 @@ export class Conductor {
 
 			if (oldStep != this.currentStep) {
 				triggerEvent("onStepHit")
+			}
+			
+			if (oldMeasure != this.currentMeasure) {
+				triggerEvent("onMeasureHit")
 			}
 		}
 	}

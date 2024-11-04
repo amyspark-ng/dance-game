@@ -68,7 +68,7 @@ export function drawPlayBar(ChartState: StateChart) {
 export function drawCheckerboard(ChartState: StateChart) {
 	for (let i = 0; i < ChartState.conductor.totalSteps; i++) {
 		const newPos = ChartState.stepToPos(i)
-		newPos.y -= 50 * ChartState.smoothScrollStep
+		newPos.y -= ChartState.SQUARE_SIZE.y * ChartState.smoothScrollStep
 
 		const baseColor = WHITE.darken(100)
 		const lighter = baseColor.darken(10)
@@ -117,7 +117,7 @@ export function drawAllNotes(ChartState:StateChart) {
 	// draws the notes
 	ChartState.song.notes.forEach((note, index) => {
 		let notePos = ChartState.stepToPos(ChartState.conductor.timeToStep(note.hitTime))
-		notePos.y -= 50 * ChartState.smoothScrollStep
+		notePos.y -= ChartState.SQUARE_SIZE.y * ChartState.smoothScrollStep
 
 		const notePosLerped = lerp(notePos, notePos, ChartState.SCROLL_LERP_VALUE)
 		
@@ -216,8 +216,8 @@ export function drawCameraControlAndNotes(ChartState:StateChart) {
 		if (isInSelected) theColor = utils.blendColors(theColor, selectColor, 0.25)
 
 		const noteOpts = {
-			width: ChartState.SQUARE_SIZE.x / 5,
-			height: ChartState.SQUARE_SIZE.y / 20,
+			width: 50 / 5,
+			height: 50 / 20,
 			color: theColor,
 			anchor: "center",
 			pos: vec2(xPos, yPos),

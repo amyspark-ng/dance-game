@@ -68,7 +68,7 @@ export class StateChart {
 	NOTE_BIG_SCALE = 1.4
 
 	/** Width and height of every square */
-	SQUARE_SIZE = vec2(50, 50);
+	SQUARE_SIZE = vec2(52, 52);
 
 	/** The initial pos of the first square */
 	INITIAL_POS = vec2(center().x, this.SQUARE_SIZE.y + this.SQUARE_SIZE.y / 2);
@@ -283,7 +283,7 @@ export function selectionBoxHandler(ChartState:StateChart) {
 
 		ChartState.song.notes.forEach((note) => {
 			let notePos = ChartState.stepToPos(ChartState.conductor.timeToStep(note.hitTime))
-			notePos.y -= 50 * ChartState.smoothScrollStep
+			notePos.y -= ChartState.SQUARE_SIZE.y * ChartState.smoothScrollStep
 
 			const posInScreen = vec2(
 				notePos.x - ChartState.SQUARE_SIZE.x / 2,
@@ -307,8 +307,8 @@ export function selectionBoxHandler(ChartState:StateChart) {
 }
 
 export function cameraControllerHandling(ChartState:StateChart) {
-	if (mousePos().x >= width() - 50 && !ChartState.cameraController.isMovingCamera) ChartState.cameraController.canMoveCamera = true
-	else if (mousePos().x < width() - 50 && !ChartState.cameraController.isMovingCamera) ChartState.cameraController.canMoveCamera = false
+	if (mousePos().x >= width() - ChartState.SQUARE_SIZE.x && !ChartState.cameraController.isMovingCamera) ChartState.cameraController.canMoveCamera = true
+	else if (mousePos().x < width() - ChartState.SQUARE_SIZE.x && !ChartState.cameraController.isMovingCamera) ChartState.cameraController.canMoveCamera = false
 
 	if (!ChartState.cameraController.isMovingCamera) {
 		ChartState.cameraController.pos.y = mapc(ChartState.scrollStep, 0, ChartState.conductor.totalSteps, 25, height() - 25)
@@ -359,6 +359,7 @@ export function handlerForChangingInput(ChartState:StateChart) {
 	}
 
 	Object.keys(keysAndMoves).forEach((key) => {
+		if (ChartState.focusedTextBox != undefined) return;
 		if (isKeyPressed(key as Key)) {
 			ChartState.changeMove(keysAndMoves[key])
 		}
@@ -583,7 +584,7 @@ export function setupManageTextboxes(ChartState:StateChart) {
 		ChartState.takeSnapshot()
 	})
 
-	onKeyPress("backspace", () => {
+	onKeyPressRepeat("backspace", () => {
 		if (ChartState.focusedTextBox == undefined) return
 		ChartState.focusedTextBox.value = ChartState.focusedTextBox.value.toString().slice(0, -1)
 	})

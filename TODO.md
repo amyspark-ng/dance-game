@@ -3,8 +3,6 @@
 - Game: Playback speed doesn't work at all
 - Game: Fix the score increase/decrease text workings when missing, they don't display - when missing
 
-- Chart editor: Crashes after copying a note, pasting it and trying to paste it again, something related to note and angle scale props
-
 - Chart Editor: Make camera follow the leading note in a way that it's always in the center of the grid row
 
 - Results: Rehaul it, AGAIN, make it so it smoothly transitions from gameplay

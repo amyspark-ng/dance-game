@@ -84,8 +84,8 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		// Handle move change input 
 		handlerForChangingInput(ChartState)
 	
-		if (isKeyPressedRepeat("w")) ChartState.scrollStep--
-		if (isKeyPressedRepeat("s")) ChartState.scrollStep++
+		if (isKeyPressedRepeat("w") && ChartState.scrollStep > 0) ChartState.scrollStep--
+		if (isKeyPressedRepeat("s") && ChartState.scrollStep < ChartState.conductor.totalSteps - 1) ChartState.scrollStep++
 
 		selectionBoxHandler(ChartState)
 		cameraControllerHandling(ChartState)
@@ -127,7 +127,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 			playSound("noteCopy", { detune: rand(25, 50) })
 			ChartState.clipboard = ChartState.selectedNotes
 			addFloatingText(`Copied ${ChartState.selectedNotes.length} notes!`);
-		
+			
 			ChartState.selectedNotes.forEach((note) => {
 				const indexInNotes = ChartState.song.notes.indexOf(note)
 				tween(choose([-1, 1]) * 20, 0, 0.5, (p) => ChartState.noteProps[indexInNotes].angle = p, easings.easeOutExpo)
@@ -168,7 +168,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		// select all!
 		else if (isKeyDown("control") && isKeyPressed("a")) {
 			ChartState.song.notes.forEach((note) => {
-				if (ChartState.selectedNotes.includes(note)) return
+				if (ChartState.selectedNotes.includes(note)) return;
 				ChartState.selectedNotes.push(note)
 			})
 		}
