@@ -223,7 +223,7 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 			songSelectState.songPreview.stop()
 			transitionToScene(enterSongTrans, "game", { 
 					song: hoveredCapsule.song,
-					dancer: GameSave.preferences.dancer
+					dancer: GameSave.dancer
 				} as paramsGameScene
 			)
 		}

@@ -127,7 +127,7 @@ export function drawAllNotes(ChartState:StateChart) {
 				height: ChartState.SQUARE_SIZE.y,
 				scale: ChartState.noteProps[index].scale,
 				angle: ChartState.noteProps[index].angle,
-				sprite: GameSave.preferences.noteskin + "_" + note.dancerMove,
+				sprite: GameSave.noteskin + "_" + note.dancerMove,
 				pos: notePosLerped,
 				opacity: ChartState.scrollTime >= note.hitTime ? 1 : 0.5,
 				anchor: "center",

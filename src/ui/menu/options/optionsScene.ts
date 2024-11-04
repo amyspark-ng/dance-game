@@ -117,7 +117,7 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 	// game keys
 	if (page == 0) {
 		OptionsState.inputEnabled = true
-		let moves = Object.keys(GameSave.preferences.gameControls)
+		let moves = Object.keys(GameSave.gameControls)
 
 		// this is done so the isKeyPressed("enter") doesn't run the second this is triggered
 		let canChangeKeys = false
@@ -151,7 +151,7 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 					/** Runs when the user is done picking a key */
 					function doneIt() {
 						// if the chosen key is new || good
-						if (newKey != undefined && newKey != GameSave.preferences.gameControls[hoveredKey.curMove].kbKey) {
+						if (newKey != undefined && newKey != GameSave.gameControls[hoveredKey.curMove].kbKey) {
 							// does little anim
 							uiSelectSound()
 							tween(hoveredKey.pos.y - 10, hoveredKey.pos.y, 0.1, (p) => hoveredKey.pos.y = p, easings.easeOutQuad)
@@ -161,25 +161,25 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 						escapeEvent.cancel()
 						arrowKeyPressEvents.forEach((ev) => ev.cancel())
 						
-						const defaultKeys = Object.keys(new GameSaveClass().preferences.gameControls)
+						const defaultKeys = Object.keys(new GameSaveClass().gameControls)
 						
 						// checks if any key is the same as the new key
-						if (Object.values(GameSave.preferences.gameControls).some((key) => key.kbKey == newKey)) {
+						if (Object.values(GameSave.gameControls).some((key) => key.kbKey == newKey)) {
 							// if that key is in another gameControl then set that game control to the default else don't do anything
 
 							// runs through each gameControl
-							for (const key in GameSave.preferences.gameControls) {
+							for (const key in GameSave.gameControls) {
 								if (newKey == key) continue
 
 								// set to default if the key is repeated
-								if (GameSave.preferences.gameControls[key].kbKey == newKey) {
-									GameSave.preferences.gameControls[key].kbKey = defaultKeys[Object.values(GameSave.preferences.gameControls).indexOf(GameSave.preferences.gameControls[key])]
+								if (GameSave.gameControls[key].kbKey == newKey) {
+									GameSave.gameControls[key].kbKey = defaultKeys[Object.values(GameSave.gameControls).indexOf(GameSave.gameControls[key])]
 								}
 							}
 						}
 
 						if (newKey != undefined) {
-							GameSave.preferences.gameControls[hoveredKey.curMove].kbKey = newKey
+							GameSave.gameControls[hoveredKey.curMove].kbKey = newKey
 						}
 
 						// so iskeypressed left and right can't run inmediately after choosing an arrow key
@@ -244,7 +244,7 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 			const spacing = 90
 
 			const noteForKey = add([
-				sprite(GameSave.preferences.noteskin + "_" + curMove),
+				sprite(GameSave.noteskin + "_" + curMove),
 				pos(initialX + spacing * index, initialY),
 				anchor("center"),
 				opacity(1),
@@ -259,7 +259,7 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 
 			noteForKey.onDraw(() => {
 				drawKey({
-					key: GameSave.preferences.gameControls[curMove].kbKey,
+					key: GameSave.gameControls[curMove].kbKey,
 					position: vec2(0, noteForKey.height),
 					opacity: noteForKey.opacity
 				})
@@ -271,7 +271,7 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 	else if (page == 1) {
 		const moves = ["left", "up", "down", "right"]
 
-		OptionsState.optionIndex = noteskins.indexOf(GameSave.preferences.noteskin)
+		OptionsState.optionIndex = noteskins.indexOf(GameSave.noteskin)
 		if (OptionsState.optionIndex < 0) OptionsState.optionIndex = 0
 
 		let canPressEnter = false
@@ -292,7 +292,7 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 			else if (isKeyPressed("enter") && canPressEnter) {
 				uiSelectSound()
 				OptionsState.inLeft = true
-				GameSave.preferences.noteskin = noteskins[OptionsState.optionIndex]
+				GameSave.noteskin = noteskins[OptionsState.optionIndex]
 				GameSave.save()
 				manageOptionsState(OptionsState.leftIndex, OptionsState, false)
 			
@@ -384,7 +384,7 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 		})
 
 		const scrollSpeedItem = addNumberItem("Scroll speed")
-		scrollSpeedItem.value = GameSave.preferences.scrollSpeed
+		scrollSpeedItem.value = GameSave.scrollSpeed
 
 		const allElements = [
 			masterVolume,
@@ -397,7 +397,7 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 		utils.runInDesktop(() => {
 			const fullscreenBox = addCheckbox("Fullscreen")
 			fullscreenBox.onCheck((selected) => {
-				GameSave.preferences.fullscreen = selected
+				GameSave.fullscreen = selected
 				appWindow.setFullscreen(selected)
 			})
 
@@ -482,7 +482,7 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 				if (isKeyPressedRepeat("right")) hoveredObj.value = utils.fixDecimal(hoveredObj.value + 0.1)
 				else if (isKeyPressedRepeat("left")) hoveredObj.value = utils.fixDecimal(hoveredObj.value - 0.1)
 				hoveredObj.value = clamp(hoveredObj.value, 0.1, 10)
-				GameSave.preferences.scrollSpeed = hoveredObj.value
+				GameSave.scrollSpeed = hoveredObj.value
 			}
 
 			if (!hoveredObj.is(tagForSlider)) {

@@ -90,7 +90,7 @@ export function setupSong(params: paramsGameScene, GameState:StateGame) {
 	// now that we have the song we can get the scroll speed multiplier and set the playback speed for funzies
 	params.playbackSpeed = params.playbackSpeed ?? 1;
 	
-	const speed = (GameState.song.scrollSpeed * GameSave.preferences.scrollSpeed)
+	const speed = (GameState.song.scrollSpeed * GameSave.scrollSpeed)
 
 	// Set it back to the original value
 	setTimeForStrum(1.25)
@@ -148,7 +148,7 @@ export function restartSong(GameState:StateGame) {
 
 		let rotationDirection = choose([-10, 10])
 		const newdumbnote = add([
-			sprite(GameSave.preferences.noteskin +  "_" + noteObj.chartNote.dancerMove),
+			sprite(GameSave.noteskin +  "_" + noteObj.chartNote.dancerMove),
 			pos(noteObj.pos),
 			anchor(noteObj.anchor),
 			opacity(noteObj.opacity),
@@ -212,11 +212,11 @@ export function introGo() {
 
 /** The function that manages input functions inside the game, must be called onUpdate */
 export function manageInput(GameState: StateGame) {
-	Object.values(GameSave.preferences.gameControls).forEach((gameKey, index) => {
+	Object.values(GameSave.gameControls).forEach((gameKey, index) => {
 		if (GameState.paused) return
 
 		const kbKey = gameKey.kbKey
-		const defaultKey = Object.keys(GameSave.preferences.gameControls)[index]
+		const defaultKey = Object.keys(GameSave.gameControls)[index]
 
 		if (isKeyPressed(kbKey) || isKeyPressed(defaultKey)) {
 			// bust a move
@@ -239,7 +239,7 @@ export function manageInput(GameState: StateGame) {
 	}
 
 	// if no game key is 7 then it will exit to the chart editor
-	if (!Object.values(GameSave.preferences.gameControls).some((gameKey) => gameKey.kbKey == "7")) {
+	if (!Object.values(GameSave.gameControls).some((gameKey) => gameKey.kbKey == "7")) {
 		if (isKeyPressed("7")) {
 			exitToChartEditor(GameState)
 		}

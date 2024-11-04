@@ -20,7 +20,7 @@ function addDancerChar(dancerName: string) {
 
 export function CharSelectScene() { scene("charselect", (params: paramsSongSelect) => {
 	/** The index in dancers of the currently selected dancer */
-	let curIndex = dancers.map(dancer => dancer.dancerName).indexOf(GameSave.preferences.dancer)
+	let curIndex = dancers.map(dancer => dancer.dancerName).indexOf(GameSave.dancer)
 	const dancerNames = dancers.map(dancer => dancer.dancerName)
 
 	const bg = add([
@@ -56,16 +56,16 @@ export function CharSelectScene() { scene("charselect", (params: paramsSongSelec
 
 	onKeyPress("up", () => {
 		curIndex = utils.scrollIndex(curIndex, -1, dancers.length)
-		GameSave.preferences.dancer = dancerNames[curIndex]
+		GameSave.dancer = dancerNames[curIndex]
 	})
 	
 	onKeyPress("down", () => {
 		curIndex = utils.scrollIndex(curIndex, 1, dancers.length)
-		GameSave.preferences.dancer = dancerNames[curIndex]
+		GameSave.dancer = dancerNames[curIndex]
 	})
 
 	onKeyPress("enter", () => {
-		get(GameSave.preferences.dancer)[0].play("victory")
+		get(GameSave.dancer)[0].play("victory")
 		transitionToScene(fadeOut, "songselect", { index: params.index } as paramsSongSelect)
 		GameSave.save()
 	})

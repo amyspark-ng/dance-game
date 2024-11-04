@@ -108,11 +108,11 @@ export function initGame() {
 
 	// update fullscreen
 	document.addEventListener("fullscreenchange", (event) => {
-		if (document.fullscreenElement) GameSave.preferences.fullscreen = true
-		else GameSave.preferences.fullscreen = false
+		if (document.fullscreenElement) GameSave.fullscreen = true
+		else GameSave.fullscreen = false
 	});
 
 	utils.runInDesktop(() => {
-		if (GameSave.preferences.fullscreen) appWindow.setFullscreen(GameSave.preferences.fullscreen)
+		if (GameSave.fullscreen) appWindow.setFullscreen(GameSave.fullscreen)
 	})
 }

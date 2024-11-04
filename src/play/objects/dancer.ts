@@ -36,7 +36,7 @@ export function addDancer(dancerName: string) {
 		
 					this.waitForIdle?.cancel()
 					this.waitForIdle = wait(TIME_FOR_IDLE, () => {
-						const keyForMove = Object.values(GameSave.preferences.gameControls).find((gameKey) => gameKey.move == move).kbKey
+						const keyForMove = Object.values(GameSave.gameControls).find((gameKey) => gameKey.move == move).kbKey
 						if (!isKeyDown(keyForMove)) {
 							this.doMove("idle")
 						}

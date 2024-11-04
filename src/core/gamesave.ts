@@ -8,30 +8,25 @@ type gameKey = { kbKey: Key, move: Move }
 
 /** Holds all the info that should be saved and loaded through sessions */
 export class GameSaveClass {
-	/** Player highscore */
-	highscore: number = 0
-
 	sound = {
 		sfx: new volumeChannel(),
 		music: new volumeChannel(),
 		masterVolume: 1,
-	}
+	};
 
-	preferences = {
-		scrollSpeed: 1,
-		fullscreen: false,
-		
-		dancer: "astri",
-		
-		gameControls: {
-			left: { kbKey: "left", move: "left" } as gameKey,
-			down: { kbKey: "down", move: "down" } as gameKey,
-			up: { kbKey: "up", move: "up" } as gameKey,
-			right: { kbKey: "right", move: "right" } as gameKey,
-		},
+	scrollSpeed:number = 1;
+	fullscreen:boolean = false;
+	
+	dancer:string = "astri";
+	
+	gameControls = {
+		left: { kbKey: "left", move: "left" } as gameKey,
+		down: { kbKey: "down", move: "down" } as gameKey,
+		up: { kbKey: "up", move: "up" } as gameKey,
+		right: { kbKey: "right", move: "right" } as gameKey,
+	};
 
-		noteskin: "A",
-	}
+	noteskin: string = "A";
 
 	/** The songs that have been played, check {@link songSaveScore} type for more info */
 	songsPlayed:saveScore[] = [];
