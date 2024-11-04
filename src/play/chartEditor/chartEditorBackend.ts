@@ -174,9 +174,7 @@ export class StateChart {
 		const oldNote = this.song.notes.find(note => note == noteToRemove)
 		if (oldNote == undefined) return;
 		
-		const indexInNotes = this.song.notes.indexOf(oldNote)
 		this.song.notes = utils.removeFromArr(oldNote, this.song.notes)
-		this.noteProps = utils.removeFromArr(this.noteProps[indexInNotes], this.noteProps)
 		this.selectedNotes = utils.removeFromArr(oldNote, this.selectedNotes)
 		
 		return oldNote;
@@ -201,6 +199,7 @@ export class StateChart {
 			this.selectedNotes = newState.selectedNotes
 			this.song = newState.song
 		}
+
 		return null; // No more states to undo
 	}
 
@@ -212,6 +211,7 @@ export class StateChart {
 			this.selectedNotes = newState.selectedNotes
 			this.song = newState.song
 		}
+		
 		return null; // No more states to redo
 	}
 }
@@ -601,7 +601,7 @@ export function addFloatingText(texting: string) {
 		timer(),
 	])
 
-	copyText.tween(copyText.pos.y, copyText.pos.y - 25, 0.5, (p) => copyText.pos.y = p, easings.easeOutQuint).onEnd(() => {
+	copyText.tween(copyText.pos.y, copyText.pos.y - rand(25, 35), 0.5, (p) => copyText.pos.y = p, easings.easeOutQuint).onEnd(() => {
 		copyText.fadeOut(0.25).onEnd(() => copyText.destroy())
 	})
 

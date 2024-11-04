@@ -152,7 +152,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 			
 			ChartState.selectedNotes = []
 
-			const newStepToTime = ChartState.conductor.stepToTime(ChartState.hoveredStep - 2.5)
+			const newStepToTime = ChartState.conductor.stepToTime(ChartState.hoveredStep - 3.5)
 			ChartState.clipboard.forEach((note) => {
 				const newNote = ChartState.addNoteToChart(newStepToTime + note.hitTime, note.dancerMove)
 				// i have to add it and thenn find  the index in notes :)
@@ -163,6 +163,14 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 			// shickiiii
 			ChartState.takeSnapshot();
+		}
+
+		// select all!
+		else if (isKeyDown("control") && isKeyPressed("a")) {
+			ChartState.song.notes.forEach((note) => {
+				if (ChartState.selectedNotes.includes(note)) return
+				ChartState.selectedNotes.push(note)
+			})
 		}
 	})
 
@@ -372,6 +380,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		"1, 2, 3, 4 - Change the note color",
 		"W, S - Moves up or down the camera",
 		"Space - Pause/Unpause",
+		"Ctrl + A - Select all notes",
 		"Ctrl + C - Copy notes",
 		"Ctrl + V - Paste notes",
 		"Ctrl + X - Cut notes",

@@ -77,6 +77,7 @@ export function drawCheckerboard(ChartState: StateChart) {
 
 		// draws the background chess board squares etc
 		if (conditionsForDrawing(newPos.y, ChartState.SQUARE_SIZE)) {
+			// chessboard square
 			drawRect({
 				width: ChartState.SQUARE_SIZE.x,
 				height: ChartState.SQUARE_SIZE.y,
@@ -98,6 +99,7 @@ export function drawCheckerboard(ChartState: StateChart) {
 					pos: vec2(newPos.x + ChartState.SQUARE_SIZE.x, newPos.y)
 				})
 				
+				// line beat
 				drawRect({
 					width: ChartState.SQUARE_SIZE.x,
 					height: 5,
