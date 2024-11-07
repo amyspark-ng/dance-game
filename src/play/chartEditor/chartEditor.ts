@@ -11,7 +11,8 @@ import { moveToColor } from "../objects/note";
 import { paramsGameScene } from "../playstate";
 import { addDownloadButton, addDummyDancer, addFloatingText, cameraControllerHandling, handlerForChangingInput, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, setupManageTextboxes, StateChart, updateTextboxes } from "./chartEditorBackend";
 import { drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, drawPlayBar, drawSelectGizmo, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE } from "./chartEditorElements";
-import { fileManager, handleSongInput } from "../../filemanaging";
+import { fileManager, handleSongInput } from "../../fileManaging";
+import { GameSave } from "../../core/gamesave";
 
 export function ChartEditorScene() { scene("charteditor", (params: paramsChartEditor) => {
 	// had an issue with BPM being NaN but it was because since this wasn't defined then it was NaN
@@ -24,7 +25,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	setBackground(Color.fromArray(ChartState.bgColor))
 
 	ChartState.conductor = new Conductor({
-		audioPlay: playSound(`${params.song.idTitle}-song`, { volume: 0.1, speed: params.playbackSpeed }),
+		audioPlay: playSound(`${params.song.idTitle}-song`, { channel: GameSave.sound.music, speed: params.playbackSpeed }),
 		bpm: params.song.bpm * params.playbackSpeed,
 		timeSignature: params.song.timeSignature,
 		offset: 0,
@@ -343,14 +344,12 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		
 		const loadedNormally = await getSound(ChartState.song.idTitle + "-song")
 		
-		// the song is not loaded with the name of the current id title
-		if (!loadedNormally) {
-			console.log(ChartState.audioBuffer)
+		// the song is not loaded with the id format name
+		// or the buffer of the sound isn't the same as the buffer of the current song
+		if (!loadedNormally || loadedNormally.buf != ChartState.audioBuffer) {
 			// then gets the new title and loads it now with the good name
 			await loadSound(ChartState.song.idTitle + "-song", ChartState.audioBuffer)
 		}
-
-		console.log("going with the song: " + ChartState.song.idTitle + "-song")
 
 		// transition to scene normally
 		transitionToScene(fadeOut, "game", { song: ChartState.song, seekTime: ChartState.scrollTime, dancer: params.dancer } as paramsGameScene)

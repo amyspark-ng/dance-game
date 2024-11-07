@@ -146,12 +146,60 @@ export class utils {
 		return index;
 	}
 
-	static toBase64(file:File) {
-		return new Promise((resolve, reject) => {
-			const reader = new FileReader();
-			reader.readAsDataURL(file);
-			reader.onload = () => resolve(reader.result);
-			reader.onerror = (error) => reject(error);
-		});
+	static async toDataUrl(url:string) {
+		const res = await fetch(url);
+		const blob = await res.blob();
+		return URL.createObjectURL(blob);
+	}
+
+	static audioBufferToWav(audioBuffer:AudioBuffer) : Blob {
+		// Helper function to write a string to the DataView
+		function writeString(view: DataView<ArrayBuffer>, offset: number, string: string) {
+			for (let i = 0; i < string.length; i++) {
+				view.setUint8(offset + i, string.charCodeAt(i));
+			}
+		}
+		
+		const numOfChannels = audioBuffer.numberOfChannels;
+		const sampleRate = audioBuffer.sampleRate;
+		const format = 1; // PCM format
+		const bitDepth = 16;
+	
+		// Calculate the size of the output buffer
+		const samples = audioBuffer.length;
+		const blockAlign = numOfChannels * (bitDepth / 8);
+		const byteRate = sampleRate * blockAlign;
+		const bufferLength = 44 + samples * blockAlign;
+	
+		// Create an ArrayBuffer for the WAV file
+		const arrayBuffer = new ArrayBuffer(bufferLength);
+		const view = new DataView(arrayBuffer);
+	
+		// Write WAV header
+		writeString(view, 0, 'RIFF');                         // ChunkID
+		view.setUint32(4, 36 + samples * blockAlign, true);   // ChunkSize
+		writeString(view, 8, 'WAVE');                         // Format
+		writeString(view, 12, 'fmt ');                        // Subchunk1ID
+		view.setUint32(16, 16, true);                         // Subchunk1Size
+		view.setUint16(20, format, true);                     // AudioFormat
+		view.setUint16(22, numOfChannels, true);              // NumChannels
+		view.setUint32(24, sampleRate, true);                 // SampleRate
+		view.setUint32(28, byteRate, true);                   // ByteRate
+		view.setUint16(32, blockAlign, true);                 // BlockAlign
+		view.setUint16(34, bitDepth, true);                   // BitsPerSample
+		writeString(view, 36, 'data');                        // Subchunk2ID
+		view.setUint32(40, samples * blockAlign, true);       // Subchunk2Size
+	
+		// Write interleaved PCM samples
+		let offset = 44;
+		for (let i = 0; i < samples; i++) {
+			for (let channel = 0; channel < numOfChannels; channel++) {
+				const sample = Math.max(-1, Math.min(1, audioBuffer.getChannelData(channel)[i]));
+				view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+				offset += 2;
+			}
+		}
+	
+		return new Blob([view], { type: "audio/wav" });
 	}
 }

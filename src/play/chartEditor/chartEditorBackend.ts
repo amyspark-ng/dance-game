@@ -7,6 +7,7 @@ import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { SongChart } from "../song";
 import { Conductor } from "../../conductor";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
+import JSZip from "jszip";
 
 /** Class that manages the snapshots of the chart */
 export class ChartSnapshot {
@@ -128,7 +129,7 @@ export class StateChart {
 	/** Current index of the current snapshot blah */
 	curSnapshotIndex = 0;
 
-	/** Audio buffer for the song of the condcutro */
+	/** Buffer of the audio play in the conductor */
 	audioBuffer: AudioBuffer = null;
 
 	/** Converts a step to a position (a hawk to a) */
@@ -348,7 +349,9 @@ export function cameraControllerHandling(ChartState:StateChart) {
 }
 
 export function mouseAnimationHandling(ChartState:StateChart) {
-	if (ChartState.focusedTextBox != undefined) gameCursor.do("text")
+	// kinda hardcoded, this probably just means the player is loading something nothing  else
+	if (!gameCursor.canMove && ChartState.inputDisabled) gameCursor.do("load")
+	else if (ChartState.focusedTextBox != undefined) gameCursor.do("text")
 	else {
 		if (!ChartState.isCursorInGrid) {
 			if (isMouseDown("left") && ChartState.cameraController.isMovingCamera) gameCursor.do("down")
@@ -648,10 +651,30 @@ export function addDownloadButton(ChartState:StateChart) {
 		}
 	])
 
-	btn.onClick(() => {
-		const filename = `${ChartState.song.idTitle}-chart.json`
-		downloadJSON(filename, ChartState.song)
-		debug.log(`filename: ${filename} - downloaded! :)`)
+	btn.onClick(async () => {
+		const jsZip = new JSZip()
+		
+		const wavBlob = utils.audioBufferToWav(ChartState.audioBuffer)
+
+		const defaultCover = "sprites/defaultCover.png"
+		let pathToCover:string = undefined
+		const coverAvailable = await getSprite(ChartState.song.idTitle + "-cover")
+		
+		if (!coverAvailable) pathToCover = defaultCover
+		else pathToCover = `songs/${ChartState.song.idTitle}/${ChartState.song.idTitle}-cover.png`
+
+		console.log(pathToCover)
+		const imgBlob = await (await fetch(pathToCover)).blob()
+
+		jsZip.file(`${ChartState.song.idTitle}-chart.json`, JSON.stringify(ChartState.song))
+		jsZip.file(`${ChartState.song.idTitle}-song.wav`, wavBlob)
+		jsZip.file(`${ChartState.song.idTitle}-cover.png`, imgBlob)
+		
+		await jsZip.generateAsync({ type: "blob" }).then((content) => {
+			downloadBlob(`${ChartState.song.idTitle}-chart.zip`, content)
+		})
+
+		debug.log(`${ChartState.song.idTitle}-chart.zip, DOWNLOADED! :)`)
 	})
 }
 

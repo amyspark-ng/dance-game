@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^1.6.0",
+    "@types/node": "^22.9.0",
     "jszip": "^3.10.1",
     "kaplay": "4000.0.0-alpha.12"
   },

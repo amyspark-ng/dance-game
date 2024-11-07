@@ -18,6 +18,8 @@ export async function handleSongInput(ChartState:StateChart) {
 	
 	ChartState.inputDisabled = true
 	gameCursor.canMove = false
+	gameCursor.do("load")
+	
 	fileManager.onchange = async () => {
 		const gottenFile = fileManager.files[0]	
 		const buffer = await gottenFile.arrayBuffer()
@@ -36,6 +38,8 @@ export async function handleSongInput(ChartState:StateChart) {
 
 		ChartState.inputDisabled = false
 		gameCursor.canMove = true
+		gameCursor.do("default")
+		
 		updateAllTextboxes(ChartState)
 	}
 
