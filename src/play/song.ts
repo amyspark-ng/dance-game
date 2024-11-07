@@ -4,15 +4,15 @@ import { Tally } from "./objects/scoring";
 /** Class that holds the properties a chart file will have */
 export class SongChart {
 	/** The title of the song (string) */
-	title: string = "X Song";
+	title: string = "New song (name here)";
 
 	/** Actually divides the time it'll take the note to reach the strum by this */
 	scrollSpeed: number = 1;
 
 	/** Id of the song (like title but id with - and all that) */
-	idTitle: string = "x-song";
+	idTitle: string = "new-song";
 	
-	/** An array of notes a song has */
+	/** An array of notes */
 	notes: ChartNote[] = []
 
 	/** The bpm of the song */
@@ -30,7 +30,19 @@ export class SongChart {
 }
 
 /** When a song ends, an object of this type gets pushed to GameSave.songsPlayed*/
-export class saveScore {
+export class SaveScore {
 	idTitle: string;
 	tally: Tally = new Tally();
+}
+
+/** Class that holds the data for an imported song */
+export class ImportedSong {
+	/** The chart file */
+	chart: SongChart;
+	
+	/** The file for the sound */
+	song: ArrayBuffer;
+	
+	/** Will be stored as base64 */
+	cover: string;
 }

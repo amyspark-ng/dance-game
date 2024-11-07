@@ -3,7 +3,7 @@ import { playSound } from "../core/plugins/features/sound"
 import { onBeatHit, onMiss, onNoteHit, onReset, triggerEvent } from "../core/events"
 import { addStrumline, getStrumline } from "./objects/strumline"
 import { ChartNote, notesSpawner, TIME_FOR_STRUM } from "./objects/note"
-import { saveScore } from "./song"
+import { SaveScore } from "./song"
 import { goScene } from "../core/scenes"
 import { addComboText, addJudgement, getClosestNote, Scoring } from "./objects/scoring"
 import { GameSave } from "../core/gamesave"
@@ -14,6 +14,7 @@ import { paramsDeathScene } from "./ui/deathScene"
 import { paramsResultsScene } from "./ui/resultsScene"
 import { appWindow } from "@tauri-apps/api/window"
 import { PRODUCT } from "../core/initGame"
+import { gameCursor } from "../core/plugins/features/gameCursor"
 
 export function GameScene() { scene("game", (params: paramsGameScene) => {
 	setBackground(RED.lighten(60))
@@ -28,6 +29,7 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 	notesSpawner(GameState);
 
 	GameState.gameInputEnabled = true
+	gameCursor.hide()
 
 	// ==== DANCER + UI =====
 	const dancer = addDancer(params.dancer)
@@ -35,6 +37,8 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 	dancer.onUpdate(() => {
 		if (dancer.waitForIdle) dancer.waitForIdle.paused = GameState.paused;
 	})
+
+	console.log("loading song: " + params.song.idTitle + "-song")
 
 	let dancerHasBg = false
 	getSprite(`bg_` + params.dancer).onLoad((data) => {
@@ -151,7 +155,7 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 
 	// END SONG
 	GameState.conductor.audioPlay.onEnd(() => {
-		const songSaveScore = new saveScore()
+		const songSaveScore = new SaveScore()
 		songSaveScore.idTitle = params.song.idTitle
 		songSaveScore.tally = GameState.tally
 		GameSave.songsPlayed.push(songSaveScore)

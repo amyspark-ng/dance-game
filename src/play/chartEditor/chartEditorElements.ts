@@ -4,6 +4,7 @@ import { GameSave } from "../../core/gamesave"
 import { utils } from "../../utils"
 import { moveToColor } from "../objects/note"
 import { StateChart } from "./chartEditorBackend"
+import { gameCursor } from "../../core/plugins/features/gameCursor"
 
 /** Returns if a certain Y position mets the conditions to be drawn on the screen */
 function conditionsForDrawing(YPos: number, square_size: Vec2) {
@@ -154,9 +155,9 @@ export function drawCursor(ChartState:StateChart) {
 	const strumlineYPos = ChartState.SQUARE_SIZE.y * ChartState.strumlineStepOffset
 	
 	// if the distance between the cursor and the square is small enough then highlight it
-	if (mousePos().x <= center().x + ChartState.SQUARE_SIZE.x / 2 && mousePos().x >= center().x - ChartState.SQUARE_SIZE.x / 2) {
-		if (ChartState.scrollStep == 0 && mousePos().y <= strumlineYPos) ChartState.isCursorInGrid = false
-		else if (ChartState.scrollStep == ChartState.conductor.totalSteps && mousePos().y >= strumlineYPos) ChartState.isCursorInGrid = false
+	if (gameCursor.pos.x <= center().x + ChartState.SQUARE_SIZE.x / 2 && gameCursor.pos.x >= center().x - ChartState.SQUARE_SIZE.x / 2) {
+		if (ChartState.scrollStep == 0 && gameCursor.pos.y <= strumlineYPos) ChartState.isCursorInGrid = false
+		else if (ChartState.scrollStep == ChartState.conductor.totalSteps && gameCursor.pos.y >= strumlineYPos) ChartState.isCursorInGrid = false
 		else ChartState.isCursorInGrid = true
 	}
 	

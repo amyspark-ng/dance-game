@@ -1,4 +1,5 @@
 import { Comp, GameObj, KEventController } from "kaplay";
+import { gameCursor } from "./gameCursor";
 
 const TILT_TOWARDS_MOUSE_LERP = 0.8
 
@@ -73,7 +74,7 @@ export function dragger(tiltTowardsMouse?:boolean, onlyX?:boolean, onlyY?:boolea
 		// pick stuff
 		pick() {
 			drag.setCurDragging(this);
-			offset = mousePos().sub(this.pos);
+			offset = gameCursor.pos.sub(this.pos);
 			this.dragging = true
 		
 			this.trigger("drag");
@@ -99,9 +100,9 @@ export function dragger(tiltTowardsMouse?:boolean, onlyX?:boolean, onlyY?:boolea
 		// update stuff
 		update() {
 			if (curDraggin === this) {
-				if (onlyX == true) this.pos.x = mousePos().x - (offset.x)
-				else if (onlyY == true) this.pos.y = mousePos().y - (offset.y)
-				else this.pos = mousePos().sub(offset);
+				if (onlyX == true) this.pos.x = gameCursor.pos.x - (offset.x)
+				else if (onlyY == true) this.pos.y = gameCursor.pos.y - (offset.y)
+				else this.pos = gameCursor.pos.sub(offset);
 				this.trigger("dragUpdate");
 
 				if (tiltTowardsMouse) {

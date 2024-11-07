@@ -38,14 +38,33 @@ export function addCursorObject() {
 		layer("cursor"),
 		"gameCursor",
 		{
-			update() {
-				theMousePos = lerp(theMousePos, mousePos(), 0.8)
+			/** Intended opacity */
+			intendedOpa: 1,
+			canMove: true,
 
-				if (isMouseMoved()) this.pos = theMousePos
-			
-				// this should be extended somewhere sorry
-				if (getSceneName() != "charteditor") this.opacity = lerp(this.opacity, 0, 0.1)
-				else this.opacity = lerp(this.opacity, 1, 0.1)
+			hide() {
+				this.intendedOpa = 0
+			},
+
+			show() {
+				this.intendedOpa = 1
+			},
+
+			update() {
+				// shown
+				if (this.intendedOpa == 1) {
+					theMousePos = lerp(theMousePos, mousePos(), 0.8)
+					if (this.canMove) {
+						if (isMouseMoved()) this.pos = theMousePos
+					}
+				}
+
+				else {
+					this.pos = vec2()
+				}
+				
+				
+				this.opacity = lerp(this.opacity, this.intendedOpa, 0.5)
 			}
 		}
 	])

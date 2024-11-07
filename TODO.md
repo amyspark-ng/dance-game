@@ -1,7 +1,5 @@
-- WHAT IF....
-	* Cool system to create new songs from the chart editor scene
-	* Create dialog system to ask to create new song and import sound file
-	* Then be able to download it as a zip file which has the chart and the sound file
+- Chart editor: When loading a new song it will always come back to the first time because apparently overriding songs is impossible in kaplay for now
+
 
 - SORTA BUNCH OF STUFF like all of the input being on playstate, all of that system could be better organized
 - Game: Add the backgrounds system

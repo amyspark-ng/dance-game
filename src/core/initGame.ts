@@ -32,11 +32,6 @@ export class PRODUCT {
 /** The window (in case you're using desktop) */
 export let appWindow:WebviewWindow = null
 
-/** File manager for some stuff of the game */
-export let fileManager = document.createElement("input")
-fileManager.type = "file"
-fileManager.accept = ".zip"
-
 export function INITIAL_SCENE() {
 	// goScene("title")
 	// goScene("menu", { index: 0 })

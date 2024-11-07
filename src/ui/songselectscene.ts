@@ -7,15 +7,15 @@ import { enterSongTrans } from "../core/transitions/enterSongTransition";
 import { fadeOut } from "../core/transitions/fadeOutTransition";
 import { rankings, Scoring } from "../play/objects/scoring";
 import { paramsGameScene } from "../play/playstate";
-import { saveScore, SongChart } from "../play/song"
+import { SaveScore, SongChart } from "../play/song"
 import { utils } from "../utils";
 
 /** Gets the saveScore for a song name */
-function getHighscore(songName:string) : saveScore {
+function getHighscore(songName:string) : SaveScore {
 	const scoresOfSong = GameSave.songsPlayed.filter((song) => song.idTitle == songName)
 	
 	if (scoresOfSong.length < 1) {
-		return new saveScore()
+		return new SaveScore()
 	}
 
 	else {
@@ -24,7 +24,7 @@ function getHighscore(songName:string) : saveScore {
 	}
 }
 
-class StateSongSelect {
+export class StateSongSelect {
 	index: number = 0;
 
 	menuInputEnabled: boolean = true

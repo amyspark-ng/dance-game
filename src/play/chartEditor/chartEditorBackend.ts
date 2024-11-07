@@ -18,6 +18,7 @@ export class ChartSnapshot {
 	}
 }
 
+/** Type for handling props of note drawing */
 type notePropThing = { 
 	angle: number,
 	scale: Vec2,
@@ -127,6 +128,9 @@ export class StateChart {
 	/** Current index of the current snapshot blah */
 	curSnapshotIndex = 0;
 
+	/** Audio buffer for the song of the condcutro */
+	audioBuffer: AudioBuffer = null;
+
 	/** Converts a step to a position (a hawk to a) */
 	stepToPos(step: number) {
 		return utils.getPosInGrid(this.INITIAL_POS, step, 0, this.SQUARE_SIZE)
@@ -214,6 +218,16 @@ export class StateChart {
 		
 		return null; // No more states to redo
 	}
+
+	/** Changes the song of the instance */
+	setSong(song: SongChart) {
+		this.scrollStep = 0
+		this.snapshots = []
+		this.curSnapshotIndex = 0
+		this.selectedNotes = []
+		
+		this.song = song;
+	}
 }
 
 /** The params for the chart editor */
@@ -243,15 +257,15 @@ export function selectionBoxHandler(ChartState:StateChart) {
 		}
 	
 		else ChartState.selectionBox.canSelect = true
-		ChartState.selectionBox.clickPos = mousePos()
+		ChartState.selectionBox.clickPos = gameCursor.pos
 	}
 	
 	if (isMouseDown("left") && ChartState.selectionBox.canSelect) {
-		ChartState.selectionBox.width = Math.abs(mousePos().x - ChartState.selectionBox.clickPos.x)
-		ChartState.selectionBox.height = Math.abs(mousePos().y - ChartState.selectionBox.clickPos.y)
+		ChartState.selectionBox.width = Math.abs(gameCursor.pos.x - ChartState.selectionBox.clickPos.x)
+		ChartState.selectionBox.height = Math.abs(gameCursor.pos.y - ChartState.selectionBox.clickPos.y)
 	
-		ChartState.selectionBox.pos.x = Math.min(ChartState.selectionBox.clickPos.x, mousePos().x)
-		ChartState.selectionBox.pos.y = Math.min(ChartState.selectionBox.clickPos.y, mousePos().y)
+		ChartState.selectionBox.pos.x = Math.min(ChartState.selectionBox.clickPos.x, gameCursor.pos.x)
+		ChartState.selectionBox.pos.y = Math.min(ChartState.selectionBox.clickPos.y, gameCursor.pos.y)
 	
 		// # topleft
 		// the pos will just be the pos of the selectionbox since it's anchor topleft
@@ -307,8 +321,8 @@ export function selectionBoxHandler(ChartState:StateChart) {
 }
 
 export function cameraControllerHandling(ChartState:StateChart) {
-	if (mousePos().x >= width() - ChartState.SQUARE_SIZE.x && !ChartState.cameraController.isMovingCamera) ChartState.cameraController.canMoveCamera = true
-	else if (mousePos().x < width() - ChartState.SQUARE_SIZE.x && !ChartState.cameraController.isMovingCamera) ChartState.cameraController.canMoveCamera = false
+	if (gameCursor.pos.x >= width() - ChartState.SQUARE_SIZE.x && !ChartState.cameraController.isMovingCamera) ChartState.cameraController.canMoveCamera = true
+	else if (gameCursor.pos.x < width() - ChartState.SQUARE_SIZE.x && !ChartState.cameraController.isMovingCamera) ChartState.cameraController.canMoveCamera = false
 
 	if (!ChartState.cameraController.isMovingCamera) {
 		ChartState.cameraController.pos.y = mapc(ChartState.scrollStep, 0, ChartState.conductor.totalSteps, 25, height() - 25)
@@ -325,7 +339,7 @@ export function cameraControllerHandling(ChartState:StateChart) {
 		}
 
 		if (ChartState.cameraController.isMovingCamera) {
-			ChartState.cameraController.pos.y = mousePos().y
+			ChartState.cameraController.pos.y = gameCursor.pos.y
 			ChartState.cameraController.pos.y = clamp(ChartState.cameraController.pos.y, 25, height() - 25)
 			ChartState.scrollStep = mapc(ChartState.cameraController.pos.y, 25, height() - 25, 0, ChartState.conductor.totalSteps)
 			ChartState.scrollStep = Math.round(ChartState.scrollStep)
@@ -448,6 +462,11 @@ export function addTextBox(opts:textBoxOpt) {
 	})
 
 	return texting;
+}
+
+/** Updates all textboxes */
+export function updateAllTextboxes(ChartState:StateChart) {
+	get("textBoxComp").forEach((txtbox) => updateTextboxes(ChartState, txtbox))
 }
 
 export function updateTextboxes(ChartState: StateChart, txtbox: GameObj) {
@@ -597,7 +616,7 @@ export function setupManageTextboxes(ChartState:StateChart) {
 export function addFloatingText(texting: string) {
 	const copyText = add([
 		text(texting, { align: "left", size: 20 }),
-		pos(mousePos()),
+		pos(gameCursor.pos),
 		anchor("left"),
 		fixed(),
 		color(3, 252, 73),

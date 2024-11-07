@@ -11,9 +11,7 @@ import { moveToColor } from "../objects/note";
 import { paramsGameScene } from "../playstate";
 import { addDownloadButton, addDummyDancer, addFloatingText, cameraControllerHandling, handlerForChangingInput, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, setupManageTextboxes, StateChart, updateTextboxes } from "./chartEditorBackend";
 import { drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, drawPlayBar, drawSelectGizmo, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE } from "./chartEditorElements";
-import { fileManager } from "../../core/initGame";
-import JSZip from "jszip";
-import { SongChart } from "../song";
+import { fileManager, handleSongInput } from "../../filemanaging";
 
 export function ChartEditorScene() { scene("charteditor", (params: paramsChartEditor) => {
 	// had an issue with BPM being NaN but it was because since this wasn't defined then it was NaN
@@ -48,9 +46,12 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	let songDuration = 0
 	getSound(`${ChartState.song.idTitle}-song`).onLoad((data) => {
 		songDuration = data.buf.duration
+		ChartState.audioBuffer = data.buf
 	})
 
-	onUpdate(() => {
+	gameCursor.show()
+
+	onUpdate(async () => {
 		ChartState.song.notes.forEach((note, index) => {
 			note.hitTime = clamp(note.hitTime, 0, songDuration)
 			
@@ -79,7 +80,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		gameCursor.color = lerp(gameCursor.color, mouseColor, SCROLL_LERP_VALUE)
 
 		// MANAGES some stuff for selecting
-		ChartState.cursorYPos = Math.floor(mousePos().y / ChartState.SQUARE_SIZE.y) * ChartState.SQUARE_SIZE.y + ChartState.SQUARE_SIZE.y / 2 
+		ChartState.cursorYPos = Math.floor(gameCursor.pos.y / ChartState.SQUARE_SIZE.y) * ChartState.SQUARE_SIZE.y + ChartState.SQUARE_SIZE.y / 2 
 		ChartState.cursorGridRow = Math.floor(ChartState.cursorYPos / ChartState.SQUARE_SIZE.y) - 0.5
 		ChartState.smoothCursorYPos = lerp(ChartState.smoothCursorYPos, ChartState.cursorYPos, SCROLL_LERP_VALUE)
 		ChartState.hoveredStep = ChartState.scrollStep + ChartState.cursorGridRow
@@ -94,6 +95,8 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		cameraControllerHandling(ChartState)
 		
 		mouseAnimationHandling(ChartState)
+
+		if (ChartState.focusedTextBox) return
 
 		if (isKeyPressed("backspace")) {
 			if (ChartState.selectedNotes.length == 0) return
@@ -176,67 +179,11 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 			})
 		}
 
-		if (isKeyPressed("q")) fileManager.click()
+		if (isKeyPressed("q")) {
+			fileManager.click()
+			handleSongInput(ChartState)
+		}
 	})
-
-	fileManager.onchange = async () => {
-		ChartState.paused = true
-		ChartState.inputDisabled = true
-		
-		/** The gotten zip */
-		const gottenZip = fileManager.files[0]
-		
-		debug.log("got: " + gottenZip.name)
-		const jsZip = new JSZip()
-		
-		const zipFile = await jsZip.loadAsync(gottenZip)
-		
-		// TODO: Have to do it a way so that it only picks the first jsons images and sounds
-		// And doesn't load every single one
-		zipFile.forEach(async (relativePath, zipEntry) => {
-			// it's a folder
-			if (zipEntry.dir) return
-			type fileType = "img" | "song" | "json"
-
-			// TODO: store the "id" to save stuff as the name of the zip
-			// if it's already the name of any song just add a number
-
-			let typeOfFile:fileType = null;
-			if (relativePath.includes(".png")) typeOfFile = "img"
-			else if (relativePath.includes(".ogg")) typeOfFile = "song"
-			else if (relativePath.includes(".json")) typeOfFile = "json"
-
-			if (typeOfFile == "song") {
-				const fileArayBuffer = await zipEntry.async("arraybuffer")
-				relativePath = "coolsong"
-				await loadSound(relativePath, fileArayBuffer)
-			
-				// apparently at this time it has already loaden the chart so that's good
-				ChartState.conductor = new Conductor({
-					audioPlay: playSound(`coolsong`, { volume: 0.1, speed: params.playbackSpeed }),
-					bpm: params.song.bpm * params.playbackSpeed,
-					timeSignature: params.song.timeSignature,
-					offset: 0,
-				})
-
-				ChartState.inputDisabled = false
-			}
-
-			else if (typeOfFile == "json") {
-				const songAsObject = JSON.parse(await zipEntry.async("string")) as SongChart
-				ChartState.song = songAsObject;
-				
-				get("textBoxComp").forEach((txtbox) => {
-					updateTextboxes(ChartState, txtbox)
-				})
-			}
-			
-			else if (typeOfFile == "img") {
-				const fileBase64 = await zipEntry.async("base64")
-				await loadSprite(relativePath, fileBase64)
-			}
-		})
-	}
 
 	// this is done like this so it's drawn on top of everything
 	const selectDraw = add([
@@ -384,11 +331,24 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	})
 
 	// Send you to the game
-	onKeyPress("enter", () => {
+	onKeyPress("enter", async () => {
 		if (ChartState.inputDisabled) return
 		if (ChartState.focusedTextBox) return
 		ChartState.inputDisabled = true
 		ChartState.paused = true
+		
+		const loadedNormally = await getSound(ChartState.song.idTitle + "-song")
+		
+		// the song is not loaded with the name of the current id title
+		if (!loadedNormally) {
+			console.log(ChartState.audioBuffer)
+			// then gets the new title and loads it now with the good name
+			await loadSound(ChartState.song.idTitle + "-song", ChartState.audioBuffer)
+		}
+
+		console.log("going with the song: " + ChartState.song.idTitle + "-song")
+
+		// transition to scene normally
 		transitionToScene(fadeOut, "game", { song: ChartState.song, seekTime: ChartState.scrollTime, dancer: params.dancer } as paramsGameScene)
 	})
 

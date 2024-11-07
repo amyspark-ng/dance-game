@@ -37,7 +37,7 @@ type conductorOpts = {
 	audioPlay: customAudioPlay;
 	bpm: number,
 	timeSignature: [number, number],
-	offset: number,
+	offset?: number,
 }
 
 /** Manages the stuff related to music and beats */
