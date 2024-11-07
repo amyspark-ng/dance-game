@@ -138,6 +138,8 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 	const songAmount = songCharts.length
 	const LERP_AMOUNT = 0.25
 
+	// const allSongs = songCharts.concat(GameSave.importedSongs)
+	
 	songCharts.forEach((song, index) => {
 		addSongCapsule(song)
 	})

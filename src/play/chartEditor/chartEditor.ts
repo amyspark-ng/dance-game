@@ -87,18 +87,22 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 		// Handle move change input 
 		handlerForChangingInput(ChartState)
-	
-		if (isKeyPressedRepeat("w") && ChartState.scrollStep > 0) ChartState.scrollStep--
-		if (isKeyPressedRepeat("s") && ChartState.scrollStep < ChartState.conductor.totalSteps - 1) ChartState.scrollStep++
-
+		
 		selectionBoxHandler(ChartState)
 		cameraControllerHandling(ChartState)
 		
 		mouseAnimationHandling(ChartState)
-
+		
 		if (ChartState.focusedTextBox) return
+		
+		// move note up
+		if (isKeyPressedRepeat("w") && ChartState.scrollStep > 0) ChartState.scrollStep--
+		
+		// move note down
+		else if (isKeyPressedRepeat("s") && ChartState.scrollStep < ChartState.conductor.totalSteps - 1) ChartState.scrollStep++
 
-		if (isKeyPressed("backspace")) {
+		// remove all selected notes
+		else if (isKeyPressed("backspace")) {
 			if (ChartState.selectedNotes.length == 0) return
 			ChartState.takeSnapshot()
 			ChartState.selectedNotes.forEach((note) => {

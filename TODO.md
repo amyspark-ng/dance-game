@@ -1,10 +1,9 @@
-- Chart editor: When loading a new song it will always come back to the first time because apparently overriding songs is impossible in kaplay for now
+- Chart Editor: When loading a new song it will always come back to the first time because apparently overriding songs is impossible in kaplay for now
 
+- Chart Editor: Add a cool dropdown (kinda like clickery) that has controls, new song and textboxes and they all open like dialogs, hopefully it won't be that bad to figure out  
 
 - SORTA BUNCH OF STUFF like all of the input being on playstate, all of that system could be better organized
-- Game: Add the backgrounds system
 - Game: Playback speed doesn't work at all
-- Game: Fix the score increase/decrease text workings when missing, they don't display - when missing
 
 - Chart Editor: Make camera follow the leading note in a way that it's always in the center of the grid row
 
