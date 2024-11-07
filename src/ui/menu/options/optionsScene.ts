@@ -287,7 +287,7 @@ function manageOptionsState(page: number, OptionsState:StateOptions, workThem:bo
 			else if (isKeyPressed("down")) {
 				uiMoveSound(1)
 				OptionsState.optionIndex = utils.scrollIndex(OptionsState.optionIndex, 1, noteskins.length)
-			} 
+			}
 			
 			else if (isKeyPressed("enter") && canPressEnter) {
 				uiSelectSound()

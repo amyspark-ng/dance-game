@@ -17,46 +17,75 @@ export const judgements = ["Awesome", "Good", "Ehh", "Miss"] as const
 /** The judgement the player got when hitting a note */
 export type Judgement = typeof judgements[number]
 
-/** Extra class for utils related to tallies */
-export class tallyUtils {
+export class Scoring {
+	/** Get the judgement the player did based on hit time */
+	static judgeNote(timeInSeconds: number, note:ChartNote) : Judgement {
+		const diff = timeInSeconds - note.hitTime
+		const absDiff = Math.abs(diff)
 	
-	/** Current hit notes */
-	static hitNotes(tally: Tally) { return tally.awesomes + tally.goods + tally.ehhs }
-	
-	/** Total notes pressed */
-	static totalNotes(tally: Tally) { return this.hitNotes(tally) + tally.misses }
-	
-	/** How many notes did the player hit, from 0% to 100% */
-	static cleared(tally:Tally) { 
-		let division = this.hitNotes(tally) / this.totalNotes(tally)
-		if (isNaN(division)) return 0
-		else return division * 100
+		if (absDiff <= AWESOME_TIMING) return "Awesome"
+		else if (absDiff <= GOOD_TIMING) return "Good"
+		else if (absDiff <= EHH_TIMING) return "Ehh"
+		else if (absDiff <= MISS_TIMING) return "Miss"
 	}
 
-	/** Wheter the player has gotten a 'not-awesome' */
-	static isPerfect(tally:Tally) {
-		return tally.awesomes == this.hitNotes(tally) && tally.misses == 0
+	/** Maps the difference and gets score based on that */
+	static getScorePerDiff(timeInSeconds:number, note:ChartNote) : number {
+		const max_score = 50
+		const min_score = 5
+		const diff = Math.abs(timeInSeconds - note.hitTime)
+		const score = Math.round(map(diff, 0, INPUT_THRESHOLD, max_score, min_score))
+		return score
 	}
 
-	/** Gets the ranking for a given tally */
-	static ranking(tally:Tally) : Ranking {
-		if (tally.awesomes == this.totalNotes(tally) && tally.score > 1) return "S+"
-		else if (tally.misses == 0 && tally.score > 1) return "S"
-		else if (this.cleared(tally) > 85) return "A"
-		else if (this.cleared(tally) > 65) return "B"
-		else if (this.cleared(tally) > 45) return "C"
-		else return "F"
-	}
+	/** Tally obj for tally utils */
+	static tally = {
+		
+		/** Current hit notes */
+		hitNotes(tally:Tally) : number {
+			return tally.awesomes + tally.goods + tally.ehhs;
+		},
 
-	/** Returns a tally with random properties for a song */
-	static random() : Tally {
-		return {
-			awesomes: rand(0, 10),
-			goods: rand(0, 10),
-			ehhs: rand(0, 10),
-			misses: rand(0, 10),
-			score: 2000,
-			highestCombo: 100,
+		/** 
+		 * Current total notes.
+		 * 
+		 * (This would only be used in results sceen, because it's not accurate otherwise) */
+		totalNotes(tally:Tally) : number {
+			return tally.awesomes + tally.goods + tally.ehhs + tally.misses;
+		},
+
+		/** Returns number from 0 to 100 based on how many notes were hit */
+		cleared(tally:Tally) : number {
+			let division = this.hitNotes(tally) / this.totalNotes(tally)
+			if (isNaN(division)) return 0
+			else return division * 100
+		},
+		
+		/** Wheter the player has gotten a 'not-awesome' */
+		isPerfect(tally:Tally) {
+			return tally.awesomes == this.hitNotes(tally) && tally.misses == 0
+		},
+
+		/** Gets the ranking for the current tally */
+		ranking(tally:Tally) : Ranking {
+			if (tally.awesomes == this.totalNotes(tally) && tally.score > 1) return "S+"
+			else if (tally.misses == 0 && tally.score > 1) return "S"
+			else if (this.cleared(tally) > 85) return "A"
+			else if (this.cleared(tally) > 70) return "B"
+			else if (this.cleared(tally) > 50) return "C"
+			else return "F"
+		},
+	
+		/** Returns a tally with random properties for a song */
+		random() : Tally {
+			return {
+				awesomes: rand(0, 10),
+				goods: rand(0, 10),
+				ehhs: rand(0, 10),
+				misses: rand(0, 10),
+				score: 2000,
+				highestCombo: 100,
+			}
 		}
 	}
 }
@@ -76,26 +105,6 @@ export const AWESOME_TIMING = 0.05
 export const GOOD_TIMING = 0.11
 export const EHH_TIMING = 0.1355
 export const MISS_TIMING = 0.166
-
-/** Maps the difference and gets score based on that */
-export function getScorePerDiff(timeInSeconds: number, chartNote: ChartNote) {
-	const max_score = 50
-	const min_score = 5
-	const diff = Math.abs(timeInSeconds - chartNote.hitTime)
-	const score = Math.round(map(diff, 0, INPUT_THRESHOLD, max_score, min_score))
-	return score
-}
-
-/** Get the judgement the player did based on hit time */
-export function getJudgement(timeInSeconds: number, chartNote: ChartNote) : Judgement {
-	const diff = timeInSeconds - chartNote.hitTime
-	const absDiff = Math.abs(diff)
-
-	if (absDiff <= AWESOME_TIMING) return "Awesome"
-	else if (absDiff <= GOOD_TIMING) return "Good"
-	else if (absDiff <= EHH_TIMING) return "Ehh"
-	else if (absDiff <= MISS_TIMING) return "Miss"
-}
 
 /** Add judgement object */
 export function addJudgement(judgement: Judgement) {

@@ -2,7 +2,7 @@ import { Comp } from "kaplay";
 import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { getDancer, Move } from "../objects/dancer"
 import { ChartNote, getNotesOnScreen, moveToColor, NoteGameObj } from "./note";
-import { addJudgement, checkForNoteHit, getJudgement, getScorePerDiff } from "./scoring";
+import { checkForNoteHit } from "./scoring";
 import { triggerEvent } from "../../core/events";
 import { INPUT_THRESHOLD, StateGame } from "../playstate";
 import { utils } from "../../utils";
@@ -55,7 +55,7 @@ export function addStrumline(GameState:StateGame) {
 						// there's no close enough to be hit, but there ARE notes on the screen
 						// so we have to check if there are any notes in twice the range of input treshold, if so then miss
 						if (GameState.song.notes.some((note) => utils.isInRange(GameState.conductor.timeInSeconds, note.hitTime + INPUT_THRESHOLD * 2, note.hitTime - INPUT_THRESHOLD * 2))) {
-							triggerEvent("onMiss")
+							triggerEvent("onMiss", false)
 						}
 					}
 				}

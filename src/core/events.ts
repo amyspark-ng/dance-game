@@ -47,7 +47,7 @@ export function onNoteHit(action: (note: ChartNote) => void) {
 }
 
 /** Runs when player misses */
-export function onMiss(action: () => void) {
+export function onMiss(action: (harm:boolean) => void) {
 	return getTreeRoot().on("onMiss", action)
 }
 

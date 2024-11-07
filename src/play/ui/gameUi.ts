@@ -62,7 +62,6 @@ export function addUI() {
 				else {
 					this.text = "-" + utils.formatNumber(Math.abs(this.value), { type: "simple" })
 				}
-				this.value = Math.abs(this.value)
 			}
 		}
 	])

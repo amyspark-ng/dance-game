@@ -5,7 +5,7 @@ import { addStrumline, getStrumline } from "./objects/strumline"
 import { ChartNote, notesSpawner, TIME_FOR_STRUM } from "./objects/note"
 import { saveScore } from "./song"
 import { goScene } from "../core/scenes"
-import { addComboText, addJudgement, getClosestNote, getJudgement, getScorePerDiff, tallyUtils } from "./objects/scoring"
+import { addComboText, addJudgement, getClosestNote, Scoring } from "./objects/scoring"
 import { GameSave } from "../core/gamesave"
 import { utils } from "../utils"
 import { addUI } from "./ui/gameUi"
@@ -85,7 +85,7 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 	})
 
 	onNoteHit((chartNote:ChartNote) => {
-		let judgement = getJudgement(GameState.conductor.timeInSeconds, chartNote)
+		let judgement = Scoring.judgeNote(GameState.conductor.timeInSeconds, chartNote)
 		
 		if (judgement == "Miss") {
 			triggerEvent("onMiss")
@@ -98,7 +98,7 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 		if (GameState.combo > GameState.highestCombo) GameState.highestCombo = GameState.combo
 
 		// score stuff
-		let scorePerDiff = getScorePerDiff(GameState.conductor.timeInSeconds, chartNote)
+		let scorePerDiff = Scoring.getScorePerDiff(GameState.conductor.timeInSeconds, chartNote)
 		GameState.tally.score += scorePerDiff
 		GameState.hitNotes.push(chartNote)
 
@@ -110,15 +110,17 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 
 		const judgementText = addJudgement(judgement)
 		
-		if (tallyUtils.isPerfect(GameState.tally)) judgementText.text += "!!"
+		if (Scoring.tally.isPerfect(GameState.tally)) judgementText.text += "!!"
 		else if (GameState.tally.misses < 1) judgementText.text += "!"
 		
 		addComboText(GameState.combo)
 		getDancer().doMove(chartNote.dancerMove)
 	})
 
-	onMiss(() => {
+	onMiss((harm:boolean) => {
 		getDancer().miss()
+		
+		if (harm == false) return
 		playSound("missnote");
 		addJudgement("Miss")
 		if (GameState.combo > 0) {
@@ -126,21 +128,21 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 		}
 
 		const closestNote = getClosestNote(GameState.song.notes, GameState.conductor.timeInSeconds)
-		const scoreDiff = getScorePerDiff(GameState.conductor.timeInSeconds, closestNote)
-		GameState.tally.score -= scoreDiff
+		const scoreDiff = Scoring.getScorePerDiff(GameState.conductor.timeInSeconds, closestNote)
+		if (GameState.tally.score > 0) GameState.tally.score -= scoreDiff
 
-		if (ui.scoreDiffText.value - scoreDiff > 0) {
-			ui.scoreDiffText.value = -(ui.scoreDiffText.value - scoreDiff)
+		if (GameState.tally.score > 0) {
+			ui.scoreDiffText.value = -(scoreDiff)
 			ui.scoreDiffText.opacity = 1
 			ui.scoreDiffText.bop({ startScale: vec2(1.1), endScale: vec2(1) })
-		}
+		} else ui.scoreDiffText.value = 0
 
 		GameState.tally.misses += 1
 		GameState.combo = 0
 		GameState.health -= randi(2, 8)
 
 		if (GameState.health <= 0) {
-			GameState.conductor.audioPlay.windDown()
+			GameState.conductor.audioPlay.stop()
 			goScene("death", { GameState: GameState } as paramsDeathScene)
 		}
 	})

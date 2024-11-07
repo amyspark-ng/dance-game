@@ -5,7 +5,7 @@ import { playSound } from "../../core/plugins/features/sound"
 import { goScene } from "../../core/scenes"
 import { paramsSongSelect } from "../../ui/songselectscene"
 import { utils } from "../../utils"
-import { Ranking, tallyUtils } from "../objects/scoring"
+import { Ranking, Scoring } from "../objects/scoring"
 import { StateGame } from "../playstate"
 
 /** Parameters for the result scene */
@@ -32,7 +32,7 @@ export function ResultsScene() { scene("results", (params: paramsResultsScene) =
 	const tallyThings:tallyContainer[] = [
 		{ title: "score", value: params.GameState.tally.score, color: WHITE },
 		{ title: "total notes", value: params.GameState.song.notes.length, color: WHITE },
-		{ title: "hit notes", value: tallyUtils.hitNotes(params.GameState.tally), color: WHITE },
+		{ title: "hit notes", value: Scoring.tally.hitNotes(params.GameState.tally), color: WHITE },
 		{ title: "awesomes", value: params.GameState.tally.awesomes, color: BLUE.lighten(50) },
 		{ title: "goods", value: params.GameState.tally.goods, color: GREEN.lighten(50) },
 		{ title: "ehhs", value: params.GameState.tally.ehhs, color: BLACK.lighten(50) },
@@ -43,10 +43,10 @@ export function ResultsScene() { scene("results", (params: paramsResultsScene) =
 	const initialY = 40
 
 	/** How cleared was the song */
-	const cleared = tallyUtils.cleared(params.GameState.tally)
+	const cleared = Scoring.tally.cleared(params.GameState.tally)
 
 	/** The ranking you're gonna get */
-	const ranking = tallyUtils.ranking(params.GameState.tally)
+	const ranking = Scoring.tally.ranking(params.GameState.tally)
 
 	/** The animations of the dancer according to the ranking you got */
 	const anims = getAnimsAccordingToRanking(ranking)

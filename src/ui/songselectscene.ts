@@ -5,7 +5,7 @@ import { customAudioPlay, playSound } from "../core/plugins/features/sound";
 import { goScene, transitionToScene } from "../core/scenes";
 import { enterSongTrans } from "../core/transitions/enterSongTransition";
 import { fadeOut } from "../core/transitions/fadeOutTransition";
-import { rankings, tallyUtils } from "../play/objects/scoring";
+import { rankings, Scoring } from "../play/objects/scoring";
 import { paramsGameScene } from "../play/playstate";
 import { saveScore, SongChart } from "../play/song"
 import { utils } from "../utils";
@@ -83,7 +83,7 @@ function addSongCapsule(curSong: SongChart) {
 	])
 
 	capsuleContainer.onUpdate(() => {
-		let clear = Math.round(tallyUtils.cleared(getHighscore(curSong.idTitle).tally))
+		let clear = Math.round(Scoring.tally.cleared(getHighscore(curSong.idTitle).tally))
 		if (isNaN(clear)) clear = 0
 	
 		let songDuration = "0"
@@ -103,7 +103,7 @@ function addSongCapsule(curSong: SongChart) {
 	if (!(GameSave.songsPlayed.some((song) => song.idTitle == curSong.idTitle))) return
 	
 	const tally = getHighscore(curSong.idTitle).tally
-	const ranking = tallyUtils.ranking(tally)
+	const ranking = Scoring.tally.ranking(tally)
 	
 	const maxOffset = 50
 	const offset = vec2(rand(-maxOffset, maxOffset), rand(-maxOffset, maxOffset))
