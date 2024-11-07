@@ -472,6 +472,7 @@ export function updateAllTextboxes(ChartState:StateChart) {
 	get("textBoxComp").forEach((txtbox) => updateTextboxes(ChartState, txtbox))
 }
 
+/** Updates the value the textboxes are showcasing */
 export function updateTextboxes(ChartState: StateChart, txtbox: GameObj) {
 	const ts1label = "Steps per beat (TS0)" 
 	const ts2label = "Beats per measure (TS1)" 
@@ -523,7 +524,7 @@ export function setupManageTextboxes(ChartState:StateChart) {
 
 	/** Gets the value of the textboxes and assigns it to the actual values on the chart */
 	function updateSongValues() {
-		// ChartState.song.title = textboxesarr["Display name"].value as string
+		ChartState.song.title = textboxesarr["Display name"].value as string
 		ChartState.song.idTitle = textboxesarr["ID"].value as string
 		
 		// bpm
@@ -613,6 +614,10 @@ export function setupManageTextboxes(ChartState:StateChart) {
 		if (ChartState.focusedTextBox == undefined) return
 		ChartState.focusedTextBox.value = ChartState.focusedTextBox.value.toString().slice(0, -1)
 	})
+
+	getTreeRoot().on("download", () => {
+		updateSongValues()
+	})
 }
 
 /** Adds a cool little floating text */
@@ -652,24 +657,27 @@ export function addDownloadButton(ChartState:StateChart) {
 	])
 
 	btn.onClick(async () => {
+		getTreeRoot().trigger("download")
+		
 		const jsZip = new JSZip()
 		
-		const wavBlob = utils.audioBufferToWav(ChartState.audioBuffer)
+		// the blob for the song 
+		const oggBlob = utils.audioBufferToOGG(ChartState.audioBuffer)
 
+		// stuff related to cover
 		const defaultCover = "sprites/defaultCover.png"
 		let pathToCover:string = undefined
 		const coverAvailable = await getSprite(ChartState.song.idTitle + "-cover")
-		
 		if (!coverAvailable) pathToCover = defaultCover
 		else pathToCover = `songs/${ChartState.song.idTitle}/${ChartState.song.idTitle}-cover.png`
-
-		console.log(pathToCover)
 		const imgBlob = await (await fetch(pathToCover)).blob()
-
+		
+		// creates the files
 		jsZip.file(`${ChartState.song.idTitle}-chart.json`, JSON.stringify(ChartState.song))
-		jsZip.file(`${ChartState.song.idTitle}-song.wav`, wavBlob)
+		jsZip.file(`${ChartState.song.idTitle}-song.ogg`, oggBlob)
 		jsZip.file(`${ChartState.song.idTitle}-cover.png`, imgBlob)
 		
+		// downloads the zip
 		await jsZip.generateAsync({ type: "blob" }).then((content) => {
 			downloadBlob(`${ChartState.song.idTitle}-chart.zip`, content)
 		})

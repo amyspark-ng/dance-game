@@ -4,6 +4,8 @@ import { SongChart } from "../play/song";
 import { loadCursor } from "./plugins/features/gameCursor";
 import { rankings } from "../play/objects/scoring";
 
+export const defaultSongs = ["bopeebo", "fresh", "unholy-blight", "black-rainbows", "its-just-a-burning-memory"]
+
 /** The loading screen of the game */
 export function loadingScreen(progress: number) {
 	// Black background
@@ -71,7 +73,7 @@ function loadDancer(dancerName: string, spriteData: LoadSpriteOpt) {
 	// load the background and other stuff here
 }
 
-async function loadSong(songName: string) {
+export async function loadSong(songName: string) {
 	// loads the chart
 	let chart = null;
 	
@@ -83,8 +85,6 @@ async function loadSong(songName: string) {
 	loadSprite(`${songName}-cover`, `songs/${songName}/${songName}-cover.png`)
 
 	return chart;
-
-	// load the album cover and other stuff here
 }
 
 /** Loads songs, dancers and noteskins */
@@ -132,17 +132,17 @@ async function loadContent() {
 		},
 	}
 	
+	loadSprite("defaultCover", "sprites/defaultCover.png")
+
 	Object.keys(dancersToLoad).forEach((dancer, index) => {
 		dancers[index] = { dancerName: dancer, dancerBg: dancer }
 		loadDancer(dancer, dancersToLoad[dancer])
 	})
 
 	// LOADS SONGS
-	let songsToLoad = ["bopeebo", "fresh", "unholy-blight"]
-	songsToLoad.forEach(async (song, index) => {
+	defaultSongs.forEach(async (song, index) => {
 		const newSong = await loadSong(song)
 		songCharts[index] = newSong
-		// songCharts[index] = loadSong(song) 
 	})
 
 	// loads noteskins

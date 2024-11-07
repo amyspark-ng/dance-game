@@ -4,8 +4,10 @@ import { gameCursor } from "./core/plugins/features/gameCursor"
 import { playSound } from "./core/plugins/features/sound"
 import { StateChart, updateAllTextboxes, updateTextboxes } from "./play/chartEditor/chartEditorBackend"
 import { ImportedSong, SongChart } from "./play/song"
-import { StateSongSelect } from "./ui/songselectscene"
+import { addSongCapsule, StateSongSelect } from "./ui/songselectscene"
 import { GameSave } from "./core/gamesave"
+import { loadSong, songCharts } from "./core/loader"
+import { promiseHooks } from "v8"
 
 /** File manager for some stuff of the game */
 export let fileManager = document.createElement("input")
@@ -51,7 +53,7 @@ export async function handleSongInput(ChartState:StateChart) {
 }
 
 /** Runs when user accepts to input a new song for the song select */
-export function handleZipInput(SongSelectState:StateSongSelect) {
+export async function handleZipInput(SongSelectState:StateSongSelect) {
 	SongSelectState.menuInputEnabled = false
 	fileManager.accept= ".zip"
 
@@ -59,7 +61,6 @@ export function handleZipInput(SongSelectState:StateSongSelect) {
 		/** The imported song thing */
 		let newSongThing:ImportedSong = null
 		
-		/** The gotten zip */
 		const gottenZip = fileManager.files[0]
 		
 		debug.log("got: " + gottenZip.name)
@@ -67,43 +68,42 @@ export function handleZipInput(SongSelectState:StateSongSelect) {
 		
 		const zipFile = await jsZip.loadAsync(gottenZip)
 		
-		// TODO: Have to do it a way so that it only picks the first jsons images and sounds
-		// And doesn't load every single one
-		zipFile.forEach(async (relativePath, zipEntry) => {
-			// it's a folder
-			if (zipEntry.dir) return
-			type fileType = "img" | "song" | "json"
+		let cover64:string;
+		let songArrBuff:ArrayBuffer;
+		let songChart:SongChart;
+		
+		const firstJson = zipFile.filter((file) => file.endsWith(".json"))[0]
+		songChart = JSON.parse(await firstJson.async("string"))
 
-			// TODO: store the "id" to save stuff as the name of the zip
-			// if it's already the name of any song just add a number
+		const firstImage = zipFile.filter((file) => file.endsWith(".png"))[0]
+		cover64 = await firstImage.async("blob").then((blob) => URL.createObjectURL(blob))
 
-			let typeOfFile:fileType = null;
-			if (relativePath.includes(".png")) typeOfFile = "img"
-			else if (relativePath.includes(".ogg")) typeOfFile = "song"
-			else if (relativePath.includes(".json")) typeOfFile = "json"
+		const firstSong = zipFile.filter((file) => file.endsWith(".ogg"))[0]
+		songArrBuff = await firstSong.async("arraybuffer")
 
-			if (typeOfFile == "song") {
-				const fileArayBuffer = await zipEntry.async("arraybuffer")
-				relativePath = "coolsong"
-				await loadSound(relativePath, fileArayBuffer)
-				
-				newSongThing.song = fileArayBuffer
-			}
+		newSongThing = {
+			cover: cover64,
+			song: songArrBuff,
+			chart: songChart,
+		}
 
-			else if (typeOfFile == "json") {
-				const songAsObject = JSON.parse(await zipEntry.async("string")) as SongChart
-				newSongThing.chart = songAsObject
-			}
-			
-			else if (typeOfFile == "img") {
-				const fileBase64 = await zipEntry.async("base64")
-				await loadSprite(relativePath, fileBase64)
-				newSongThing.cover = fileBase64
-			}
+		songCharts.push(songChart)
+		SongSelectState.menuInputEnabled = true
+
+		if (!await getSprite(songChart.idTitle + "-cover")) {
+			console.log(cover64)
+			await loadSprite(songChart.idTitle + "-cover", cover64)
+		}
+
+		if (!await getSound(songChart.idTitle + "-song")) {
+			await loadSound(songChart.idTitle + "-song", songArrBuff)
+		}
+
+		addSongCapsule(songChart)
+		wait(0.1, () => {
+			SongSelectState.index = songCharts.indexOf(songChart)
+			SongSelectState.updateState()
 		})
-
-		// this runs after the foreach supposedly
-		GameSave.importedSongs.push(newSongThing)
 	}
 
 	fileManager.oncancel = async () => {

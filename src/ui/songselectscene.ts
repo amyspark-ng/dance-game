@@ -1,10 +1,11 @@
 import { GameSave } from "../core/gamesave";
-import { songCharts } from "../core/loader"
+import { loadSong, songCharts } from "../core/loader"
 import { cam } from "../core/plugins/features/camera";
 import { customAudioPlay, playSound } from "../core/plugins/features/sound";
 import { goScene, transitionToScene } from "../core/scenes";
 import { enterSongTrans } from "../core/transitions/enterSongTransition";
 import { fadeOut } from "../core/transitions/fadeOutTransition";
+import { fileManager, handleZipInput } from "../fileManaging";
 import { rankings, Scoring } from "../play/objects/scoring";
 import { paramsGameScene } from "../play/playstate";
 import { SaveScore, SongChart } from "../play/song"
@@ -29,17 +30,23 @@ export class StateSongSelect {
 
 	menuInputEnabled: boolean = true
 
+	songPreview: customAudioPlay;
+
 	/** Scrolls the index, so scrolling the songs */
 	scroll(change:number, songAmount: number) {
 		this.index = utils.scrollIndex(this.index, change, songAmount)
 	};
 
-	songPreview: customAudioPlay;
+	updateState() {
+		getTreeRoot().trigger("updateState")
+	}
 }
 
 /** Should add this to album cover, just because  */
 const barWidth = 46
-function addSongCapsule(curSong: SongChart) {
+
+/** Adds a song capsule to the song select scene */
+export function addSongCapsule(curSong: SongChart) {
 	const capsuleContainer = add([
 		opacity(),
 		pos(center().x, center().y),
@@ -82,14 +89,14 @@ function addSongCapsule(curSong: SongChart) {
 		opacity(),
 	])
 
+	let songDuration = "0"
+	getSound(`${curSong.idTitle}-song`).onLoad((data) => {
+		songDuration = utils.formatTime(data.buf.duration)
+	})
+
 	capsuleContainer.onUpdate(() => {
 		let clear = Math.round(Scoring.tally.cleared(getHighscore(curSong.idTitle).tally))
 		if (isNaN(clear)) clear = 0
-	
-		let songDuration = "0"
-		getSound(`${curSong.idTitle}-song`).onLoad((data) => {
-			songDuration = utils.formatTime(data.buf.duration)
-		}) 
 	
 		capsuleName.text = `${curSong.title} (${clear}%)\n${songDuration}`
 		capsuleName.pos.y = (capsuleContainer.height / 2)
@@ -117,7 +124,7 @@ function addSongCapsule(curSong: SongChart) {
 	])
 
 	rankingSticker.pos = offset
-
+	
 	return capsuleContainer;
 }
 
@@ -135,7 +142,7 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 	songSelectState.index = params.index ?? 0
 	songSelectState.songPreview?.stop()
 
-	const songAmount = songCharts.length
+	let songAmount = songCharts.length
 	const LERP_AMOUNT = 0.25
 
 	// const allSongs = songCharts.concat(GameSave.importedSongs)
@@ -144,9 +151,10 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 		addSongCapsule(song)
 	})
 
-	const allCapsules = get("songCapsule") as songCapsuleObj[]
-	allCapsules.forEach((songCapsule, index) => {
-		songCapsule.onUpdate(() => {
+	let allCapsules = get("songCapsule", { liveUpdate: true }) as songCapsuleObj[]
+	onUpdate(() => {
+		songAmount = songCharts.length
+		allCapsules.forEach((songCapsule, index) => {
 			let opacity = 1
 			
 			const indexOfCapsule = allCapsules.indexOf(songCapsule)
@@ -182,7 +190,28 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 		highscoreText.text = utils.formatNumber(highscoreText.value, { type: "simple" }) + utils.star
 	})
 
-	function updateState() {
+	wait(0.01, () => songSelectState.updateState())
+
+	onKeyPress("left", () => {
+		if (!songSelectState.menuInputEnabled) return;
+		songSelectState.scroll(-1, songAmount)
+		songSelectState.updateState()
+	})
+
+	onKeyPress("right", () => {
+		if (!songSelectState.menuInputEnabled) return;
+		songSelectState.scroll(1, songAmount)
+		songSelectState.updateState()
+	})
+	
+	onScroll((delta) => {
+		if (!songSelectState.menuInputEnabled) return;
+		delta.y = clamp(delta.y, -1, 1)
+		songSelectState.scroll(delta.y, songAmount)
+		songSelectState.updateState()
+	})
+
+	getTreeRoot().on("updateState", () => {
 		if (!allCapsules[songSelectState.index]) return
 
 		const tallyScore = getHighscore(allCapsules[songSelectState.index].song.idTitle).tally.score 
@@ -194,27 +223,6 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 		})
 		songSelectState.songPreview.loop = true
 		tween(0, GameSave.sound.music.volume, 0.25, (p) => songSelectState.songPreview.volume = p)
-	}
-
-	wait(0.01, () => updateState())
-
-	onKeyPress("left", () => {
-		if (!songSelectState.menuInputEnabled) return;
-		songSelectState.scroll(-1, songAmount)
-		updateState()
-	})
-
-	onKeyPress("right", () => {
-		if (!songSelectState.menuInputEnabled) return;
-		songSelectState.scroll(1, songAmount)
-		updateState()
-	})
-	
-	onScroll((delta) => {
-		if (!songSelectState.menuInputEnabled) return;
-		delta.y = clamp(delta.y, -1, 1)
-		songSelectState.scroll(delta.y, songAmount)
-		updateState()
 	})
 
 	onKeyPress("enter", () => {
@@ -248,4 +256,10 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 	})
 
 	onSceneLeave(() => { stopPreview() })
+
+	onKeyPress("q", async () => {
+		if (!songSelectState.menuInputEnabled) return
+		fileManager.click()
+		await handleZipInput(songSelectState)
+	})
 })}

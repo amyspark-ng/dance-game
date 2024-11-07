@@ -152,7 +152,8 @@ export class utils {
 		return URL.createObjectURL(blob);
 	}
 
-	static audioBufferToWav(audioBuffer:AudioBuffer) : Blob {
+	/** Careful with this, it actually converts to wav but it somehows works when sending as .ogg LOL */
+	static audioBufferToOGG(audioBuffer:AudioBuffer) : Blob {
 		// Helper function to write a string to the DataView
 		function writeString(view: DataView<ArrayBuffer>, offset: number, string: string) {
 			for (let i = 0; i < string.length; i++) {
@@ -200,6 +201,6 @@ export class utils {
 			}
 		}
 	
-		return new Blob([view], { type: "audio/wav" });
+		return new Blob([view], { type: "audio/ogg" });
 	}
 }
