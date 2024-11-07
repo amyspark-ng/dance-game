@@ -450,6 +450,37 @@ export function addTextBox(opts:textBoxOpt) {
 	return texting;
 }
 
+export function updateTextboxes(ChartState: StateChart, txtbox: GameObj) {
+	const ts1label = "Steps per beat (TS0)" 
+	const ts2label = "Beats per measure (TS1)" 
+
+	switch (txtbox.label) {
+		case "Display name":
+			txtbox.value = ChartState.song.title;	
+		break;
+
+		case "ID":
+			txtbox.value = ChartState.song.idTitle;	
+		break;
+
+		case "BPM":
+			txtbox.value = ChartState.song.bpm.toString();
+		break;
+
+		case ts1label:
+			txtbox.value = ChartState.conductor.stepsPerBeat.toString();
+		break;
+
+		case ts2label:
+			txtbox.value = ChartState.conductor.beatsPerMeasure.toString();
+		break;
+
+		case "Scroll speed":
+			txtbox.value = ChartState.song.scrollSpeed.toString();
+		break;
+	}
+}
+
 export function setupManageTextboxes(ChartState:StateChart) {
 	const initialTextBoxPos = vec2(15, 25)
 	const sizeOfTxt = 30
@@ -470,7 +501,7 @@ export function setupManageTextboxes(ChartState:StateChart) {
 
 	/** Gets the value of the textboxes and assigns it to the actual values on the chart */
 	function updateSongValues() {
-		ChartState.song.title = textboxesarr["Display name"].value as string
+		// ChartState.song.title = textboxesarr["Display name"].value as string
 		ChartState.song.idTitle = textboxesarr["ID"].value as string
 		
 		// bpm
@@ -483,34 +514,6 @@ export function setupManageTextboxes(ChartState:StateChart) {
 		ChartState.song.scrollSpeed = Number(textboxesarr["Scroll speed"].value)
 	}
 
-	function updateTextboxes(txtbox: GameObj) {
-		switch (txtbox.label) {
-			case "Display name":
-				txtbox.value = ChartState.song.title;	
-			break;
-
-			case "ID":
-				txtbox.value = ChartState.song.idTitle;	
-			break;
-
-			case "BPM":
-				txtbox.value = ChartState.song.bpm.toString();
-			break;
-
-			case ts1label:
-				txtbox.value = ChartState.conductor.stepsPerBeat.toString();
-			break;
-
-			case ts2label:
-				txtbox.value = ChartState.conductor.beatsPerMeasure.toString();
-			break;
-
-			case "Scroll speed":
-				txtbox.value = ChartState.song.scrollSpeed.toString();
-			break;
-		}
-	}
-
 	Object.keys(textboxes).forEach((label, index) => {
 		const txtbox = addTextBox({
 			label: label,
@@ -519,14 +522,14 @@ export function setupManageTextboxes(ChartState:StateChart) {
 		txtbox.textSize = sizeOfTxt
 		txtbox.pos = vec2(initialTextBoxPos.x, initialTextBoxPos.y + sizeOfTxt * index)
 		textboxesarr[label] = txtbox
-		updateTextboxes(txtbox)
+		updateTextboxes(ChartState, txtbox)
 	})
 
 	onUpdate(() => {
 		const hoveredTextbox = get("textBoxComp").find((textbox) => textbox.focus)
 		if (!hoveredTextbox) return;
 		if (hoveredTextbox.focus) return;
-		updateTextboxes(hoveredTextbox)
+		updateTextboxes(ChartState, hoveredTextbox)
 	})
 
 	// manages some focus for textboxes

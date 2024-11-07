@@ -9,8 +9,11 @@ import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { utils } from "../../utils";
 import { moveToColor } from "../objects/note";
 import { paramsGameScene } from "../playstate";
-import { addDownloadButton, addDummyDancer, addFloatingText, cameraControllerHandling, handlerForChangingInput, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, setupManageTextboxes, StateChart } from "./chartEditorBackend";
+import { addDownloadButton, addDummyDancer, addFloatingText, cameraControllerHandling, handlerForChangingInput, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, setupManageTextboxes, StateChart, updateTextboxes } from "./chartEditorBackend";
 import { drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, drawPlayBar, drawSelectGizmo, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE } from "./chartEditorElements";
+import { fileManager } from "../../core/initGame";
+import JSZip from "jszip";
+import { SongChart } from "../song";
 
 export function ChartEditorScene() { scene("charteditor", (params: paramsChartEditor) => {
 	// had an issue with BPM being NaN but it was because since this wasn't defined then it was NaN
@@ -172,7 +175,68 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 				ChartState.selectedNotes.push(note)
 			})
 		}
+
+		if (isKeyPressed("q")) fileManager.click()
 	})
+
+	fileManager.onchange = async () => {
+		ChartState.paused = true
+		ChartState.inputDisabled = true
+		
+		/** The gotten zip */
+		const gottenZip = fileManager.files[0]
+		
+		debug.log("got: " + gottenZip.name)
+		const jsZip = new JSZip()
+		
+		const zipFile = await jsZip.loadAsync(gottenZip)
+		
+		// TODO: Have to do it a way so that it only picks the first jsons images and sounds
+		// And doesn't load every single one
+		zipFile.forEach(async (relativePath, zipEntry) => {
+			// it's a folder
+			if (zipEntry.dir) return
+			type fileType = "img" | "song" | "json"
+
+			// TODO: store the "id" to save stuff as the name of the zip
+			// if it's already the name of any song just add a number
+
+			let typeOfFile:fileType = null;
+			if (relativePath.includes(".png")) typeOfFile = "img"
+			else if (relativePath.includes(".ogg")) typeOfFile = "song"
+			else if (relativePath.includes(".json")) typeOfFile = "json"
+
+			if (typeOfFile == "song") {
+				const fileArayBuffer = await zipEntry.async("arraybuffer")
+				relativePath = "coolsong"
+				await loadSound(relativePath, fileArayBuffer)
+			
+				// apparently at this time it has already loaden the chart so that's good
+				ChartState.conductor = new Conductor({
+					audioPlay: playSound(`coolsong`, { volume: 0.1, speed: params.playbackSpeed }),
+					bpm: params.song.bpm * params.playbackSpeed,
+					timeSignature: params.song.timeSignature,
+					offset: 0,
+				})
+
+				ChartState.inputDisabled = false
+			}
+
+			else if (typeOfFile == "json") {
+				const songAsObject = JSON.parse(await zipEntry.async("string")) as SongChart
+				ChartState.song = songAsObject;
+				
+				get("textBoxComp").forEach((txtbox) => {
+					updateTextboxes(ChartState, txtbox)
+				})
+			}
+			
+			else if (typeOfFile == "img") {
+				const fileBase64 = await zipEntry.async("base64")
+				await loadSprite(relativePath, fileBase64)
+			}
+		})
+	}
 
 	// this is done like this so it's drawn on top of everything
 	const selectDraw = add([
