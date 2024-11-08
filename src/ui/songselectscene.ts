@@ -1,6 +1,7 @@
 import { GameSave } from "../core/gamesave";
 import { loadSong, songCharts } from "../core/loader"
 import { cam } from "../core/plugins/features/camera";
+import { gameCursor } from "../core/plugins/features/gameCursor";
 import { customAudioPlay, playSound } from "../core/plugins/features/sound";
 import { goScene, transitionToScene } from "../core/scenes";
 import { enterSongTrans } from "../core/transitions/enterSongTransition";
@@ -135,6 +136,8 @@ export type paramsSongSelect =  {
 }
 
 export function SongSelectScene() { scene("songselect", (params: paramsSongSelect) => {
+	gameCursor.hide()
+	
 	setBackground(BLUE.lighten(50))
 
 	params = params ?? { index: 0 }

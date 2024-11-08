@@ -8,6 +8,7 @@ import { SongChart } from "../song";
 import { Conductor } from "../../conductor";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
 import JSZip from "jszip";
+import { gameDialog } from "../../ui/dialogs/gameDialog";
 
 /** Class that manages the snapshots of the chart */
 export class ChartSnapshot {
@@ -322,6 +323,7 @@ export function selectionBoxHandler(ChartState:StateChart) {
 }
 
 export function cameraControllerHandling(ChartState:StateChart) {
+	if (gameDialog.isOpen) return;
 	if (gameCursor.pos.x >= width() - ChartState.SQUARE_SIZE.x && !ChartState.cameraController.isMovingCamera) ChartState.cameraController.canMoveCamera = true
 	else if (gameCursor.pos.x < width() - ChartState.SQUARE_SIZE.x && !ChartState.cameraController.isMovingCamera) ChartState.cameraController.canMoveCamera = false
 

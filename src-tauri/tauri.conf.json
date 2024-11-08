@@ -16,7 +16,7 @@
       "window": {
         "setTitle": true,
         "setFullscreen": true,
-        "close": true,
+        "close": true
       },
       "shell": {
         "all": false,

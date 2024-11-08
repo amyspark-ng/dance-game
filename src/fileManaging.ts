@@ -8,6 +8,7 @@ import { addSongCapsule, StateSongSelect } from "./ui/songselectscene"
 import { GameSave } from "./core/gamesave"
 import { loadSong, songCharts } from "./core/loader"
 import { promiseHooks } from "v8"
+import { url } from "inspector"
 
 /** File manager for some stuff of the game */
 export let fileManager = document.createElement("input")
@@ -72,12 +73,24 @@ export async function handleZipInput(SongSelectState:StateSongSelect) {
 		let songArrBuff:ArrayBuffer;
 		let songChart:SongChart;
 		
+		// loading json
 		const firstJson = zipFile.filter((file) => file.endsWith(".json"))[0]
 		songChart = JSON.parse(await firstJson.async("string"))
 
-		const firstImage = zipFile.filter((file) => file.endsWith(".png"))[0]
-		cover64 = await firstImage.async("blob").then((blob) => URL.createObjectURL(blob))
+		// if (songChart doesn't have properties of blah blah trigger error)
 
+		// loading image
+		const firstImage = zipFile.filter((file) => file.endsWith(".png"))[0]
+		if (!firstImage) {
+			let blobOfDefault = await fetch("sprites/defaultCover.png").then((res) => res.blob())
+			cover64 = URL.createObjectURL(blobOfDefault)
+		}
+
+		else {
+			cover64 = await firstImage.async("blob").then((blob) => URL.createObjectURL(blob))
+		}
+
+		// loading song
 		const firstSong = zipFile.filter((file) => file.endsWith(".ogg"))[0]
 		songArrBuff = await firstSong.async("arraybuffer")
 

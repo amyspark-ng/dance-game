@@ -14,6 +14,8 @@ import { drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, 
 import { fileManager, handleSongInput } from "../../fileManaging";
 import { GameSave } from "../../core/gamesave";
 import { defaultSongs, songCharts } from "../../core/loader";
+import { gameDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog";
+import { dialog } from "@tauri-apps/api";
 
 export function ChartEditorScene() { scene("charteditor", (params: paramsChartEditor) => {
 	// had an issue with BPM being NaN but it was because since this wasn't defined then it was NaN
@@ -96,7 +98,8 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		mouseAnimationHandling(ChartState)
 		
 		if (ChartState.focusedTextBox) return
-		
+		if (gameDialog.isOpen) return;
+
 		// move note up
 		if (isKeyPressedRepeat("w") && ChartState.scrollStep > 0) ChartState.scrollStep--
 		
@@ -189,6 +192,10 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 			fileManager.click()
 			handleSongInput(ChartState)
 		}
+
+		else if (isKeyPressed("e")) {
+			openChartInfoDialog(ChartState)
+		}
 	})
 
 	// this is done like this so it's drawn on top of everything
@@ -197,6 +204,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	])
 
 	selectDraw.onDraw(() => {
+		if (gameDialog.isOpen) return
 		drawSelectionBox(ChartState)
 	})
 
@@ -205,10 +213,12 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		drawCheckerboard(ChartState)
 		drawAllNotes(ChartState)
 		drawStrumline(ChartState)
-		drawCursor(ChartState)
-		drawSelectGizmo(ChartState)
 		drawCameraControlAndNotes(ChartState)
 		drawPlayBar(ChartState)
+		
+		if (gameDialog.isOpen) return
+		drawCursor(ChartState)
+		drawSelectGizmo(ChartState)
 	})
 
 	/** Gets the current note that is being hovered */
@@ -225,6 +235,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	// Behaviour for placing and selecting notes
 	onMousePress("left", () => {
+		if (gameDialog.isOpen) return;
 		const time = ChartState.conductor.stepToTime(ChartState.hoveredStep, ChartState.conductor.stepInterval)
 		let note = getCurrentHoveredNote()
 	
@@ -262,11 +273,13 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	// Resets the detune for moving notes
 	onMouseRelease("left", () => {
+		if (gameDialog.isOpen) return;
 		ChartState.selectionBox.leadingNote = undefined;
 	})
 
 	// Removing notes
 	onMousePress("right", () => {
+		if (gameDialog.isOpen) return;
 		if (!ChartState.isCursorInGrid) return
 		const note = getCurrentHoveredNote()
 		if (!note) return
@@ -277,6 +290,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	// Behaviour for moving notes
 	onMouseDown("left", () => {
+		if (gameDialog.isOpen) return;
 		if (!ChartState.selectionBox.leadingNote) return;
 		
 		let oldStepOfLeading = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingNote.hitTime)
@@ -315,6 +329,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	// Copies the color of a note
 	onMousePress("middle", () => {
+		if (gameDialog.isOpen) return;
 		const currentHoveredNote = getCurrentHoveredNote()
 		if (currentHoveredNote && ChartState.currentMove != currentHoveredNote.dancerMove) {
 			ChartState.changeMove(currentHoveredNote.dancerMove)
@@ -323,6 +338,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	// The scroll event
 	onScroll((delta) => {
+		if (gameDialog.isOpen) return;
 		let scrollPlus = 0
 		if (!ChartState.paused) ChartState.paused = true
 		
@@ -338,6 +354,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	// Send you to the game
 	onKeyPress("enter", async () => {
+		if (gameDialog.isOpen) return;
 		if (ChartState.inputDisabled) return
 		if (ChartState.focusedTextBox) return
 		ChartState.inputDisabled = true
@@ -358,6 +375,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	// Pausing unpausing behaviour
 	onKeyPress("space", () => {
+		if (gameDialog.isOpen) return;
 		if (ChartState.inputDisabled) return
 		if (ChartState.focusedTextBox) return
 		ChartState.paused = !ChartState.paused

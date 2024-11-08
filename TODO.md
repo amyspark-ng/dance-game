@@ -1,4 +1,4 @@
-- Chart Editor: When loading a new song it will always come back to the first time because apparently overriding songs is impossible in kaplay for now
+- Chart Editor: Add the notifications like, song loaded, song downloaded etc etc
 
 - Chart Editor: Add a cool dropdown (kinda like clickery) that has controls, new song and textboxes and they all open like dialogs, hopefully it won't be that bad to figure out  
 
