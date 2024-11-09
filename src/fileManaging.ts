@@ -3,22 +3,20 @@ import { Conductor } from "./conductor"
 import { gameCursor } from "./core/plugins/features/gameCursor"
 import { playSound } from "./core/plugins/features/sound"
 import { StateChart } from "./play/chartEditor/chartEditorBackend"
-import { ImportedSong, SongChart } from "./play/song"
+import { SongChart } from "./play/song"
 import { addSongCapsule, StateSongSelect } from "./ui/songselectscene"
-import { GameSave } from "./core/gamesave"
-import { loadSong, songCharts } from "./core/loader"
-import { promiseHooks } from "v8"
-import { url } from "inspector"
-import { utils } from "./utils"
-import { OptionsScene } from "./ui/menu/options/optionsScene"
+import { allSongCharts } from "./core/loader"
 import { gameDialog } from "./ui/dialogs/gameDialog"
+import { utils } from "./utils"
+import { GameSave } from "./core/gamesave"
 
 /** File manager for some stuff of the game */
 export let fileManager = document.createElement("input")
 fileManager.type = "file"
 
-/** Runs when user accepts to input a song for a new chart on the chart editor */
+/** Runs when user accepts to input a song to change the one in the chart editor */
 export async function handleSongInput(ChartState:StateChart) {
+	fileManager.click()
 	ChartState.paused = true
 	fileManager.accept= ".ogg,.wav,.mp3"
 	
@@ -29,17 +27,19 @@ export async function handleSongInput(ChartState:StateChart) {
 	fileManager.onchange = async () => {
 		const gottenFile = fileManager.files[0]	
 		const buffer = await gottenFile.arrayBuffer()
-		await loadSound(gottenFile.name, buffer)
-		
-		ChartState.setSong(new SongChart())
-		ChartState.song.title = gottenFile.name
-		
-		await getSound(gottenFile.name).then((sound) => ChartState.audioBuffer = sound.buf)
+		await loadSound(ChartState.song.idTitle + "-song", buffer)
+		await getSound(ChartState.song.idTitle + "-song").then((sound) => ChartState.audioBuffer = sound.buf)
 
 		ChartState.conductor = new Conductor({
-			audioPlay: playSound(gottenFile.name, { volume: 0.1 }),
+			audioPlay: playSound(ChartState.song.idTitle + "-song", { volume: 0.1 }),
 			bpm: ChartState.song.bpm,
 			timeSignature: ChartState.song.timeSignature,
+		})
+
+		ChartState.song.notes.forEach((note) => {
+			if (note.hitTime >= ChartState.conductor.audioPlay.duration()) {
+				ChartState.song.notes = utils.removeFromArr(note, ChartState.song.notes)
+			}
 		})
 
 		ChartState.inputDisabled = false
@@ -56,27 +56,25 @@ export async function handleSongInput(ChartState:StateChart) {
 
 /** Runs when user accepts to input a new song for the song select */
 export async function handleZipInput(SongSelectState:StateSongSelect) {
+	fileManager.click()
 	SongSelectState.menuInputEnabled = false
 	fileManager.accept= ".zip"
 
 	fileManager.onchange = async () => {
-		/** The imported song thing */
-		let newSongThing:ImportedSong = null
-		
+		const drawLoadingScreen = assetLoadingScreen()
+
 		const gottenZip = fileManager.files[0]
-		
-		debug.log("got: " + gottenZip.name)
 		const jsZip = new JSZip()
 		
 		const zipFile = await jsZip.loadAsync(gottenZip)
 		
-		let cover64:string;
+		let coverDataURL:string;
 		let songArrBuff:ArrayBuffer;
-		let songChart:SongChart;
+		let gottenChart:SongChart;
 		
 		// loading json
 		const firstJson = zipFile.filter((file) => file.endsWith(".json"))[0]
-		songChart = JSON.parse(await firstJson.async("string"))
+		gottenChart = JSON.parse(await firstJson.async("string"))
 
 		// if (songChart doesn't have properties of blah blah trigger error)
 
@@ -84,49 +82,67 @@ export async function handleZipInput(SongSelectState:StateSongSelect) {
 		const firstImage = zipFile.filter((file) => file.endsWith(".png"))[0]
 		if (!firstImage) {
 			let blobOfDefault = await fetch("sprites/defaultCover.png").then((res) => res.blob())
-			cover64 = URL.createObjectURL(blobOfDefault)
+			coverDataURL = URL.createObjectURL(blobOfDefault)
 		}
 
 		else {
-			cover64 = await firstImage.async("blob").then((blob) => URL.createObjectURL(blob))
+			// if i don't do this it will qualify as security something idk
+			function blobToSafeDataURL(blob: Blob): Promise<string> {
+				return new Promise<string>((resolve, reject) => {
+					const reader = new FileReader();
+					reader.onload = _e => resolve(reader.result as string);
+					reader.onerror = _e => reject(reader.error);
+					reader.onabort = _e => reject(new Error("Read aborted"));
+					reader.readAsDataURL(blob);
+				});
+			}
+			
+			const blobOfCover = await firstImage.async("blob")
+			coverDataURL = await blobToSafeDataURL(blobOfCover)
 		}
 
 		// loading song
 		const firstSong = zipFile.filter((file) => file.endsWith(".ogg"))[0]
 		songArrBuff = await firstSong.async("arraybuffer")
 
-		newSongThing = {
-			cover: cover64,
-			song: songArrBuff,
-			chart: songChart,
+		if (allSongCharts.some((song) => song.idTitle == gottenChart.idTitle)) {
+			debug.log("Can't import that song because either it's already imported or it's one of the main ones")
+			drawLoadingScreen.cancel()
+			SongSelectState.menuInputEnabled = true
+			return;
 		}
 
-		songCharts.push(songChart)
+		if (!await getSprite(gottenChart.idTitle + "-cover")) {
+			await loadSprite(gottenChart.idTitle + "-cover", coverDataURL)
+		}
+		
+		if (!await getSound(gottenChart.idTitle + "-song")) {
+			await loadSound(gottenChart.idTitle + "-song", songArrBuff)
+		}
+
+		allSongCharts.push(gottenChart)
+		GameSave.save()
 		SongSelectState.menuInputEnabled = true
+		
+		drawLoadingScreen.cancel()
 
-		if (!await getSprite(songChart.idTitle + "-cover")) {
-			console.log(cover64)
-			await loadSprite(songChart.idTitle + "-cover", cover64)
-		}
-
-		if (!await getSound(songChart.idTitle + "-song")) {
-			await loadSound(songChart.idTitle + "-song", songArrBuff)
-		}
-
-		addSongCapsule(songChart)
+		addSongCapsule(gottenChart)
+		getTreeRoot().trigger("addedCapsule")
 		wait(0.1, () => {
-			SongSelectState.index = songCharts.indexOf(songChart)
+			SongSelectState.index = allSongCharts.indexOf(gottenChart)
 			SongSelectState.updateState()
 		})
 	}
 
 	fileManager.oncancel = async () => {
 		SongSelectState.menuInputEnabled = true
-		debug.log("user cancelled song input new upload")
+		debug.log("user cancelled song input")
 	}
 }
 
+/** Handles the input for a new cover */
 export function handleCoverInput(ChartState:StateChart) {
+	fileManager.click()
 	fileManager.accept= ".png,.jpg"
 	
 	gameCursor.canMove = false
@@ -151,5 +167,47 @@ export function handleCoverInput(ChartState:StateChart) {
 		gameCursor.canMove = true
 		gameDialog.canClose = true
 		debug.log("user cancelled cover input")
+	}
+}
+
+/** Small loading screen to display while stuff loads */
+export function assetLoadingScreen() {
+	let op = 0
+	let ang = 0
+
+	tween(op, 1, 0.1, (p) => op = p)
+	const drawEv = onDraw(() => {
+		drawRect({
+			width: width(),
+			height: height(),
+			anchor: "center",
+			pos: center(),
+			color: BLACK,
+			opacity: 0.5 * op,
+		})
+
+		drawText({
+			text: "LOADING",
+			font: "lambda",
+			pos: center(),
+			color: WHITE,
+			anchor: "center",
+			opacity: op
+		})
+
+		ang += 1
+		drawSprite({
+			sprite: "bean",
+			angle: ang,
+			anchor: "center",
+			pos: vec2(center().x, wave(center().y + 70, center().y + 80, time() + 1)),
+			opacity: op,
+		})
+	})
+
+	return {
+		cancel() {
+			tween(op, 0, 0.1, (p) => op = p)
+		}
 	}
 }

@@ -2,7 +2,7 @@ import { Comp, GameObj, KEventController, KEventHandler, RectComp } from "kaplay
 import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { playSound } from "../../core/plugins/features/sound";
 import { dialog } from "@tauri-apps/api";
-import { dialog_addSlider, dialog_addTextbox, dialog_changeCover } from "./dialogFields";
+import { dialog_addSlider, dialog_addTextbox, dialog_changeCover, dialog_changeSong } from "./dialogFields";
 import { StateChart } from "../../play/chartEditor/chartEditorBackend";
 import { utils } from "../../utils";
 import { SongChart } from "../../play/song";
@@ -221,7 +221,13 @@ export function openChartInfoDialog(ChartState:StateChart) {
 
 	const changeCover = dialog_changeCover({
 		position: vec2(xPos, dialog.height / 2 - 75),
-		dialog: dialog,
+		dialog,
+		ChartState,
+	})
+
+	const changeSong = dialog_changeSong({
+		position: vec2(dialog.width / 2 - 75, dialog.height / 2 - 75),
+		dialog,
 		ChartState,
 	})
 

@@ -6,7 +6,7 @@ import { SongChart } from "../../play/song";
 import { dialog } from "@tauri-apps/api";
 import { utils } from "../../utils";
 import { StateChart } from "../../play/chartEditor/chartEditorBackend";
-import { fileManager, handleCoverInput } from "../../fileManaging";
+import { fileManager, handleCoverInput, handleSongInput } from "../../fileManaging";
 
 const textSize = 30
 const padding = 5
@@ -144,6 +144,7 @@ export function dialog_addSlider(opts: sliderOpt) {
 		color(opts.dialog.outline.color.lighten(5))
 	])
 
+	// TODO: Add the slider thing where the part on the left is colored blue so you know how much you've slided
 	const slider = opts.dialog.add([
 		pos(0, sliderbg.pos.y),
 		rect(10, textSize + 5, { radius: 2.5 }),
@@ -198,24 +199,19 @@ export function dialog_addSlider(opts: sliderOpt) {
 	return slider
 }
 
-type changeCoverOpt = {
+type changeThingOpt = {
 	position: Vec2,
 	dialog: gameDialogObj,
 	ChartState:StateChart,
 }
 
-export function dialog_changeCover(opts: changeCoverOpt) {
+export function dialog_changeCover(opts: changeThingOpt) {
 	const isCoverLoaded = getSprite(opts.ChartState.song.idTitle + "-cover")
-	let spriteForCover = "defaultCover"
+	let spriteForCover:string = undefined
 	
-	if (!isCoverLoaded) {
-		debug.log("cover isn't loaded")
-	}
-
-	else {
-		spriteForCover = opts.ChartState.song.idTitle + "-cover"
-	}
-
+	if (isCoverLoaded) spriteForCover = opts.ChartState.song.idTitle + "-cover"
+	else spriteForCover = "defaultCover"
+	
 	const button = opts.dialog.add([
 		sprite(spriteForCover),
 		pos(opts.position),
@@ -243,8 +239,41 @@ export function dialog_changeCover(opts: changeCoverOpt) {
 	})
 
 	button.onClick(() => {
-		fileManager.click()
 		handleCoverInput(opts.ChartState)
+	})
+
+	return button;
+}
+
+export function dialog_changeSong(opts:changeThingOpt) {
+	const button = opts.dialog.add([
+		sprite("changeSongBtn"),
+		pos(opts.position),
+		anchor("left"),
+		area(),
+		"cover",
+		{
+			update() {
+				button.width = 100
+				button.height = 100
+			}
+		}
+	])
+	
+	button.onDraw(() => {
+		if (button.isHovering()) {
+			drawRect({
+				width: button.width,
+				height: button.height,
+				color: WHITE.darken(50),
+				opacity: 0.5,
+				anchor: button.anchor,
+			})
+		}
+	})
+
+	button.onClick(() => {
+		handleSongInput(opts.ChartState)
 	})
 
 	return button;

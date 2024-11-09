@@ -1,5 +1,8 @@
+import { GameSave } from "../../core/gamesave";
 import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { goScene } from "../../core/scenes"
+import { paramsChartEditor } from "../../play/chartEditor/chartEditorBackend";
+import { SongChart } from "../../play/song";
 import { utils } from "../../utils";
 import { paramsSongSelect } from "../songselectscene"
 
@@ -67,8 +70,8 @@ export function MenuScene() { scene("menu", (params: paramsMenuScene) => {
 	MenuState.index = params.index
 
 	onUpdate(() => {
-		if (isKeyPressed("right")) MenuState.index = utils.scrollIndex(MenuState.index, 1, 4)
-		else if (isKeyPressed("left")) MenuState.index = utils.scrollIndex(MenuState.index, -1, 4)
+		if (isKeyPressed("right")) MenuState.index = utils.scrollIndex(MenuState.index, 1, 5)
+		else if (isKeyPressed("left")) MenuState.index = utils.scrollIndex(MenuState.index, -1, 5)
 	
 		const hoveredButton = get("menubutton").find((button) => button.index == MenuState.index)
 		if (!hoveredButton) return;
@@ -100,6 +103,11 @@ export function MenuScene() { scene("menu", (params: paramsMenuScene) => {
 
 	})
 	creditsButton.index = 3
+
+	const chartButton = addMenuButton("Chart Editor", () => {
+		// goScene("charteditor", { dancer: GameSave.dancer, song: new SongChart() } as paramsChartEditor)
+	})
+	chartButton.index = 4
 
 	const initialX = 100
 

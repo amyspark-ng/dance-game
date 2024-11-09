@@ -13,7 +13,7 @@ import { addDownloadButton, addDummyDancer, addFloatingText, cameraControllerHan
 import { drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, drawPlayBar, drawSelectGizmo, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE } from "./chartEditorElements";
 import { fileManager, handleSongInput } from "../../fileManaging";
 import { GameSave } from "../../core/gamesave";
-import { defaultSongs, songCharts } from "../../core/loader";
+import { defaultSongs, allSongCharts } from "../../core/loader";
 import { gameDialog, openChartAboutDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog";
 import { dialog } from "@tauri-apps/api";
 
@@ -101,11 +101,21 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		
 		if (gameDialog.isOpen) return;
 
-		// move note up
-		if (isKeyPressedRepeat("w") && ChartState.scrollStep > 0) ChartState.scrollStep--
+		let stepsToScroll = 0
 		
+		// move note up
+		if (isKeyPressedRepeat("w") && ChartState.scrollStep > 0) {
+			if (isKeyDown("shift")) stepsToScroll = -10
+			else stepsToScroll = -1
+			ChartState.scrollStep += stepsToScroll;
+		}
+
 		// move note down
-		else if (isKeyPressedRepeat("s") && ChartState.scrollStep < ChartState.conductor.totalSteps - 1) ChartState.scrollStep++
+		else if (isKeyPressedRepeat("s") && ChartState.scrollStep < ChartState.conductor.totalSteps - 1) {
+			if (isKeyDown("shift")) stepsToScroll = 10
+			else stepsToScroll = 1
+			ChartState.scrollStep += stepsToScroll;
+		}
 
 		// remove all selected notes
 		else if (isKeyPressed("backspace")) {
@@ -190,7 +200,6 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		}
 
 		if (isKeyPressed("q")) {
-			fileManager.click()
 			handleSongInput(ChartState)
 		}
 

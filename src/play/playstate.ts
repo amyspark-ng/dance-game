@@ -3,7 +3,7 @@ import { Conductor } from "../conductor";
 import { triggerEvent } from "../core/events";
 import { GameSave } from "../core/gamesave";
 import { PRODUCT } from "../core/initGame";
-import { getSong, songCharts } from "../core/loader";
+import { getSong, allSongCharts } from "../core/loader";
 import { playSound } from "../core/plugins/features/sound";
 import { goScene, transitionToScene } from "../core/scenes";
 import { fadeOut } from "../core/transitions/fadeOutTransition";
@@ -180,7 +180,7 @@ export function stopPlay(GameState:StateGame) {
 /** Function to exit to the song select menu from the gamescene */
 export function exitToMenu(GameState:StateGame) {
 	let song = getSong(GameState.song.idTitle)
-	let index = song ? songCharts.indexOf(song) : 0
+	let index = song ? allSongCharts.indexOf(song) : 0
 	transitionToScene(fadeOut, "songselect", { index: index } as paramsSongSelect)
 }
 

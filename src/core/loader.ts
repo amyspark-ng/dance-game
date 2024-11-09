@@ -3,6 +3,8 @@ import { DancerFile } from "../play/objects/dancer";
 import { SongChart } from "../play/song";
 import { loadCursor } from "./plugins/features/gameCursor";
 import { rankings } from "../play/objects/scoring";
+import { GameSave } from "./gamesave";
+import { utils } from "../utils";
 
 export const defaultSongs = ["bopeebo", "fresh", "unholy-blight", "black-rainbows", "its-just-a-burning-memory"]
 
@@ -32,7 +34,7 @@ export function loadingScreen(progress: number) {
 }
 
 /** Holds all the charts in the game */
-export let songCharts:SongChart[] = [] 
+export let allSongCharts:SongChart[] = [] 
 /** Holds all the dancers in the game */
 export let dancers:DancerFile[] = []
 /** Holds all the noteskins in the game */
@@ -142,7 +144,7 @@ async function loadContent() {
 	// LOADS SONGS
 	defaultSongs.forEach(async (song, index) => {
 		const newSong = await loadSong(song)
-		songCharts[index] = newSong
+		allSongCharts[index] = newSong
 	})
 
 	// loads noteskins
@@ -151,7 +153,7 @@ async function loadContent() {
 
 /** Gets a song */
 export function getSong(songId: string) {
-	return songCharts.find((song) => song.idTitle == songId)
+	return allSongCharts.find((song) => song.idTitle == songId)
 }
 
 /** Loads all the assets of the game */
@@ -174,6 +176,9 @@ export function loadAssets() {
 	})
 
 	loadSpriteAtlas("sprites/songRanks.png", songRanksAtlasData)
+	loadSprite("importedSong", "sprites/imported.png")
+	loadSprite("importSongBtn", "sprites/importSong.png")
+	loadSprite("changeSongBtn", "sprites/changeSong.png")
 
 	loadSound("uiMove", "sounds/uiMove.wav")
 	loadSound("uiSelect", "sounds/uiSelect.wav")

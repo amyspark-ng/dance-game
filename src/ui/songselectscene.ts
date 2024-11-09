@@ -1,5 +1,5 @@
 import { GameSave } from "../core/gamesave";
-import { loadSong, songCharts } from "../core/loader"
+import { defaultSongs, loadSong, allSongCharts } from "../core/loader"
 import { cam } from "../core/plugins/features/camera";
 import { gameCursor } from "../core/plugins/features/gameCursor";
 import { customAudioPlay, playSound } from "../core/plugins/features/sound";
@@ -48,6 +48,8 @@ const barWidth = 46
 
 /** Adds a song capsule to the song select scene */
 export function addSongCapsule(curSong: SongChart) {
+	const isImport = curSong == null
+	
 	const capsuleContainer = add([
 		opacity(),
 		pos(center().x, center().y),
@@ -61,7 +63,7 @@ export function addSongCapsule(curSong: SongChart) {
 	])
 	
 	const albumCover = capsuleContainer.add([
-		sprite(curSong.idTitle + "-cover"),
+		sprite(!isImport ? curSong.idTitle + "-cover" : "importSongBtn"),
 		pos(),
 		anchor("center"),
 		opacity(),
@@ -72,6 +74,8 @@ export function addSongCapsule(curSong: SongChart) {
 	albumCover.height = 396
 	capsuleContainer.width = albumCover.width
 	capsuleContainer.height = albumCover.height
+
+	if (isImport) return;
 
 	const cdCase = capsuleContainer.add([
 		sprite("cdCase"),
@@ -107,25 +111,36 @@ export function addSongCapsule(curSong: SongChart) {
 		capsuleName.opacity = capsuleContainer.opacity;
 	})
 
-	// if this song isn't played yet don't add the ranking sticker why'd you do that
-	if (!(GameSave.songsPlayed.some((song) => song.idTitle == curSong.idTitle))) return
+	// if the song has a highscore then add the sticker with the ranking
+	if (GameSave.songsPlayed.some((song) => song.idTitle == curSong.idTitle)) {
+		const tally = getHighscore(curSong.idTitle).tally
+		const ranking = Scoring.tally.ranking(tally)
+		
+		const maxOffset = 50
+		const offset = vec2(rand(-maxOffset, maxOffset), rand(-maxOffset, maxOffset))
+		const randAngle = rand(-20, 20)
+		const rankingSticker = capsuleContainer.add([
+			sprite("rank_" + ranking),
+			pos(),
+			rotate(randAngle),
+			anchor("center"),
+			z(3),
+		])
 	
-	const tally = getHighscore(curSong.idTitle).tally
-	const ranking = Scoring.tally.ranking(tally)
+		rankingSticker.pos = offset
+	}
 	
-	const maxOffset = 50
-	const offset = vec2(rand(-maxOffset, maxOffset), rand(-maxOffset, maxOffset))
-	const randAngle = rand(-20, 20)
-	const rankingSticker = capsuleContainer.add([
-		sprite("rank_" + ranking),
-		pos(),
-		rotate(randAngle),
-		anchor("center"),
-		z(3),
-	])
+	// if song isn't on default songs then it means it's imported from elsewhere
+	if (!defaultSongs.includes(curSong.idTitle)) {
+		const importedSticker = capsuleContainer.add([
+			sprite("importedSong"),
+			pos(),
+			anchor("center"),
+			rotate(rand(-2, 2)),
+			z(3),
+		])
+	}
 
-	rankingSticker.pos = offset
-	
 	return capsuleContainer;
 }
 
@@ -145,18 +160,19 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 	songSelectState.index = params.index ?? 0
 	songSelectState.songPreview?.stop()
 
-	let songAmount = songCharts.length
+	let songAmount = allSongCharts.length
 	const LERP_AMOUNT = 0.25
 
-	// const allSongs = songCharts.concat(GameSave.importedSongs)
-	
-	songCharts.forEach((song, index) => {
+	allSongCharts.forEach((song, index) => {
 		addSongCapsule(song)
 	})
 
+	// add the song capsule for the extra thing
+	addSongCapsule(null)
+
 	let allCapsules = get("songCapsule", { liveUpdate: true }) as songCapsuleObj[]
 	onUpdate(() => {
-		songAmount = songCharts.length
+		songAmount = allSongCharts.length + 1
 		allCapsules.forEach((songCapsule, index) => {
 			let opacity = 1
 			
@@ -216,7 +232,11 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 
 	getTreeRoot().on("updateState", () => {
 		if (!allCapsules[songSelectState.index]) return
-
+		if (!allCapsules[songSelectState.index].song) {
+			songSelectState.songPreview?.stop()
+			return;
+		}
+		
 		const tallyScore = getHighscore(allCapsules[songSelectState.index].song.idTitle).tally.score 
 		highscoreText.solidValue = Math.floor(tallyScore)
 
@@ -230,15 +250,21 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 
 	onKeyPress("enter", () => {
 		if (!songSelectState.menuInputEnabled) return;
-		songSelectState.menuInputEnabled = false
 		const hoveredCapsule = allCapsules[songSelectState.index]
 		if (hoveredCapsule) {
-			songSelectState.songPreview.stop()
-			transitionToScene(enterSongTrans, "game", { 
-					song: hoveredCapsule.song,
-					dancer: GameSave.dancer
-				} as paramsGameScene
-			)
+			if (hoveredCapsule.song == null) {
+				handleZipInput(songSelectState)
+			}
+
+			else {
+				songSelectState.menuInputEnabled = false
+				songSelectState.songPreview.stop()
+				transitionToScene(enterSongTrans, "game", { 
+						song: hoveredCapsule.song,
+						dancer: GameSave.dancer
+					} as paramsGameScene
+				)
+			}
 		}
 	})
 
@@ -260,9 +286,9 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 
 	onSceneLeave(() => { stopPreview() })
 
-	onKeyPress("q", async () => {
-		if (!songSelectState.menuInputEnabled) return
-		fileManager.click()
-		await handleZipInput(songSelectState)
+	getTreeRoot().on("addedCapsule", () => {
+		const addSongCapsule = allCapsules.find((capsule) => capsule.song == null)
+		// have to sort them so the add song capsule is at the end of the array
+		allCapsules.sort((a, b) => a.song == null ? 1 : -1)
 	})
 })}

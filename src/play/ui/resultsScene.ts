@@ -1,6 +1,6 @@
 import { Color, Texture } from "kaplay"
 import { GameSave } from "../../core/gamesave"
-import { songCharts } from "../../core/loader"
+import { allSongCharts } from "../../core/loader"
 import { playSound } from "../../core/plugins/features/sound"
 import { goScene } from "../../core/scenes"
 import { paramsSongSelect } from "../../ui/songselectscene"
@@ -147,7 +147,7 @@ export function ResultsScene() { scene("results", (params: paramsResultsScene) =
 	})
 
 	onKeyPress("escape", () => {
-		const indexOfSong = songCharts.indexOf(params.GameState.song)
+		const indexOfSong = allSongCharts.indexOf(params.GameState.song)
 		goScene("songselect", { index: indexOfSong > -1 ? indexOfSong : 0 } as paramsSongSelect)
 	})
 })}

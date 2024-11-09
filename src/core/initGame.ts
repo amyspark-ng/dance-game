@@ -38,9 +38,9 @@ export function INITIAL_SCENE() {
 	
 	// goScene("game", { song: getSong("bopeebo"), dancer: "gru"} as paramsGameScene)
 	
-	// goScene("songselect", { index: 0 } as paramsSongSelect)
+	goScene("songselect", { index: 0 } as paramsSongSelect)
 	
-	goScene("charteditor", { song: getSong("bopeebo") } as paramsChartEditor )
+	// goScene("charteditor", { song: getSong("bopeebo") } as paramsChartEditor )
 	
 	// goScene("results", { GameState: {
 	// 	song: getSong("bopeebo"),
@@ -58,11 +58,10 @@ export function initGame() {
 	
 	setCursor("none")
 	
+	GameSave.load()
 	loadAssets()
 	onLoading((progress:number) => loadingScreen(progress))
 	onLoad(() => {
-		GameSave.load()
-		
 		// sets up a bunch of stuff
 		setupLayers(); // sets up layers before for any object
 		setupScenes(); // sets up the scenes for objects

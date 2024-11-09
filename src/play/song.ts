@@ -34,15 +34,3 @@ export class SaveScore {
 	idTitle: string;
 	tally: Tally = new Tally();
 }
-
-/** Class that holds the data for an imported song */
-export class ImportedSong {
-	/** The chart file */
-	chart: SongChart;
-	
-	/** The file for the sound */
-	song: ArrayBuffer;
-	
-	/** Will be stored as base64 */
-	cover: string;
-}

@@ -479,15 +479,32 @@ export function addDownloadButton(ChartState:StateChart) {
 		// the blob for the song 
 		const oggBlob = utils.audioBufferToOGG(ChartState.audioBuffer)
 
+
+		async function spriteToDataURL(sprName: string) {
+			const canvas = makeCanvas(396, 396)
+			canvas.draw(() => {
+				drawSprite({
+					sprite: sprName,
+					width: width(),
+					height: height(),
+					pos: center(),
+					anchor: "center",
+				})
+			})
+
+			const dataURL = canvas.toDataURL();
+			return dataURL;
+		}
+
 		// stuff related to cover
 		const defaultCover = "sprites/defaultCover.png"
 		let pathToCover:string = undefined
 		const coverAvailable = await getSprite(ChartState.song.idTitle + "-cover")
 		if (!coverAvailable) pathToCover = defaultCover
-		// TODO: This is WRONG it should get the blob of the current cover 
-		// and not some stored in the assets folder
-		else pathToCover = `songs/${ChartState.song.idTitle}/${ChartState.song.idTitle}-cover.png`
-		const imgBlob = await (await fetch(pathToCover)).blob()
+		else pathToCover = await spriteToDataURL(ChartState.song.idTitle + "-cover")
+		const imgBlob = await fetch(pathToCover).then((res) => res.blob())
+
+		spriteToDataURL(ChartState.song.idTitle + "-cover")
 
 		// creates the files
 		jsZip.file(`${ChartState.song.idTitle}-chart.json`, JSON.stringify(ChartState.song))
