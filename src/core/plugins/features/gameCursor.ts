@@ -27,6 +27,7 @@ export function addCursorObject() {
 	
 	let theMousePos = mousePos()
 	
+	let blinkTimer = 0;
 	const mouse = add([
 		sprite("cursor_default"),
 		anchor("topleft"),
@@ -45,6 +46,7 @@ export function addCursorObject() {
 			/** Intended opacity */
 			intendedOpa: 1,
 			canMove: true,
+			typeMode: false,
 
 			hide() {
 				this.intendedOpa = 0
@@ -55,9 +57,29 @@ export function addCursorObject() {
 			},
 
 			update() {
+				if (this.typeMode) {
+					this.canMove = false
+					
+					blinkTimer += dt()
+					if (blinkTimer >= 1) {
+						blinkTimer = 0
+						this.opacity = 0
+						wait(0.25, () => {
+							this.opacity = 1
+						})
+					}
+
+					return;
+				}
+
+				else {
+					blinkTimer = 0
+					this.canMove = true
+				}
+				
 				// shown
+				theMousePos = lerp(theMousePos, mousePos(), 0.8)
 				if (this.intendedOpa == 1) {
-					theMousePos = lerp(theMousePos, mousePos(), 0.8)
 					if (this.canMove) {
 						if (isMouseMoved()) this.pos = theMousePos
 					}
@@ -68,9 +90,9 @@ export function addCursorObject() {
 				}
 				
 				if (this.sprite == "cursor_load") {
-					// this sucks
-					if (parseFloat((time() % 1.5).toFixed(1)) == 0) {
+					if (Math.floor(time()*15)%2==0) {
 						this.angle += 90 / 3
+						this.angle = this.angle % 360
 					}
 				}
 				

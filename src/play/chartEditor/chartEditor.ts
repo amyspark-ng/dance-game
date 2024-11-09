@@ -9,7 +9,7 @@ import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { utils } from "../../utils";
 import { moveToColor } from "../objects/note";
 import { paramsGameScene } from "../playstate";
-import { addDownloadButton, addDummyDancer, addFloatingText, cameraControllerHandling, handlerForChangingInput, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, setupManageTextboxes, StateChart, updateTextboxes } from "./chartEditorBackend";
+import { addDownloadButton, addDummyDancer, addFloatingText, cameraControllerHandling, handlerForChangingInput, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, StateChart } from "./chartEditorBackend";
 import { drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, drawPlayBar, drawSelectGizmo, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE } from "./chartEditorElements";
 import { fileManager, handleSongInput } from "../../fileManaging";
 import { GameSave } from "../../core/gamesave";
@@ -55,7 +55,9 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	gameCursor.show()
 
-	onUpdate(async () => {
+	onUpdate(() => {
+		ChartState.conductor.changeBpm(ChartState.song.bpm)
+		
 		ChartState.song.notes.forEach((note, index) => {
 			note.hitTime = clamp(note.hitTime, 0, songDuration)
 			
@@ -97,7 +99,6 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		
 		mouseAnimationHandling(ChartState)
 		
-		if (ChartState.focusedTextBox) return
 		if (gameDialog.isOpen) return;
 
 		// move note up
@@ -356,7 +357,6 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	onKeyPress("enter", async () => {
 		if (gameDialog.isOpen) return;
 		if (ChartState.inputDisabled) return
-		if (ChartState.focusedTextBox) return
 		ChartState.inputDisabled = true
 		ChartState.paused = true
 		
@@ -377,7 +377,6 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	onKeyPress("space", () => {
 		if (gameDialog.isOpen) return;
 		if (ChartState.inputDisabled) return
-		if (ChartState.focusedTextBox) return
 		ChartState.paused = !ChartState.paused
 	
 		if (ChartState.paused == false) {
@@ -416,7 +415,15 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		gameCursor.color = WHITE
 	})
 
-	setupManageTextboxes(ChartState)
+	add([
+		text("", { size: 20 }),
+		{
+			update() {
+				this.text = `You're charting: ${ChartState.song.title} (${ChartState.song.idTitle})`
+			}
+		}
+	])
+
 	addDownloadButton(ChartState)
 
 	let controls = [

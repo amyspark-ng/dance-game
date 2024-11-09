@@ -4,7 +4,7 @@ import { Tally } from "./objects/scoring";
 /** Class that holds the properties a chart file will have */
 export class SongChart {
 	/** The title of the song (string) */
-	title: string = "New song (name here)";
+	title: string = "New song";
 
 	/** Actually divides the time it'll take the note to reach the strum by this */
 	scrollSpeed: number = 1;

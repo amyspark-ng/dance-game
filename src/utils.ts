@@ -79,6 +79,11 @@ export class utils {
 		return `${Math.floor(timeInSeconds / 60)}:${("0" + Math.floor(timeInSeconds % 60)).slice(-2)}${includeMs ? `:${("0" + Math.floor((timeInSeconds % 1) * 1000)).slice(-3)}` : ""}`
 	}
 
+	/** Converts string to kebab case (eg: Hello, World! -> hello-world) */
+	static kebabCase(str:string) {
+		return str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase().replaceAll(" ", "-").replaceAll("'", "");
+	}
+
 	/** Makes it so it's always fixed to 0.1 or 1.2 or 0.0 */
 	static fixDecimal(num: number) {
 		return parseFloat(num.toFixed(1))

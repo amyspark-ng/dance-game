@@ -177,6 +177,7 @@ export function loadAssets() {
 
 	loadSound("uiMove", "sounds/uiMove.wav")
 	loadSound("uiSelect", "sounds/uiSelect.wav")
+	loadSound("keyClick", "sounds/keyClick.ogg")
 
 	// # SONG SELECT
 	loadSprite("cdCase", "sprites/songSelect/cdCase.png")

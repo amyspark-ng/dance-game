@@ -124,9 +124,6 @@ export class StateChart {
 	/** Is by how many steps the strumline is offseted (from top to below, 0 to 12) */
 	strumlineStepOffset = 1
 
-	/** Focused textbox */
-	focusedTextBox: textBoxObj = undefined
-
 	/** Current index of the current snapshot blah */
 	curSnapshotIndex = 0;
 
@@ -350,10 +347,15 @@ export function cameraControllerHandling(ChartState:StateChart) {
 	}
 }
 
+/** Handles the animation of the mouse */
 export function mouseAnimationHandling(ChartState:StateChart) {
+	if (gameCursor.typeMode) {
+		if (gameCursor.sprite != "cursor_text") gameCursor.do("text")
+		return;
+	}
+
 	// kinda hardcoded, this probably just means the player is loading something nothing  else
 	if (!gameCursor.canMove && ChartState.inputDisabled) gameCursor.do("load")
-	else if (ChartState.focusedTextBox != undefined) gameCursor.do("text")
 	else {
 		if (!ChartState.isCursorInGrid) {
 			if (isMouseDown("left") && ChartState.cameraController.isMovingCamera) gameCursor.do("down")
@@ -378,7 +380,7 @@ export function handlerForChangingInput(ChartState:StateChart) {
 	}
 
 	Object.keys(keysAndMoves).forEach((key) => {
-		if (ChartState.focusedTextBox != undefined) return;
+		if (gameDialog.isOpen) return;
 		if (isKeyPressed(key as Key)) {
 			ChartState.changeMove(keysAndMoves[key])
 		}
@@ -436,190 +438,6 @@ export function addDummyDancer(dancerName: string) {
 export type textBoxOpt = {
 	label: string,
 	typeofValue: "string" | "id" | "number",
-}
-
-export function addTextBox(opts:textBoxOpt) {
-	function textBoxComp() {
-		return {
-			id: "textBoxComp",
-			focus: false,
-			label: opts.label,
-			typeofValue: opts.typeofValue,
-			value: "",
-		}
-	}
-	
-	let texting = add([
-		text("", { align: "left" }),
-		area(),
-		pos(),
-		anchor("left"),
-		textBoxComp(),
-		opacity(0),
-	])
-
-	texting.onUpdate(() => {
-		if (texting.focus) texting.opacity = 1
-		else if (texting.isHovering()) texting.opacity = 0.5
-		else texting.opacity = 0.25
-
-		texting.text = opts.label + ": " + (texting.value as string)
-	})
-
-	return texting;
-}
-
-/** Updates all textboxes */
-export function updateAllTextboxes(ChartState:StateChart) {
-	get("textBoxComp").forEach((txtbox) => updateTextboxes(ChartState, txtbox))
-}
-
-/** Updates the value the textboxes are showcasing */
-export function updateTextboxes(ChartState: StateChart, txtbox: GameObj) {
-	const ts1label = "Steps per beat (TS0)" 
-	const ts2label = "Beats per measure (TS1)" 
-
-	switch (txtbox.label) {
-		case "Display name":
-			txtbox.value = ChartState.song.title;	
-		break;
-
-		case "ID":
-			txtbox.value = ChartState.song.idTitle;	
-		break;
-
-		case "BPM":
-			txtbox.value = ChartState.song.bpm.toString();
-		break;
-
-		case ts1label:
-			txtbox.value = ChartState.conductor.stepsPerBeat.toString();
-		break;
-
-		case ts2label:
-			txtbox.value = ChartState.conductor.beatsPerMeasure.toString();
-		break;
-
-		case "Scroll speed":
-			txtbox.value = ChartState.song.scrollSpeed.toString();
-		break;
-	}
-}
-
-export function setupManageTextboxes(ChartState:StateChart) {
-	const initialTextBoxPos = vec2(15, 25)
-	const sizeOfTxt = 30
-
-	const ts1label = "Steps per beat (TS0)" 
-	const ts2label = "Beats per measure (TS1)" 
-
-	const textboxesarr: textBoxObj[] = [] 
-
-	const textboxes = {
-		"Display name": "string",
-		"ID": "id",
-		"BPM": "number",
-		"Steps per beat (TS0)": "number",
-		"Beats per measure (TS1)": "number",
-		"Scroll speed": "number",
-	}
-
-	/** Gets the value of the textboxes and assigns it to the actual values on the chart */
-	function updateSongValues() {
-		ChartState.song.title = textboxesarr["Display name"].value as string
-		ChartState.song.idTitle = textboxesarr["ID"].value as string
-		
-		// bpm
-		ChartState.song.bpm = Number(textboxesarr["BPM"].value)
-		ChartState.conductor.changeBpm(ChartState.song.bpm)
-		
-		// other stuff
-		ChartState.conductor.stepsPerBeat = Number(textboxesarr[ts1label].value)
-		ChartState.conductor.beatsPerMeasure = Number(textboxesarr[ts2label].value)
-		ChartState.song.scrollSpeed = Number(textboxesarr["Scroll speed"].value)
-	}
-
-	Object.keys(textboxes).forEach((label, index) => {
-		const txtbox = addTextBox({
-			label: label,
-			typeofValue: textboxes[label as keyof typeof textboxes] as "string" | "id" | "number",
-		})
-		txtbox.textSize = sizeOfTxt
-		txtbox.pos = vec2(initialTextBoxPos.x, initialTextBoxPos.y + sizeOfTxt * index)
-		textboxesarr[label] = txtbox
-		updateTextboxes(ChartState, txtbox)
-	})
-
-	onUpdate(() => {
-		const hoveredTextbox = get("textBoxComp").find((textbox) => textbox.focus)
-		if (!hoveredTextbox) return;
-		if (hoveredTextbox.focus) return;
-		updateTextboxes(ChartState, hoveredTextbox)
-	})
-
-	// manages some focus for textboxes
-	onClick(() => {
-		const allTextBoxes = get("textBoxComp") as textBoxObj[]
-
-		const hoveredTextBox = allTextBoxes.find((textbox) => textbox.isHovering())
-		if (hoveredTextBox) {
-			ChartState.focusedTextBox = hoveredTextBox
-			ChartState.focusedTextBox.focus = true
-		}
-
-		else {
-			if (ChartState.focusedTextBox) ChartState.focusedTextBox.focus = false
-			ChartState.focusedTextBox = undefined
-			updateSongValues()
-		}
-	
-		// get all the textboxes that aren't that one and unfocus them
-		allTextBoxes.filter((textbox) => textbox != ChartState.focusedTextBox).forEach((textbox) => {
-			textbox.focus = false
-		})
-	})
-
-	// manages the adding for stuff
-	onCharInput((ch) => {
-		if (ChartState.focusedTextBox == undefined) return
-
-		if (isKeyDown("shift")) {
-			ch = ch.toUpperCase()
-		}
-		
-		if (ChartState.focusedTextBox.typeofValue == "number") {
-			// if it's a number
-			if (!isNaN(parseInt(ch)) || ch == ".") ChartState.focusedTextBox.value += ch
-		}
-
-		else if (ChartState.focusedTextBox.typeofValue == "id") {
-			if (ch == " ") ChartState.focusedTextBox.value += "-"
-			else {
-				ChartState.focusedTextBox.value += ch.toLowerCase()
-			}
-		}
-
-		else {
-			ChartState.focusedTextBox.value += ch
-		}
-	})
-
-	onKeyPress(["escape", "enter"], () => {
-		if (ChartState.focusedTextBox == undefined) return
-		ChartState.focusedTextBox.focus = false
-		ChartState.focusedTextBox = undefined
-		updateSongValues()
-		ChartState.takeSnapshot()
-	})
-
-	onKeyPressRepeat("backspace", () => {
-		if (ChartState.focusedTextBox == undefined) return
-		ChartState.focusedTextBox.value = ChartState.focusedTextBox.value.toString().slice(0, -1)
-	})
-
-	getTreeRoot().on("download", () => {
-		updateSongValues()
-	})
 }
 
 /** Adds a cool little floating text */
@@ -687,5 +505,3 @@ export function addDownloadButton(ChartState:StateChart) {
 		debug.log(`${ChartState.song.idTitle}-chart.zip, DOWNLOADED! :)`)
 	})
 }
-
-export type textBoxObj = ReturnType<typeof addTextBox>

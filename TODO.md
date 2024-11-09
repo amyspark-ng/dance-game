@@ -1,3 +1,5 @@
+- Rename SongChart to ChartSong so it follows with ChartNote
+
 - Chart Editor: Add the notifications like, song loaded, song downloaded etc etc
 
 - Chart Editor: Add a cool dropdown (kinda like clickery) that has controls, new song and textboxes and they all open like dialogs, hopefully it won't be that bad to figure out  

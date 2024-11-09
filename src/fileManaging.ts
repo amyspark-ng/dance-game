@@ -2,7 +2,7 @@ import JSZip from "jszip"
 import { Conductor } from "./conductor"
 import { gameCursor } from "./core/plugins/features/gameCursor"
 import { playSound } from "./core/plugins/features/sound"
-import { StateChart, updateAllTextboxes, updateTextboxes } from "./play/chartEditor/chartEditorBackend"
+import { StateChart } from "./play/chartEditor/chartEditorBackend"
 import { ImportedSong, SongChart } from "./play/song"
 import { addSongCapsule, StateSongSelect } from "./ui/songselectscene"
 import { GameSave } from "./core/gamesave"
@@ -42,8 +42,6 @@ export async function handleSongInput(ChartState:StateChart) {
 		ChartState.inputDisabled = false
 		gameCursor.canMove = true
 		gameCursor.do("default")
-		
-		updateAllTextboxes(ChartState)
 	}
 
 	fileManager.oncancel = async () => {

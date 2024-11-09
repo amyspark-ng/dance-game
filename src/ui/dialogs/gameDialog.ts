@@ -4,25 +4,14 @@ import { playSound } from "../../core/plugins/features/sound";
 import { dialog } from "@tauri-apps/api";
 import { dialog_addTextbox } from "./dialogFields";
 import { StateChart } from "../../play/chartEditor/chartEditorBackend";
-
-
-interface dialogObjComp extends Comp {
-	close: () => void,
-}
+import { utils } from "../../utils";
+import { SongChart } from "../../play/song";
+import { format } from "path";
 
 function addDialogueThing(opts:openDialogOpts) {
 	const FILL_COLOR = BLACK.lighten(50);
 	const BORDER_COLOR = BLACK.lighten(70);
 	
-	function dialogObjComponent() : dialogObjComp {
-		return {
-			id: "dialogComp",
-			close() {
-				this.destroy()
-			},
-		}
-	}
-
 	const dialogObj = add([
 		rect(opts.width, opts.height, { radius: 5 }),
 		pos(center()),
@@ -32,7 +21,11 @@ function addDialogueThing(opts:openDialogOpts) {
 		z(100),
 		scale(),
 		outline(5, BORDER_COLOR),
-		dialogObjComponent(),
+		{
+			close() {
+				this.destroy()
+			},
+		}
 	])
 
 	const xSize = 40
@@ -136,7 +129,9 @@ export class gameDialog {
 	}
 }
 
+/** Opens the dialog for the fields of the song in the chart editor */
 export function openChartInfoDialog(ChartState:StateChart) {
+	const newSong = new SongChart()
 	const leftPadding = 10
 	
 	const dialog = gameDialog.openDialog({
@@ -144,16 +139,58 @@ export function openChartInfoDialog(ChartState:StateChart) {
 		height: 300,
 	})
 
-	const nameTextbox = dialog_addTextbox({
-		dialog: dialog,
-		title: "Name",
-		position: vec2(-(dialog.width / 2) + leftPadding, 0),
-		formatFunc(str) {
-			return str;
+	const nameBox = {
+		name: "Name",
+		formatFunc: (str:string) => str,
+		conditionsForTyping: (str:string) => true,
+		fallBackValue: newSong.title,
+		startingValue: ChartState.song.title
+	}
+
+	const bpmBox = {
+		name: "Starting BPM",
+		formatFunc: (str: string) => {
+			const bpm = parseInt(str)
+			if (isNaN(bpm)) return "1"
+			// short it to 3 characters long
+			else return bpm.toString()
 		},
+		conditionsForTyping: (str: string) => {
+			return !isNaN(parseInt(str)) && str.length <= 3
+		},
+		fallBackValue: newSong.bpm.toString(),
+		startingValue: ChartState.song.bpm.toString(),
+	}
+
+	const textboxesOpts = [ nameBox, bpmBox ]
+
+	const textboxes:ReturnType<typeof dialog_addTextbox>[] = []
+
+	const xPos = -(dialog.width / 2) + leftPadding
+	const ySpacing = 50
+	const initialYPos = -dialog.height / 2 + ySpacing / 1.5
+	textboxesOpts.forEach((opts, index) => {
+		const textbox = dialog_addTextbox({
+			dialog: dialog,
+			title: opts.name,
+			position: vec2(xPos, initialYPos + ySpacing * index),
+			formatFunc: opts.formatFunc,
+			fallBackValue: opts.fallBackValue,
+			startingValue: opts.startingValue,
+			conditionsForTyping: opts.conditionsForTyping,
+		})
+	
+		textboxes[index] = textbox
 	})
 
 	dialog.onUpdate(() => {
-		ChartState.song.title = nameTextbox.value
+		const nameTextbox = textboxes[0]
+		if (nameTextbox.focus) ChartState.song.title = nameTextbox.value
+		else nameTextbox.value = ChartState.song.title
+		ChartState.song.idTitle = utils.kebabCase(ChartState.song.title)
+
+		const bpmTextbox = textboxes[1]
+		if (bpmTextbox.focus) ChartState.song.bpm = parseInt(bpmTextbox.value)
+		else bpmTextbox.value = ChartState.song.bpm.toString()
 	})
 }

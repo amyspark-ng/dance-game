@@ -1,18 +1,22 @@
 import { Vec2 } from "kaplay";
 import { gameDialog, gameDialogObj } from "./gameDialog";
+import { playSound } from "../../core/plugins/features/sound";
+import { gameCursor } from "../../core/plugins/features/gameCursor";
+import { SongChart } from "../../play/song";
 
 type textboxOpt = {
 	title: string,
 	dialog: gameDialogObj,
 	position: Vec2,
-	formatFunc?: (str:string) => string
+	formatFunc?: (str:string) => string,
+	conditionsForTyping: (str:string) => boolean,
+	fallBackValue: string,
+	startingValue: string,
 }
 
 /** Will return the object with some info
  * 
  * obj.value Will be the set value
- * TODO: have to figure out which will be the inputted and which will be the formatted one and which will be 
- * The one that is set to the values of the song
  */
 export function dialog_addTextbox(opts: textboxOpt) {
 	const textSize = 30
@@ -26,19 +30,21 @@ export function dialog_addTextbox(opts: textboxOpt) {
 
 	const textboxBg = opts.dialog.add([
 		pos((title.pos.x + title.width) + padding, title.pos.y),
-		rect(opts.dialog.width - title.width - padding, textSize + padding, { radius: 2.5 }),
+		rect(opts.dialog.width - title.width - padding * 14, textSize + padding, { radius: 2.5 }),
 		color(opts.dialog.outline.color.lighten(5)),
 		outline(1, opts.dialog.outline.color.lighten(20)),
 		anchor("left"),
 		area(),
 	])
 	
+	/** Is the actual object that contains the value and the text */
 	const textbox = opts.dialog.add([
 		text("", { align: "left", size: textSize * 0.9 }),
 		pos(textboxBg.pos.x + padding, textboxBg.pos.y),
 		anchor("left"),
+		"textbox",
 		{
-			value: "Cool Song",
+			value: opts.startingValue,
 			focus: false,
 			update() {
 				this.text = opts.formatFunc(this.value)
@@ -49,37 +55,65 @@ export function dialog_addTextbox(opts: textboxOpt) {
 	textbox.onUpdate(() => {
 		if (textbox.focus) {
 			textboxBg.outline.color = lerp(textboxBg.outline.color, BLUE, 0.5)
-			gameDialog.canClose = false
+		
+			const textboxWorldPos = textbox.screenPos()
+			gameCursor.pos.y = lerp(gameCursor.pos.y, textboxWorldPos.y - textbox.height / 2, 0.5)
+			gameCursor.pos.x = lerp(gameCursor.pos.x, textboxWorldPos.x + textbox.width, 0.5)
 		}
-
+		
 		else {
 			textboxBg.outline.color = lerp(textboxBg.outline.color, opts.dialog.outline.color.lighten(20), 0.5)
-			gameDialog.canClose = true
 		}
 	})
 
+	// sets to focused true
 	textboxBg.onClick(() => {
-		if (!textbox.focus) {
-			textbox.focus = true
-			const charinputEv = onCharInput((ch) => {
-				if (isKeyDown("shift")) ch = ch.toUpperCase()
+		if (textbox.focus) return;
+		// this will run if the textbox wasn't on focus
+
+		textbox.focus = true
+		gameCursor.typeMode = true
+		gameDialog.canClose = false
+		const charinputEv = textbox.onCharInput((ch) => {
+			if (isKeyDown("shift")) ch = ch.toUpperCase()
+			
+			if (opts.conditionsForTyping(textbox.value + ch)) {
 				textbox.value += ch
-			})
+				playSound("keyClick", { detune: rand(-100, 100) })
+			};
+		})
 
-			const backspaceEv = onKeyPress("backspace", () => {
+		const backspaceEv = textbox.onKeyPressRepeat("backspace", () => {
+			if (textbox.value.length == 0) return
+			
+			if (isKeyDown("control")) {
+				// remove the last word
+				if (textbox.value.split(" ").length == 1) textbox.value = ""
+				else textbox.value = textbox.value.slice(0, textbox.value.lastIndexOf(" "))
+			}
+
+			else {
 				textbox.value = textbox.value.slice(0, -1)
-			})
+			}
+			
+			playSound("keyClick", { detune: rand(-100, 100) })
+		})
 
-			textboxBg.onUpdate(() => {
-				if (isKeyPressed("enter") || isKeyPressed("escape")) {
-					charinputEv.cancel()
-					backspaceEv.cancel()
+		textboxBg.onUpdate(() => {
+			if (!textbox.focus) return;
+			
+			if (isKeyPressed("enter") || isKeyPressed("escape")) {
+				playSound("keyClick", { detune: rand(-100, 100) })
+				charinputEv.cancel()
+				backspaceEv.cancel()
 
-					textbox.focus = false
-					gameDialog.canClose = true
-				}
-			})
-		}
+				if (textbox.value.length == 0) textbox.value = opts.fallBackValue
+
+				textbox.focus = false
+				gameCursor.typeMode = false
+				gameDialog.canClose = true
+			}
+		})
 	})
 
 	return textbox;
