@@ -435,11 +435,6 @@ export function addDummyDancer(dancerName: string) {
 	return dancer;
 }
 
-export type textBoxOpt = {
-	label: string,
-	typeofValue: "string" | "id" | "number",
-}
-
 /** Adds a cool little floating text */
 export function addFloatingText(texting: string) {
 	const copyText = add([
@@ -489,9 +484,11 @@ export function addDownloadButton(ChartState:StateChart) {
 		let pathToCover:string = undefined
 		const coverAvailable = await getSprite(ChartState.song.idTitle + "-cover")
 		if (!coverAvailable) pathToCover = defaultCover
+		// TODO: This is WRONG it should get the blob of the current cover 
+		// and not some stored in the assets folder
 		else pathToCover = `songs/${ChartState.song.idTitle}/${ChartState.song.idTitle}-cover.png`
 		const imgBlob = await (await fetch(pathToCover)).blob()
-		
+
 		// creates the files
 		jsZip.file(`${ChartState.song.idTitle}-chart.json`, JSON.stringify(ChartState.song))
 		jsZip.file(`${ChartState.song.idTitle}-song.ogg`, oggBlob)

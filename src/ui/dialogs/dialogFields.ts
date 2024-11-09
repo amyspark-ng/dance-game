@@ -3,13 +3,20 @@ import { gameDialog, gameDialogObj } from "./gameDialog";
 import { playSound } from "../../core/plugins/features/sound";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { SongChart } from "../../play/song";
+import { dialog } from "@tauri-apps/api";
+import { utils } from "../../utils";
+import { StateChart } from "../../play/chartEditor/chartEditorBackend";
+import { fileManager, handleCoverInput } from "../../fileManaging";
+
+const textSize = 30
+const padding = 5
 
 type textboxOpt = {
 	title: string,
 	dialog: gameDialogObj,
 	position: Vec2,
 	formatFunc?: (str:string) => string,
-	conditionsForTyping: (str:string) => boolean,
+	conditionsForTyping: (currentSring: string, ch:string) => boolean,
 	fallBackValue: string,
 	startingValue: string,
 }
@@ -19,9 +26,6 @@ type textboxOpt = {
  * obj.value Will be the set value
  */
 export function dialog_addTextbox(opts: textboxOpt) {
-	const textSize = 30
-	const padding = 5
-
 	const title = opts.dialog.add([
 		text(opts.title + ":", { align: "right", size: textSize }),
 		anchor("left"),
@@ -77,7 +81,7 @@ export function dialog_addTextbox(opts: textboxOpt) {
 		const charinputEv = textbox.onCharInput((ch) => {
 			if (isKeyDown("shift")) ch = ch.toUpperCase()
 			
-			if (opts.conditionsForTyping(textbox.value + ch)) {
+			if (opts.conditionsForTyping(textbox.value, ch)) {
 				textbox.value += ch
 				playSound("keyClick", { detune: rand(-100, 100) })
 			};
@@ -117,4 +121,131 @@ export function dialog_addTextbox(opts: textboxOpt) {
 	})
 
 	return textbox;
+}
+
+type sliderOpt = {
+	title: string,
+	dialog: gameDialogObj,
+	position: Vec2,
+	range: [number, number],
+	initialValue: number,
+}
+
+export function dialog_addSlider(opts: sliderOpt) {
+	const title = opts.dialog.add([
+		text(opts.title + ":", { align: "left", size: 30 }),
+		pos(opts.position),
+	])
+	
+	const sliderbg = opts.dialog.add([
+		pos(title.pos.x + title.width, (title.pos.y + title.height / 2) + 2),
+		rect((opts.dialog.width - title.width - padding * 14) + 2, title.height / 2, { radius: 2.5 }),
+		anchor("left"),
+		color(opts.dialog.outline.color.lighten(5))
+	])
+
+	const slider = opts.dialog.add([
+		pos(0, sliderbg.pos.y),
+		rect(10, textSize + 5, { radius: 2.5 }),
+		anchor("center"),
+		area({ scale: vec2(2) }),
+		"slider",
+		{
+			dragging: false,
+			value: opts.initialValue,
+		}
+	])
+
+	slider.onClick(() => {
+		slider.dragging = true
+	})
+
+	slider.onMouseRelease(() => {
+		if (!slider.dragging) return;
+		slider.dragging = false
+	})
+
+	const leftX = sliderbg.pos.x + 10
+	const rightX = (sliderbg.pos.x + sliderbg.width) - 10
+	slider.onUpdate(() => {
+		if (slider.dragging) {
+			// i need to convert the mousepos to be local to the slider
+			// i don't know how i did this
+			const mousePosThing = gameCursor.toOther(slider, slider.pos)
+			slider.pos.x = lerp(slider.pos.x, mousePosThing.x, 0.5)
+			slider.pos.x = clamp(slider.pos.x, leftX, rightX)
+			const mappedValue = map(slider.pos.x, leftX, rightX, opts.range[0], opts.range[1])
+			slider.value = mappedValue, 0.5
+		}
+		
+		else {
+			const mappedXPos = map(slider.value, opts.range[0], opts.range[1], leftX, rightX)
+			slider.pos.x = lerp(slider.pos.x, mappedXPos, 0.5)
+		}
+	})
+
+	const valueText = opts.dialog.add([
+		text("", { align: "left", font: "lambda", size: textSize * 0.8 }),
+		anchor("left"),
+		pos(sliderbg.pos.x + sliderbg.width + padding, sliderbg.pos.y),
+		{
+			update() {
+				this.text = utils.formatNumber(slider.value, { type: "decimal" }) + "x"
+			}
+		}
+	])
+
+	return slider
+}
+
+type changeCoverOpt = {
+	position: Vec2,
+	dialog: gameDialogObj,
+	ChartState:StateChart,
+}
+
+export function dialog_changeCover(opts: changeCoverOpt) {
+	const isCoverLoaded = getSprite(opts.ChartState.song.idTitle + "-cover")
+	let spriteForCover = "defaultCover"
+	
+	if (!isCoverLoaded) {
+		debug.log("cover isn't loaded")
+	}
+
+	else {
+		spriteForCover = opts.ChartState.song.idTitle + "-cover"
+	}
+
+	const button = opts.dialog.add([
+		sprite(spriteForCover),
+		pos(opts.position),
+		anchor("left"),
+		area(),
+		"cover",
+		{
+			update() {
+				button.width = 100
+				button.height = 100
+			}
+		}
+	])
+	
+	button.onDraw(() => {
+		if (button.isHovering()) {
+			drawRect({
+				width: button.width,
+				height: button.height,
+				color: WHITE.darken(50),
+				opacity: 0.5,
+				anchor: button.anchor,
+			})
+		}
+	})
+
+	button.onClick(() => {
+		fileManager.click()
+		handleCoverInput(opts.ChartState)
+	})
+
+	return button;
 }

@@ -151,12 +151,6 @@ export class utils {
 		return index;
 	}
 
-	static async toDataUrl(url:string) {
-		const res = await fetch(url);
-		const blob = await res.blob();
-		return URL.createObjectURL(blob);
-	}
-
 	/** Careful with this, it actually converts to wav but it somehows works when sending as .ogg LOL */
 	static audioBufferToOGG(audioBuffer:AudioBuffer) : Blob {
 		// Helper function to write a string to the DataView

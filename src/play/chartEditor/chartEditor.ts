@@ -14,7 +14,7 @@ import { drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, 
 import { fileManager, handleSongInput } from "../../fileManaging";
 import { GameSave } from "../../core/gamesave";
 import { defaultSongs, songCharts } from "../../core/loader";
-import { gameDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog";
+import { gameDialog, openChartAboutDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog";
 import { dialog } from "@tauri-apps/api";
 
 export function ChartEditorScene() { scene("charteditor", (params: paramsChartEditor) => {
@@ -196,6 +196,10 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 		else if (isKeyPressed("e")) {
 			openChartInfoDialog(ChartState)
+		}
+		
+		else if (isKeyPressed("r")) {
+			openChartAboutDialog()
 		}
 	})
 
@@ -426,25 +430,5 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	addDownloadButton(ChartState)
 
-	let controls = [
-		"Left click - Place note",
-		"Middle click - Copy note color",
-		"Right click - Delete note",
-		"1, 2, 3, 4 - Change the note color",
-		"W, S - Moves up or down the camera",
-		"Space - Pause/Unpause",
-		"Ctrl + A - Select all notes",
-		"Ctrl + C - Copy notes",
-		"Ctrl + V - Paste notes",
-		"Ctrl + X - Cut notes",
-		"Ctrl + Z - Undo",
-		"Ctrl + Y - Redo",
-	]
-
-	const controlsText = add([
-		text(controls.join("\n"), { size: 16 }),
-		pos(vec2(15, height() - 20)),
-		opacity(0.5),
-		anchor("botleft"),
-	])
+	getTreeRoot().on("dialogOpen", () => ChartState.paused = true)
 })}

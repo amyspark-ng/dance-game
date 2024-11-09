@@ -9,6 +9,9 @@ import { GameSave } from "./core/gamesave"
 import { loadSong, songCharts } from "./core/loader"
 import { promiseHooks } from "v8"
 import { url } from "inspector"
+import { utils } from "./utils"
+import { OptionsScene } from "./ui/menu/options/optionsScene"
+import { gameDialog } from "./ui/dialogs/gameDialog"
 
 /** File manager for some stuff of the game */
 export let fileManager = document.createElement("input")
@@ -47,7 +50,7 @@ export async function handleSongInput(ChartState:StateChart) {
 	fileManager.oncancel = async () => {
 		ChartState.inputDisabled = false
 		gameCursor.canMove = true
-		debug.log("user cancelled song input new upload")
+		debug.log("user cancelled song input")
 	}
 }
 
@@ -120,5 +123,33 @@ export async function handleZipInput(SongSelectState:StateSongSelect) {
 	fileManager.oncancel = async () => {
 		SongSelectState.menuInputEnabled = true
 		debug.log("user cancelled song input new upload")
+	}
+}
+
+export function handleCoverInput(ChartState:StateChart) {
+	fileManager.accept= ".png,.jpg"
+	
+	gameCursor.canMove = false
+	gameDialog.canClose = false
+	gameCursor.do("load")
+	
+	fileManager.onchange = async () => {
+		const gottenFile = fileManager.files[0]
+		const arrBuffer = await gottenFile.arrayBuffer()
+		const blob = new Blob([arrBuffer])
+		const base64 = URL.createObjectURL(blob)
+
+		await loadSprite(ChartState.song.idTitle + "-cover", base64)
+		get("cover", { recursive: true })[0].sprite = ChartState.song.idTitle + "-cover"
+		gameDialog.canClose = true
+		ChartState.inputDisabled = false
+		gameCursor.canMove = true
+	}
+
+	fileManager.oncancel = async () => {
+		ChartState.inputDisabled = false
+		gameCursor.canMove = true
+		gameDialog.canClose = true
+		debug.log("user cancelled cover input")
 	}
 }

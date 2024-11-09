@@ -2,7 +2,7 @@ import { Comp, GameObj, KEventController, KEventHandler, RectComp } from "kaplay
 import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { playSound } from "../../core/plugins/features/sound";
 import { dialog } from "@tauri-apps/api";
-import { dialog_addTextbox } from "./dialogFields";
+import { dialog_addSlider, dialog_addTextbox, dialog_changeCover } from "./dialogFields";
 import { StateChart } from "../../play/chartEditor/chartEditorBackend";
 import { utils } from "../../utils";
 import { SongChart } from "../../play/song";
@@ -75,6 +75,7 @@ export class gameDialog {
 		if (this.isOpen) return;
 		this.isOpen = true;
 		playSound("dialogOpen")
+		getTreeRoot().trigger("dialogOpen")
 
 		const startingPos = mousePos();
 
@@ -136,7 +137,7 @@ export function openChartInfoDialog(ChartState:StateChart) {
 	
 	const dialog = gameDialog.openDialog({
 		width: 600,
-		height: 300,
+		height: 400,
 	})
 
 	const nameBox = {
@@ -155,15 +156,42 @@ export function openChartInfoDialog(ChartState:StateChart) {
 			// short it to 3 characters long
 			else return bpm.toString()
 		},
-		conditionsForTyping: (str: string) => {
-			return !isNaN(parseInt(str)) && str.length <= 3
+		conditionsForTyping: (currentString: string, ch: string) => {
+			return !isNaN(parseInt(ch)) && currentString.length <= 3
 		},
 		fallBackValue: newSong.bpm.toString(),
 		startingValue: ChartState.song.bpm.toString(),
 	}
 
-	const textboxesOpts = [ nameBox, bpmBox ]
+	const stepsPerBeatBox = {
+		name: "Steps per beat (X/?)",
+		formatFunc: (str: string) => {
+			const number = parseInt(str)
+			if (isNaN(number)) return "4"
+			else return number.toString()
+		},
+		conditionsForTyping: (currentString: string, ch: string) => {
+			return !isNaN(parseInt(ch)) && currentString.length <= 1
+		},
+		fallBackValue: "4",
+		startingValue: ChartState.conductor.stepsPerBeat.toString(),
+	}
 
+	const beatsPerMeasureBox = {
+		name: "Beats per measure (?/X)",
+		formatFunc: (str: string) => {
+			const number = parseInt(str)
+			if (isNaN(number)) return "4"
+			else return number.toString()
+		},
+		conditionsForTyping: (currentString: string, ch: string) => {
+			return !isNaN(parseInt(ch)) && currentString.length <= 1
+		},
+		fallBackValue: "4",
+		startingValue: ChartState.conductor.beatsPerMeasure.toString(),
+	}
+
+	const textboxesOpts = [ nameBox, bpmBox, stepsPerBeatBox, beatsPerMeasureBox ]
 	const textboxes:ReturnType<typeof dialog_addTextbox>[] = []
 
 	const xPos = -(dialog.width / 2) + leftPadding
@@ -183,6 +211,20 @@ export function openChartInfoDialog(ChartState:StateChart) {
 		textboxes[index] = textbox
 	})
 
+	const scrollSpeedSlider = dialog_addSlider({
+		title: "Scroll speed",
+		dialog: dialog,
+		position: vec2(xPos, textboxes[textboxes.length - 1].pos.y + ySpacing / 2),
+		range: [1, 10],
+		initialValue: ChartState.song.scrollSpeed,
+	})
+
+	const changeCover = dialog_changeCover({
+		position: vec2(xPos, dialog.height / 2 - 75),
+		dialog: dialog,
+		ChartState,
+	})
+
 	dialog.onUpdate(() => {
 		const nameTextbox = textboxes[0]
 		if (nameTextbox.focus) ChartState.song.title = nameTextbox.value
@@ -192,5 +234,49 @@ export function openChartInfoDialog(ChartState:StateChart) {
 		const bpmTextbox = textboxes[1]
 		if (bpmTextbox.focus) ChartState.song.bpm = parseInt(bpmTextbox.value)
 		else bpmTextbox.value = ChartState.song.bpm.toString()
+
+		const stepsPerBeatBox = textboxes[2]
+		if (stepsPerBeatBox.focus) ChartState.conductor.stepsPerBeat = parseInt(stepsPerBeatBox.value)
+		else stepsPerBeatBox.value = ChartState.conductor.stepsPerBeat.toString()
+
+		const beatsPerMeasureBox = textboxes[3]
+		if (beatsPerMeasureBox.focus) ChartState.conductor.beatsPerMeasure = parseInt(beatsPerMeasureBox.value)
+		else beatsPerMeasureBox.value = ChartState.conductor.beatsPerMeasure.toString()
+	
+		ChartState.song.scrollSpeed = scrollSpeedSlider.value
 	})
+}
+
+/** Opens the dialog with extra info for the chart editor */
+export function openChartAboutDialog() {
+	let controls = [
+		"Left click - Place note",
+		"Middle click - Copy note color",
+		"Right click - Delete note",
+		"1, 2, 3, 4 - Change the note color",
+		"W, S - Moves up or down the camera",
+		"Space - Pause/Unpause",
+		"Ctrl + A - Select all notes",
+		"Ctrl + C - Copy notes",
+		"Ctrl + V - Paste notes",
+		"Ctrl + X - Cut notes",
+		"Ctrl + Z - Undo",
+		"Ctrl + Y - Redo",
+	]
+
+	const dialog = gameDialog.openDialog({
+		width: 400,
+		height: 500,
+	})
+
+	const controlsText = dialog.add([
+		text(controls.join("\n"), { size: 16, font: "lambda"}),
+		pos(),
+		opacity(0.5),
+		anchor("botleft"),
+	])
+
+	const aboutText = dialog.add([
+		text("Amy's dance game chart editor (v1.0)", { size: 16, font: "lambda"}),
+	])
 }

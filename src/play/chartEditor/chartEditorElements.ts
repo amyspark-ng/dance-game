@@ -276,3 +276,10 @@ export function drawSelectionBox(ChartState:StateChart) {
 		})
 	}
 }
+
+// TODO: this i'm so tired
+export function addDialogButtons() {
+	function addDialogButton() {
+
+	}
+}
