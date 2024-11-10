@@ -349,11 +349,34 @@ export function cameraControllerHandling(ChartState:StateChart) {
 
 /** Handles the animation of the mouse */
 export function mouseAnimationHandling(ChartState:StateChart) {
+	// higher priority type mode
 	if (gameCursor.typeMode) {
 		if (gameCursor.sprite != "cursor_text") gameCursor.do("text")
 		return;
 	}
+	
+	// then the animations for game dialog
+	if (gameDialog.isOpen) {
+		const hoveredObjects = get("hover", { recursive: true })
+		hoveredObjects.forEach((obj) => {
+			if (!obj.isHovering()) {
+				if (obj.dragging) gameCursor.do("down")
+				else {
+					if (hoveredObjects.some((otherObj) => otherObj.isHovering())) return
+					else gameCursor.do("default")
+				}
+			}
 
+			else {
+				if (obj.dragging || isMouseDown("left")) gameCursor.do("down")
+				else gameCursor.do("up")
+			}
+		})
+
+		return;
+	}
+	
+	// then the ones for the actual charting state
 	// kinda hardcoded, this probably just means the player is loading something nothing  else
 	if (!gameCursor.canMove && ChartState.inputDisabled) gameCursor.do("load")
 	else {
@@ -454,68 +477,50 @@ export function addFloatingText(texting: string) {
 	return copyText;
 }
 
-export function addDownloadButton(ChartState:StateChart) {
-	const bpos = vec2(760, 547)
+export async function downloadChart(ChartState:StateChart) {
+	getTreeRoot().trigger("download")
+		
+	const jsZip = new JSZip()
 	
-	const btn = add([
-		text("↓"),
-		pos(bpos),
-		area(),
-		anchor("center"),
-		opacity(),
-		{
-			update() {
-				if (this.isHovering()) this.opacity = 1
-				else this.opacity = 0.5
-			}
-		}
-	])
-
-	btn.onClick(async () => {
-		getTreeRoot().trigger("download")
-		
-		const jsZip = new JSZip()
-		
-		// the blob for the song 
-		const oggBlob = utils.audioBufferToOGG(ChartState.audioBuffer)
+	// the blob for the song 
+	const oggBlob = utils.audioBufferToOGG(ChartState.audioBuffer)
 
 
-		async function spriteToDataURL(sprName: string) {
-			const canvas = makeCanvas(396, 396)
-			canvas.draw(() => {
-				drawSprite({
-					sprite: sprName,
-					width: width(),
-					height: height(),
-					pos: center(),
-					anchor: "center",
-				})
+	async function spriteToDataURL(sprName: string) {
+		const canvas = makeCanvas(396, 396)
+		canvas.draw(() => {
+			drawSprite({
+				sprite: sprName,
+				width: width(),
+				height: height(),
+				pos: center(),
+				anchor: "center",
 			})
-
-			const dataURL = canvas.toDataURL();
-			return dataURL;
-		}
-
-		// stuff related to cover
-		const defaultCover = "sprites/defaultCover.png"
-		let pathToCover:string = undefined
-		const coverAvailable = await getSprite(ChartState.song.idTitle + "-cover")
-		if (!coverAvailable) pathToCover = defaultCover
-		else pathToCover = await spriteToDataURL(ChartState.song.idTitle + "-cover")
-		const imgBlob = await fetch(pathToCover).then((res) => res.blob())
-
-		spriteToDataURL(ChartState.song.idTitle + "-cover")
-
-		// creates the files
-		jsZip.file(`${ChartState.song.idTitle}-chart.json`, JSON.stringify(ChartState.song))
-		jsZip.file(`${ChartState.song.idTitle}-song.ogg`, oggBlob)
-		jsZip.file(`${ChartState.song.idTitle}-cover.png`, imgBlob)
-		
-		// downloads the zip
-		await jsZip.generateAsync({ type: "blob" }).then((content) => {
-			downloadBlob(`${ChartState.song.idTitle}-chart.zip`, content)
 		})
 
-		debug.log(`${ChartState.song.idTitle}-chart.zip, DOWNLOADED! :)`)
+		const dataURL = canvas.toDataURL();
+		return dataURL;
+	}
+
+	// stuff related to cover
+	const defaultCover = "sprites/defaultCover.png"
+	let pathToCover:string = undefined
+	const coverAvailable = await getSprite(ChartState.song.idTitle + "-cover")
+	if (!coverAvailable) pathToCover = defaultCover
+	else pathToCover = await spriteToDataURL(ChartState.song.idTitle + "-cover")
+	const imgBlob = await fetch(pathToCover).then((res) => res.blob())
+
+	spriteToDataURL(ChartState.song.idTitle + "-cover")
+
+	// creates the files
+	jsZip.file(`${ChartState.song.idTitle}-chart.json`, JSON.stringify(ChartState.song))
+	jsZip.file(`${ChartState.song.idTitle}-song.ogg`, oggBlob)
+	jsZip.file(`${ChartState.song.idTitle}-cover.png`, imgBlob)
+	
+	// downloads the zip
+	await jsZip.generateAsync({ type: "blob" }).then((content) => {
+		downloadBlob(`${ChartState.song.idTitle}-chart.zip`, content)
 	})
+
+	debug.log(`${ChartState.song.idTitle}-chart.zip, DOWNLOADED! :)`)
 }

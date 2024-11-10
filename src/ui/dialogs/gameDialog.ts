@@ -1,4 +1,4 @@
-import { Comp, GameObj, KEventController, KEventHandler, RectComp } from "kaplay";
+import { Color, Comp, GameObj, KEventController, KEventHandler, RectComp } from "kaplay";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { playSound } from "../../core/plugins/features/sound";
 import { dialog } from "@tauri-apps/api";
@@ -284,5 +284,17 @@ export function openChartAboutDialog() {
 
 	const aboutText = dialog.add([
 		text("Amy's dance game chart editor (v1.0)", { size: 16, font: "lambda"}),
+	])
+}
+
+// adds a square notification to the bottom
+export function addNotification(coloring: Color, text: string, duration: number = 3) {
+	const notification = add([
+		rect(400, 50),
+		pos(0, -50),
+		anchor("botleft"),
+		opacity(0),
+		z(1000),
+		color(),
 	])
 }

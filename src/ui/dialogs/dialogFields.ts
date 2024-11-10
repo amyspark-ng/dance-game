@@ -145,12 +145,27 @@ export function dialog_addSlider(opts: sliderOpt) {
 	])
 
 	// TODO: Add the slider thing where the part on the left is colored blue so you know how much you've slided
+	const sliderFull = opts.dialog.add([
+		pos(title.pos.x + title.width, (title.pos.y + title.height / 2) + 2),
+		rect(0, title.height / 2, { radius: 3 }),
+		anchor("left"),
+		color(BLUE.lighten(50)),
+		z(0),
+		{
+			update() {
+				this.width = (slider.pos.x + slider.width - sliderbg.pos.x) - 5
+			}
+		}
+	])
+	
 	const slider = opts.dialog.add([
 		pos(0, sliderbg.pos.y),
 		rect(10, textSize + 5, { radius: 2.5 }),
 		anchor("center"),
-		area({ scale: vec2(2) }),
+		area({ scale: vec2(2, 1) }),
+		z(1),
 		"slider",
+		"hover",
 		{
 			dragging: false,
 			value: opts.initialValue,
@@ -176,7 +191,14 @@ export function dialog_addSlider(opts: sliderOpt) {
 			slider.pos.x = lerp(slider.pos.x, mousePosThing.x, 0.5)
 			slider.pos.x = clamp(slider.pos.x, leftX, rightX)
 			const mappedValue = map(slider.pos.x, leftX, rightX, opts.range[0], opts.range[1])
+			let oldValue = slider.value
 			slider.value = mappedValue, 0.5
+		
+			// little thing for sound
+			if (!isMouseMoved()) return;
+			if (Math.round(slider.value) != Math.round(oldValue)) {
+				playSound("noteMove", { detune: map(slider.value, opts.range[0], opts.range[1], -100, 100) })
+			}
 		}
 		
 		else {
@@ -218,6 +240,7 @@ export function dialog_changeCover(opts: changeThingOpt) {
 		anchor("left"),
 		area(),
 		"cover",
+		"hover",
 		{
 			update() {
 				button.width = 100

@@ -180,6 +180,19 @@ export function loadAssets() {
 	loadSprite("importSongBtn", "sprites/importSong.png")
 	loadSprite("changeSongBtn", "sprites/changeSong.png")
 
+	const icons = [ "about", "fields", "download", "new" ]
+	const iconsAtlas = {}
+	icons.forEach((icon, index) => {
+		iconsAtlas[icon + "_charticon"] = {
+			width: 45,
+			height: 50,
+			x: 45 * index,
+			y: 0,
+		}
+	})
+
+	loadSpriteAtlas("sprites/chartEditorIcons.png", iconsAtlas)
+
 	loadSound("uiMove", "sounds/uiMove.wav")
 	loadSound("uiSelect", "sounds/uiSelect.wav")
 	loadSound("keyClick", "sounds/keyClick.ogg")

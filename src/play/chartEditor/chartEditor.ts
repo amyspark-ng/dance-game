@@ -9,8 +9,8 @@ import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { utils } from "../../utils";
 import { moveToColor } from "../objects/note";
 import { paramsGameScene } from "../playstate";
-import { addDownloadButton, addDummyDancer, addFloatingText, cameraControllerHandling, handlerForChangingInput, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, StateChart } from "./chartEditorBackend";
-import { drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, drawPlayBar, drawSelectGizmo, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE } from "./chartEditorElements";
+import { addDummyDancer, addFloatingText, cameraControllerHandling, handlerForChangingInput, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, StateChart } from "./chartEditorBackend";
+import { addBeatCounter, addDialogButtons, drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, drawPlayBar, drawSelectGizmo, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE } from "./chartEditorElements";
 import { fileManager, handleSongInput } from "../../fileManaging";
 import { GameSave } from "../../core/gamesave";
 import { defaultSongs, allSongCharts } from "../../core/loader";
@@ -437,7 +437,8 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		}
 	])
 
-	addDownloadButton(ChartState)
+	addDialogButtons(ChartState)
+	addBeatCounter(ChartState)
 
 	getTreeRoot().on("dialogOpen", () => ChartState.paused = true)
 })}

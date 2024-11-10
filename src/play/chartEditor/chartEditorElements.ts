@@ -1,10 +1,12 @@
 // File that draws all the chart editor stuff
-import { DrawRectOpt, Vec2 } from "kaplay"
+import { Color, DrawRectOpt, Vec2 } from "kaplay"
 import { GameSave } from "../../core/gamesave"
 import { utils } from "../../utils"
 import { moveToColor } from "../objects/note"
-import { StateChart } from "./chartEditorBackend"
+import { downloadChart, StateChart } from "./chartEditorBackend"
 import { gameCursor } from "../../core/plugins/features/gameCursor"
+import { openChartAboutDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog"
+import { onBeatHit } from "../../core/events"
 
 /** Returns if a certain Y position mets the conditions to be drawn on the screen */
 function conditionsForDrawing(YPos: number, square_size: Vec2) {
@@ -19,7 +21,7 @@ export const NOTE_BIG_SCALE = 1.4
 
 /** Draws the playbar and the text with the time */
 export function drawPlayBar(ChartState: StateChart) {
-	const bgColor = Color.fromArray(ChartState.bgColor)
+	const bgColor = rgb(ChartState.bgColor[0], ChartState.bgColor[1], ChartState.bgColor[2])
 
 	// why width * 2?
 	let barWidth = map(ChartState.scrollTime, 0, ChartState.conductor.audioPlay.duration(), 0, width() * 2)
@@ -277,9 +279,144 @@ export function drawSelectionBox(ChartState:StateChart) {
 	}
 }
 
-// TODO: this i'm so tired
-export function addDialogButtons() {
-	function addDialogButton() {
+export function addDialogButtons(ChartState:StateChart) {
+	function addDialogButton({ texting, action, icon, }: { texting: string, action: () => void, icon: string }) {
+		const xPos = 30
+		const actualIconWidth = 30
 
+		const iconObj = add([
+			sprite(icon + "_charticon"),
+			pos(vec2()),
+			opacity(),
+			anchor("center"),
+			color(),
+			rotate(),
+			"dialogbuttonicon",
+		])
+
+		const button = add([
+			text(texting, { align: "left" }),
+			pos(xPos, 0),
+			area(),
+			anchor("left"),
+			opacity(),
+			scale(),
+			rotate(),
+			{
+				update() {
+					if (this.isHovering()) {
+						this.scale.x = lerp(this.scale.x, 1.1, 0.5)
+						this.scale.y = lerp(this.scale.y, 1.1, 0.5)
+						this.opacity = lerp(this.opacity, 1, 0.5)
+						this.pos.x = lerp(this.pos.x, xPos + actualIconWidth, 0.5)
+					
+						if (isMousePressed("left")) {
+							this.angle = rand(-5, 5)
+						}
+					}
+					
+					else {
+						this.scale.x = lerp(this.scale.x, 1, 0.5)
+						this.scale.y = lerp(this.scale.y, 1, 0.5)
+						this.opacity = lerp(this.opacity, 0.6, 0.5)
+						this.pos.x = lerp(this.pos.x, xPos, 0.5)
+					}
+					
+					if (this.angle != 0) this.angle = lerp(this.angle, 0, 0.5)
+				}
+			}
+		])
+
+		// makes the scale slightly larger 
+		button.area.scale = vec2(1.3)
+		button.area.offset = vec2(-button.width * 0.3, 0)
+
+		iconObj.onUpdate(() => {
+			iconObj.pos.y = button.pos.y + iconObj.height * 0.2
+			
+			if (button.isHovering()) {
+				iconObj.pos.x = lerp(iconObj.pos.x, xPos + iconObj.width * 0.1, 0.5)
+				if (isMousePressed("left")) iconObj.angle = 360
+			}
+			
+			else {
+				iconObj.pos.x = lerp(iconObj.pos.x, button.pos.x, 0.5)
+			}
+			
+			iconObj.opacity = button.opacity
+			if (iconObj.angle != 0) iconObj.angle = lerp(iconObj.angle, 0, 0.25)
+		})
+
+		button.onClick(action)
+		return button;
 	}
+
+	const initialYPos = height() - 50
+	// the ones more on top will appear more on the bottom of the screen
+	const things = [
+		{ texting: "Create new chart", icon: "new", action: () => {} },
+		{ texting: "Download chart", icon: "download", action: () => { downloadChart(ChartState) } },
+		{ texting: "Song fields", icon: "fields", action: () => { openChartInfoDialog(ChartState) } },
+		{ texting: "About", icon: "about", action: () => { openChartAboutDialog() } },
+	]
+	
+	things.forEach((thing, index) => {
+		const thingButton = addDialogButton(thing)
+		thingButton.pos.y = initialYPos - (index * (thingButton.height * 1.4))
+	})
+}
+
+export function addBeatCounter(ChartState:StateChart) {
+	let beatIndex = -1
+	
+	type numberProp = {
+		scale: number,
+		color: Color,
+		angle: number,
+	}
+
+	let props:numberProp[] = []
+
+	onUpdate(() => {
+		for (let i = 0; i < ChartState.conductor.stepsPerBeat; i++) {
+			if (!props[i]) {
+				props.push({
+					scale: 1,
+					color: WHITE,
+					angle: 0,
+				})
+			}
+
+			// limit props length to steps per beat
+			props = props.slice(0, ChartState.conductor.stepsPerBeat)
+		}
+	})
+
+	onBeatHit(() => {
+		beatIndex++
+		beatIndex = beatIndex % ChartState.conductor.stepsPerBeat;
+		
+		// if is the last prop in the list
+		if (props[beatIndex] == props[props.length - 1]) {
+			tween(YELLOW, WHITE, 0.25, (p) => props[beatIndex].color = p)
+		}
+	
+		tween(randi(-10, 10), 0, 0.25, (p) => props[beatIndex].angle = p)
+		tween(rand(1.1, 1.25), 1, 0.25, (p) => props[beatIndex].scale = p)
+	})
+
+	onDraw(() => {
+		for (let i = 0; i < ChartState.conductor.stepsPerBeat; i++) {
+			if (!props[i]) return;
+			drawText({
+				text: (i + 1).toString(),
+				pos: vec2(10 + i * 30, 40),
+				color: props[i].color,
+				angle: props[i].angle,
+				anchor: "center",
+				scale: vec2(props[i].scale),
+				size: 30,
+			})
+		}
+	})
 }
