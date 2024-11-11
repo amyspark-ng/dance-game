@@ -1,5 +1,5 @@
 import { GameSave } from "../core/gamesave";
-import { defaultSongs, allSongCharts, songsLoaded } from "../core/loader"
+import { defaultSongs, songsLoaded } from "../core/loader"
 import { gameCursor } from "../core/plugins/features/gameCursor";
 import { customAudioPlay, playSound } from "../core/plugins/features/sound";
 import { goScene, transitionToScene } from "../core/scenes";
@@ -158,13 +158,10 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 	songSelectState.index = params.index ?? 0
 	songSelectState.songPreview?.stop()
 
-	let songAmount = songsLoaded.length
+	let songAmount = songsLoaded.length + 1
 	const LERP_AMOUNT = 0.25
 
-	console.log("or does the scene run first")
-
 	songsLoaded.forEach((song, index) => {
-		console.log("added capsule for song: " + song.manifest.name)
 		addSongCapsule(song)
 	})
 
@@ -173,7 +170,7 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 
 	let allCapsules = get("songCapsule", { liveUpdate: true }) as songCapsuleObj[]
 	onUpdate(() => {
-		songAmount = allSongCharts.length + 1
+		songAmount = songsLoaded.length + 1
 		allCapsules.forEach((songCapsule, index) => {
 			let opacity = 1
 			

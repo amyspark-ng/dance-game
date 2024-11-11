@@ -4,17 +4,18 @@ import { Move } from "../objects/dancer";
 import { ChartNote } from "../objects/note";
 import { utils } from "../../utils";
 import { juice } from "../../core/plugins/graphics/juiceComponent";
-import { SongChart } from "../song";
 import { Conductor } from "../../conductor";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
-import JSZip from "jszip";
 import { gameDialog } from "../../ui/dialogs/gameDialog";
+import { SongZip } from "../song";
+import JSZip from "jszip";
+import TOML from "smol-toml"
 
 /** Class that manages the snapshots of the chart */
 export class ChartSnapshot {
-	song: SongChart;
+	song: SongZip;
 	selectedNotes: ChartNote[];
-	constructor(song: SongChart, selectedNotes: ChartNote[]) {
+	constructor(song: SongZip, selectedNotes: ChartNote[]) {
 		this.song = song;
 		this.selectedNotes = selectedNotes;
 	}
@@ -29,7 +30,7 @@ type notePropThing = {
 /** Class that manages every important variable in the chart editor */
 export class StateChart {
 	bgColor: [number, number, number] = [67, 21, 122]
-	song: SongChart;
+	song: SongZip;
 	paused: boolean;
 	conductor: Conductor;
 	params: paramsChartEditor;
@@ -153,16 +154,16 @@ export class StateChart {
 	addNoteToChart(time: number, move: Move) {
 		this.stepForDetune = 0
 		
-		const noteWithSameTimeButDifferentMove = this.song.notes.find(note => note.hitTime == time && note.dancerMove != move || note.hitTime == time && note.dancerMove == move)
+		const noteWithSameTimeButDifferentMove = this.song.chart.notes.find(note => note.time == time && note.move != move || note.time == time && note.move == move)
 		// if there's a note already at that time but a different move, remove it
 		if (noteWithSameTimeButDifferentMove) {
 			this.removeNoteFromChart(noteWithSameTimeButDifferentMove)
 		}
 		
-		const newNote:ChartNote = { hitTime: time, dancerMove: move }
-		this.song.notes.push(newNote)
+		const newNote:ChartNote = { time: time, move: move }
+		this.song.chart.notes.push(newNote)
 
-		const indexInNotes = this.song.notes.indexOf(newNote)
+		const indexInNotes = this.song.chart.notes.indexOf(newNote)
 		this.noteProps[indexInNotes] = { scale: vec2(1), angle: 0 }
 		tween(vec2(this.NOTE_BIG_SCALE), vec2(1), 0.1, (p) => this.noteProps[indexInNotes].scale = p)
 		this.selectedNotes.push(newNote)
@@ -174,10 +175,10 @@ export class StateChart {
 	 * @returns The removed note
 	 */
 	removeNoteFromChart(noteToRemove:ChartNote) : ChartNote {
-		const oldNote = this.song.notes.find(note => note == noteToRemove)
+		const oldNote = this.song.chart.notes.find(note => note == noteToRemove)
 		if (oldNote == undefined) return;
 		
-		this.song.notes = utils.removeFromArr(oldNote, this.song.notes)
+		this.song.chart.notes = utils.removeFromArr(oldNote, this.song.chart.notes)
 		this.selectedNotes = utils.removeFromArr(oldNote, this.selectedNotes)
 		
 		return oldNote;
@@ -219,7 +220,7 @@ export class StateChart {
 	}
 
 	/** Changes the song of the instance */
-	setSong(song: SongChart) {
+	setSong(song: SongZip) {
 		this.scrollStep = 0
 		this.snapshots = []
 		this.curSnapshotIndex = 0
@@ -231,7 +232,7 @@ export class StateChart {
 
 /** The params for the chart editor */
 export type paramsChartEditor = {
-	song: SongChart,
+	song: SongZip,
 	playbackSpeed: number,
 	seekTime: number,
 	dancer: string,
@@ -294,8 +295,8 @@ export function selectionBoxHandler(ChartState:StateChart) {
 		const oldSelectedNotes = ChartState.selectedNotes
 		ChartState.selectedNotes = []
 
-		ChartState.song.notes.forEach((note) => {
-			let notePos = ChartState.stepToPos(ChartState.conductor.timeToStep(note.hitTime))
+		ChartState.song.chart.notes.forEach((note) => {
+			let notePos = ChartState.stepToPos(ChartState.conductor.timeToStep(note.time))
 			notePos.y -= ChartState.SQUARE_SIZE.y * ChartState.smoothScrollStep
 
 			const posInScreen = vec2(
@@ -485,7 +486,6 @@ export async function downloadChart(ChartState:StateChart) {
 	// the blob for the song 
 	const oggBlob = utils.audioBufferToOGG(ChartState.audioBuffer)
 
-
 	async function spriteToDataURL(sprName: string) {
 		const canvas = makeCanvas(396, 396)
 		canvas.draw(() => {
@@ -505,22 +505,26 @@ export async function downloadChart(ChartState:StateChart) {
 	// stuff related to cover
 	const defaultCover = "sprites/defaultCover.png"
 	let pathToCover:string = undefined
-	const coverAvailable = await getSprite(ChartState.song.idTitle + "-cover")
+	const coverAvailable = await getSprite(ChartState.song.manifest.uuid_DONT_CHANGE + "-cover")
 	if (!coverAvailable) pathToCover = defaultCover
-	else pathToCover = await spriteToDataURL(ChartState.song.idTitle + "-cover")
+	else pathToCover = await spriteToDataURL(ChartState.song.manifest.uuid_DONT_CHANGE + "-cover")
 	const imgBlob = await fetch(pathToCover).then((res) => res.blob())
 
-	spriteToDataURL(ChartState.song.idTitle + "-cover")
+	spriteToDataURL(ChartState.song.manifest.uuid_DONT_CHANGE + "-cover")
+
+	const manifestString = TOML.stringify(ChartState.song.manifest)
 
 	// creates the files
-	jsZip.file(`${ChartState.song.idTitle}-chart.json`, JSON.stringify(ChartState.song))
-	jsZip.file(`${ChartState.song.idTitle}-song.ogg`, oggBlob)
-	jsZip.file(`${ChartState.song.idTitle}-cover.png`, imgBlob)
+	const kebabCaseName = utils.kebabCase(ChartState.song.manifest.name)
+	jsZip.file(`${kebabCaseName}-chart.json`, JSON.stringify(ChartState.song.chart))
+	jsZip.file(`${kebabCaseName}-audio.ogg`, oggBlob)
+	jsZip.file(`${kebabCaseName}-cover.png`, imgBlob)
+	jsZip.file(`manifest.toml`, manifestString)
 	
 	// downloads the zip
 	await jsZip.generateAsync({ type: "blob" }).then((content) => {
-		downloadBlob(`${ChartState.song.idTitle}-chart.zip`, content)
+		downloadBlob(`${kebabCaseName}-chart.zip`, content)
 	})
 
-	debug.log(`${ChartState.song.idTitle}-chart.zip, DOWNLOADED! :)`)
+	debug.log(`${kebabCaseName}-chart.zip, DOWNLOADED! :)`)
 }

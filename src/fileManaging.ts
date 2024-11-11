@@ -3,12 +3,11 @@ import { Conductor } from "./conductor"
 import { gameCursor } from "./core/plugins/features/gameCursor"
 import { playSound } from "./core/plugins/features/sound"
 import { StateChart } from "./play/chartEditor/chartEditorBackend"
-import { SongChart } from "./play/song"
 import { addSongCapsule, StateSongSelect } from "./ui/songselectscene"
-import { allSongCharts } from "./core/loader"
 import { gameDialog } from "./ui/dialogs/gameDialog"
 import { utils } from "./utils"
 import { GameSave } from "./core/gamesave"
+import { Chart } from "./play/song"
 
 /** File manager for some stuff of the game */
 export let fileManager = document.createElement("input")
@@ -27,18 +26,18 @@ export async function handleSongInput(ChartState:StateChart) {
 	fileManager.onchange = async () => {
 		const gottenFile = fileManager.files[0]	
 		const buffer = await gottenFile.arrayBuffer()
-		await loadSound(ChartState.song.idTitle + "-song", buffer)
-		await getSound(ChartState.song.idTitle + "-song").then((sound) => ChartState.audioBuffer = sound.buf)
+		await loadSound(ChartState.song.manifest.uuid_DONT_CHANGE + "-audio", buffer)
+		await getSound(ChartState.song.manifest.uuid_DONT_CHANGE + "-audio").then((sound) => ChartState.audioBuffer = sound.buf)
 
 		ChartState.conductor = new Conductor({
-			audioPlay: playSound(ChartState.song.idTitle + "-song", { volume: 0.1 }),
-			bpm: ChartState.song.bpm,
-			timeSignature: ChartState.song.timeSignature,
+			audioPlay: playSound(ChartState.song.manifest.uuid_DONT_CHANGE + "-audio", { volume: 0.1 }),
+			bpm: ChartState.song.manifest.initial_bpm,
+			timeSignature: ChartState.song.manifest.time_signature,
 		})
 
-		ChartState.song.notes.forEach((note) => {
-			if (note.hitTime >= ChartState.conductor.audioPlay.duration()) {
-				ChartState.song.notes = utils.removeFromArr(note, ChartState.song.notes)
+		ChartState.song.chart.notes.forEach((note) => {
+			if (note.time >= ChartState.conductor.audioPlay.duration()) {
+				ChartState.song.chart.notes = utils.removeFromArr(note, ChartState.song.chart.notes)
 			}
 		})
 
@@ -60,6 +59,8 @@ export async function handleZipInput(SongSelectState:StateSongSelect) {
 	SongSelectState.menuInputEnabled = false
 	fileManager.accept= ".zip"
 
+	// TODO: RE DO THIS 
+
 	fileManager.onchange = async () => {
 		const drawLoadingScreen = assetLoadingScreen()
 
@@ -70,7 +71,7 @@ export async function handleZipInput(SongSelectState:StateSongSelect) {
 		
 		let coverDataURL:string;
 		let songArrBuff:ArrayBuffer;
-		let gottenChart:SongChart;
+		let gottenChart:Chart;
 		
 		// loading json
 		const firstJson = zipFile.filter((file) => file.endsWith(".json"))[0]
@@ -105,31 +106,31 @@ export async function handleZipInput(SongSelectState:StateSongSelect) {
 		const firstSong = zipFile.filter((file) => file.endsWith(".ogg"))[0]
 		songArrBuff = await firstSong.async("arraybuffer")
 
-		if (allSongCharts.some((song) => song.idTitle == gottenChart.idTitle)) {
-			debug.log("Can't import that song because either it's already imported or it's one of the main ones")
-			drawLoadingScreen.cancel()
-			SongSelectState.menuInputEnabled = true
-			return;
-		}
+		// if (allSongCharts.some((song) => song.manifest.uuid_DONT_CHANGE == gottenChart.idTitle)) {
+		// 	debug.log("Can't import that song because either it's already imported or it's one of the main ones")
+		// 	drawLoadingScreen.cancel()
+		// 	SongSelectState.menuInputEnabled = true
+		// 	return;
+		// }
 
-		if (!await getSprite(gottenChart.idTitle + "-cover")) {
-			await loadSprite(gottenChart.idTitle + "-cover", coverDataURL)
-		}
+		// if (!await getSprite(gottenChart.idTitle + "-cover")) {
+		// 	await loadSprite(gottenChart.idTitle + "-cover", coverDataURL)
+		// }
 		
-		if (!await getSound(gottenChart.idTitle + "-song")) {
-			await loadSound(gottenChart.idTitle + "-song", songArrBuff)
-		}
+		// if (!await getSound(gottenChart.idTitle + "-audio")) {
+		// 	await loadSound(gottenChart.idTitle + "-audio", songArrBuff)
+		// }
 
-		allSongCharts.push(gottenChart)
+		// allSongCharts.push(gottenChart)
 		GameSave.save()
 		SongSelectState.menuInputEnabled = true
 		
 		drawLoadingScreen.cancel()
 
-		addSongCapsule(gottenChart)
+		// TODO: Fix this function
+		// addSongCapsule(gottenChart)
 		getTreeRoot().trigger("addedCapsule")
 		wait(0.1, () => {
-			SongSelectState.index = allSongCharts.indexOf(gottenChart)
 			SongSelectState.updateState()
 		})
 	}
@@ -155,8 +156,8 @@ export function handleCoverInput(ChartState:StateChart) {
 		const blob = new Blob([arrBuffer])
 		const base64 = URL.createObjectURL(blob)
 
-		await loadSprite(ChartState.song.idTitle + "-cover", base64)
-		get("cover", { recursive: true })[0].sprite = ChartState.song.idTitle + "-cover"
+		await loadSprite(ChartState.song.manifest.uuid_DONT_CHANGE + "-cover", base64)
+		get("cover", { recursive: true })[0].sprite = ChartState.song.manifest.uuid_DONT_CHANGE + "-cover"
 		gameDialog.canClose = true
 		ChartState.inputDisabled = false
 		gameCursor.canMove = true

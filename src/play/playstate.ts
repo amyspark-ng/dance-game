@@ -3,7 +3,6 @@ import { Conductor } from "../conductor";
 import { triggerEvent } from "../core/events";
 import { GameSave } from "../core/gamesave";
 import { PRODUCT } from "../core/initGame";
-import { allSongCharts } from "../core/loader";
 import { playSound } from "../core/plugins/features/sound";
 import { goScene, transitionToScene } from "../core/scenes";
 import { fadeOut } from "../core/transitions/fadeOutTransition";
@@ -13,7 +12,7 @@ import { getDancer } from "./objects/dancer";
 import { ChartNote, getNotesOnScreen, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
 import { Tally } from "./objects/scoring";
 import { getStrumline } from "./objects/strumline";
-import { SongChart, SongZip } from "./song";
+import { SongZip } from "./song";
 import { managePauseUI } from "./ui/pauseScreen";
 
 /** Class that holds and manages some important variables in the game scene */
@@ -107,7 +106,7 @@ export function setupSong(params: paramsGameScene, GameState:StateGame) {
 	})
 
 	// there are the notes that have been spawned yet
-	GameState.songZip.chart.notes.filter((note) => note.hitTime <= params.seekTime).forEach((passedNote) => {
+	GameState.songZip.chart.notes.filter((note) => note.time <= params.seekTime).forEach((passedNote) => {
 		GameState.spawnedNotes.push(passedNote)
 		GameState.hitNotes.push(passedNote)
 	})
@@ -129,7 +128,7 @@ export function restartSong(GameState:StateGame) {
 	GameState.highestCombo = 0
 
 	GameState.songZip.chart.notes.forEach((note) => {
-		if (note.hitTime <= GameState.params.seekTime) {
+		if (note.time <= GameState.params.seekTime) {
 			GameState.hitNotes.push(note)
 			GameState.spawnedNotes.push(note)
 		}
@@ -189,7 +188,7 @@ export function exitToMenu(GameState:StateGame) {
 export function exitToChartEditor(GameState:StateGame) {
 	stopPlay(GameState)
 	GameState.menuInputEnabled = false
-	// transitionToScene(fadeOut, "charteditor", { song: GameState.songZip, seekTime: GameState.conductor.timeInSeconds, dancer: GameState.params.dancer } as paramsChartEditor)
+	transitionToScene(fadeOut, "charteditor", { song: GameState.songZip, seekTime: GameState.conductor.timeInSeconds, dancer: GameState.params.dancer } as paramsChartEditor)
 }
 
 export function introGo() {

@@ -1,9 +1,0 @@
-name = "grgdgdgdgr"
-artist = "Kawai Sprite"
-charter = "amyspark-ng"
-initial_bpm = 100
-initial_scrollspeed = 1
-time_signature = [4, 4]
-uuid_DONT_CHANGE = "1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed"
-chart_file = "./bopeebo-chart.json"
-audio_file = "./bopeebo-song.ogg"

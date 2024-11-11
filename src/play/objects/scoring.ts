@@ -20,7 +20,7 @@ export type Judgement = typeof judgements[number]
 export class Scoring {
 	/** Get the judgement the player did based on hit time */
 	static judgeNote(timeInSeconds: number, note:ChartNote) : Judgement {
-		const diff = timeInSeconds - note.hitTime
+		const diff = timeInSeconds - note.time
 		const absDiff = Math.abs(diff)
 	
 		if (absDiff <= AWESOME_TIMING) return "Awesome"
@@ -33,7 +33,7 @@ export class Scoring {
 	static getScorePerDiff(timeInSeconds:number, note:ChartNote) : number {
 		const max_score = 50
 		const min_score = 5
-		const diff = Math.abs(timeInSeconds - note.hitTime)
+		const diff = Math.abs(timeInSeconds - note.time)
 		const score = Math.round(map(diff, 0, INPUT_THRESHOLD, max_score, min_score))
 		return score
 	}
@@ -153,7 +153,7 @@ export function addComboText(comboAmount: number | "break") {
 
 // get the closest note to the current time
 export function getClosestNote(arr: ChartNote[], time: number) : ChartNote {
-	return arr.reduce((acc, obj) => Math.abs(time - obj.hitTime) < Math.abs(time - acc.hitTime) ? obj : acc);
+	return arr.reduce((acc, obj) => Math.abs(time - obj.time) < Math.abs(time - acc.time) ? obj : acc);
 }
 
 /** Runs when you press and returns the note hit or undefined if you didn't hit anything on time */
@@ -163,7 +163,7 @@ export function checkForNoteHit(GameState:StateGame, move: Move) : ChartNote {
 	
 	// if time in seconds is in range by input_treshold 
 	// to the hit note of any note in the chart
-	if (utils.isInRange(time, closestNote.hitTime + INPUT_THRESHOLD, closestNote.hitTime - INPUT_THRESHOLD) && closestNote.dancerMove == move) {
+	if (utils.isInRange(time, closestNote.time + INPUT_THRESHOLD, closestNote.time - INPUT_THRESHOLD) && closestNote.move == move) {
 		return closestNote
 	}
 	

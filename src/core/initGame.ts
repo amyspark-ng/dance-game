@@ -4,7 +4,7 @@ import { drag } from "./plugins/features/drag"
 import { setupSoundtray } from "./plugins/features/soundtray"
 import { GameSave } from "./gamesave"
 import { setupLayers } from "./layers"
-import { loadAssets, loadingScreen } from "./loader"
+import { getSong, loadAssets, loadingScreen } from "./loader"
 import { goScene, setupScenes } from "./scenes"
 import { setupWatch } from "./plugins/features/watcher"
 import { paramsSongSelect } from "../ui/songselectscene"
@@ -38,9 +38,9 @@ export function INITIAL_SCENE() {
 	
 	// goScene("game", { song: getSong("bopeebo"), dancer: "gru"} as paramsGameScene)
 	
-	goScene("songselect", { index: 0 } as paramsSongSelect)
+	// goScene("songselect", { index: 0 } as paramsSongSelect)
 	
-	// goScene("charteditor", { song: getSong("bopeebo") } as paramsChartEditor )
+	goScene("charteditor", { song: getSong("bopeebo") } as paramsChartEditor )
 	
 	// goScene("results", { GameState: {
 	// 	song: getSong("bopeebo"),
@@ -59,8 +59,9 @@ export async function initGame() {
 	setCursor("none")
 	
 	GameSave.load()
-	await loadAssets()
 	onLoading((progress:number) => loadingScreen(progress))
+	await loadAssets()
+	
 	onLoad(() => {
 		// sets up a bunch of stuff
 		setupLayers(); // sets up layers before for any object
@@ -69,6 +70,7 @@ export async function initGame() {
 		setupCamera(); // sets up the camera
 		setupSoundtray(); // sets up the soundtray
 		setupWatch(); // sets up the watcher
+		volume(GameSave.sound.masterVolume)
 	
 		console.log(`${PRODUCT.AUTHOR}.${PRODUCT.NAME} v: ${PRODUCT.VERSION}`)
 		
@@ -81,7 +83,7 @@ export async function initGame() {
 		else {
 			INITIAL_SCENE()
 		}
-
+	
 		setGravity(1000)
 		globalThis.GameSave = GameSave
 	})

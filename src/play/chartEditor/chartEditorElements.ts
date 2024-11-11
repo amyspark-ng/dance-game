@@ -118,8 +118,8 @@ export function drawCheckerboard(ChartState: StateChart) {
 /** Draw the hittable notes */
 export function drawAllNotes(ChartState:StateChart) {
 	// draws the notes
-	ChartState.song.notes.forEach((note, index) => {
-		let notePos = ChartState.stepToPos(ChartState.conductor.timeToStep(note.hitTime))
+	ChartState.song.chart.notes.forEach((note, index) => {
+		let notePos = ChartState.stepToPos(ChartState.conductor.timeToStep(note.time))
 		notePos.y -= ChartState.SQUARE_SIZE.y * ChartState.smoothScrollStep
 
 		const notePosLerped = lerp(notePos, notePos, ChartState.SCROLL_LERP_VALUE)
@@ -130,9 +130,9 @@ export function drawAllNotes(ChartState:StateChart) {
 				height: ChartState.SQUARE_SIZE.y,
 				scale: ChartState.noteProps[index].scale,
 				angle: ChartState.noteProps[index].angle,
-				sprite: GameSave.noteskin + "_" + note.dancerMove,
+				sprite: GameSave.noteskin + "_" + note.move,
 				pos: notePosLerped,
-				opacity: ChartState.scrollTime >= note.hitTime ? 1 : 0.5,
+				opacity: ChartState.scrollTime >= note.time ? 1 : 0.5,
 				anchor: "center",
 			})
 		}
@@ -207,15 +207,15 @@ export function drawCameraControlAndNotes(ChartState:StateChart) {
 	})
 
 	// draws the notes on the side of the camera controller
-	ChartState.song.notes.forEach((note) => {
-		const noteStep = ChartState.conductor.timeToStep(note.hitTime)
+	ChartState.song.chart.notes.forEach((note) => {
+		const noteStep = ChartState.conductor.timeToStep(note.time)
 		const xPos = width() - 25
 		const yPos = map(noteStep, 0, ChartState.conductor.totalSteps, 0, height() - ChartState.SQUARE_SIZE.y)
 
 		const isInSelected = ChartState.selectedNotes.includes(note)
 
 		const selectColor = BLUE.lighten(50)
-		let theColor = moveToColor(note.dancerMove)
+		let theColor = moveToColor(note.move)
 		if (isInSelected) theColor = utils.blendColors(theColor, selectColor, 0.25)
 
 		const noteOpts = {
@@ -243,7 +243,7 @@ export function drawSelectGizmo(ChartState:StateChart) {
 	// draw the selected gizmo
 	
 	ChartState.selectedNotes.forEach((note) => {
-		const stepOfSelectedNote = ChartState.conductor.timeToStep(note.hitTime) - ChartState.scrollStep
+		const stepOfSelectedNote = ChartState.conductor.timeToStep(note.time) - ChartState.scrollStep
 		const gizmoPos = ChartState.stepToPos(stepOfSelectedNote)
 		const celesteColor = BLUE.lighten(150)
 	
@@ -372,7 +372,21 @@ export function addDialogButtons(ChartState:StateChart) {
 	})
 }
 
-export function addBeatCounter(ChartState:StateChart) {
+export function addTopLeftInfo(ChartState:StateChart) {
+	const xPos = 15
+	
+	// maybe this shouldn't be here
+	const infoText = add([
+		pos(xPos, 5),
+		text("", { size: 20 }),
+		{
+			update() {
+				this.text = `You're charting: ${ChartState.song.manifest.name}\nProduced by: ${ChartState.song.manifest.artist}\nCharted by: ${ChartState.song.manifest.charter}`
+			}
+		}
+	])
+	
+	// beat counter
 	type numberProp = {
 		scale: number,
 		color: Color,
@@ -413,7 +427,7 @@ export function addBeatCounter(ChartState:StateChart) {
 			if (!props[i]) return;
 			drawText({
 				text: (i + 1).toString(),
-				pos: vec2(10 + i * 30, 40),
+				pos: vec2((xPos / 2) + xPos + i * 30, infoText.height * 1.5),
 				color: props[i].color,
 				angle: props[i].angle,
 				anchor: "center",

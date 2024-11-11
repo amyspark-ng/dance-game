@@ -18,9 +18,9 @@ export const NOTE_SPAWNPOINT = 1024 + NOTE_WIDTH / 2
 /** Type that holds the properties a note in a chart file would have */
 export type ChartNote = {
 	/** The time of the song (in seconds) that this note must be hit on */
-	hitTime: number,
+	time: number,
 	/** The move (the color) the dancer will do upon hitting this note */
-	dancerMove: Move,
+	move: Move,
 	/** the time the note must be spawned at */
 	spawnTime?: number,
 }
@@ -44,7 +44,7 @@ export interface noteComp extends Comp {
 export function note() : noteComp {
 	return {
 		id: "note",
-		chartNote: { hitTime: 0, dancerMove: "left" } as ChartNote,
+		chartNote: { time: 0, move: "left" } as ChartNote,
 	}
 }
 
@@ -58,7 +58,7 @@ export function setTimeForStrum(value: number) {
 /** Adds a note to the game */
 export function addNote(chartNote: ChartNote, GameState:StateGame) {
 	const noteObj = add([
-		sprite(GameSave.noteskin +  "_" + chartNote.dancerMove),
+		sprite(GameSave.noteskin +  "_" + chartNote.move),
 		pos(width() + NOTE_WIDTH, getStrumline().pos.y),
 		note(),
 		anchor("center"),
@@ -79,7 +79,7 @@ export function addNote(chartNote: ChartNote, GameState:StateGame) {
 
 		// if the time has already passed to hit a note and the note is not on spawned notes
 		function conditionsForPassedNote(note: ChartNote) {
-			return GameState.conductor.timeInSeconds >= note.hitTime + INPUT_THRESHOLD &&
+			return GameState.conductor.timeInSeconds >= note.time + INPUT_THRESHOLD &&
 			!hasMissedNote && GameState.spawnedNotes.includes(note) && !GameState.hitNotes.includes(note)
 		}
 		
@@ -107,7 +107,7 @@ export type NoteGameObj = ReturnType<typeof addNote>
 export function notesSpawner(GameState:StateGame) {
 	// sets the spawnTime
 	GameState.songZip.chart.notes.forEach((note) => {
-		note.spawnTime = note.hitTime - TIME_FOR_STRUM
+		note.spawnTime = note.time - TIME_FOR_STRUM
 	})
 
 	/** holds all the chart.notes that have not been spawned */

@@ -5,8 +5,8 @@ import { dialog } from "@tauri-apps/api";
 import { dialog_addSlider, dialog_addTextbox, dialog_changeCover, dialog_changeSong } from "./dialogFields";
 import { StateChart } from "../../play/chartEditor/chartEditorBackend";
 import { utils } from "../../utils";
-import { SongChart } from "../../play/song";
 import { format } from "path";
+import { SongZip } from "../../play/song";
 
 function addDialogueThing(opts:openDialogOpts) {
 	const FILL_COLOR = BLACK.lighten(50);
@@ -132,7 +132,7 @@ export class gameDialog {
 
 /** Opens the dialog for the fields of the song in the chart editor */
 export function openChartInfoDialog(ChartState:StateChart) {
-	const newSong = new SongChart()
+	const newSong = new SongZip();
 	const leftPadding = 10
 	
 	const dialog = gameDialog.openDialog({
@@ -144,8 +144,24 @@ export function openChartInfoDialog(ChartState:StateChart) {
 		name: "Name",
 		formatFunc: (str:string) => str,
 		conditionsForTyping: (str:string) => true,
-		fallBackValue: newSong.title,
-		startingValue: ChartState.song.title
+		fallBackValue: newSong.manifest.name,
+		startingValue: ChartState.song.manifest.name
+	}
+
+	const artistBox = {
+		name: "Artist",
+		formatFunc: (str:string) => str,
+		conditionsForTyping: (str:string) => true,
+		fallBackValue: newSong.manifest.artist,
+		startingValue: ChartState.song.manifest.artist
+	}
+
+	const charterBox = {
+		name: "Charter",
+		formatFunc: (str:string) => str,
+		conditionsForTyping: (str:string) => true,
+		fallBackValue: newSong.manifest.charter,
+		startingValue: ChartState.song.manifest.charter
 	}
 
 	const bpmBox = {
@@ -159,8 +175,8 @@ export function openChartInfoDialog(ChartState:StateChart) {
 		conditionsForTyping: (currentString: string, ch: string) => {
 			return !isNaN(parseInt(ch)) && currentString.length <= 3
 		},
-		fallBackValue: newSong.bpm.toString(),
-		startingValue: ChartState.song.bpm.toString(),
+		fallBackValue: newSong.manifest.initial_bpm.toString(),
+		startingValue: ChartState.song.manifest.initial_bpm.toString(),
 	}
 
 	const stepsPerBeatBox = {
@@ -191,7 +207,7 @@ export function openChartInfoDialog(ChartState:StateChart) {
 		startingValue: ChartState.conductor.beatsPerMeasure.toString(),
 	}
 
-	const textboxesOpts = [ nameBox, bpmBox, stepsPerBeatBox, beatsPerMeasureBox ]
+	const textboxesOpts = [ nameBox, artistBox, charterBox, bpmBox, stepsPerBeatBox, beatsPerMeasureBox ]
 	const textboxes:ReturnType<typeof dialog_addTextbox>[] = []
 
 	const xPos = -(dialog.width / 2) + leftPadding
@@ -216,40 +232,47 @@ export function openChartInfoDialog(ChartState:StateChart) {
 		dialog: dialog,
 		position: vec2(xPos, textboxes[textboxes.length - 1].pos.y + ySpacing / 2),
 		range: [1, 10],
-		initialValue: ChartState.song.scrollSpeed,
+		initialValue: ChartState.song.manifest.initial_scrollspeed,
 	})
 
-	const changeCover = dialog_changeCover({
-		position: vec2(xPos, dialog.height / 2 - 75),
-		dialog,
-		ChartState,
-	})
+	// const changeCover = dialog_changeCover({
+	// 	position: vec2(xPos, dialog.height / 2 - 75),
+	// 	dialog,
+	// 	ChartState,
+	// })
 
-	const changeSong = dialog_changeSong({
-		position: vec2(dialog.width / 2 - 75, dialog.height / 2 - 75),
-		dialog,
-		ChartState,
-	})
+	// const changeSong = dialog_changeSong({
+	// 	position: vec2(dialog.width / 2 - 75, dialog.height / 2 - 75),
+	// 	dialog,
+	// 	ChartState,
+	// })
 
 	dialog.onUpdate(() => {
 		const nameTextbox = textboxes[0]
-		if (nameTextbox.focus) ChartState.song.title = nameTextbox.value
-		else nameTextbox.value = ChartState.song.title
-		ChartState.song.idTitle = utils.kebabCase(ChartState.song.title)
+		if (nameTextbox.focus) ChartState.song.manifest.name = nameTextbox.value
+		else nameTextbox.value = ChartState.song.manifest.name
 
-		const bpmTextbox = textboxes[1]
-		if (bpmTextbox.focus) ChartState.song.bpm = parseInt(bpmTextbox.value)
-		else bpmTextbox.value = ChartState.song.bpm.toString()
+		const artistBox = textboxes[1]
+		if (artistBox.focus) ChartState.song.manifest.artist = artistBox.value
+		else artistBox.value = ChartState.song.manifest.artist
 
-		const stepsPerBeatBox = textboxes[2]
+		const charterBox = textboxes[2]
+		if (charterBox.focus) ChartState.song.manifest.charter = charterBox.value
+		else charterBox.value = ChartState.song.manifest.charter
+
+		const bpmTextbox = textboxes[3]
+		if (bpmTextbox.focus) ChartState.song.manifest.initial_bpm = parseInt(bpmTextbox.value)
+		else bpmTextbox.value = ChartState.song.manifest.initial_bpm.toString()
+
+		const stepsPerBeatBox = textboxes[4]
 		if (stepsPerBeatBox.focus) ChartState.conductor.stepsPerBeat = parseInt(stepsPerBeatBox.value)
 		else stepsPerBeatBox.value = ChartState.conductor.stepsPerBeat.toString()
 
-		const beatsPerMeasureBox = textboxes[3]
+		const beatsPerMeasureBox = textboxes[5]
 		if (beatsPerMeasureBox.focus) ChartState.conductor.beatsPerMeasure = parseInt(beatsPerMeasureBox.value)
 		else beatsPerMeasureBox.value = ChartState.conductor.beatsPerMeasure.toString()
 	
-		ChartState.song.scrollSpeed = scrollSpeedSlider.value
+		ChartState.song.manifest.initial_scrollspeed = scrollSpeedSlider.value
 	})
 }
 

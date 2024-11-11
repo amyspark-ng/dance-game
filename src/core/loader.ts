@@ -1,17 +1,23 @@
 import { LoadSpriteOpt } from "kaplay";
 import { DancerFile } from "../play/objects/dancer";
-import { SongChart, SongManifest, SongZip } from "../play/song";
+import { SongManifest, SongZip } from "../play/song";
 import { loadCursor } from "./plugins/features/gameCursor";
 import { rankings } from "../play/objects/scoring";
 import JSZip from "jszip";
 import TOML from "smol-toml"
 import isUrl from "is-url";
+import { utils } from "../utils";
 
 /** Array of zip names to load songs */
 export const defaultSongs = ["bopeebo"]
 
 /** Array of SongZip for the songs loaded */
 export const songsLoaded:SongZip[] = [  ]
+
+/** Gets a song with the kebab case of its name */
+export function getSong(kebabCase:string) {
+	return songsLoaded.find((songzip) => utils.kebabCase(songzip.manifest.name) == kebabCase)
+}
 
 /** The loading screen of the game */
 export function loadingScreen(progress: number) {
@@ -38,8 +44,6 @@ export function loadingScreen(progress: number) {
 	});
 }
 
-/** Holds all the charts in the game */
-export let allSongCharts:SongChart[] = [] 
 /** Holds all the dancers in the game */
 export let dancers:DancerFile[] = []
 /** Holds all the noteskins in the game */
@@ -138,7 +142,7 @@ export async function loadSongFromZIP(zipThing:string | File) : Promise<SongZip>
 		chart: chart,
 	}
 
-	console.log("does the load song run first")
+	// console.log("does the load song run first")
 	songsLoaded.push(zipContent)
 	
 	return zipContent;
@@ -202,10 +206,6 @@ async function loadContent() {
 
 /** Loads all the assets of the game */
 export async function loadAssets() {
-	defaultSongs.forEach(async (zipPath) => {
-		const thing = await loadSongFromZIP(zipPath)
-	})
-	
 	loadBean()
 	loadSound("volumeChange", "sounds/volumeChange.wav")
 	loadCursor();
@@ -289,4 +289,15 @@ export async function loadAssets() {
 			return (c + vec4(mix(vec3(0), vec3(1), u_time), 0)) * col;
 		}
 	`)
+
+	load(new Promise(async (resolve, reject) => {
+		try {
+			defaultSongs.forEach(async (songzippath) => {
+				const songZip = await loadSongFromZIP("bopeebo")
+				resolve(songZip)
+			})
+		} catch (e) {
+			reject(e)
+		}
+	}))
 }

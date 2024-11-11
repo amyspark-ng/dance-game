@@ -1,5 +1,4 @@
 // The actual scene for the chart editor
-import { version } from "@tauri-apps/api/os";
 import { Conductor } from "../../conductor";
 import { onBeatHit, onNoteHit, onStepHit, triggerEvent } from "../../core/events";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
@@ -10,12 +9,10 @@ import { utils } from "../../utils";
 import { moveToColor } from "../objects/note";
 import { paramsGameScene } from "../playstate";
 import { addDummyDancer, addFloatingText, cameraControllerHandling, handlerForChangingInput, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, StateChart } from "./chartEditorBackend";
-import { addBeatCounter, addDialogButtons, drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, drawPlayBar, drawSelectGizmo, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE } from "./chartEditorElements";
-import { fileManager, handleSongInput } from "../../fileManaging";
+import { addTopLeftInfo, addDialogButtons, drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, drawPlayBar, drawSelectGizmo, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE } from "./chartEditorElements";
+import { handleSongInput } from "../../fileManaging";
 import { GameSave } from "../../core/gamesave";
-import { defaultSongs, allSongCharts } from "../../core/loader";
 import { gameDialog, openChartAboutDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog";
-import { dialog } from "@tauri-apps/api";
 
 export function ChartEditorScene() { scene("charteditor", (params: paramsChartEditor) => {
 	// had an issue with BPM being NaN but it was because since this wasn't defined then it was NaN
@@ -28,9 +25,9 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	setBackground(Color.fromArray(ChartState.bgColor))
 
 	ChartState.conductor = new Conductor({
-		audioPlay: playSound(`${params.song.idTitle}-song`, { channel: GameSave.sound.music, speed: params.playbackSpeed }),
-		bpm: params.song.bpm * params.playbackSpeed,
-		timeSignature: params.song.timeSignature,
+		audioPlay: playSound(`${params.song.manifest.uuid_DONT_CHANGE}-audio`, { channel: GameSave.sound.music, speed: params.playbackSpeed }),
+		bpm: params.song.manifest.initial_bpm * params.playbackSpeed,
+		timeSignature: params.song.manifest.time_signature,
 		offset: 0,
 	})
 
@@ -48,7 +45,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	ChartState.clipboard = []
 
 	let songDuration = 0
-	getSound(`${ChartState.song.idTitle}-song`).onLoad((data) => {
+	getSound(`${ChartState.song.manifest.uuid_DONT_CHANGE}-audio`).onLoad((data) => {
 		songDuration = data.buf.duration
 		ChartState.audioBuffer = data.buf
 	})
@@ -56,10 +53,10 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	gameCursor.show()
 
 	onUpdate(() => {
-		ChartState.conductor.changeBpm(ChartState.song.bpm)
+		ChartState.conductor.changeBpm(ChartState.song.manifest.initial_bpm)
 		
-		ChartState.song.notes.forEach((note, index) => {
-			note.hitTime = clamp(note.hitTime, 0, songDuration)
+		ChartState.song.chart.notes.forEach((note, index) => {
+			note.time = clamp(note.time, 0, songDuration)
 			
 			if (!ChartState.noteProps[index]) {
 				ChartState.noteProps[index] = { scale: vec2(1), angle: 0 }
@@ -155,7 +152,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 			addFloatingText(`Copied ${ChartState.selectedNotes.length} notes!`);
 			
 			ChartState.selectedNotes.forEach((note) => {
-				const indexInNotes = ChartState.song.notes.indexOf(note)
+				const indexInNotes = ChartState.song.chart.notes.indexOf(note)
 				tween(choose([-1, 1]) * 20, 0, 0.5, (p) => ChartState.noteProps[indexInNotes].angle = p, easings.easeOutExpo)
 				tween(vec2(1.2), vec2(1), 0.5, (p) => ChartState.noteProps[indexInNotes].scale = p, easings.easeOutExpo)
 			})
@@ -180,9 +177,9 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 			const newStepToTime = ChartState.conductor.stepToTime(ChartState.hoveredStep - 3.5)
 			ChartState.clipboard.forEach((note) => {
-				const newNote = ChartState.addNoteToChart(newStepToTime + note.hitTime, note.dancerMove)
+				const newNote = ChartState.addNoteToChart(newStepToTime + note.time, note.move)
 				// i have to add it and thenn find  the index in notes :)
-				const indexInNotes = ChartState.song.notes.indexOf(newNote)
+				const indexInNotes = ChartState.song.chart.notes.indexOf(newNote)
 				if (indexInNotes == -1) return
 				tween(choose([-1, 1]) * 20, 0, 0.5, (p) => ChartState.noteProps[indexInNotes].angle = p, easings.easeOutExpo)
 			})
@@ -193,7 +190,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 		// select all!
 		else if (isKeyDown("control") && isKeyPressed("a")) {
-			ChartState.song.notes.forEach((note) => {
+			ChartState.song.chart.notes.forEach((note) => {
 				if (ChartState.selectedNotes.includes(note)) return;
 				ChartState.selectedNotes.push(note)
 			})
@@ -238,13 +235,13 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	/** Gets the current note that is being hovered */
 	function getCurrentHoveredNote() {
 		const time = ChartState.conductor.stepToTime(ChartState.hoveredStep, ChartState.conductor.stepInterval)
-		return ChartState.song.notes.find((note) => ChartState.conductor.timeToStep(note.hitTime, ChartState.conductor.stepInterval) == ChartState.conductor.timeToStep(time, ChartState.conductor.stepInterval))
+		return ChartState.song.chart.notes.find((note) => ChartState.conductor.timeToStep(note.time, ChartState.conductor.stepInterval) == ChartState.conductor.timeToStep(time, ChartState.conductor.stepInterval))
 	}
 
 	/** When you press left this stores the difference of that note to the leading note, this way i can move several notes */
-	let differencesToLeading = ChartState.song.notes.map((note) => {
+	let differencesToLeading = ChartState.song.chart.notes.map((note) => {
 		if (ChartState.selectionBox.leadingNote == undefined) return
-		return ChartState.conductor.timeToStep(note.hitTime) - ChartState.conductor.timeToStep(ChartState.selectionBox.leadingNote.hitTime)
+		return ChartState.conductor.timeToStep(note.time) - ChartState.conductor.timeToStep(ChartState.selectionBox.leadingNote.time)
 	})
 
 	// Behaviour for placing and selecting notes
@@ -273,15 +270,15 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		else {
 			ChartState.resetSelectedNotes()
 			note = ChartState.addNoteToChart(time, ChartState.currentMove)
-			playSound("noteAdd", { detune: moveToDetune(note.dancerMove) })
+			playSound("noteAdd", { detune: moveToDetune(note.move) })
 			ChartState.takeSnapshot();
 		}
 
 		ChartState.selectionBox.leadingNote = note
-		ChartState.stepForDetune = ChartState.conductor.timeToStep(note.hitTime)
-		differencesToLeading = ChartState.song.notes.map((note) => {
+		ChartState.stepForDetune = ChartState.conductor.timeToStep(note.time)
+		differencesToLeading = ChartState.song.chart.notes.map((note) => {
 			if (ChartState.selectionBox.leadingNote == undefined) return
-			return ChartState.conductor.timeToStep(note.hitTime) - ChartState.conductor.timeToStep(ChartState.selectionBox.leadingNote.hitTime)
+			return ChartState.conductor.timeToStep(note.time) - ChartState.conductor.timeToStep(ChartState.selectionBox.leadingNote.time)
 		})
 	})
 
@@ -298,7 +295,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		const note = getCurrentHoveredNote()
 		if (!note) return
 		ChartState.removeNoteFromChart(note)
-		playSound("noteRemove", { detune: moveToDetune(note.dancerMove) })
+		playSound("noteRemove", { detune: moveToDetune(note.move) })
 		ChartState.takeSnapshot();
 	})
 
@@ -307,35 +304,35 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		if (gameDialog.isOpen) return;
 		if (!ChartState.selectionBox.leadingNote) return;
 		
-		let oldStepOfLeading = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingNote.hitTime)
+		let oldStepOfLeading = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingNote.time)
 		
 		ChartState.selectedNotes.forEach((selectedNote, index) => {
 			if (selectedNote == ChartState.selectionBox.leadingNote) {
 				let newStep = ChartState.hoveredStep
 				newStep = clamp(newStep, 0, ChartState.conductor.totalSteps - 1)
 
-				selectedNote.hitTime = ChartState.conductor.stepToTime(newStep)
+				selectedNote.time = ChartState.conductor.stepToTime(newStep)
 				ChartState.selectionBox.leadingNote = selectedNote
 			}
 
 			else {
-				const indexInNotes = ChartState.song.notes.indexOf(selectedNote)
-				const leadingNoteStep = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingNote.hitTime)
+				const indexInNotes = ChartState.song.chart.notes.indexOf(selectedNote)
+				const leadingNoteStep = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingNote.time)
 
 				// this is some big brain code i swear
 				const stepDiff = differencesToLeading[indexInNotes]
 				let newStep = leadingNoteStep + stepDiff
 				newStep = clamp(newStep, 0, ChartState.conductor.totalSteps - 1)
-				selectedNote.hitTime = ChartState.conductor.stepToTime(newStep)
+				selectedNote.time = ChartState.conductor.stepToTime(newStep)
 			}
 		})
 	
-		let newStepOfLeading = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingNote.hitTime)
+		let newStepOfLeading = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingNote.time)
 		
 		if (newStepOfLeading != oldStepOfLeading) {
 			// thinking WAY too hard for a simple sound effect lol!
 			const diff = newStepOfLeading - ChartState.stepForDetune
-			const baseDetune = Math.abs(moveToDetune(ChartState.selectionBox.leadingNote.dancerMove)) * 0.5
+			const baseDetune = Math.abs(moveToDetune(ChartState.selectionBox.leadingNote.move)) * 0.5
 			playSound("noteMove", { detune: baseDetune * diff })
 			ChartState.takeSnapshot();
 		}
@@ -345,8 +342,8 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	onMousePress("middle", () => {
 		if (gameDialog.isOpen) return;
 		const currentHoveredNote = getCurrentHoveredNote()
-		if (currentHoveredNote && ChartState.currentMove != currentHoveredNote.dancerMove) {
-			ChartState.changeMove(currentHoveredNote.dancerMove)
+		if (currentHoveredNote && ChartState.currentMove != currentHoveredNote.move) {
+			ChartState.changeMove(currentHoveredNote.move)
 		}
 	})
 
@@ -373,13 +370,13 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		ChartState.inputDisabled = true
 		ChartState.paused = true
 		
-		const loadedNormally = await getSound(ChartState.song.idTitle + "-song")
+		const loadedNormally = await getSound(ChartState.song.manifest.uuid_DONT_CHANGE + "-audio")
 		
 		// the song is not loaded with the id format name
 		// or the buffer of the sound isn't the same as the buffer of the current song
 		if (!loadedNormally || loadedNormally.buf != ChartState.audioBuffer) {
 			// then gets the new title and loads it now with the good name
-			await loadSound(ChartState.song.idTitle + "-song", ChartState.audioBuffer)
+			await loadSound(ChartState.song.manifest.uuid_DONT_CHANGE + "-audio", ChartState.audioBuffer)
 		}
 
 		// transition to scene normally
@@ -409,36 +406,27 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	// Scrolls the checkerboard
 	onStepHit(() => {
-		const someNote = ChartState.song.notes.find((note) => ChartState.conductor.timeToStep(note.hitTime, ChartState.conductor.stepInterval) == ChartState.conductor.timeToStep(ChartState.conductor.timeInSeconds, ChartState.conductor.stepInterval)) 
+		const someNote = ChartState.song.chart.notes.find((note) => ChartState.conductor.timeToStep(note.time, ChartState.conductor.stepInterval) == ChartState.conductor.timeToStep(ChartState.conductor.timeInSeconds, ChartState.conductor.stepInterval)) 
 		if (someNote) {
 			// get the note and make its scale bigger
-			const indexOfNote = ChartState.song.notes.indexOf(someNote)
+			const indexOfNote = ChartState.song.chart.notes.indexOf(someNote)
 			tween(vec2(NOTE_BIG_SCALE), vec2(1), 0.1, (p) => ChartState.noteProps[indexOfNote].scale = p)
-			playSound("noteHit", { detune: moveToDetune(someNote.dancerMove) })
+			playSound("noteHit", { detune: moveToDetune(someNote.move) })
 			triggerEvent("onNoteHit", someNote)
 		}
 	})
 
 	// animate a dancer
 	onNoteHit((note) => {
-		dummyDancer.doMove(note.dancerMove)
+		dummyDancer.doMove(note.move)
 	})
 
 	onSceneLeave(() => {
 		gameCursor.color = WHITE
 	})
 
-	add([
-		text("", { size: 20 }),
-		{
-			update() {
-				this.text = `You're charting: ${ChartState.song.title} (${ChartState.song.idTitle})`
-			}
-		}
-	])
-
 	addDialogButtons(ChartState)
-	addBeatCounter(ChartState)
+	addTopLeftInfo(ChartState)
 
 	getTreeRoot().on("dialogOpen", () => ChartState.paused = true)
 })}

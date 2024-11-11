@@ -2,7 +2,6 @@ import { Vec2 } from "kaplay";
 import { gameDialog, gameDialogObj } from "./gameDialog";
 import { playSound } from "../../core/plugins/features/sound";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
-import { SongChart } from "../../play/song";
 import { dialog } from "@tauri-apps/api";
 import { utils } from "../../utils";
 import { StateChart } from "../../play/chartEditor/chartEditorBackend";
@@ -228,10 +227,10 @@ type changeThingOpt = {
 }
 
 export function dialog_changeCover(opts: changeThingOpt) {
-	const isCoverLoaded = getSprite(opts.ChartState.song.idTitle + "-cover")
+	const isCoverLoaded = getSprite(opts.ChartState.song.manifest.uuid_DONT_CHANGE + "-cover")
 	let spriteForCover:string = undefined
 	
-	if (isCoverLoaded) spriteForCover = opts.ChartState.song.idTitle + "-cover"
+	if (isCoverLoaded) spriteForCover = opts.ChartState.song.manifest.uuid_DONT_CHANGE + "-cover"
 	else spriteForCover = "defaultCover"
 	
 	const button = opts.dialog.add([

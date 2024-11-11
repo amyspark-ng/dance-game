@@ -116,7 +116,7 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 		else if (GameState.tally.misses < 1) judgementText.text += "!"
 		
 		addComboText(GameState.combo)
-		getDancer().doMove(chartNote.dancerMove)
+		getDancer().doMove(chartNote.move)
 	})
 
 	onMiss((harm:boolean) => {
