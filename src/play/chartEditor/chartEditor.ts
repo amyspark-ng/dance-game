@@ -10,7 +10,7 @@ import { moveToColor } from "../objects/note";
 import { paramsGameScene } from "../playstate";
 import { addDummyDancer, addFloatingText, cameraControllerHandling, handlerForChangingInput, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, StateChart } from "./chartEditorBackend";
 import { addTopLeftInfo, addDialogButtons, drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, drawPlayBar, drawSelectGizmo, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE } from "./chartEditorElements";
-import { handleSongInput } from "../../fileManaging";
+import { handleAudioInput } from "../../fileManaging";
 import { GameSave } from "../../core/gamesave";
 import { gameDialog, openChartAboutDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog";
 
@@ -197,7 +197,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		}
 
 		if (isKeyPressed("q")) {
-			handleSongInput(ChartState)
+			handleAudioInput(ChartState)
 		}
 
 		else if (isKeyPressed("e")) {

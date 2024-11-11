@@ -1,7 +1,6 @@
 // # This file will manage the ranking system
 import { utils } from "../../utils";
 import { StateGame, INPUT_THRESHOLD } from "../playstate";
-import { SongChart } from "../song";
 import { getDancer, Move } from "./dancer";
 import { ChartNote } from "./note";
 
@@ -159,7 +158,7 @@ export function getClosestNote(arr: ChartNote[], time: number) : ChartNote {
 /** Runs when you press and returns the note hit or undefined if you didn't hit anything on time */
 export function checkForNoteHit(GameState:StateGame, move: Move) : ChartNote {
 	const time = GameState.conductor.timeInSeconds
-	const closestNote = getClosestNote(GameState.songZip.chart.notes, time)
+	const closestNote = getClosestNote(GameState.song.chart.notes, time)
 	
 	// if time in seconds is in range by input_treshold 
 	// to the hit note of any note in the chart

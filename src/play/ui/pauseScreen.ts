@@ -93,9 +93,21 @@ export function managePauseUI(pause:boolean, GameState:StateGame) {
 			pauseBlack.fadeIn(0.1)
 		
 			const pauseText = pauseBlack.add([
-				text("PAUSED", { size: 50 }),
+				text("PAUSED" + ` (${GameState.song.manifest.name})`, { size: 50 }),
 				pos(0, -pauseBlack.height / 2 + 50),
 				anchor("center"),
+				opacity(),
+				{
+					update() {
+						this.opacity = pauseBlack.opacity * 2
+					}
+				}
+			])
+			
+			const someInfoText = pauseBlack.add([
+				text(`Artist: ${GameState.song.manifest.artist}\nCharter: ${GameState.song.manifest.charter}`, { size: 30, align: "right" }),
+				pos(pauseBlack.width / 2, -pauseBlack.height / 2 + 60),
+				anchor("topright"),
 				opacity(),
 				{
 					update() {

@@ -226,7 +226,6 @@ export async function loadAssets() {
 	loadSpriteAtlas("sprites/songRanks.png", songRanksAtlasData)
 	loadSprite("importedSong", "sprites/imported.png")
 	loadSprite("importSongBtn", "sprites/importSong.png")
-	loadSprite("changeSongBtn", "sprites/changeSong.png")
 
 	const icons = [ "about", "fields", "download", "new" ]
 	const iconsAtlas = {}

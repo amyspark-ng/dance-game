@@ -21,7 +21,7 @@ export class StateGame {
 	conductor: Conductor = null;
 
 	/** Holds the current song chart */
-	songZip: SongZip = null;
+	song: SongZip = null;
 	
 	/** Holds the current tallies for the song */
 	tally: Tally = new Tally();
@@ -89,7 +89,7 @@ export function setupSong(params: paramsGameScene, GameState:StateGame) {
 	// now that we have the song we can get the scroll speed multiplier and set the playback speed for funzies
 	params.playbackSpeed = params.playbackSpeed ?? 1;
 	
-	const speed = (GameState.songZip.manifest.initial_scrollspeed * GameSave.scrollSpeed)
+	const speed = (GameState.song.manifest.initial_scrollspeed * GameSave.scrollSpeed)
 
 	// Set it back to the original value
 	setTimeForStrum(1.25)
@@ -101,12 +101,12 @@ export function setupSong(params: paramsGameScene, GameState:StateGame) {
 	GameState.conductor = new Conductor({
 		audioPlay: playSound(`${params.songZip.manifest.uuid_DONT_CHANGE}-audio`, { volume: GameSave.sound.music.volume, speed: params.playbackSpeed }),
 		bpm: params.songZip.manifest.initial_bpm * params.playbackSpeed,
-		timeSignature: GameState.songZip.manifest.time_signature,
+		timeSignature: GameState.song.manifest.time_signature,
 		offset: TIME_FOR_STRUM
 	})
 
 	// there are the notes that have been spawned yet
-	GameState.songZip.chart.notes.filter((note) => note.time <= params.seekTime).forEach((passedNote) => {
+	GameState.song.chart.notes.filter((note) => note.time <= params.seekTime).forEach((passedNote) => {
 		GameState.spawnedNotes.push(passedNote)
 		GameState.hitNotes.push(passedNote)
 	})
@@ -127,7 +127,7 @@ export function restartSong(GameState:StateGame) {
 	GameState.combo = 0
 	GameState.highestCombo = 0
 
-	GameState.songZip.chart.notes.forEach((note) => {
+	GameState.song.chart.notes.forEach((note) => {
 		if (note.time <= GameState.params.seekTime) {
 			GameState.hitNotes.push(note)
 			GameState.spawnedNotes.push(note)
@@ -188,7 +188,7 @@ export function exitToMenu(GameState:StateGame) {
 export function exitToChartEditor(GameState:StateGame) {
 	stopPlay(GameState)
 	GameState.menuInputEnabled = false
-	transitionToScene(fadeOut, "charteditor", { song: GameState.songZip, seekTime: GameState.conductor.timeInSeconds, dancer: GameState.params.dancer } as paramsChartEditor)
+	transitionToScene(fadeOut, "charteditor", { song: GameState.song, seekTime: GameState.conductor.timeInSeconds, dancer: GameState.params.dancer } as paramsChartEditor)
 }
 
 export function introGo() {

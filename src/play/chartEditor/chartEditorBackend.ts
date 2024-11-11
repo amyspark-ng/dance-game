@@ -521,6 +521,8 @@ export async function downloadChart(ChartState:StateChart) {
 	jsZip.file(`${kebabCaseName}-cover.png`, imgBlob)
 	jsZip.file(`manifest.toml`, manifestString)
 	
+	// TODO: have to change the paths on download 
+
 	// downloads the zip
 	await jsZip.generateAsync({ type: "blob" }).then((content) => {
 		downloadBlob(`${kebabCaseName}-chart.zip`, content)

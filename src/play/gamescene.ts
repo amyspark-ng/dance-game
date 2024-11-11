@@ -21,7 +21,7 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 
 	const GameState = new StateGame()
 	GameState.params = params;
-	GameState.songZip = params.songZip;
+	GameState.song = params.songZip;
 	setupSong(params, GameState)
 
 	// ==== SETS UP SOME IMPORTANT STUFF ====
@@ -129,7 +129,7 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 			addComboText("break")
 		}
 
-		const closestNote = getClosestNote(GameState.songZip.chart.notes, GameState.conductor.timeInSeconds)
+		const closestNote = getClosestNote(GameState.song.chart.notes, GameState.conductor.timeInSeconds)
 		const scoreDiff = Scoring.getScorePerDiff(GameState.conductor.timeInSeconds, closestNote)
 		if (GameState.tally.score > 0) GameState.tally.score -= scoreDiff
 

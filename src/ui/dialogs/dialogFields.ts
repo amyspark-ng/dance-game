@@ -5,7 +5,7 @@ import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { dialog } from "@tauri-apps/api";
 import { utils } from "../../utils";
 import { StateChart } from "../../play/chartEditor/chartEditorBackend";
-import { fileManager, handleCoverInput, handleSongInput } from "../../fileManaging";
+import { fileManager, handleCoverInput, handleAudioInput } from "../../fileManaging";
 
 const textSize = 30
 const padding = 5
@@ -233,70 +233,98 @@ export function dialog_changeCover(opts: changeThingOpt) {
 	if (isCoverLoaded) spriteForCover = opts.ChartState.song.manifest.uuid_DONT_CHANGE + "-cover"
 	else spriteForCover = "defaultCover"
 	
-	const button = opts.dialog.add([
-		sprite(spriteForCover),
+	const title = opts.dialog.add([
+		text("Cover: ", { align: "right", size: textSize }),
+		anchor("left"),
 		pos(opts.position),
+	])
+
+	const textboxBg = opts.dialog.add([
+		pos((title.pos.x + title.width) + padding, title.pos.y),
+		rect((opts.dialog.width - title.width - padding * 14) - 50, textSize + padding, { radius: 2.5 }),
+		color(opts.dialog.outline.color.lighten(5)),
+		outline(1, opts.dialog.outline.color.lighten(20)),
 		anchor("left"),
 		area(),
-		"cover",
-		"hover",
+	])
+	
+	/** Is the actual object that contains the value and the text */
+	const textbox = opts.dialog.add([
+		text("", { align: "left", size: textSize * 0.9 }),
+		pos(textboxBg.pos.x + padding, textboxBg.pos.y),
+		anchor("left"),
+		"textbox",
 		{
+			value: opts.ChartState.song.manifest.cover_file,
 			update() {
-				button.width = 100
-				button.height = 100
+				if (this.value.length > 0) {
+					const widthOfThisText = formatText({ text: this.text, size: this.textSize, align: "left" }).width + textSize
+					textboxBg.width = lerp(textboxBg.width, widthOfThisText, 0.8)
+				}
+				
+				this.text = this.value
 			}
 		}
 	])
-	
-	button.onDraw(() => {
-		if (button.isHovering()) {
-			drawRect({
-				width: button.width,
-				height: button.height,
-				color: WHITE.darken(50),
-				opacity: 0.5,
-				anchor: button.anchor,
-			})
-		}
-	})
 
-	button.onClick(() => {
+	textboxBg.onClick(() => {
 		handleCoverInput(opts.ChartState)
 	})
+	
+	const coverSize = 100
+	opts.dialog.onDraw(() => {
+		drawSprite({
+			sprite: opts.ChartState.song.manifest.uuid_DONT_CHANGE + "-cover",
+			width: coverSize,
+			height: coverSize,
+			pos: vec2(opts.dialog.width / 2 - coverSize, opts.dialog.height / 2 - (coverSize / 2) - padding),
+			anchor: "center",
+		})
+	})
 
-	return button;
+	return textbox;
 }
 
 export function dialog_changeSong(opts:changeThingOpt) {
-	const button = opts.dialog.add([
-		sprite("changeSongBtn"),
+	const title = opts.dialog.add([
+		text("Audio: ", { align: "right", size: textSize }),
+		anchor("left"),
 		pos(opts.position),
+	])
+
+	const textboxBg = opts.dialog.add([
+		pos((title.pos.x + title.width) + padding, title.pos.y),
+		rect((opts.dialog.width - title.width - padding * 14), textSize + padding, { radius: 2.5 }),
+		color(opts.dialog.outline.color.lighten(5)),
+		outline(1, opts.dialog.outline.color.lighten(20)),
 		anchor("left"),
 		area(),
-		"cover",
+	])
+	
+	/** Is the actual object that contains the value and the text */
+	const textbox = opts.dialog.add([
+		text("", { align: "left", size: textSize * 0.9 }),
+		pos(textboxBg.pos.x + padding, textboxBg.pos.y),
+		anchor("left"),
+		"textbox",
 		{
+			value: opts.ChartState.song.manifest.audio_file,
 			update() {
-				button.width = 100
-				button.height = 100
+				if (this.value.length > 0) {
+					const widthOfThisText = formatText({ text: this.text, size: this.textSize, align: "left" }).width
+					textboxBg.width = lerp(textboxBg.width, widthOfThisText, 0.8)
+				}
+
+				this.text = this.value
 			}
 		}
 	])
-	
-	button.onDraw(() => {
-		if (button.isHovering()) {
-			drawRect({
-				width: button.width,
-				height: button.height,
-				color: WHITE.darken(50),
-				opacity: 0.5,
-				anchor: button.anchor,
-			})
-		}
+
+	textbox.text
+
+	textboxBg.onClick(() => {
+		handleAudioInput(opts.ChartState)
 	})
 
-	button.onClick(() => {
-		handleSongInput(opts.ChartState)
-	})
-
-	return button;
+	return textbox;
 }

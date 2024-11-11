@@ -8,6 +8,7 @@ import { utils } from "../../utils";
 import { format } from "path";
 import { SongZip } from "../../play/song";
 
+/** Adds the dialog square object */
 function addDialogueThing(opts:openDialogOpts) {
 	const FILL_COLOR = BLACK.lighten(50);
 	const BORDER_COLOR = BLACK.lighten(70);
@@ -137,7 +138,7 @@ export function openChartInfoDialog(ChartState:StateChart) {
 	
 	const dialog = gameDialog.openDialog({
 		width: 600,
-		height: 400,
+		height: 450,
 	})
 
 	const nameBox = {
@@ -235,17 +236,17 @@ export function openChartInfoDialog(ChartState:StateChart) {
 		initialValue: ChartState.song.manifest.initial_scrollspeed,
 	})
 
-	// const changeCover = dialog_changeCover({
-	// 	position: vec2(xPos, dialog.height / 2 - 75),
-	// 	dialog,
-	// 	ChartState,
-	// })
+	const changeCover = dialog_changeCover({
+		position: vec2(xPos, dialog.height / 2 - 75),
+		dialog,
+		ChartState,
+	})
 
-	// const changeSong = dialog_changeSong({
-	// 	position: vec2(dialog.width / 2 - 75, dialog.height / 2 - 75),
-	// 	dialog,
-	// 	ChartState,
-	// })
+	const changeSong = dialog_changeSong({
+		position: vec2(xPos, changeCover.pos.y + 45),
+		dialog,
+		ChartState,
+	})
 
 	dialog.onUpdate(() => {
 		const nameTextbox = textboxes[0]
