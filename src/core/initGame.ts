@@ -4,7 +4,7 @@ import { drag } from "./plugins/features/drag"
 import { setupSoundtray } from "./plugins/features/soundtray"
 import { GameSave } from "./gamesave"
 import { setupLayers } from "./layers"
-import { getSong, loadAssets, loadingScreen } from "./loader"
+import { loadAssets, loadingScreen } from "./loader"
 import { goScene, setupScenes } from "./scenes"
 import { setupWatch } from "./plugins/features/watcher"
 import { paramsSongSelect } from "../ui/songselectscene"
@@ -38,9 +38,9 @@ export function INITIAL_SCENE() {
 	
 	// goScene("game", { song: getSong("bopeebo"), dancer: "gru"} as paramsGameScene)
 	
-	// goScene("songselect", { index: 0 } as paramsSongSelect)
+	goScene("songselect", { index: 0 } as paramsSongSelect)
 	
-	goScene("charteditor", { song: getSong("bopeebo") } as paramsChartEditor )
+	// goScene("charteditor", { song: getSong("bopeebo") } as paramsChartEditor )
 	
 	// goScene("results", { GameState: {
 	// 	song: getSong("bopeebo"),
@@ -49,7 +49,7 @@ export function INITIAL_SCENE() {
 	// }} as paramsResultsScene )
 }
 
-export function initGame() {
+export async function initGame() {
 	document.title = PRODUCT.NAME
 	utils.runInDesktop(() => {
 		appWindow = getCurrent()
@@ -59,7 +59,7 @@ export function initGame() {
 	setCursor("none")
 	
 	GameSave.load()
-	loadAssets()
+	await loadAssets()
 	onLoading((progress:number) => loadingScreen(progress))
 	onLoad(() => {
 		// sets up a bunch of stuff

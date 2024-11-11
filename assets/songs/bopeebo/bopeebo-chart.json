@@ -1,1 +1,386 @@
-{"title":"Bopeebo","idTitle":"bopeebo","scrollSpeed":1,"notes":[{"hitTime":2.475,"dancerMove":"up","spawnTime":1.225},{"hitTime":3.0749999999999997,"dancerMove":"right","spawnTime":1.8249999999999997},{"hitTime":3.675,"dancerMove":"right","spawnTime":2.425},{"hitTime":7.2749999999999995,"dancerMove":"down","spawnTime":6.0249999999999995},{"hitTime":7.8,"dancerMove":"left","spawnTime":6.55},{"hitTime":8.4,"dancerMove":"right","spawnTime":7.15},{"hitTime":12,"dancerMove":"down","spawnTime":10.75},{"hitTime":12.6,"dancerMove":"left","spawnTime":11.35},{"hitTime":12.9,"dancerMove":"right","spawnTime":11.65},{"hitTime":13.2,"dancerMove":"up","spawnTime":11.95},{"hitTime":16.875,"dancerMove":"left","spawnTime":15.625},{"hitTime":17.175,"dancerMove":"right","spawnTime":15.925},{"hitTime":17.775,"dancerMove":"down","spawnTime":16.525},{"hitTime":18.075,"dancerMove":"up","spawnTime":16.825},{"hitTime":18.675,"dancerMove":"up","spawnTime":17.425},{"hitTime":21.675,"dancerMove":"down","spawnTime":20.425},{"hitTime":21.974999999999998,"dancerMove":"left","spawnTime":20.724999999999998},{"hitTime":22.275,"dancerMove":"right","spawnTime":21.025},{"hitTime":23.474999999999998,"dancerMove":"up","spawnTime":22.224999999999998},{"hitTime":26.474999999999998,"dancerMove":"down","spawnTime":25.224999999999998},{"hitTime":26.775,"dancerMove":"left","spawnTime":25.525},{"hitTime":27.075,"dancerMove":"right","spawnTime":25.825},{"hitTime":28.275,"dancerMove":"up","spawnTime":27.025},{"hitTime":28.575,"dancerMove":"up","spawnTime":27.325},{"hitTime":31.275,"dancerMove":"up","spawnTime":30.025},{"hitTime":31.575,"dancerMove":"right","spawnTime":30.325},{"hitTime":31.875,"dancerMove":"down","spawnTime":30.625},{"hitTime":33.074999999999996,"dancerMove":"up","spawnTime":31.824999999999996},{"hitTime":35.775,"dancerMove":"up","spawnTime":34.525},{"hitTime":36.074999999999996,"dancerMove":"left","spawnTime":34.824999999999996},{"hitTime":36.375,"dancerMove":"down","spawnTime":35.125},{"hitTime":36.975,"dancerMove":"up","spawnTime":35.725},{"hitTime":37.275,"dancerMove":"down","spawnTime":36.025},{"hitTime":37.875,"dancerMove":"up","spawnTime":36.625},{"hitTime":40.875,"dancerMove":"up","spawnTime":39.625},{"hitTime":41.475,"dancerMove":"right","spawnTime":40.225},{"hitTime":42.074999999999996,"dancerMove":"down","spawnTime":40.824999999999996},{"hitTime":45.675,"dancerMove":"up","spawnTime":44.425},{"hitTime":46.275,"dancerMove":"left","spawnTime":45.025},{"hitTime":46.875,"dancerMove":"down","spawnTime":45.625},{"hitTime":47.175,"dancerMove":"down","spawnTime":45.925},{"hitTime":47.475,"dancerMove":"up","spawnTime":46.225},{"hitTime":50.475,"dancerMove":"up","spawnTime":49.225},{"hitTime":51.074999999999996,"dancerMove":"right","spawnTime":49.824999999999996},{"hitTime":51.675,"dancerMove":"down","spawnTime":50.425},{"hitTime":54.375,"dancerMove":"left","spawnTime":53.125},{"hitTime":52.275,"dancerMove":"up","spawnTime":51.025},{"hitTime":55.275,"dancerMove":"right","spawnTime":54.025},{"hitTime":55.875,"dancerMove":"right","spawnTime":54.625},{"hitTime":56.475,"dancerMove":"right","spawnTime":55.225},{"hitTime":57.074999999999996,"dancerMove":"up","spawnTime":55.824999999999996},{"hitTime":60.074999999999996,"dancerMove":"left","spawnTime":58.824999999999996},{"hitTime":60.375,"dancerMove":"down","spawnTime":59.125},{"hitTime":60.675,"dancerMove":"right","spawnTime":59.425},{"hitTime":61.875,"dancerMove":"up","spawnTime":60.625},{"hitTime":64.575,"dancerMove":"left","spawnTime":63.325},{"hitTime":64.875,"dancerMove":"down","spawnTime":63.625},{"hitTime":65.175,"dancerMove":"right","spawnTime":63.925},{"hitTime":65.77499999999999,"dancerMove":"up","spawnTime":64.52499999999999},{"hitTime":66.075,"dancerMove":"down","spawnTime":64.825},{"hitTime":66.675,"dancerMove":"up","spawnTime":65.425},{"hitTime":66.975,"dancerMove":"up","spawnTime":65.725},{"hitTime":69.675,"dancerMove":"left","spawnTime":68.425},{"hitTime":69.975,"dancerMove":"down","spawnTime":68.725},{"hitTime":70.27499999999999,"dancerMove":"right","spawnTime":69.02499999999999},{"hitTime":70.575,"dancerMove":"up","spawnTime":69.325},{"hitTime":70.875,"dancerMove":"down","spawnTime":69.625},{"hitTime":71.475,"dancerMove":"up","spawnTime":70.225},{"hitTime":74.175,"dancerMove":"left","spawnTime":72.925},{"hitTime":74.475,"dancerMove":"down","spawnTime":73.225},{"hitTime":74.77499999999999,"dancerMove":"right","spawnTime":73.52499999999999},{"hitTime":75.375,"dancerMove":"up","spawnTime":74.125},{"hitTime":75.675,"dancerMove":"down","spawnTime":74.425},{"hitTime":76.27499999999999,"dancerMove":"up","spawnTime":75.02499999999999},{"hitTime":47.025,"dancerMove":"down"}],"bpm":100,"timeSignature":[4,4]}
+{
+	"title": "Bopeebo",
+	"idTitle": "bopeebo",
+	"scrollSpeed": 1,
+	"notes": [
+		{
+			"hitTime": 2.475,
+			"dancerMove": "up",
+			"spawnTime": 1.225
+		},
+		{
+			"hitTime": 3.0749999999999997,
+			"dancerMove": "right",
+			"spawnTime": 1.8249999999999997
+		},
+		{
+			"hitTime": 3.675,
+			"dancerMove": "right",
+			"spawnTime": 2.425
+		},
+		{
+			"hitTime": 7.2749999999999995,
+			"dancerMove": "down",
+			"spawnTime": 6.0249999999999995
+		},
+		{
+			"hitTime": 7.8,
+			"dancerMove": "left",
+			"spawnTime": 6.55
+		},
+		{
+			"hitTime": 8.4,
+			"dancerMove": "right",
+			"spawnTime": 7.15
+		},
+		{
+			"hitTime": 12,
+			"dancerMove": "down",
+			"spawnTime": 10.75
+		},
+		{
+			"hitTime": 12.6,
+			"dancerMove": "left",
+			"spawnTime": 11.35
+		},
+		{
+			"hitTime": 12.9,
+			"dancerMove": "right",
+			"spawnTime": 11.65
+		},
+		{
+			"hitTime": 13.2,
+			"dancerMove": "up",
+			"spawnTime": 11.95
+		},
+		{
+			"hitTime": 16.875,
+			"dancerMove": "left",
+			"spawnTime": 15.625
+		},
+		{
+			"hitTime": 17.175,
+			"dancerMove": "right",
+			"spawnTime": 15.925
+		},
+		{
+			"hitTime": 17.775,
+			"dancerMove": "down",
+			"spawnTime": 16.525
+		},
+		{
+			"hitTime": 18.075,
+			"dancerMove": "up",
+			"spawnTime": 16.825
+		},
+		{
+			"hitTime": 18.675,
+			"dancerMove": "up",
+			"spawnTime": 17.425
+		},
+		{
+			"hitTime": 21.675,
+			"dancerMove": "down",
+			"spawnTime": 20.425
+		},
+		{
+			"hitTime": 21.974999999999998,
+			"dancerMove": "left",
+			"spawnTime": 20.724999999999998
+		},
+		{
+			"hitTime": 22.275,
+			"dancerMove": "right",
+			"spawnTime": 21.025
+		},
+		{
+			"hitTime": 23.474999999999998,
+			"dancerMove": "up",
+			"spawnTime": 22.224999999999998
+		},
+		{
+			"hitTime": 26.474999999999998,
+			"dancerMove": "down",
+			"spawnTime": 25.224999999999998
+		},
+		{
+			"hitTime": 26.775,
+			"dancerMove": "left",
+			"spawnTime": 25.525
+		},
+		{
+			"hitTime": 27.075,
+			"dancerMove": "right",
+			"spawnTime": 25.825
+		},
+		{
+			"hitTime": 28.275,
+			"dancerMove": "up",
+			"spawnTime": 27.025
+		},
+		{
+			"hitTime": 28.575,
+			"dancerMove": "up",
+			"spawnTime": 27.325
+		},
+		{
+			"hitTime": 31.275,
+			"dancerMove": "up",
+			"spawnTime": 30.025
+		},
+		{
+			"hitTime": 31.575,
+			"dancerMove": "right",
+			"spawnTime": 30.325
+		},
+		{
+			"hitTime": 31.875,
+			"dancerMove": "down",
+			"spawnTime": 30.625
+		},
+		{
+			"hitTime": 33.074999999999996,
+			"dancerMove": "up",
+			"spawnTime": 31.824999999999996
+		},
+		{
+			"hitTime": 35.775,
+			"dancerMove": "up",
+			"spawnTime": 34.525
+		},
+		{
+			"hitTime": 36.074999999999996,
+			"dancerMove": "left",
+			"spawnTime": 34.824999999999996
+		},
+		{
+			"hitTime": 36.375,
+			"dancerMove": "down",
+			"spawnTime": 35.125
+		},
+		{
+			"hitTime": 36.975,
+			"dancerMove": "up",
+			"spawnTime": 35.725
+		},
+		{
+			"hitTime": 37.275,
+			"dancerMove": "down",
+			"spawnTime": 36.025
+		},
+		{
+			"hitTime": 37.875,
+			"dancerMove": "up",
+			"spawnTime": 36.625
+		},
+		{
+			"hitTime": 40.875,
+			"dancerMove": "up",
+			"spawnTime": 39.625
+		},
+		{
+			"hitTime": 41.475,
+			"dancerMove": "right",
+			"spawnTime": 40.225
+		},
+		{
+			"hitTime": 42.074999999999996,
+			"dancerMove": "down",
+			"spawnTime": 40.824999999999996
+		},
+		{
+			"hitTime": 45.675,
+			"dancerMove": "up",
+			"spawnTime": 44.425
+		},
+		{
+			"hitTime": 46.275,
+			"dancerMove": "left",
+			"spawnTime": 45.025
+		},
+		{
+			"hitTime": 46.875,
+			"dancerMove": "down",
+			"spawnTime": 45.625
+		},
+		{
+			"hitTime": 47.175,
+			"dancerMove": "down",
+			"spawnTime": 45.925
+		},
+		{
+			"hitTime": 47.475,
+			"dancerMove": "up",
+			"spawnTime": 46.225
+		},
+		{
+			"hitTime": 50.475,
+			"dancerMove": "up",
+			"spawnTime": 49.225
+		},
+		{
+			"hitTime": 51.074999999999996,
+			"dancerMove": "right",
+			"spawnTime": 49.824999999999996
+		},
+		{
+			"hitTime": 51.675,
+			"dancerMove": "down",
+			"spawnTime": 50.425
+		},
+		{
+			"hitTime": 54.375,
+			"dancerMove": "left",
+			"spawnTime": 53.125
+		},
+		{
+			"hitTime": 52.275,
+			"dancerMove": "up",
+			"spawnTime": 51.025
+		},
+		{
+			"hitTime": 55.275,
+			"dancerMove": "right",
+			"spawnTime": 54.025
+		},
+		{
+			"hitTime": 55.875,
+			"dancerMove": "right",
+			"spawnTime": 54.625
+		},
+		{
+			"hitTime": 56.475,
+			"dancerMove": "right",
+			"spawnTime": 55.225
+		},
+		{
+			"hitTime": 57.074999999999996,
+			"dancerMove": "up",
+			"spawnTime": 55.824999999999996
+		},
+		{
+			"hitTime": 60.074999999999996,
+			"dancerMove": "left",
+			"spawnTime": 58.824999999999996
+		},
+		{
+			"hitTime": 60.375,
+			"dancerMove": "down",
+			"spawnTime": 59.125
+		},
+		{
+			"hitTime": 60.675,
+			"dancerMove": "right",
+			"spawnTime": 59.425
+		},
+		{
+			"hitTime": 61.875,
+			"dancerMove": "up",
+			"spawnTime": 60.625
+		},
+		{
+			"hitTime": 64.575,
+			"dancerMove": "left",
+			"spawnTime": 63.325
+		},
+		{
+			"hitTime": 64.875,
+			"dancerMove": "down",
+			"spawnTime": 63.625
+		},
+		{
+			"hitTime": 65.175,
+			"dancerMove": "right",
+			"spawnTime": 63.925
+		},
+		{
+			"hitTime": 65.77499999999999,
+			"dancerMove": "up",
+			"spawnTime": 64.52499999999999
+		},
+		{
+			"hitTime": 66.075,
+			"dancerMove": "down",
+			"spawnTime": 64.825
+		},
+		{
+			"hitTime": 66.675,
+			"dancerMove": "up",
+			"spawnTime": 65.425
+		},
+		{
+			"hitTime": 66.975,
+			"dancerMove": "up",
+			"spawnTime": 65.725
+		},
+		{
+			"hitTime": 69.675,
+			"dancerMove": "left",
+			"spawnTime": 68.425
+		},
+		{
+			"hitTime": 69.975,
+			"dancerMove": "down",
+			"spawnTime": 68.725
+		},
+		{
+			"hitTime": 70.27499999999999,
+			"dancerMove": "right",
+			"spawnTime": 69.02499999999999
+		},
+		{
+			"hitTime": 70.575,
+			"dancerMove": "up",
+			"spawnTime": 69.325
+		},
+		{
+			"hitTime": 70.875,
+			"dancerMove": "down",
+			"spawnTime": 69.625
+		},
+		{
+			"hitTime": 71.475,
+			"dancerMove": "up",
+			"spawnTime": 70.225
+		},
+		{
+			"hitTime": 74.175,
+			"dancerMove": "left",
+			"spawnTime": 72.925
+		},
+		{
+			"hitTime": 74.475,
+			"dancerMove": "down",
+			"spawnTime": 73.225
+		},
+		{
+			"hitTime": 74.77499999999999,
+			"dancerMove": "right",
+			"spawnTime": 73.52499999999999
+		},
+		{
+			"hitTime": 75.375,
+			"dancerMove": "up",
+			"spawnTime": 74.125
+		},
+		{
+			"hitTime": 75.675,
+			"dancerMove": "down",
+			"spawnTime": 74.425
+		},
+		{
+			"hitTime": 76.27499999999999,
+			"dancerMove": "up",
+			"spawnTime": 75.02499999999999
+		},
+		{
+			"hitTime": 47.025,
+			"dancerMove": "down"
+		}
+	],
+	"bpm": 100,
+	"timeSignature": [
+		4,
+		4
+	]
+}

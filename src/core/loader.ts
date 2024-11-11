@@ -1,12 +1,17 @@
-import { LoadSpriteOpt, SpriteData } from "kaplay";
+import { LoadSpriteOpt } from "kaplay";
 import { DancerFile } from "../play/objects/dancer";
-import { SongChart } from "../play/song";
+import { SongChart, SongManifest, SongZip } from "../play/song";
 import { loadCursor } from "./plugins/features/gameCursor";
 import { rankings } from "../play/objects/scoring";
-import { GameSave } from "./gamesave";
-import { utils } from "../utils";
+import JSZip from "jszip";
+import TOML from "smol-toml"
+import isUrl from "is-url";
 
-export const defaultSongs = ["bopeebo", "fresh", "unholy-blight", "black-rainbows", "its-just-a-burning-memory"]
+/** Array of zip names to load songs */
+export const defaultSongs = ["bopeebo"]
+
+/** Array of SongZip for the songs loaded */
+export const songsLoaded:SongZip[] = [  ]
 
 /** The loading screen of the game */
 export function loadingScreen(progress: number) {
@@ -75,18 +80,68 @@ function loadDancer(dancerName: string, spriteData: LoadSpriteOpt) {
 	// load the background and other stuff here
 }
 
-export async function loadSong(songName: string) {
-	// loads the chart
-	let chart = null;
-	
-	await loadJSON(`${songName}-chart`, `songs/${songName}/${songName}-chart.json`).onLoad((data) => {
-		chart = data
-		loadSound(`${songName}-song`, `songs/${songName}/${songName}-song.ogg`)
-	})
-	
-	loadSprite(`${songName}-cover`, `songs/${songName}/${songName}-cover.png`)
+/** Loads a song from a zip file
+ * @param zipThing It will be either the url of the zip inside the game folder
+ * 
+ * Or the File object to load the zip
+ */
+export async function loadSongFromZIP(zipThing:string | File) : Promise<SongZip> {
+	const jsZip = new JSZip()
 
-	return chart;
+	let zipFile:JSZip = null
+	if (typeof zipThing == "string") {
+		const blobOfZip = await fetch(`songs/${zipThing}.zip`).then((thing) => thing.blob())
+		zipFile = await jsZip.loadAsync(blobOfZip)
+	}
+
+	else zipFile = await jsZip.loadAsync(zipThing)
+	
+	const manifestTOML = await zipFile.file("manifest.toml").async("string")
+	const manifest = TOML.parse(manifestTOML)
+	
+	const uuid = manifest.uuid_DONT_CHANGE.toString()
+	const audioPath = manifest["audio_file"].toString()
+	const coverPath = manifest.cover_file.toString()
+	const chartPath = manifest.chart_file.toString()
+
+	// loads audio 
+	if (isUrl(audioPath)) await loadSound(uuid + "-audio", audioPath)
+	else {
+		const arrBuffer = await zipFile.file(audioPath).async("arraybuffer")
+		await loadSound(uuid + "-audio", arrBuffer)
+	}
+
+	// loads cover
+	if (isUrl(coverPath)) await loadSprite(uuid + "-cover", coverPath)
+	else {
+		const blobOfCover = await jsZip.file(coverPath).async("blob")
+		await loadSprite(uuid + "-cover", URL.createObjectURL(blobOfCover))
+	}
+
+	// loads chart
+	const chart = JSON.parse(await jsZip.file(chartPath).async("string"))
+
+	// gets everything
+	const zipContent:SongZip = {
+		manifest: {
+			name: manifest["name"].toString(),
+			artist: manifest["artist"].toString(),
+			charter: manifest["charter"].toString(),
+			initial_bpm: Number(manifest["initial_bpm"]),
+			initial_scrollspeed: Number(manifest["initial_scrollspeed"]),
+			time_signature: manifest["time_signature"] as [number, number],
+			uuid_DONT_CHANGE: uuid,
+			chart_file: chartPath,
+			audio_file: audioPath,
+			cover_file: coverPath,
+		},
+		chart: chart,
+	}
+
+	console.log("does the load song run first")
+	songsLoaded.push(zipContent)
+	
+	return zipContent;
 }
 
 /** Loads songs, dancers and noteskins */
@@ -141,23 +196,16 @@ async function loadContent() {
 		loadDancer(dancer, dancersToLoad[dancer])
 	})
 
-	// LOADS SONGS
-	defaultSongs.forEach(async (song, index) => {
-		const newSong = await loadSong(song)
-		allSongCharts[index] = newSong
-	})
-
 	// loads noteskins
 	loadNoteSkins()
 }
 
-/** Gets a song */
-export function getSong(songId: string) {
-	return allSongCharts.find((song) => song.idTitle == songId)
-}
-
 /** Loads all the assets of the game */
-export function loadAssets() {
+export async function loadAssets() {
+	defaultSongs.forEach(async (zipPath) => {
+		const thing = await loadSongFromZIP(zipPath)
+	})
+	
 	loadBean()
 	loadSound("volumeChange", "sounds/volumeChange.wav")
 	loadCursor();

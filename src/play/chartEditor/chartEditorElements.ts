@@ -5,7 +5,7 @@ import { utils } from "../../utils"
 import { moveToColor } from "../objects/note"
 import { downloadChart, StateChart } from "./chartEditorBackend"
 import { gameCursor } from "../../core/plugins/features/gameCursor"
-import { openChartAboutDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog"
+import { gameDialog, openChartAboutDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog"
 import { onBeatHit } from "../../core/events"
 
 /** Returns if a certain Y position mets the conditions to be drawn on the screen */
@@ -304,6 +304,7 @@ export function addDialogButtons(ChartState:StateChart) {
 			rotate(),
 			{
 				update() {
+					if (gameDialog.isOpen) return;
 					if (this.isHovering()) {
 						this.scale.x = lerp(this.scale.x, 1.1, 0.5)
 						this.scale.y = lerp(this.scale.y, 1.1, 0.5)
@@ -332,6 +333,7 @@ export function addDialogButtons(ChartState:StateChart) {
 		button.area.offset = vec2(-button.width * 0.3, 0)
 
 		iconObj.onUpdate(() => {
+			if (gameDialog.isOpen) return;
 			iconObj.pos.y = button.pos.y + iconObj.height * 0.2
 			
 			if (button.isHovering()) {
@@ -347,7 +349,11 @@ export function addDialogButtons(ChartState:StateChart) {
 			if (iconObj.angle != 0) iconObj.angle = lerp(iconObj.angle, 0, 0.25)
 		})
 
-		button.onClick(action)
+		button.onClick(() => {
+			if (gameDialog.isOpen) return;
+			action()
+		})
+
 		return button;
 	}
 
@@ -367,8 +373,6 @@ export function addDialogButtons(ChartState:StateChart) {
 }
 
 export function addBeatCounter(ChartState:StateChart) {
-	let beatIndex = -1
-	
 	type numberProp = {
 		scale: number,
 		color: Color,
@@ -393,8 +397,7 @@ export function addBeatCounter(ChartState:StateChart) {
 	})
 
 	onBeatHit(() => {
-		beatIndex++
-		beatIndex = beatIndex % ChartState.conductor.stepsPerBeat;
+		const beatIndex = ChartState.conductor.currentBeat % ChartState.conductor.stepsPerBeat
 		
 		// if is the last prop in the list
 		if (props[beatIndex] == props[props.length - 1]) {

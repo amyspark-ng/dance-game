@@ -1,20 +1,18 @@
 import { GameSave } from "../core/gamesave";
-import { defaultSongs, loadSong, allSongCharts } from "../core/loader"
-import { cam } from "../core/plugins/features/camera";
+import { defaultSongs, allSongCharts, songsLoaded } from "../core/loader"
 import { gameCursor } from "../core/plugins/features/gameCursor";
 import { customAudioPlay, playSound } from "../core/plugins/features/sound";
 import { goScene, transitionToScene } from "../core/scenes";
 import { enterSongTrans } from "../core/transitions/enterSongTransition";
-import { fadeOut } from "../core/transitions/fadeOutTransition";
-import { fileManager, handleZipInput } from "../fileManaging";
-import { rankings, Scoring } from "../play/objects/scoring";
+import { handleZipInput } from "../fileManaging";
+import { Scoring } from "../play/objects/scoring";
 import { paramsGameScene } from "../play/playstate";
-import { SaveScore, SongChart } from "../play/song"
+import { SaveScore, SongZip } from "../play/song"
 import { utils } from "../utils";
 
 /** Gets the saveScore for a song name */
 function getHighscore(songName:string) : SaveScore {
-	const scoresOfSong = GameSave.songsPlayed.filter((song) => song.idTitle == songName)
+	const scoresOfSong = GameSave.songsPlayed.filter((song) => song.uuid == songName)
 	
 	if (scoresOfSong.length < 1) {
 		return new SaveScore()
@@ -47,8 +45,8 @@ export class StateSongSelect {
 const barWidth = 46
 
 /** Adds a song capsule to the song select scene */
-export function addSongCapsule(curSong: SongChart) {
-	const isImport = curSong == null
+export function addSongCapsule(curSong: SongZip) {
+	const isAddSong = curSong == null
 	
 	const capsuleContainer = add([
 		opacity(),
@@ -63,7 +61,7 @@ export function addSongCapsule(curSong: SongChart) {
 	])
 	
 	const albumCover = capsuleContainer.add([
-		sprite(!isImport ? curSong.idTitle + "-cover" : "importSongBtn"),
+		sprite(!isAddSong ? curSong.manifest.uuid_DONT_CHANGE + "-cover" : "importSongBtn"),
 		pos(),
 		anchor("center"),
 		opacity(),
@@ -75,7 +73,7 @@ export function addSongCapsule(curSong: SongChart) {
 	capsuleContainer.width = albumCover.width
 	capsuleContainer.height = albumCover.height
 
-	if (isImport) return;
+	if (isAddSong) return;
 
 	const cdCase = capsuleContainer.add([
 		sprite("cdCase"),
@@ -88,22 +86,22 @@ export function addSongCapsule(curSong: SongChart) {
 	])
 	
 	const capsuleName = capsuleContainer.add([
-		text(curSong.title, { align: "center" }),
+		text(curSong.manifest.name, { align: "center" }),
 		pos(),
 		anchor("top"),
 		opacity(),
 	])
 
 	let songDuration = "0"
-	getSound(`${curSong.idTitle}-song`).onLoad((data) => {
+	getSound(`${curSong.manifest.uuid_DONT_CHANGE}-audio`).onLoad((data) => {
 		songDuration = utils.formatTime(data.buf.duration)
 	})
 
 	capsuleContainer.onUpdate(() => {
-		let clear = Math.round(Scoring.tally.cleared(getHighscore(curSong.idTitle).tally))
+		let clear = Math.round(Scoring.tally.cleared(getHighscore(curSong.manifest.uuid_DONT_CHANGE).tally))
 		if (isNaN(clear)) clear = 0
 	
-		capsuleName.text = `${curSong.title} (${clear}%)\n${songDuration}`
+		capsuleName.text = `${curSong.manifest.name} (${clear}%)\n${songDuration}`
 		capsuleName.pos.y = (capsuleContainer.height / 2)
 		
 		albumCover.opacity = capsuleContainer.opacity;
@@ -112,8 +110,8 @@ export function addSongCapsule(curSong: SongChart) {
 	})
 
 	// if the song has a highscore then add the sticker with the ranking
-	if (GameSave.songsPlayed.some((song) => song.idTitle == curSong.idTitle)) {
-		const tally = getHighscore(curSong.idTitle).tally
+	if (GameSave.songsPlayed.some((song) => song.uuid == curSong.manifest.uuid_DONT_CHANGE)) {
+		const tally = getHighscore(curSong.manifest.uuid_DONT_CHANGE).tally
 		const ranking = Scoring.tally.ranking(tally)
 		
 		const maxOffset = 50
@@ -131,7 +129,7 @@ export function addSongCapsule(curSong: SongChart) {
 	}
 	
 	// if song isn't on default songs then it means it's imported from elsewhere
-	if (!defaultSongs.includes(curSong.idTitle)) {
+	if (!defaultSongs.includes(utils.kebabCase(curSong.manifest.name))) {
 		const importedSticker = capsuleContainer.add([
 			sprite("importedSong"),
 			pos(),
@@ -160,10 +158,13 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 	songSelectState.index = params.index ?? 0
 	songSelectState.songPreview?.stop()
 
-	let songAmount = allSongCharts.length
+	let songAmount = songsLoaded.length
 	const LERP_AMOUNT = 0.25
 
-	allSongCharts.forEach((song, index) => {
+	console.log("or does the scene run first")
+
+	songsLoaded.forEach((song, index) => {
+		console.log("added capsule for song: " + song.manifest.name)
 		addSongCapsule(song)
 	})
 
@@ -237,11 +238,11 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 			return;
 		}
 		
-		const tallyScore = getHighscore(allCapsules[songSelectState.index].song.idTitle).tally.score 
+		const tallyScore = getHighscore(allCapsules[songSelectState.index].song.manifest.uuid_DONT_CHANGE).tally.score 
 		highscoreText.solidValue = Math.floor(tallyScore)
 
 		songSelectState.songPreview?.stop()
-		songSelectState.songPreview = playSound(allCapsules[songSelectState.index].song.idTitle + "-song", {
+		songSelectState.songPreview = playSound(allCapsules[songSelectState.index].song.manifest.uuid_DONT_CHANGE + "-audio", {
 			channel: GameSave.sound.music,
 		})
 		songSelectState.songPreview.loop = true
@@ -259,11 +260,8 @@ export function SongSelectScene() { scene("songselect", (params: paramsSongSelec
 			else {
 				songSelectState.menuInputEnabled = false
 				songSelectState.songPreview.stop()
-				transitionToScene(enterSongTrans, "game", { 
-						song: hoveredCapsule.song,
-						dancer: GameSave.dancer
-					} as paramsGameScene
-				)
+				const currentSongZip = hoveredCapsule.song
+				transitionToScene(enterSongTrans, "game", { songZip: currentSongZip, dancer: GameSave.dancer } as paramsGameScene)
 			}
 		}
 	})

@@ -31,7 +31,7 @@ export function ResultsScene() { scene("results", (params: paramsResultsScene) =
 
 	const tallyThings:tallyContainer[] = [
 		{ title: "score", value: params.GameState.tally.score, color: WHITE },
-		{ title: "total notes", value: params.GameState.song.notes.length, color: WHITE },
+		{ title: "total notes", value: params.GameState.songZip.notes.length, color: WHITE },
 		{ title: "hit notes", value: Scoring.tally.hitNotes(params.GameState.tally), color: WHITE },
 		{ title: "awesomes", value: params.GameState.tally.awesomes, color: BLUE.lighten(50) },
 		{ title: "goods", value: params.GameState.tally.goods, color: GREEN.lighten(50) },
@@ -147,7 +147,7 @@ export function ResultsScene() { scene("results", (params: paramsResultsScene) =
 	})
 
 	onKeyPress("escape", () => {
-		const indexOfSong = allSongCharts.indexOf(params.GameState.song)
+		const indexOfSong = allSongCharts.indexOf(params.GameState.songZip)
 		goScene("songselect", { index: indexOfSong > -1 ? indexOfSong : 0 } as paramsSongSelect)
 	})
 })}

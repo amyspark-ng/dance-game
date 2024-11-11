@@ -54,7 +54,7 @@ export function addStrumline(GameState:StateGame) {
 					else {
 						// there's no close enough to be hit, but there ARE notes on the screen
 						// so we have to check if there are any notes in twice the range of input treshold, if so then miss
-						if (GameState.song.notes.some((note) => utils.isInRange(GameState.conductor.timeInSeconds, note.hitTime + INPUT_THRESHOLD * 2, note.hitTime - INPUT_THRESHOLD * 2))) {
+						if (GameState.songZip.notes.some((note) => utils.isInRange(GameState.conductor.timeInSeconds, note.hitTime + INPUT_THRESHOLD * 2, note.hitTime - INPUT_THRESHOLD * 2))) {
 							triggerEvent("onMiss", false)
 						}
 					}

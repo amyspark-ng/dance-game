@@ -383,7 +383,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		}
 
 		// transition to scene normally
-		transitionToScene(fadeOut, "game", { song: ChartState.song, seekTime: ChartState.scrollTime, dancer: params.dancer } as paramsGameScene)
+		transitionToScene(fadeOut, "game", { songZip: ChartState.song, seekTime: ChartState.scrollTime, dancer: params.dancer } as paramsGameScene)
 	})
 
 	// Pausing unpausing behaviour

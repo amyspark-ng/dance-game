@@ -21,7 +21,7 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 
 	const GameState = new StateGame()
 	GameState.params = params;
-	GameState.song = params.song;
+	GameState.songZip = params.songZip;
 	setupSong(params, GameState)
 
 	// ==== SETS UP SOME IMPORTANT STUFF ====
@@ -37,8 +37,6 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 	dancer.onUpdate(() => {
 		if (dancer.waitForIdle) dancer.waitForIdle.paused = GameState.paused;
 	})
-
-	console.log("loading song: " + params.song.idTitle + "-song")
 
 	let dancerHasBg = false
 	getSprite(`bg_` + params.dancer).onLoad((data) => {
@@ -131,7 +129,7 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 			addComboText("break")
 		}
 
-		const closestNote = getClosestNote(GameState.song.notes, GameState.conductor.timeInSeconds)
+		const closestNote = getClosestNote(GameState.songZip.chart.notes, GameState.conductor.timeInSeconds)
 		const scoreDiff = Scoring.getScorePerDiff(GameState.conductor.timeInSeconds, closestNote)
 		if (GameState.tally.score > 0) GameState.tally.score -= scoreDiff
 
@@ -156,7 +154,7 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 	// END SONG
 	GameState.conductor.audioPlay.onEnd(() => {
 		const songSaveScore = new SaveScore()
-		songSaveScore.idTitle = params.song.idTitle
+		songSaveScore.uuid = params.songZip.manifest.uuid_DONT_CHANGE
 		songSaveScore.tally = GameState.tally
 		GameSave.songsPlayed.push(songSaveScore)
 		GameSave.save()
@@ -164,6 +162,6 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 	})
 
 	utils.runInDesktop(() => {
-		appWindow.setTitle(PRODUCT.NAME + " - " + params.song.title)
+		appWindow.setTitle(PRODUCT.NAME + " - " + params.songZip.manifest.name)
 	})
 })}

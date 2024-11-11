@@ -25,6 +25,6 @@ export function DeathScene() { scene("death", (params:paramsDeathScene) => {
 	])
 
 	onKeyPress("enter", () => {
-		transitionToScene(fadeOut, "game", { song: params.GameState.song, dancer: params.GameState.params.dancer } as paramsGameScene)
+		transitionToScene(fadeOut, "game", { songZip: params.GameState.songZip, dancer: params.GameState.params.dancer } as paramsGameScene)
 	})
 })}

@@ -29,4 +29,4 @@ console.log("EXECUTED GAME")
 const k = kaplay(libraryOpts)
 
 // // ===== WHERE THE GAME ACTUALLY STARTS =====
-initGame()
+await initGame()

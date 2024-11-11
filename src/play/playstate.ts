@@ -3,7 +3,7 @@ import { Conductor } from "../conductor";
 import { triggerEvent } from "../core/events";
 import { GameSave } from "../core/gamesave";
 import { PRODUCT } from "../core/initGame";
-import { getSong, allSongCharts } from "../core/loader";
+import { allSongCharts } from "../core/loader";
 import { playSound } from "../core/plugins/features/sound";
 import { goScene, transitionToScene } from "../core/scenes";
 import { fadeOut } from "../core/transitions/fadeOutTransition";
@@ -13,7 +13,7 @@ import { getDancer } from "./objects/dancer";
 import { ChartNote, getNotesOnScreen, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
 import { Tally } from "./objects/scoring";
 import { getStrumline } from "./objects/strumline";
-import { SongChart } from "./song";
+import { SongChart, SongZip } from "./song";
 import { managePauseUI } from "./ui/pauseScreen";
 
 /** Class that holds and manages some important variables in the game scene */
@@ -22,7 +22,7 @@ export class StateGame {
 	conductor: Conductor = null;
 
 	/** Holds the current song chart */
-	song: SongChart = new SongChart();
+	songZip: SongZip = null;
 	
 	/** Holds the current tallies for the song */
 	tally: Tally = new Tally();
@@ -70,7 +70,7 @@ export class StateGame {
 }
 
 export type paramsGameScene = {
-	song: SongChart,
+	songZip: SongZip,
 	/** The name of the dancer */
 	dancer: string,
 	/** How fast to make the song :smiling_imp: */
@@ -90,7 +90,7 @@ export function setupSong(params: paramsGameScene, GameState:StateGame) {
 	// now that we have the song we can get the scroll speed multiplier and set the playback speed for funzies
 	params.playbackSpeed = params.playbackSpeed ?? 1;
 	
-	const speed = (GameState.song.scrollSpeed * GameSave.scrollSpeed)
+	const speed = (GameState.songZip.manifest.initial_scrollspeed * GameSave.scrollSpeed)
 
 	// Set it back to the original value
 	setTimeForStrum(1.25)
@@ -100,14 +100,14 @@ export function setupSong(params: paramsGameScene, GameState:StateGame) {
 
 	// then we actually setup the conductor and play the song
 	GameState.conductor = new Conductor({
-		audioPlay: playSound(`${params.song.idTitle}-song`, { volume: 0.1, speed: params.playbackSpeed }),
-		bpm: params.song.bpm * params.playbackSpeed,
-		timeSignature: GameState.song.timeSignature,
+		audioPlay: playSound(`${params.songZip.manifest.uuid_DONT_CHANGE}-audio`, { volume: GameSave.sound.music.volume, speed: params.playbackSpeed }),
+		bpm: params.songZip.manifest.initial_bpm * params.playbackSpeed,
+		timeSignature: GameState.songZip.manifest.time_signature,
 		offset: TIME_FOR_STRUM
 	})
 
 	// there are the notes that have been spawned yet
-	GameState.song.notes.filter((note) => note.hitTime <= params.seekTime).forEach((passedNote) => {
+	GameState.songZip.chart.notes.filter((note) => note.hitTime <= params.seekTime).forEach((passedNote) => {
 		GameState.spawnedNotes.push(passedNote)
 		GameState.hitNotes.push(passedNote)
 	})
@@ -128,7 +128,7 @@ export function restartSong(GameState:StateGame) {
 	GameState.combo = 0
 	GameState.highestCombo = 0
 
-	GameState.song.notes.forEach((note) => {
+	GameState.songZip.chart.notes.forEach((note) => {
 		if (note.hitTime <= GameState.params.seekTime) {
 			GameState.hitNotes.push(note)
 			GameState.spawnedNotes.push(note)
@@ -179,16 +179,17 @@ export function stopPlay(GameState:StateGame) {
 
 /** Function to exit to the song select menu from the gamescene */
 export function exitToMenu(GameState:StateGame) {
-	let song = getSong(GameState.song.idTitle)
-	let index = song ? allSongCharts.indexOf(song) : 0
-	transitionToScene(fadeOut, "songselect", { index: index } as paramsSongSelect)
+	// let song = getSong(GameState.songZip.)
+	// let index = song ? allSongCharts.indexOf(song) : 0
+	// TODO: Find a way to comfortably get a song
+	transitionToScene(fadeOut, "songselect", { index: 0 } as paramsSongSelect)
 }
 
 /** Function to exit to the song select menu from the gamescene */
 export function exitToChartEditor(GameState:StateGame) {
 	stopPlay(GameState)
 	GameState.menuInputEnabled = false
-	transitionToScene(fadeOut, "charteditor", { song: GameState.song, seekTime: GameState.conductor.timeInSeconds, dancer: GameState.params.dancer } as paramsChartEditor)
+	// transitionToScene(fadeOut, "charteditor", { song: GameState.songZip, seekTime: GameState.conductor.timeInSeconds, dancer: GameState.params.dancer } as paramsChartEditor)
 }
 
 export function introGo() {
