@@ -8,7 +8,8 @@ import { gameDialog } from "./ui/dialogs/gameDialog"
 import { utils } from "./utils"
 import { GameSave } from "./core/gamesave"
 import { Chart } from "./play/song"
-import { songsLoaded as loadedSongs, loadSongFromZIP } from "./core/loader"
+import { loadedSongs, loadSongFromZIP } from "./core/loader"
+import TOML from "smol-toml"
 
 /** File manager for some stuff of the game */
 export let fileManager = document.createElement("input")
@@ -25,18 +26,18 @@ export async function handleAudioInput(ChartState:StateChart) {
 	gameCursor.do("load")
 	
 	fileManager.onchange = async () => {
-		const loadScreen = assetLoadingScreen()
+		const loadScreen = inputLoadingScreen()
 
+		// TODO: Why use array buffer and audio buffer?????
 		const gottenFile = fileManager.files[0]	
-		const buffer = await gottenFile.arrayBuffer()
-		await loadSound(ChartState.song.manifest.uuid_DONT_CHANGE + "-audio", buffer)
-		await getSound(ChartState.song.manifest.uuid_DONT_CHANGE + "-audio").then((sound) => ChartState.audioBuffer = sound.buf)
+		const arrayBuffer = await gottenFile.arrayBuffer()
+		await loadSound(ChartState.song.manifest.uuid_DONT_CHANGE + "-audio", arrayBuffer)
+		const soundData = await getSound(ChartState.song.manifest.uuid_DONT_CHANGE + "-audio")
+		const audioBuffer = soundData.buf;
 
-		ChartState.conductor = new Conductor({
-			audioPlay: playSound(ChartState.song.manifest.uuid_DONT_CHANGE + "-audio", { volume: 0.1 }),
-			bpm: ChartState.song.manifest.initial_bpm,
-			timeSignature: ChartState.song.manifest.time_signature,
-		})
+		ChartState.audioBuffer = audioBuffer
+		// change the audio play for the conductor
+		ChartState.conductor.audioPlay = playSound(ChartState.song.manifest.uuid_DONT_CHANGE + "-audio", { channel: GameSave.sound.music, speed: 1 })
 
 		ChartState.song.chart.notes.forEach((note) => {
 			if (note.time >= ChartState.conductor.audioPlay.duration()) {
@@ -44,7 +45,7 @@ export async function handleAudioInput(ChartState:StateChart) {
 			}
 		})
 
-		// TODO: HAVE TO DO THE THING WHERE IT CHANGES THE PATHS FOR COVER AND AUDIO FILE
+		ChartState.song.manifest.audio_file = gottenFile.name
 
 		ChartState.inputDisabled = false
 		gameCursor.canMove = true
@@ -68,32 +69,35 @@ export async function handleZipInput(SongSelectState:StateSongSelect) {
 	// TODO: RE DO THIS 
 
 	fileManager.onchange = async () => {
-		const drawLoadingScreen = assetLoadingScreen()
+		const drawLoadingScreen = inputLoadingScreen()
 
 		const gottenFile = fileManager.files[0]
 		const jsZip = new JSZip()
 		
 		const zipFile = await jsZip.loadAsync(gottenFile)
-		const manifest = zipFile.file("manifest.json")
-
-		// if some song is equal blah blah error
 		
+		const manifestFile = zipFile.file("manifest.toml")
+		const manifestContent = TOML.parse(await manifestFile.async("string"))
+		const uuid = manifestContent["uuid_DONT_CHANGE"]
+
+		// if some song has an uuid equal to the one i just got, throw an error
+		if (loadedSongs.some((song) => song.manifest.uuid_DONT_CHANGE == uuid)) {
+			throw new Error("ALREADY LOADED A SONG WITH THAT UNIQUE UNIVERSAL IDENTIFIER")
+		}
+
 		const songInfo = await loadSongFromZIP(gottenFile)
 
-		console.log(songInfo)
-
-		// loadedSongs.push(songInfo)
-		// GameSave.save()
-		// SongSelectState.menuInputEnabled = true
+		loadedSongs.push(songInfo)
+		GameSave.save()
+		SongSelectState.menuInputEnabled = true
 		
-		// drawLoadingScreen.cancel()
+		drawLoadingScreen.cancel()
 
-		// // TODO: Fix this function
-		// // addSongCapsule(gottenChart)
-		// getTreeRoot().trigger("addedCapsule")
-		// wait(0.1, () => {
-		// 	SongSelectState.updateState()
-		// })
+		addSongCapsule(songInfo)
+		getTreeRoot().trigger("addedCapsule")
+		wait(0.1, () => {
+			SongSelectState.updateState()
+		})
 	}
 
 	fileManager.oncancel = async () => {
@@ -118,7 +122,9 @@ export function handleCoverInput(ChartState:StateChart) {
 		const base64 = URL.createObjectURL(blob)
 
 		await loadSprite(ChartState.song.manifest.uuid_DONT_CHANGE + "-cover", base64)
-		get("cover", { recursive: true })[0].sprite = ChartState.song.manifest.uuid_DONT_CHANGE + "-cover"
+		
+		ChartState.song.manifest.cover_file = gottenFile.name
+
 		gameDialog.canClose = true
 		ChartState.inputDisabled = false
 		gameCursor.canMove = true
@@ -133,12 +139,18 @@ export function handleCoverInput(ChartState:StateChart) {
 }
 
 /** Small loading screen to display while stuff loads */
-export function assetLoadingScreen() {
+export function inputLoadingScreen() {
 	let op = 0
 	let ang = 0
 
-	tween(op, 1, 0.1, (p) => op = p)
-	const drawEv = onDraw(() => {
+	const obj = add([
+		layer("cursor"),
+		z(gameCursor.z - 1),
+		timer(),
+	])
+
+	obj.tween(op, 1, 0.1, (p) => op = p)
+	const drawEv = obj.onDraw(() => {
 		drawRect({
 			width: width(),
 			height: height(),

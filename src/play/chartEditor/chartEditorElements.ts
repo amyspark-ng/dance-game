@@ -360,10 +360,10 @@ export function addDialogButtons(ChartState:StateChart) {
 	const initialYPos = height() - 50
 	// the ones more on top will appear more on the bottom of the screen
 	const things = [
-		{ texting: "Create new chart", icon: "new", action: () => {} },
-		{ texting: "Download chart", icon: "download", action: () => { downloadChart(ChartState) } },
-		{ texting: "Song fields", icon: "fields", action: () => { openChartInfoDialog(ChartState) } },
-		{ texting: "About", icon: "about", action: () => { openChartAboutDialog() } },
+		{ texting: "Create new chart", icon: "new", action: () => ChartState.createNewSong() },
+		{ texting: "Download chart", icon: "download", action: () => downloadChart(ChartState)  },
+		{ texting: "Song fields", icon: "fields", action: () => openChartInfoDialog(ChartState) },
+		{ texting: "About", icon: "about", action: () => openChartAboutDialog() },
 	]
 	
 	things.forEach((thing, index) => {

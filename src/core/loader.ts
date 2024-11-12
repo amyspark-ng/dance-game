@@ -9,14 +9,14 @@ import isUrl from "is-url";
 import { utils } from "../utils";
 
 /** Array of zip names to load songs */
-export const defaultSongs = ["bopeebo"]
+export const defaultSongs = ["bopeebo", "unholy-blight"]
 
 /** Array of SongZip for the songs loaded */
-export const songsLoaded:SongZip[] = [  ]
+export const loadedSongs:SongZip[] = [  ]
 
 /** Gets a song with the kebab case of its name */
 export function getSong(kebabCase:string) {
-	return songsLoaded.find((songzip) => utils.kebabCase(songzip.manifest.name) == kebabCase)
+	return loadedSongs.find((songzip) => utils.kebabCase(songzip.manifest.name) == kebabCase)
 }
 
 /** The loading screen of the game */
@@ -143,7 +143,7 @@ export async function loadSongFromZIP(zipThing:string | File) : Promise<SongZip>
 	}
 
 	// console.log("does the load song run first")
-	songsLoaded.push(zipContent)
+	loadedSongs.push(zipContent)
 	
 	return zipContent;
 }
@@ -238,6 +238,7 @@ export async function loadAssets() {
 		}
 	})
 
+	loadSound("new-song-audio", "new-song-audio.ogg")
 	loadSpriteAtlas("sprites/chartEditorIcons.png", iconsAtlas)
 
 	loadSound("uiMove", "sounds/uiMove.wav")
@@ -292,7 +293,7 @@ export async function loadAssets() {
 	load(new Promise(async (resolve, reject) => {
 		try {
 			defaultSongs.forEach(async (songzippath) => {
-				const songZip = await loadSongFromZIP("bopeebo")
+				const songZip = await loadSongFromZIP(songzippath)
 				resolve(songZip)
 			})
 		} catch (e) {

@@ -6,10 +6,12 @@ import { utils } from "../../utils";
 import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { Conductor } from "../../conductor";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
-import { gameDialog } from "../../ui/dialogs/gameDialog";
+import { gameDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog";
 import { SongZip } from "../song";
+import { playSound } from "../../core/plugins/features/sound";
 import JSZip from "jszip";
 import TOML from "smol-toml"
+import { v4 as uuidv4 } from 'uuid';
 
 /** Class that manages the snapshots of the chart */
 export class ChartSnapshot {
@@ -220,13 +222,25 @@ export class StateChart {
 	}
 
 	/** Changes the song of the instance */
-	setSong(song: SongZip) {
+	createNewSong() {
 		this.scrollStep = 0
 		this.snapshots = []
 		this.curSnapshotIndex = 0
 		this.selectedNotes = []
 		
-		this.song = song;
+		this.song = new SongZip()
+		this.song.manifest.uuid_DONT_CHANGE = uuidv4()
+	
+		loadSprite(this.song.manifest.uuid_DONT_CHANGE + "-cover", "sprites/defaultCover.png")
+
+		this.conductor = new Conductor({
+			audioPlay: playSound("new-song-audio"),
+			bpm: this.song.manifest.initial_bpm,
+			timeSignature: this.song.manifest.time_signature,
+			offset: 0,
+		})
+
+		openChartInfoDialog(this)
 	}
 }
 
