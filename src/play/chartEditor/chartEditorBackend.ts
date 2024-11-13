@@ -7,7 +7,7 @@ import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { Conductor } from "../../conductor";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { gameDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog";
-import { SongZip } from "../song";
+import { SongContent } from "../song";
 import { playSound } from "../../core/plugins/features/sound";
 import JSZip from "jszip";
 import TOML from "smol-toml"
@@ -15,9 +15,9 @@ import { v4 as uuidv4 } from 'uuid';
 
 /** Class that manages the snapshots of the chart */
 export class ChartSnapshot {
-	song: SongZip;
+	song: SongContent;
 	selectedNotes: ChartNote[];
-	constructor(song: SongZip, selectedNotes: ChartNote[]) {
+	constructor(song: SongContent, selectedNotes: ChartNote[]) {
 		this.song = song;
 		this.selectedNotes = selectedNotes;
 	}
@@ -32,7 +32,7 @@ type notePropThing = {
 /** Class that manages every important variable in the chart editor */
 export class StateChart {
 	bgColor: [number, number, number] = [67, 21, 122]
-	song: SongZip;
+	song: SongContent;
 	paused: boolean;
 	conductor: Conductor;
 	params: paramsChartEditor;
@@ -228,7 +228,7 @@ export class StateChart {
 		this.curSnapshotIndex = 0
 		this.selectedNotes = []
 		
-		this.song = new SongZip()
+		this.song = new SongContent()
 		this.song.manifest.uuid_DONT_CHANGE = uuidv4()
 	
 		loadSprite(this.song.manifest.uuid_DONT_CHANGE + "-cover", "sprites/defaultCover.png")
@@ -246,7 +246,7 @@ export class StateChart {
 
 /** The params for the chart editor */
 export type paramsChartEditor = {
-	song: SongZip,
+	song: SongContent,
 	playbackSpeed: number,
 	seekTime: number,
 	dancer: string,
@@ -494,7 +494,7 @@ export function addFloatingText(texting: string) {
 
 export async function downloadChart(ChartState:StateChart) {
 	getTreeRoot().trigger("download")
-		
+	
 	const jsZip = new JSZip()
 	
 	// the blob for the song 
@@ -531,12 +531,10 @@ export async function downloadChart(ChartState:StateChart) {
 	// creates the files
 	const kebabCaseName = utils.kebabCase(ChartState.song.manifest.name)
 	jsZip.file(`${kebabCaseName}-chart.json`, JSON.stringify(ChartState.song.chart))
-	jsZip.file(`${kebabCaseName}-audio.ogg`, oggBlob)
-	jsZip.file(`${kebabCaseName}-cover.png`, imgBlob)
+	jsZip.file(ChartState.song.manifest.audio_file, oggBlob)
+	jsZip.file(ChartState.song.manifest.cover_file, imgBlob)
 	jsZip.file(`manifest.toml`, manifestString)
 	
-	// TODO: have to change the paths on download 
-
 	// downloads the zip
 	await jsZip.generateAsync({ type: "blob" }).then((content) => {
 		downloadBlob(`${kebabCaseName}-chart.zip`, content)

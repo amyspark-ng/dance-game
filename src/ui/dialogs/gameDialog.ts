@@ -6,7 +6,7 @@ import { dialog_addSlider, dialog_addTextbox, dialog_changeCover, dialog_changeS
 import { StateChart } from "../../play/chartEditor/chartEditorBackend";
 import { utils } from "../../utils";
 import { format } from "path";
-import { SongZip } from "../../play/song";
+import { SongContent } from "../../play/song";
 
 /** Adds the dialog square object */
 function addDialogueThing(opts:openDialogOpts) {
@@ -133,7 +133,7 @@ export class gameDialog {
 
 /** Opens the dialog for the fields of the song in the chart editor */
 export function openChartInfoDialog(ChartState:StateChart) {
-	const newSong = new SongZip();
+	const newSong = new SongContent();
 	const leftPadding = 10
 	
 	const dialog = gameDialog.openDialog({
@@ -252,6 +252,7 @@ export function openChartInfoDialog(ChartState:StateChart) {
 		const nameTextbox = textboxes[0]
 		if (nameTextbox.focus) ChartState.song.manifest.name = nameTextbox.value
 		else nameTextbox.value = ChartState.song.manifest.name
+		ChartState.song.manifest.chart_file = utils.kebabCase(ChartState.song.manifest.name) + "-chart.json"
 
 		const artistBox = textboxes[1]
 		if (artistBox.focus) ChartState.song.manifest.artist = artistBox.value

@@ -2,10 +2,9 @@ import { Vec2 } from "kaplay";
 import { gameDialog, gameDialogObj } from "./gameDialog";
 import { playSound } from "../../core/plugins/features/sound";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
-import { dialog } from "@tauri-apps/api";
 import { utils } from "../../utils";
 import { StateChart } from "../../play/chartEditor/chartEditorBackend";
-import { fileManager, handleCoverInput, handleAudioInput } from "../../fileManaging";
+import { handleCoverInput, handleAudioInput } from "../../fileManaging";
 
 const textSize = 30
 const padding = 5
@@ -191,7 +190,7 @@ export function dialog_addSlider(opts: sliderOpt) {
 			slider.pos.x = clamp(slider.pos.x, leftX, rightX)
 			const mappedValue = map(slider.pos.x, leftX, rightX, opts.range[0], opts.range[1])
 			let oldValue = slider.value
-			slider.value = mappedValue, 0.5
+			slider.value = parseFloat(mappedValue.toFixed(1))
 		
 			// little thing for sound
 			if (!isMouseMoved()) return;
@@ -262,6 +261,7 @@ export function dialog_changeCover(opts: changeThingOpt) {
 					textboxBg.width = lerp(textboxBg.width, widthOfThisText, 0.8)
 				}
 				
+				this.value = opts.ChartState.song.manifest.cover_file
 				this.text = this.value
 			}
 		}
@@ -314,7 +314,8 @@ export function dialog_changeSong(opts:changeThingOpt) {
 					const widthOfThisText = formatText({ text: this.text, size: this.textSize, align: "left" }).width
 					textboxBg.width = lerp(textboxBg.width, widthOfThisText, 0.8)
 				}
-
+				
+				this.value = opts.ChartState.song.manifest.audio_file
 				this.text = this.value
 			}
 		}

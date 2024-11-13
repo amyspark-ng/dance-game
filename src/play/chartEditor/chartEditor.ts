@@ -359,7 +359,8 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 			if (delta.y >= 1) scrollPlus = 1
 			else scrollPlus = -1
 		}
-
+		
+		if (ChartState.scrollStep == ChartState.conductor.totalSteps && scrollPlus > 0 || ChartState.scrollStep - 1 < 0 && scrollPlus < 0) return;
 		ChartState.scrollStep += scrollPlus
 	})
 

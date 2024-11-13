@@ -15,51 +15,6 @@ import TOML from "smol-toml"
 export let fileManager = document.createElement("input")
 fileManager.type = "file"
 
-/** Runs when user accepts to input a song to change the one in the chart editor */
-export async function handleAudioInput(ChartState:StateChart) {
-	fileManager.click()
-	ChartState.paused = true
-	fileManager.accept= ".ogg,.wav,.mp3"
-	
-	ChartState.inputDisabled = true
-	gameCursor.canMove = false
-	gameCursor.do("load")
-	
-	fileManager.onchange = async () => {
-		const loadScreen = inputLoadingScreen()
-
-		// TODO: Why use array buffer and audio buffer?????
-		const gottenFile = fileManager.files[0]	
-		const arrayBuffer = await gottenFile.arrayBuffer()
-		await loadSound(ChartState.song.manifest.uuid_DONT_CHANGE + "-audio", arrayBuffer)
-		const soundData = await getSound(ChartState.song.manifest.uuid_DONT_CHANGE + "-audio")
-		const audioBuffer = soundData.buf;
-
-		ChartState.audioBuffer = audioBuffer
-		// change the audio play for the conductor
-		ChartState.conductor.audioPlay = playSound(ChartState.song.manifest.uuid_DONT_CHANGE + "-audio", { channel: GameSave.sound.music, speed: 1 })
-
-		ChartState.song.chart.notes.forEach((note) => {
-			if (note.time >= ChartState.conductor.audioPlay.duration()) {
-				ChartState.song.chart.notes = utils.removeFromArr(note, ChartState.song.chart.notes)
-			}
-		})
-
-		ChartState.song.manifest.audio_file = gottenFile.name
-
-		ChartState.inputDisabled = false
-		gameCursor.canMove = true
-		gameCursor.do("default")
-		loadScreen.cancel()
-	}
-
-	fileManager.oncancel = async () => {
-		ChartState.inputDisabled = false
-		gameCursor.canMove = true
-		debug.log("user cancelled song input")
-	}
-}
-
 /** Runs when user accepts to input a new song for the song select */
 export async function handleZipInput(SongSelectState:StateSongSelect) {
 	fileManager.click()
@@ -102,6 +57,51 @@ export async function handleZipInput(SongSelectState:StateSongSelect) {
 
 	fileManager.oncancel = async () => {
 		SongSelectState.menuInputEnabled = true
+		debug.log("user cancelled song input")
+	}
+}
+
+/** Runs when user accepts to input a song to change the one in the chart editor */
+export async function handleAudioInput(ChartState:StateChart) {
+	fileManager.click()
+	ChartState.paused = true
+	fileManager.accept= ".ogg,.wav,.mp3"
+	
+	ChartState.inputDisabled = true
+	gameCursor.canMove = false
+	gameCursor.do("load")
+	
+	fileManager.onchange = async () => {
+		const loadScreen = inputLoadingScreen()
+
+		// TODO: Why use array buffer and audio buffer?????
+		const gottenFile = fileManager.files[0]	
+		const arrayBuffer = await gottenFile.arrayBuffer()
+		await loadSound(ChartState.song.manifest.uuid_DONT_CHANGE + "-audio", arrayBuffer)
+		const soundData = await getSound(ChartState.song.manifest.uuid_DONT_CHANGE + "-audio")
+		const audioBuffer = soundData.buf;
+
+		ChartState.audioBuffer = audioBuffer
+		// change the audio play for the conductor
+		ChartState.conductor.audioPlay = playSound(ChartState.song.manifest.uuid_DONT_CHANGE + "-audio", { channel: GameSave.sound.music, speed: 1 })
+
+		ChartState.song.chart.notes.forEach((note) => {
+			if (note.time >= ChartState.conductor.audioPlay.duration()) {
+				ChartState.song.chart.notes = utils.removeFromArr(note, ChartState.song.chart.notes)
+			}
+		})
+
+		ChartState.song.manifest.audio_file = gottenFile.name
+
+		ChartState.inputDisabled = false
+		gameCursor.canMove = true
+		gameCursor.do("default")
+		loadScreen.cancel()
+	}
+
+	fileManager.oncancel = async () => {
+		ChartState.inputDisabled = false
+		gameCursor.canMove = true
 		debug.log("user cancelled song input")
 	}
 }

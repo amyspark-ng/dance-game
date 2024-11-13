@@ -7,6 +7,7 @@ import { paramsSongSelect } from "../../ui/songselectscene"
 import { utils } from "../../utils"
 import { Ranking, Scoring } from "../objects/scoring"
 import { StateGame } from "../playstate"
+import { loadedSongs } from "../../core/loader"
 
 /** Parameters for the result scene */
 export type paramsResultsScene = {
@@ -147,7 +148,7 @@ export function ResultsScene() { scene("results", (params: paramsResultsScene) =
 	})
 
 	onKeyPress("escape", () => {
-		// const indexOfSong = allSongCharts.indexOf(params.GameState.songZip)
-		// goScene("songselect", { index: indexOfSong > -1 ? indexOfSong : 0 } as paramsSongSelect)
+		const indexOfSong = loadedSongs.indexOf(params.GameState.song)
+		goScene("songselect", { index: indexOfSong > -1 ? indexOfSong : 0 } as paramsSongSelect)
 	})
 })}

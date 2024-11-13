@@ -1,6 +1,6 @@
 import { LoadSpriteOpt } from "kaplay";
 import { DancerFile } from "../play/objects/dancer";
-import { SongManifest, SongZip } from "../play/song";
+import { SongManifest, SongContent } from "../play/song";
 import { loadCursor } from "./plugins/features/gameCursor";
 import { rankings } from "../play/objects/scoring";
 import JSZip from "jszip";
@@ -11,8 +11,8 @@ import { utils } from "../utils";
 /** Array of zip names to load songs */
 export const defaultSongs = ["bopeebo", "unholy-blight"]
 
-/** Array of SongZip for the songs loaded */
-export const loadedSongs:SongZip[] = [  ]
+/** Array of contents of song zip for the songs loaded */
+export const loadedSongs:SongContent[] = [  ]
 
 /** Gets a song with the kebab case of its name */
 export function getSong(kebabCase:string) {
@@ -88,8 +88,9 @@ function loadDancer(dancerName: string, spriteData: LoadSpriteOpt) {
  * @param zipThing It will be either the url of the zip inside the game folder
  * 
  * Or the File object to load the zip
+ * @param Wheter it's a default song to put it in order or just put it in wharever order
  */
-export async function loadSongFromZIP(zipThing:string | File) : Promise<SongZip> {
+export async function loadSongFromZIP(zipThing:string | File, defaultSong:boolean = false) : Promise<SongContent> {
 	const jsZip = new JSZip()
 
 	let zipFile:JSZip = null
@@ -126,7 +127,7 @@ export async function loadSongFromZIP(zipThing:string | File) : Promise<SongZip>
 	const chart = JSON.parse(await jsZip.file(chartPath).async("string"))
 
 	// gets everything
-	const zipContent:SongZip = {
+	const zipContent:SongContent = {
 		manifest: {
 			name: manifest["name"].toString(),
 			artist: manifest["artist"].toString(),
@@ -142,8 +143,16 @@ export async function loadSongFromZIP(zipThing:string | File) : Promise<SongZip>
 		chart: chart,
 	}
 
-	// console.log("does the load song run first")
-	loadedSongs.push(zipContent)
+	if (defaultSong) {
+		const kebab = utils.kebabCase(zipContent.manifest.name)
+		const indexInDefaultSongs = defaultSongs.indexOf(kebab)
+		if (indexInDefaultSongs != -1) loadedSongs[indexInDefaultSongs] = zipContent
+		else throw new Error("The song " + zipContent.manifest.name + " is not a default song")
+	}
+
+	else {
+		loadedSongs.push(zipContent)
+	}
 	
 	return zipContent;
 }
@@ -293,7 +302,7 @@ export async function loadAssets() {
 	load(new Promise(async (resolve, reject) => {
 		try {
 			defaultSongs.forEach(async (songzippath) => {
-				const songZip = await loadSongFromZIP(songzippath)
+				const songZip = await loadSongFromZIP(songzippath, true)
 				resolve(songZip)
 			})
 		} catch (e) {

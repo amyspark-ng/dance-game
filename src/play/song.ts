@@ -66,7 +66,7 @@ export class Chart {
 }
 
 /** The content of a song zip */
-export class SongZip {
+export class SongContent {
 	/** The content of the manifest.toml in the zip */
 	manifest: SongManifest;
 	/** The content of the chart.json in the zip */

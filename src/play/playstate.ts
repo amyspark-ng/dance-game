@@ -12,7 +12,7 @@ import { getDancer } from "./objects/dancer";
 import { ChartNote, getNotesOnScreen, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
 import { Tally } from "./objects/scoring";
 import { getStrumline } from "./objects/strumline";
-import { SongZip } from "./song";
+import { SongContent } from "./song";
 import { managePauseUI } from "./ui/pauseScreen";
 
 /** Class that holds and manages some important variables in the game scene */
@@ -21,7 +21,7 @@ export class StateGame {
 	conductor: Conductor = null;
 
 	/** Holds the current song chart */
-	song: SongZip = null;
+	song: SongContent = null;
 	
 	/** Holds the current tallies for the song */
 	tally: Tally = new Tally();
@@ -69,7 +69,7 @@ export class StateGame {
 }
 
 export type paramsGameScene = {
-	songZip: SongZip,
+	songZip: SongContent,
 	/** The name of the dancer */
 	dancer: string,
 	/** How fast to make the song :smiling_imp: */

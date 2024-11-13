@@ -55,7 +55,6 @@ export function drawPlayBar(ChartState: StateChart) {
 	let textToPut = utils.formatTime(ChartState.scrollTime, true)
 	if (ChartState.paused) textToPut += " (❚❚)"
 	else textToPut += " (▶)"
-	textToPut += ` - ${ChartState.scrollStep}`
 	const size = 25
 
 	drawText({
@@ -378,10 +377,35 @@ export function addTopLeftInfo(ChartState:StateChart) {
 	// maybe this shouldn't be here
 	const infoText = add([
 		pos(xPos, 5),
-		text("", { size: 20 }),
+		text("", { size: 20, align: "left" }),
+		anchor("topleft"),
 		{
 			update() {
-				this.text = `You're charting: ${ChartState.song.manifest.name}\nProduced by: ${ChartState.song.manifest.artist}\nCharted by: ${ChartState.song.manifest.charter}`
+				const info = {
+					"You're charting": ChartState.song.manifest.name,
+					"Produced by": ChartState.song.manifest.artist,
+					"Charted by": ChartState.song.manifest.charter,
+					"": null,
+					"Current step": ChartState.scrollStep,
+					"Current beat": Math.floor(ChartState.scrollStep / ChartState.conductor.stepsPerBeat),
+					"Current BPM": ChartState.conductor.BPM,
+				}
+				
+				function formatTheInfo() {
+					let theText = ""
+					for (const [key, value] of Object.entries(info)) {
+						if (value == null) {
+							theText += "\n"
+							continue;
+						}
+						
+						theText += `${key}: ${value}\n`
+					}
+					return theText
+				}
+
+				this.text = formatTheInfo()
+				this.pos.y = 5
 			}
 		}
 	])
@@ -393,6 +417,7 @@ export function addTopLeftInfo(ChartState:StateChart) {
 		angle: number,
 	}
 
+	const beatCounterY = infoText.textSize * 8.2
 	let props:numberProp[] = []
 
 	onUpdate(() => {
@@ -427,7 +452,7 @@ export function addTopLeftInfo(ChartState:StateChart) {
 			if (!props[i]) return;
 			drawText({
 				text: (i + 1).toString(),
-				pos: vec2((xPos / 2) + xPos + i * 30, infoText.height * 1.5),
+				pos: vec2((xPos / 2) + xPos + i * 30, beatCounterY),
 				color: props[i].color,
 				angle: props[i].angle,
 				anchor: "center",

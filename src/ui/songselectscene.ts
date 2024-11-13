@@ -7,7 +7,7 @@ import { enterSongTrans } from "../core/transitions/enterSongTransition";
 import { handleZipInput } from "../fileManaging";
 import { Scoring } from "../play/objects/scoring";
 import { paramsGameScene } from "../play/playstate";
-import { SaveScore, SongZip } from "../play/song"
+import { SaveScore, SongContent } from "../play/song"
 import { utils } from "../utils";
 
 /** Gets the saveScore for a song name */
@@ -45,7 +45,7 @@ export class StateSongSelect {
 const barWidth = 46
 
 /** Adds a song capsule to the song select scene */
-export function addSongCapsule(curSong: SongZip) {
+export function addSongCapsule(curSong: SongContent) {
 	const isAddSong = curSong == null
 	
 	const capsuleContainer = add([
