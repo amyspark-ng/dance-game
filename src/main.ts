@@ -9,7 +9,7 @@ const libraryOpts = {
 	width: 1024,
 	height: 576,
 	canvas: document.querySelector("#kanva"),
-	debugKey: "f2",
+	debugKey: "f1",
 	debug: PRODUCT.DEBUG,
 	loadingScreen: true,
 	crisp: false,

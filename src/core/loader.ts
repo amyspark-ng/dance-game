@@ -16,7 +16,9 @@ export const loadedSongs:SongContent[] = [  ]
 
 /** Gets a song with the kebab case of its name */
 export function getSong(kebabCase:string) {
-	return loadedSongs.find((songzip) => utils.kebabCase(songzip.manifest.name) == kebabCase)
+	// returns undefined on unholy-blight because it hasn't been loaded apparently
+	const result = loadedSongs.find((songzip) => utils.kebabCase(songzip.manifest.name) == kebabCase)
+	return result;
 }
 
 /** The loading screen of the game */
@@ -299,11 +301,12 @@ export async function loadAssets() {
 		}
 	`)
 
-	load(new Promise(async (resolve, reject) => {
+	// load default songs
+	await load(new Promise(async (resolve, reject) => {
 		try {
-			defaultSongs.forEach(async (songzippath) => {
+			defaultSongs.forEach(async (songzippath, index) => {
 				const songZip = await loadSongFromZIP(songzippath, true)
-				resolve(songZip)
+				if (index == defaultSongs.length - 1) resolve(songZip)
 			})
 		} catch (e) {
 			reject(e)

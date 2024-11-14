@@ -51,10 +51,6 @@ export class ChartEvent {
 	 * Else if the event it's something like change-bpmp the value may be something like 180
 	 */
 	value: string | number;
-	/** 
-	 * The time it'll the event to occur, this is mainly for numbered value events
-	 */
-	duration: number;
 }
 
 /** The content of the chart file */

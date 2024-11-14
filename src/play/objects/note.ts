@@ -16,13 +16,13 @@ export const NOTE_WIDTH = 80
 export const NOTE_SPAWNPOINT = 1024 + NOTE_WIDTH / 2
 
 /** Type that holds the properties a note in a chart file would have */
-export type ChartNote = {
+export class ChartNote {
 	/** The time of the song (in seconds) that this note must be hit on */
-	time: number,
+	time: number = 0;
 	/** The move (the color) the dancer will do upon hitting this note */
-	move: Move,
+	move: Move = "up";
 	/** the time the note must be spawned at */
-	spawnTime?: number,
+	spawnTime?: number;
 }
 
 /** Converts a move to a color (based on fnf lol) */

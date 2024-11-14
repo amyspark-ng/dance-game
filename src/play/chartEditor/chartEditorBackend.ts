@@ -236,8 +236,9 @@ export class StateChart {
 
 		this.conductor = new Conductor({
 			audioPlay: playSound(this.song.manifest.uuid_DONT_CHANGE + "-audio"),
-			bpm: this.song.manifest.initial_bpm,
+			initialBPM: this.song.manifest.initial_bpm,
 			timeSignature: this.song.manifest.time_signature,
+			bpmChanges: [],
 		})
 
 		openChartInfoDialog(this)

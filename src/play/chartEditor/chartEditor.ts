@@ -1,5 +1,5 @@
 // The actual scene for the chart editor
-import { Conductor } from "../../conductor";
+import { BpmChangeEV, BpmChangeEV as bpmChangeEvent, Conductor } from "../../conductor";
 import { onBeatHit, onNoteHit, onStepHit, triggerEvent } from "../../core/events";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { customAudioPlay, playSound } from "../../core/plugins/features/sound";
@@ -36,18 +36,14 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		// IMPORTANT
 		ChartState.song = params.song;
 		
-		const bpmEvents = [
-			{ time: 0, bpm: 160, },
-			{ time: 125, bpm: 180 },
-			{ time: 195, bpm: 160 },
-		]
-
+		const bpmChanges = ChartState.song.chart.events.filter((ev) => ev.id == "change-bpm") as BpmChangeEV[]
+	
 		ChartState.conductor = new Conductor({
 			audioPlay: playSound(`${ChartState.song.manifest.uuid_DONT_CHANGE}-audio`, { channel: GameSave.sound.music, speed: params.playbackSpeed }),
-			bpm: ChartState.song.manifest.initial_bpm * params.playbackSpeed,
+			initialBPM: ChartState.song.manifest.initial_bpm * params.playbackSpeed,
 			timeSignature: ChartState.song.manifest.time_signature,
 			offset: 0,
-			bpmChanges: bpmEvents
+			bpmChanges: bpmChanges
 		})
 		
 		ChartState.conductor.audioPlay.seek(params.seekTime)
@@ -55,9 +51,12 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	
 	ChartState.params = params;
 	ChartState.paused = true
-	ChartState.scrollStep = ChartState.conductor.timeToStep(params.seekTime, ChartState.conductor.stepInterval)
+
+	console.log("seek time: " + params.seekTime)
+
+	ChartState.scrollStep = ChartState.conductor.timeToStep(params.seekTime) 
 	ChartState.curSnapshotIndex = 0
-	
+
 	ChartState.snapshots = [JSON.parse(JSON.stringify(ChartState))];
 	ChartState.selectedNotes = []
 	ChartState.clipboard = []
@@ -88,7 +87,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		}
 		
 		else {
-			ChartState.scrollTime = ChartState.conductor.stepToTime(ChartState.scrollStep + (ChartState.strumlineStepOffset), ChartState.conductor.stepInterval)
+			ChartState.scrollTime = ChartState.conductor.stepToTime(ChartState.scrollStep + (ChartState.strumlineStepOffset))
 		}
 
 		ChartState.smoothScrollStep = lerp(ChartState.smoothScrollStep, ChartState.scrollStep, SCROLL_LERP_VALUE)
@@ -116,15 +115,17 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 		let stepsToScroll = 0
 		
-		// move note up
+		// scroll up
 		if (isKeyPressedRepeat("w") && ChartState.scrollStep > 0) {
+			if (!ChartState.paused) ChartState.paused = true
 			if (isKeyDown("shift")) stepsToScroll = -10
 			else stepsToScroll = -1
 			ChartState.scrollStep += stepsToScroll;
 		}
 
-		// move note down
+		// scroll down
 		else if (isKeyPressedRepeat("s") && ChartState.scrollStep < ChartState.conductor.totalSteps - 1) {
+			if (!ChartState.paused) ChartState.paused = true
 			if (isKeyDown("shift")) stepsToScroll = 10
 			else stepsToScroll = 1
 			ChartState.scrollStep += stepsToScroll;
@@ -237,6 +238,14 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	/** The main event, draws everything so i don't have to use objects */
 	onDraw(() => {
+		ChartState.conductor.bpmChanges.forEach((ev, index) => {
+			drawText({
+				text: `Time: ${ev.time.toFixed(2)} | BPM: ${ev.value} BPM`,
+				pos: vec2(5, height() / 2 + 20 * index),
+				size: 20,
+			})
+		})
+		
 		drawCheckerboard(ChartState)
 		drawAllNotes(ChartState)
 		drawStrumline(ChartState)
@@ -263,8 +272,10 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	// Behaviour for placing and selecting notes
 	onMousePress("left", () => {
 		if (gameDialog.isOpen) return;
-		const time = ChartState.conductor.stepToTime(ChartState.hoveredStep, ChartState.conductor.stepInterval)
 		let note = getCurrentHoveredNote()
+		if (!note) return;
+		
+		const time = ChartState.conductor.stepToTime(ChartState.hoveredStep, ChartState.conductor.stepInterval)
 	
 		if (!ChartState.isCursorInGrid) {
 			ChartState.resetSelectedNotes()
@@ -349,6 +360,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 			// thinking WAY too hard for a simple sound effect lol!
 			const diff = newStepOfLeading - ChartState.stepForDetune
 			const baseDetune = Math.abs(moveToDetune(ChartState.selectionBox.leadingNote.move)) * 0.5
+			
 			playSound("noteMove", { detune: baseDetune * diff })
 			ChartState.takeSnapshot();
 		}
@@ -407,7 +419,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		ChartState.paused = !ChartState.paused
 	
 		if (ChartState.paused == false) {
-			let newTime = ChartState.conductor.stepToTime(ChartState.scrollStep, ChartState.conductor.stepInterval)
+			let newTime = ChartState.conductor.stepToTime(ChartState.scrollStep)
 			if (newTime == 0) newTime = 0.01
 			ChartState.conductor.audioPlay.seek(newTime)
 		}
@@ -433,7 +445,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		}
 	})
 
-	// animate a dancer
+	// animate the dancer
 	onNoteHit((note) => {
 		dummyDancer.doMove(note.move)
 	})

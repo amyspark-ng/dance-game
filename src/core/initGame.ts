@@ -41,7 +41,7 @@ export function INITIAL_SCENE() {
 	
 	// goScene("songselect", { index: 0 } as paramsSongSelect)
 	
-	goScene("charteditor", { song: getSong("bopeebo") } as paramsChartEditor )
+	goScene("charteditor", { song: getSong("unholy-blight") } as paramsChartEditor )
 	
 	// goScene("results", { GameState: {
 	// 	song: getSong("bopeebo"),

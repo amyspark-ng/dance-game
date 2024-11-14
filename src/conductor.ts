@@ -1,5 +1,6 @@
 import { triggerEvent } from "./core/events";
 import { customAudioPlay } from "./core/plugins/features/sound";
+import { utils } from "./utils";
 
 /*  
 	=== Some explanations about conducting and music ===
@@ -33,10 +34,17 @@ import { customAudioPlay } from "./core/plugins/features/sound";
 	Mostly used in fnf and rhythm games, but it's pretty helpful to code tons of stuff :)
 */
 
+/** Dummy class for the bpm change event */
+export class BpmChangeEV {
+	time: number;
+	value: number;
+}
+
+/** Options to create a conductor */
 type conductorOpts = {
 	audioPlay: customAudioPlay;
-	bpm: number,
-	bpmChanges: { time: number, bpm: number }[]
+	initialBPM: number,
+	bpmChanges: BpmChangeEV[]
 	timeSignature: [number, number],
 	offset?: number,
 }
@@ -68,11 +76,14 @@ export class Conductor {
 	currentBeat: number = 0;
 	currentMeasure: number = 0;
 
+	/** The BPM the song starts at */
+	initialBPM: number = 100;
+
 	/** The bpm of the song on the audioPlay */
 	BPM: number = 100;
 
 	/** The bpm changes of the song */
-	bpmChanges: { time: number, bpm: number }[] = [];
+	bpmChanges: BpmChangeEV[] = [];
 
 	/** Wheter the conductor is playing */
 	paused: boolean = false;
@@ -91,7 +102,7 @@ export class Conductor {
 
 	/** Get which time of a song is a certain step */
 	timeToStep(timeInSeconds: number, lengthOfStep: number = this.stepInterval) {
-		return Math.floor(timeInSeconds / lengthOfStep)
+		return Math.floor(timeInSeconds / lengthOfStep);
 	}
 
 	/** Get which step of a song is a certain time */
@@ -102,34 +113,39 @@ export class Conductor {
 	/** Wheter the offset for the song has already passed */
 	private started: boolean = false
 
-	/** Changes the bpm */
-	setBPM(newBpm = 100) {
-		this.BPM = newBpm
+	private updateIntervals() {
+		this.beatInterval = 60 / this.BPM
+		this.stepInterval = this.beatInterval / this.stepsPerBeat
+
+		this.currentBeat = Math.floor(this.timeInSeconds / this.beatInterval);
+		this.currentStep = Math.floor(this.timeInSeconds / this.stepInterval);
+		this.currentMeasure = Math.floor(this.currentBeat / this.beatsPerMeasure);
+	}
+
+	getBpmAtTime(time: number) {
+		return this.bpmChanges.find(ev => ev.time < time)?.value ?? this.BPM
 	}
 
 	/** Function that runs at the start of the conductor */
-	add(offset?:number) {
-		this.beatInterval = 60 / this.BPM;
-	
+	add(offset:number = 0) {
 		this.stepsPerBeat = this.timeSignature[0];
 		this.beatsPerMeasure = this.timeSignature[1];
 	
-		this.stepInterval = this.beatInterval / this.stepsPerBeat;
-	
 		this.currentBeat = 0
 		this.currentStep = 0
-		this.timeInSeconds = -offset
+		if (offset > 0) this.timeInSeconds = -offset
+		else this.timeInSeconds = 0
 	}
 
 	/** Update function that should run onUpdate so the conductor gets updated */
 	update() {
 		if (this.timeInSeconds >= 0) this.audioPlay.paused = this.paused;
-		if (this.paused) return;
-
+		
 		this.timeSignature[0] = this.stepsPerBeat;
 		this.timeSignature[1] = this.beatsPerMeasure;
-
+		
 		if (this.timeInSeconds < 0) {
+			if (this.paused) return;
 			this.timeInSeconds += dt()
 			this.audioPlay.paused = true
 			this.started = false
@@ -137,18 +153,20 @@ export class Conductor {
 
 		// if it has to start playing and hasn't started playing, play!!
 		else if (this.timeInSeconds >= 0) {
-			this.timeInSeconds = this.audioPlay.time()
+			if (!this.paused) {
+				this.timeInSeconds = this.audioPlay.time()
+			};
 			
 			// sets the bpm
 			this.bpmChanges.forEach((bpmChange, index) => {
-				const previousBpmChange = this.bpmChanges[index - 1]
+				let previousBpmChange:BpmChangeEV = this.bpmChanges[index - 1]
 				
 				if (previousBpmChange) {
-					if (this.timeInSeconds >= bpmChange.time && this.timeInSeconds >= previousBpmChange.time) this.BPM = bpmChange.bpm
+					if (this.timeInSeconds >= bpmChange.time && this.timeInSeconds >= previousBpmChange.time) this.BPM = bpmChange.value
 				}
 				
 				else {
-					if (this.timeInSeconds >= bpmChange.time) this.BPM = bpmChange.bpm
+					if (this.timeInSeconds >= bpmChange.time) this.BPM = bpmChange.value
 				}
 			})
 
@@ -161,12 +179,7 @@ export class Conductor {
 			let oldStep = this.currentStep;
 			let oldMeasure = this.currentMeasure;
 			
-			this.beatInterval = 60 / this.BPM
-			this.stepInterval = this.beatInterval / this.stepsPerBeat
-
-			this.currentBeat = Math.floor(this.timeInSeconds / this.beatInterval);
-			this.currentStep = Math.floor(this.timeInSeconds / this.stepInterval);
-			this.currentMeasure = Math.floor(this.currentBeat / this.beatsPerMeasure);
+			this.updateIntervals()
 
 			if (oldBeat != this.currentBeat) {
 				triggerEvent("onBeatHit")
@@ -187,15 +200,24 @@ export class Conductor {
 	}
 
 	constructor(opts: conductorOpts) {
+		this.initialBPM = opts.initialBPM;
+		this.BPM = this.initialBPM;
 		this.audioPlay = opts.audioPlay;
-		this.BPM = opts.bpm;
 		this.timeSignature = opts.timeSignature
 		this.bpmChanges = opts.bpmChanges;
 
 		opts.offset = opts.offset ?? 0
+		// why does this even exist and why isn't it ran here in the constructor????
+
+		// insert at start
+		this.bpmChanges.unshift({ time: 0, value: this.initialBPM } as BpmChangeEV)
+
 		this.add(opts.offset)
 		this.audioPlay?.stop();
 	
+		// i almost krilled myself because of this
+		this.updateIntervals()
+
 		onUpdate(() => {
 			this.update()
 		})

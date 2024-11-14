@@ -136,6 +136,25 @@ export function drawAllNotes(ChartState:StateChart) {
 			})
 		}
 	})
+
+	ChartState.song.chart.events.forEach((ev, index) => {
+		let evPos = ChartState.stepToPos(ChartState.conductor.timeToStep(ev.time))
+		evPos.y -= ChartState.SQUARE_SIZE.y * ChartState.smoothScrollStep
+
+		const notePosLerped = lerp(evPos, evPos, ChartState.SCROLL_LERP_VALUE)
+		
+		if (conditionsForDrawing(evPos.y, ChartState.SQUARE_SIZE)) {
+			drawText({
+				width: width(),
+				size: ChartState.SQUARE_SIZE.y,
+				text: ev.value.toString(),
+				pos: notePosLerped,
+				opacity: ChartState.scrollTime >= ev.time ? 1 : 0.5,
+				anchor: "center",
+				align: "left"
+			})
+		}
+	})
 }
 
 /** Draw the strumline line */
@@ -386,9 +405,10 @@ export function addTopLeftInfo(ChartState:StateChart) {
 					"Produced by": ChartState.song.manifest.artist,
 					"Charted by": ChartState.song.manifest.charter,
 					"": null,
+					// these things are wrong btw, except bpm at given time
 					"Current step": ChartState.scrollStep,
 					"Current beat": Math.floor(ChartState.scrollStep / ChartState.conductor.stepsPerBeat),
-					"Current BPM": ChartState.conductor.BPM,
+					"Current BPM": ChartState.conductor.getBpmAtTime(ChartState.scrollTime),
 				}
 				
 				function formatTheInfo() {
@@ -436,8 +456,6 @@ export function addTopLeftInfo(ChartState:StateChart) {
 	})
 
 	onBeatHit(() => {
-		console.log(ChartState.conductor.currentBeat)
-		console.log(ChartState.conductor.stepsPerBeat)
 		const beatIndex = ChartState.conductor.currentBeat % ChartState.conductor.stepsPerBeat
 		
 		// if is the last prop in the list
