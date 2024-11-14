@@ -71,20 +71,31 @@ export function drawCheckerboard(ChartState: StateChart) {
 	for (let i = 0; i < ChartState.conductor.totalSteps; i++) {
 		const newPos = ChartState.stepToPos(i)
 		newPos.y -= ChartState.SQUARE_SIZE.y * ChartState.smoothScrollStep
-
+		newPos.x = width() / 2
+		
 		const baseColor = WHITE.darken(100)
 		const lighter = baseColor.darken(10)
 		const darker = baseColor.darken(50)
 		const col = i % 2 == 0 ? lighter : darker
+		const oppositeCol = col == lighter ? darker : lighter
 
 		// draws the background chess board squares etc
 		if (conditionsForDrawing(newPos.y, ChartState.SQUARE_SIZE)) {
-			// chessboard square
+			// note square
 			drawRect({
 				width: ChartState.SQUARE_SIZE.x,
 				height: ChartState.SQUARE_SIZE.y,
 				color: col,
 				pos: vec2(newPos.x, newPos.y),
+				anchor: "center",
+			})
+
+			// event square
+			drawRect({
+				width: ChartState.SQUARE_SIZE.x,
+				height: ChartState.SQUARE_SIZE.y,
+				color: oppositeCol,
+				pos: vec2(newPos.x + ChartState.SQUARE_SIZE.x, newPos.y),
 				anchor: "center",
 			})
 		}
@@ -98,16 +109,16 @@ export function drawCheckerboard(ChartState: StateChart) {
 					color: WHITE,
 					size: ChartState.SQUARE_SIZE.x / 2,
 					anchor: "center",
-					pos: vec2(newPos.x + ChartState.SQUARE_SIZE.x, newPos.y)
+					pos: vec2(newPos.x - ChartState.SQUARE_SIZE.x, newPos.y)
 				})
 				
 				// line beat
 				drawRect({
-					width: ChartState.SQUARE_SIZE.x,
+					width: ChartState.SQUARE_SIZE.x * 2,
 					height: 5,
 					color: darker.darken(70),
-					anchor: "center",
-					pos: vec2(newPos.x, newPos.y - ChartState.SQUARE_SIZE.y / 2 - 2.5),
+					anchor: "left",
+					pos: vec2(newPos.x - ChartState.SQUARE_SIZE.x / 2, newPos.y - ChartState.SQUARE_SIZE.y / 2 - 2.5),
 				})
 			}
 		}
@@ -139,6 +150,7 @@ export function drawAllNotes(ChartState:StateChart) {
 
 	ChartState.song.chart.events.forEach((ev, index) => {
 		let evPos = ChartState.stepToPos(ChartState.conductor.timeToStep(ev.time))
+		evPos.x = ChartState.INITIAL_POS.x
 		evPos.y -= ChartState.SQUARE_SIZE.y * ChartState.smoothScrollStep
 
 		const notePosLerped = lerp(evPos, evPos, ChartState.SCROLL_LERP_VALUE)
@@ -390,7 +402,8 @@ export function addDialogButtons(ChartState:StateChart) {
 	})
 }
 
-export function addTopLeftInfo(ChartState:StateChart) {
+/** Adds all the info on the left side of the screen */
+export function addLeftInfo(ChartState:StateChart) {
 	const xPos = 15
 	
 	// maybe this shouldn't be here
@@ -406,9 +419,9 @@ export function addTopLeftInfo(ChartState:StateChart) {
 					"Charted by": ChartState.song.manifest.charter,
 					"": null,
 					// these things are wrong btw, except bpm at given time
-					"Current step": ChartState.scrollStep,
-					"Current beat": Math.floor(ChartState.scrollStep / ChartState.conductor.stepsPerBeat),
-					"Current BPM": ChartState.conductor.getBpmAtTime(ChartState.scrollTime),
+					"Current step": utils.formatNumber(ChartState.scrollStep, { type: "simple" }),
+					"Current beat": utils.formatNumber(ChartState.conductor.currentBeat, { type: "simple" }),
+					"Current BPM": ChartState.conductor.getCurrentBPMchange(ChartState.scrollTime).value,
 				}
 				
 				function formatTheInfo() {
@@ -481,4 +494,46 @@ export function addTopLeftInfo(ChartState:StateChart) {
 			})
 		}
 	})
+
+	let bpmChangeButtons = []
+
+	// buttons for skipping to time changes
+	onUpdate(() => {
+		ChartState.song.chart.events.filter((ev) => ev.id == "change-bpm").forEach((ev, index) => {
+			if (!bpmChangeButtons.includes(ev)) {
+				bpmChangeButtons.push(ev)
+				const btnThing = add([
+					text("", { size: 20, align: "left" }),
+					pos(xPos, center().y + index * 20),
+					area(),
+					anchor("left"),
+					opacity(),
+					"hover",
+					{
+						update() {
+							this.text = `Time: ${ev.time} | BPM: ${ev.value}` + ` ${ChartState.conductor.timeInSeconds >= ev.time ? "✓" : "X"}`
+						}
+					}
+				])
+
+				btnThing.onUpdate(() => {
+					if (ChartState.conductor.timeInSeconds >= ev.time) {
+						if (btnThing.isHovering()) btnThing.opacity = lerp(btnThing.opacity, 1, 0.5)
+						else btnThing.opacity = lerp(btnThing.opacity, 0.75, 0.5)
+					}
+
+					else { 
+						if (btnThing.isHovering()) btnThing.opacity = lerp(btnThing.opacity, 0.75, 0.5)
+						else btnThing.opacity = lerp(btnThing.opacity, 0.5, 0.5)
+					}
+				})
+
+				btnThing.onClick(() => {
+					if (!ChartState.paused) ChartState.paused = true
+					ChartState.scrollStep = ChartState.conductor.timeToStep(ev.time - 1)
+				})
+			}
+		})
+	})
+
 }

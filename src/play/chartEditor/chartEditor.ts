@@ -9,7 +9,7 @@ import { deepDiffMapper, utils } from "../../utils";
 import { moveToColor } from "../objects/note";
 import { paramsGameScene } from "../playstate";
 import { addDummyDancer, addFloatingText, cameraControllerHandling, handlerForChangingInput, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, StateChart } from "./chartEditorBackend";
-import { addTopLeftInfo, addDialogButtons, drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, drawPlayBar, drawSelectGizmo, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE } from "./chartEditorElements";
+import { addLeftInfo, addDialogButtons, drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, drawPlayBar, drawSelectGizmo, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE } from "./chartEditorElements";
 import { handleAudioInput } from "../../fileManaging";
 import { GameSave } from "../../core/gamesave";
 import { gameDialog, openChartAboutDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog";
@@ -52,8 +52,6 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	ChartState.params = params;
 	ChartState.paused = true
 
-	console.log("seek time: " + params.seekTime)
-
 	ChartState.scrollStep = ChartState.conductor.timeToStep(params.seekTime) 
 	ChartState.curSnapshotIndex = 0
 
@@ -68,6 +66,14 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	})
 
 	gameCursor.show()
+
+	gameCursor.onDraw(() => {
+		drawSprite({
+			sprite: GameSave.noteskin + "_" + ChartState.currentMove,
+			width: gameCursor.width * 0.75,
+			height: gameCursor.height * 0.75,
+		})
+	})
 
 	onUpdate(() => {
 		ChartState.song.chart.notes.forEach((note, index) => {
@@ -87,7 +93,8 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		}
 		
 		else {
-			ChartState.scrollTime = ChartState.conductor.stepToTime(ChartState.scrollStep + (ChartState.strumlineStepOffset))
+			ChartState.scrollTime = ChartState.conductor.stepToTime(ChartState.scrollStep)
+			ChartState.conductor.timeInSeconds = ChartState.scrollTime
 		}
 
 		ChartState.smoothScrollStep = lerp(ChartState.smoothScrollStep, ChartState.scrollStep, SCROLL_LERP_VALUE)
@@ -238,14 +245,6 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	/** The main event, draws everything so i don't have to use objects */
 	onDraw(() => {
-		ChartState.conductor.bpmChanges.forEach((ev, index) => {
-			drawText({
-				text: `Time: ${ev.time.toFixed(2)} | BPM: ${ev.value} BPM`,
-				pos: vec2(5, height() / 2 + 20 * index),
-				size: 20,
-			})
-		})
-		
 		drawCheckerboard(ChartState)
 		drawAllNotes(ChartState)
 		drawStrumline(ChartState)
@@ -273,7 +272,6 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	onMousePress("left", () => {
 		if (gameDialog.isOpen) return;
 		let note = getCurrentHoveredNote()
-		if (!note) return;
 		
 		const time = ChartState.conductor.stepToTime(ChartState.hoveredStep, ChartState.conductor.stepInterval)
 	
@@ -419,8 +417,10 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		ChartState.paused = !ChartState.paused
 	
 		if (ChartState.paused == false) {
-			let newTime = ChartState.conductor.stepToTime(ChartState.scrollStep)
-			if (newTime == 0) newTime = 0.01
+			// all of this is kinda like a math.ceil(), fixes the weird stutter
+			const timeToStep = ChartState.conductor.timeToStep(ChartState.conductor.timeInSeconds)
+			ChartState.scrollStep = timeToStep
+			const newTime = ChartState.conductor.stepToTime(ChartState.scrollStep)
 			ChartState.conductor.audioPlay.seek(newTime)
 		}
 	})
@@ -455,7 +455,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	})
 
 	addDialogButtons(ChartState)
-	addTopLeftInfo(ChartState)
+	addLeftInfo(ChartState)
 
 	getTreeRoot().on("dialogOpen", () => ChartState.paused = true)
 })}

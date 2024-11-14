@@ -372,25 +372,23 @@ export function mouseAnimationHandling(ChartState:StateChart) {
 	}
 	
 	// then the animations for game dialog
-	if (gameDialog.isOpen) {
-		const hoveredObjects = get("hover", { recursive: true })
-		hoveredObjects.forEach((obj) => {
-			if (!obj.isHovering()) {
-				if (obj.dragging) gameCursor.do("down")
-				else {
-					if (hoveredObjects.some((otherObj) => otherObj.isHovering())) return
-					else gameCursor.do("default")
-				}
-			}
-
+	const hoveredObjects = get("hover", { recursive: true })
+	hoveredObjects.forEach((obj) => {
+		if (!obj.isHovering()) {
+			if (obj.dragging) gameCursor.do("down")
 			else {
-				if (obj.dragging || isMouseDown("left")) gameCursor.do("down")
-				else gameCursor.do("up")
+				if (hoveredObjects.some((otherObj) => otherObj.isHovering())) return
+				else gameCursor.do("default")
 			}
-		})
+		}
 
-		return;
-	}
+		else {
+			if (obj.dragging || isMouseDown("left")) gameCursor.do("down")
+			else gameCursor.do("up")
+		}
+	})
+
+	if (gameDialog.isOpen || hoveredObjects.some((obj) => obj.isHovering())) return;
 	
 	// then the ones for the actual charting state
 	// kinda hardcoded, this probably just means the player is loading something nothing  else

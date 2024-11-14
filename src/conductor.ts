@@ -40,6 +40,11 @@ export class BpmChangeEV {
 	value: number;
 }
 
+// what
+class cumulativeTime {
+	step: number; cumulativeTime: number; bpm: number;
+}
+
 /** Options to create a conductor */
 type conductorOpts = {
 	audioPlay: customAudioPlay;
@@ -88,6 +93,9 @@ export class Conductor {
 	/** Wheter the conductor is playing */
 	paused: boolean = false;
 
+	/** Wheter the offset for the song has already passed */
+	private started: boolean = false
+
 	/** Gets how many beats are in the song */
 	get totalBeats() {
 		// Converts the the duration to minutes, BPM is how many beats there are in a minute
@@ -100,45 +108,117 @@ export class Conductor {
 		return this.stepsPerBeat * this.totalBeats
 	}
 
+	/** Converts a given time to a beat */
+	timeToBeat(time: number) {
+		return this.timeToStep(time) / this.stepsPerBeat 
+	}
+
+	// /**
+	//  * Given a time in beats and fractional beats, return a time in milliseconds.
+	//  * @param beatTime The time in beats.
+	//  * @return The time in milliseconds.
+	//  */
+	// beatToTime(beat:number) : number {
+	// 	if (this.bpmChanges.length == 0) {
+	// 		return beat * this.stepInterval * this.stepsPerBeat;
+	// 	}
+
+	// 	else {
+	// 		let resultMs = 0
+
+	// 		let lastTimeChange:BpmChangeEV = this.bpmChanges[0]
+	// 		for (const ev of this.bpmChanges) {
+	// 			// if (beat >= this.s)
+	// 		}
+	// 	}
+		
+	// 	if (timeChanges.length == 0)
+	// 	{
+	// 	// Assume a constant BPM equal to the forced value.
+	// 	return beatTime * stepLengthMs * Constants.STEPS_PER_BEAT;
+	// 	}
+	// 	else
+	// 	{
+	// 	var resultMs:Float = 0;
+
+	// 	var lastTimeChange:SongTimeChange = timeChanges[0];
+	// 	for (timeChange in timeChanges)
+	// 	{
+	// 		if (beatTime >= timeChange.beatTime)
+	// 		{
+	// 		lastTimeChange = timeChange;
+	// 		resultMs = lastTimeChange.timeStamp;
+	// 		}
+	// 		else
+	// 		{
+	// 		// This time change is after the requested time.
+	// 		break;
+	// 		}
+	// 	}
+
+	// 	var lastStepLengthMs:Float = ((Constants.SECS_PER_MIN / lastTimeChange.bpm) * Constants.MS_PER_SEC) / timeSignatureNumerator;
+	// 	resultMs += (beatTime - lastTimeChange.beatTime) * lastStepLengthMs * Constants.STEPS_PER_BEAT;
+
+	// 	return resultMs;
+	// 	}
+	// }
+
 	/** Get which time of a song is a certain step */
 	timeToStep(timeInSeconds: number, lengthOfStep: number = this.stepInterval) {
 		return Math.floor(timeInSeconds / lengthOfStep);
 	}
-
+	
 	/** Get which step of a song is a certain time */
 	stepToTime(step: number, lengthOfStep: number = this.stepInterval) {
-		return step * lengthOfStep
+		if (this.bpmChanges.length == 0) {
+			return step * lengthOfStep
+		}
+
+		else {
+			var resultMs = 0;
+
+			var lastTimeChange:BpmChangeEV = this.bpmChanges[0];
+			
+			for (const ev of this.bpmChanges) {
+				if (step >= this.timeToBeat(ev.time) * this.stepsPerBeat) {
+					lastTimeChange = ev
+					resultMs = ev.time
+				}
+	
+				else {
+					break;
+				}
+			}
+
+			let lastStepLengthMs = ((60 / lastTimeChange.value) * 1000) / this.stepsPerBeat;
+			resultMs += (step - (this.timeToBeat(lastTimeChange.time)) * this.stepsPerBeat) * lastStepLengthMs;
+	
+			// is in miliseconds due to being copied from funkin
+			return resultMs / 1000;
+		}
 	}
 
-	/** Wheter the offset for the song has already passed */
-	private started: boolean = false
-
+	/** Updates some intervals */
 	private updateIntervals() {
 		this.beatInterval = 60 / this.BPM
 		this.stepInterval = this.beatInterval / this.stepsPerBeat
 
-		this.currentBeat = Math.floor(this.timeInSeconds / this.beatInterval);
-		this.currentStep = Math.floor(this.timeInSeconds / this.stepInterval);
+		const timeInSteps = this.timeInSeconds / this.stepInterval
+		const timeInBeats = timeInSteps / this.stepsPerBeat
+
+		this.currentStep = Math.floor(timeInSteps);
+		this.currentBeat = Math.floor(timeInBeats);
 		this.currentMeasure = Math.floor(this.currentBeat / this.beatsPerMeasure);
 	}
 
-	getBpmAtTime(time: number) {
-		return this.bpmChanges.find(ev => ev.time < time)?.value ?? this.BPM
-	}
-
-	/** Function that runs at the start of the conductor */
-	add(offset:number = 0) {
-		this.stepsPerBeat = this.timeSignature[0];
-		this.beatsPerMeasure = this.timeSignature[1];
-	
-		this.currentBeat = 0
-		this.currentStep = 0
-		if (offset > 0) this.timeInSeconds = -offset
-		else this.timeInSeconds = 0
+	/** Get the BPM at a certain time */
+	getCurrentBPMchange(time: number = this.timeInSeconds) : BpmChangeEV {
+		const lastEvent = [...this.bpmChanges].reverse().find(ev => ev.time <= time);
+		return lastEvent ?? { time: 0, value: this.initialBPM };
 	}
 
 	/** Update function that should run onUpdate so the conductor gets updated */
-	update() {
+	private update() {
 		if (this.timeInSeconds >= 0) this.audioPlay.paused = this.paused;
 		
 		this.timeSignature[0] = this.stepsPerBeat;
@@ -153,23 +233,12 @@ export class Conductor {
 
 		// if it has to start playing and hasn't started playing, play!!
 		else if (this.timeInSeconds >= 0) {
+			this.BPM = this.getCurrentBPMchange(this.timeInSeconds).value
+			
 			if (!this.paused) {
 				this.timeInSeconds = this.audioPlay.time()
 			};
 			
-			// sets the bpm
-			this.bpmChanges.forEach((bpmChange, index) => {
-				let previousBpmChange:BpmChangeEV = this.bpmChanges[index - 1]
-				
-				if (previousBpmChange) {
-					if (this.timeInSeconds >= bpmChange.time && this.timeInSeconds >= previousBpmChange.time) this.BPM = bpmChange.value
-				}
-				
-				else {
-					if (this.timeInSeconds >= bpmChange.time) this.BPM = bpmChange.value
-				}
-			})
-
 			if (!this.started) {
 				this.started = true
 				getTreeRoot().trigger("conductorStart")
@@ -181,6 +250,7 @@ export class Conductor {
 			
 			this.updateIntervals()
 
+			if (this.paused) return;
 			if (oldBeat != this.currentBeat) {
 				triggerEvent("onBeatHit")
 			}
@@ -207,12 +277,14 @@ export class Conductor {
 		this.bpmChanges = opts.bpmChanges;
 
 		opts.offset = opts.offset ?? 0
-		// why does this even exist and why isn't it ran here in the constructor????
-
-		// insert at start
-		this.bpmChanges.unshift({ time: 0, value: this.initialBPM } as BpmChangeEV)
-
-		this.add(opts.offset)
+		
+		this.stepsPerBeat = this.timeSignature[0];
+		this.beatsPerMeasure = this.timeSignature[1];
+	
+		this.currentBeat = 0
+		this.currentStep = 0
+		if (opts.offset > 0) this.timeInSeconds = -opts.offset
+		else this.timeInSeconds = 0
 		this.audioPlay?.stop();
 	
 		// i almost krilled myself because of this

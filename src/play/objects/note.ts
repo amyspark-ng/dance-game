@@ -35,19 +35,6 @@ export function moveToColor(move: Move) : Color {
 	}
 }
 
-export interface noteComp extends Comp {
-	/** The chartnote this note gameobj corresponds to */
-	chartNote: ChartNote,
-}
-
-/** Component for note game objects */
-export function note() : noteComp {
-	return {
-		id: "note",
-		chartNote: { time: 0, move: "left" } as ChartNote,
-	}
-}
-
 /** How much time will take for the note to reach the strum */
 export let TIME_FOR_STRUM = 1.25
 
@@ -60,11 +47,13 @@ export function addNote(chartNote: ChartNote, GameState:StateGame) {
 	const noteObj = add([
 		sprite(GameSave.noteskin +  "_" + chartNote.move),
 		pos(width() + NOTE_WIDTH, getStrumline().pos.y),
-		note(),
 		anchor("center"),
 		opacity(),
 		z(2),
 		"noteObj",
+		{
+			chartNote: { time: 0, move: "left" } as ChartNote
+		}
 	])
 
 	noteObj.chartNote = chartNote;

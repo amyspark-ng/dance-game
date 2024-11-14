@@ -148,14 +148,15 @@ export function restartSong(GameState:StateGame) {
 
 		let rotationDirection = choose([-10, 10])
 		const newdumbnote = add([
-			sprite(GameSave.noteskin +  "_" + noteObj.chartNote.dancerMove),
+			sprite(GameSave.noteskin +  "_" + noteObj.chartNote.move),
 			pos(noteObj.pos),
 			anchor(noteObj.anchor),
 			opacity(noteObj.opacity),
 			z(noteObj.z),
 			body(),
-			area(),
+			area({ collisionIgnore: [ "dumbNote" ] }),
 			rotate(0),
+			"dumbNote",
 			{
 				update() {
 					this.angle += rotationDirection
