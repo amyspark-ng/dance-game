@@ -36,6 +36,7 @@ import { customAudioPlay } from "./core/plugins/features/sound";
 type conductorOpts = {
 	audioPlay: customAudioPlay;
 	bpm: number,
+	bpmChanges: { time: number, bpm: number }[]
 	timeSignature: [number, number],
 	offset?: number,
 }
@@ -49,26 +50,29 @@ export class Conductor {
 	timeInSeconds: number = 0;
 
 	/** Beats per measure */
-	timeSignature: [number, number]
+	timeSignature: [number, number] = [4, 4]
 
 	/** Interval between steps */
-	stepInterval: number;
+	stepInterval: number = 0;
 
 	/** Interval between beats */
-	beatInterval: number;
+	beatInterval: number = 0;
 
 	/** Is the top (0) number of the timeSignature */
-	stepsPerBeat: number; 
+	stepsPerBeat: number = 0; 
 
 	/** Is the bottom (1) number of the timeSignature */
-	beatsPerMeasure: number;
+	beatsPerMeasure: number = 0;
 
-	currentStep: number;
-	currentBeat: number;
-	currentMeasure: number;
+	currentStep: number = 0;
+	currentBeat: number = 0;
+	currentMeasure: number = 0;
 
 	/** The bpm of the song on the audioPlay */
 	BPM: number = 100;
+
+	/** The bpm changes of the song */
+	bpmChanges: { time: number, bpm: number }[] = [];
 
 	/** Wheter the conductor is playing */
 	paused: boolean = false;
@@ -99,10 +103,8 @@ export class Conductor {
 	private started: boolean = false
 
 	/** Changes the bpm */
-	changeBpm(newBpm = 100) {
+	setBPM(newBpm = 100) {
 		this.BPM = newBpm
-		this.beatInterval = 60 / this.BPM
-		this.stepInterval = this.beatInterval / this.stepsPerBeat
 	}
 
 	/** Function that runs at the start of the conductor */
@@ -137,6 +139,19 @@ export class Conductor {
 		else if (this.timeInSeconds >= 0) {
 			this.timeInSeconds = this.audioPlay.time()
 			
+			// sets the bpm
+			this.bpmChanges.forEach((bpmChange, index) => {
+				const previousBpmChange = this.bpmChanges[index - 1]
+				
+				if (previousBpmChange) {
+					if (this.timeInSeconds >= bpmChange.time && this.timeInSeconds >= previousBpmChange.time) this.BPM = bpmChange.bpm
+				}
+				
+				else {
+					if (this.timeInSeconds >= bpmChange.time) this.BPM = bpmChange.bpm
+				}
+			})
+
 			if (!this.started) {
 				this.started = true
 				getTreeRoot().trigger("conductorStart")
@@ -146,6 +161,9 @@ export class Conductor {
 			let oldStep = this.currentStep;
 			let oldMeasure = this.currentMeasure;
 			
+			this.beatInterval = 60 / this.BPM
+			this.stepInterval = this.beatInterval / this.stepsPerBeat
+
 			this.currentBeat = Math.floor(this.timeInSeconds / this.beatInterval);
 			this.currentStep = Math.floor(this.timeInSeconds / this.stepInterval);
 			this.currentMeasure = Math.floor(this.currentBeat / this.beatsPerMeasure);
@@ -172,6 +190,7 @@ export class Conductor {
 		this.audioPlay = opts.audioPlay;
 		this.BPM = opts.bpm;
 		this.timeSignature = opts.timeSignature
+		this.bpmChanges = opts.bpmChanges;
 
 		opts.offset = opts.offset ?? 0
 		this.add(opts.offset)

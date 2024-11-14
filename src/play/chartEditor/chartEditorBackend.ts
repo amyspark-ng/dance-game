@@ -232,12 +232,12 @@ export class StateChart {
 		this.song.manifest.uuid_DONT_CHANGE = uuidv4()
 	
 		loadSprite(this.song.manifest.uuid_DONT_CHANGE + "-cover", "sprites/defaultCover.png")
+		loadSound(this.song.manifest.uuid_DONT_CHANGE + "-audio", "new-song-audio.ogg")
 
 		this.conductor = new Conductor({
-			audioPlay: playSound("new-song-audio"),
+			audioPlay: playSound(this.song.manifest.uuid_DONT_CHANGE + "-audio"),
 			bpm: this.song.manifest.initial_bpm,
 			timeSignature: this.song.manifest.time_signature,
-			offset: 0,
 		})
 
 		openChartInfoDialog(this)

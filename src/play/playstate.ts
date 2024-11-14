@@ -97,12 +97,17 @@ export function setupSong(params: paramsGameScene, GameState:StateGame) {
 	params.seekTime = params.seekTime ?? 0
 	GameState.params.seekTime = params.seekTime
 
+	const bpmEvents = [
+		{ time: 125, bpm: 180 },
+	]
+
 	// then we actually setup the conductor and play the song
 	GameState.conductor = new Conductor({
 		audioPlay: playSound(`${params.songZip.manifest.uuid_DONT_CHANGE}-audio`, { volume: GameSave.sound.music.volume, speed: params.playbackSpeed }),
 		bpm: params.songZip.manifest.initial_bpm * params.playbackSpeed,
 		timeSignature: GameState.song.manifest.time_signature,
-		offset: TIME_FOR_STRUM
+		offset: TIME_FOR_STRUM,
+		bpmChanges: bpmEvents,
 	})
 
 	// there are the notes that have been spawned yet

@@ -436,6 +436,8 @@ export function addTopLeftInfo(ChartState:StateChart) {
 	})
 
 	onBeatHit(() => {
+		console.log(ChartState.conductor.currentBeat)
+		console.log(ChartState.conductor.stepsPerBeat)
 		const beatIndex = ChartState.conductor.currentBeat % ChartState.conductor.stepsPerBeat
 		
 		// if is the last prop in the list

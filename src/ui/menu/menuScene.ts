@@ -2,7 +2,7 @@ import { GameSave } from "../../core/gamesave";
 import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { goScene } from "../../core/scenes"
 import { paramsChartEditor } from "../../play/chartEditor/chartEditorBackend";
-import { SongChart } from "../../play/song";
+import { SongContent } from "../../play/song";
 import { utils } from "../../utils";
 import { paramsSongSelect } from "../songselectscene"
 
@@ -105,7 +105,7 @@ export function MenuScene() { scene("menu", (params: paramsMenuScene) => {
 	creditsButton.index = 3
 
 	const chartButton = addMenuButton("Chart Editor", () => {
-		// goScene("charteditor", { dancer: GameSave.dancer, song: new SongChart() } as paramsChartEditor)
+		goScene("charteditor", { dancer: GameSave.dancer, song: null } as paramsChartEditor)
 	})
 	chartButton.index = 4
 

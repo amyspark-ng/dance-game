@@ -14,6 +14,7 @@ import { paramsChartEditor } from "../play/chartEditor/chartEditorBackend"
 import { getCurrent, WebviewWindow } from "@tauri-apps/api/window"
 import { paramsResultsScene } from "../play/ui/resultsScene"
 import { Scoring } from "../play/objects/scoring"
+import { SongContent } from "../play/song"
 
 /** Class that handles some variables related to the game as a product */
 export class PRODUCT {

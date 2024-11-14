@@ -2,10 +2,10 @@
 import { Conductor } from "../../conductor";
 import { onBeatHit, onNoteHit, onStepHit, triggerEvent } from "../../core/events";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
-import { playSound } from "../../core/plugins/features/sound";
+import { customAudioPlay, playSound } from "../../core/plugins/features/sound";
 import { transitionToScene } from "../../core/scenes";
 import { fadeOut } from "../../core/transitions/fadeOutTransition";
-import { utils } from "../../utils";
+import { deepDiffMapper, utils } from "../../utils";
 import { moveToColor } from "../objects/note";
 import { paramsGameScene } from "../playstate";
 import { addDummyDancer, addFloatingText, cameraControllerHandling, handlerForChangingInput, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, StateChart } from "./chartEditorBackend";
@@ -24,19 +24,37 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	const ChartState = new StateChart()
 	setBackground(Color.fromArray(ChartState.bgColor))
 
-	ChartState.conductor = new Conductor({
-		audioPlay: playSound(`${params.song.manifest.uuid_DONT_CHANGE}-audio`, { channel: GameSave.sound.music, speed: params.playbackSpeed }),
-		bpm: params.song.manifest.initial_bpm * params.playbackSpeed,
-		timeSignature: params.song.manifest.time_signature,
-		offset: 0,
-	})
+	const newSong = params.song == null
 
-	ChartState.conductor.audioPlay.seek(params.seekTime)
+	// this sets the chartstate.sogn prop to new songcontent()
+	// also sets the conductor
+	if (newSong) {
+		ChartState.createNewSong()
+	} 
 
-	// IMPORTANT
-	ChartState.paused = true
-	ChartState.song = params.song;
+	else {
+		// IMPORTANT
+		ChartState.song = params.song;
+		
+		const bpmEvents = [
+			{ time: 0, bpm: 160, },
+			{ time: 125, bpm: 180 },
+			{ time: 195, bpm: 160 },
+		]
+
+		ChartState.conductor = new Conductor({
+			audioPlay: playSound(`${ChartState.song.manifest.uuid_DONT_CHANGE}-audio`, { channel: GameSave.sound.music, speed: params.playbackSpeed }),
+			bpm: ChartState.song.manifest.initial_bpm * params.playbackSpeed,
+			timeSignature: ChartState.song.manifest.time_signature,
+			offset: 0,
+			bpmChanges: bpmEvents
+		})
+		
+		ChartState.conductor.audioPlay.seek(params.seekTime)
+	}
+	
 	ChartState.params = params;
+	ChartState.paused = true
 	ChartState.scrollStep = ChartState.conductor.timeToStep(params.seekTime, ChartState.conductor.stepInterval)
 	ChartState.curSnapshotIndex = 0
 	
@@ -53,8 +71,6 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	gameCursor.show()
 
 	onUpdate(() => {
-		ChartState.conductor.changeBpm(ChartState.song.manifest.initial_bpm)
-		
 		ChartState.song.chart.notes.forEach((note, index) => {
 			note.time = clamp(note.time, 0, songDuration)
 			
