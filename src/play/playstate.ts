@@ -1,5 +1,5 @@
 // Handles the setup for the game scene and some other important stuff
-import { BpmChangeEV, Conductor } from "../conductor";
+import { Conductor } from "../conductor";
 import { triggerEvent } from "../core/events";
 import { GameSave } from "../core/gamesave";
 import { PRODUCT } from "../core/initGame";
@@ -103,7 +103,7 @@ export function setupSong(params: paramsGameScene, GameState:StateGame) {
 		initialBPM: params.songZip.manifest.initial_bpm * params.playbackSpeed,
 		timeSignature: GameState.song.manifest.time_signature,
 		offset: TIME_FOR_STRUM,
-		bpmChanges: GameState.song.chart.events.filter((ev) => ev.id == "change-bpm") as BpmChangeEV[],
+		bpmChanges: GameState.song.chart.events.filter((ev) => ev.id == "change-bpm"),
 	})
 
 	// there are the notes that have been spawned yet

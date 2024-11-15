@@ -47,6 +47,7 @@ export function dialog_addTextbox(opts: textboxOpt) {
 		"textbox",
 		{
 			value: opts.startingValue,
+			canClick: false,
 			focus: false,
 			update() {
 				this.text = opts.formatFunc(this.value)
@@ -70,6 +71,7 @@ export function dialog_addTextbox(opts: textboxOpt) {
 
 	// sets to focused true
 	textboxBg.onClick(() => {
+		if (!textbox.canClick) return;
 		if (textbox.focus) return;
 		// this will run if the textbox wasn't on focus
 

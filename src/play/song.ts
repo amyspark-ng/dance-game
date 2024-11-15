@@ -43,7 +43,7 @@ export class ChartEvent {
 	 * 2. change-bpm
 	 * 3. play-anim
 	 */
-	id: string;
+	id?: string;
 	/** The new value the event will set
 	 * 
 	 * If it's the play anim event the value may be something like "victory"

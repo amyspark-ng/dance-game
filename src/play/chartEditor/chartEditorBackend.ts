@@ -7,7 +7,7 @@ import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { Conductor } from "../../conductor";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { gameDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog";
-import { SongContent } from "../song";
+import { ChartEvent, SongContent } from "../song";
 import { playSound } from "../../core/plugins/features/sound";
 import JSZip from "jszip";
 import TOML from "smol-toml"
@@ -41,6 +41,9 @@ export class StateChart {
 
 	/** How many steps scrolled */
 	scrollStep: number = 0;
+
+	/** Is ChartState.scrollstep but lerped */
+	lerpScrollStep = 0
 
 	/** Wheter the selection box is being shown */
 	selectionBox = {
@@ -85,17 +88,26 @@ export class StateChart {
 	/** When you hold down a key, the cursor will change color to signify the move */
 	currentMove: Move = "up"
 	
-	/** The Y pos of the cursor (is the pos of the step you're currently hovering) */
-	cursorYPos = 0;
+	/** The pos of the cursor (is the pos of the step you're currently hovering) */
+	cursorPos = vec2(1);
 	
-	/** The row the cursor is in (the step) */
+	/** is the cursor pos but lerped */
+	lerpCursorPos = vec2()
+
+	/** What row the cursor is in (ranges from -0.5 to 9.5) */
 	cursorGridRow = 0;
 	
 	/** The step that is currently being hovered */
 	hoveredStep = 0;
 	
-	/** Wheter the cursor is in a grid or not (allows for click) */
+	/** Wheter the cursor is in the grid at all */
 	isCursorInGrid = false
+	
+	/** Wheter the cursor is in a grid or not */
+	isInNoteGrid = false
+
+	/** Wheter the cursor is in the events grid */
+	isInEventGrid = false
 
 	/** The scale of the strumline line */
 	strumlineScale = vec2(1);
@@ -106,14 +118,11 @@ export class StateChart {
 	/** The scale of the cursor */
 	cursorScale = vec2(1)
 
-	/** Is ChartState.scrollstep but it is constantly being lerped towards it */
-	smoothScrollStep = 0
-
-	/** is the cursorYPos but it is constantly being lerped towards it */
-	smoothCursorYPos = 0
-
 	/** Array of selected notes */
 	selectedNotes: ChartNote[] = []
+
+	/** Array of selected events */
+	selectedEvents: ChartEvent[] = []
 
 	/** Every time you do something, the new state will be pushed to this array */
 	snapshots:StateChart[] = []
@@ -153,13 +162,13 @@ export class StateChart {
 	/** Add a note to the chart
 	 * @returns The added note
 	 */
-	addNoteToChart(time: number, move: Move) {
+	placeNote(time: number, move: Move) {
 		this.stepForDetune = 0
 		
 		const noteWithSameTimeButDifferentMove = this.song.chart.notes.find(note => note.time == time && note.move != move || note.time == time && note.move == move)
 		// if there's a note already at that time but a different move, remove it
 		if (noteWithSameTimeButDifferentMove) {
-			this.removeNoteFromChart(noteWithSameTimeButDifferentMove)
+			this.deleteNote(noteWithSameTimeButDifferentMove)
 		}
 		
 		const newNote:ChartNote = { time: time, move: move }
@@ -176,7 +185,7 @@ export class StateChart {
 	/** Remove a note from the chart
 	 * @returns The removed note
 	 */
-	removeNoteFromChart(noteToRemove:ChartNote) : ChartNote {
+	deleteNote(noteToRemove:ChartNote) : ChartNote {
 		const oldNote = this.song.chart.notes.find(note => note == noteToRemove)
 		if (oldNote == undefined) return;
 		
@@ -184,6 +193,22 @@ export class StateChart {
 		this.selectedNotes = utils.removeFromArr(oldNote, this.selectedNotes)
 		
 		return oldNote;
+	}
+
+	/** Adds an event to the events array */
+	placeEvent(event: ChartEvent) {
+		this.song.chart.events.push(event)
+		this.selectedEvents.push(event)
+
+		return event;
+	}
+
+	deleteEvent(event: ChartEvent) {
+		const oldEvent = event
+
+		this.song.chart.events = utils.removeFromArr(oldEvent, this.song.chart.events)
+		this.selectedEvents = utils.removeFromArr(oldEvent, this.selectedEvents)
+		return oldEvent;
 	}
 
 	/** Pushes a snapshot of the current state of the chart */
@@ -308,11 +333,13 @@ export function selectionBoxHandler(ChartState:StateChart) {
 	if (isMouseReleased("left") && ChartState.selectionBox.canSelect) {
 		const theRect = new Rect(ChartState.selectionBox.pos, ChartState.selectionBox.width, ChartState.selectionBox.height)
 		const oldSelectedNotes = ChartState.selectedNotes
+		const oldSelectedEvents = ChartState.selectedEvents
 		ChartState.selectedNotes = []
+		ChartState.selectedEvents = []
 
 		ChartState.song.chart.notes.forEach((note) => {
 			let notePos = ChartState.stepToPos(ChartState.conductor.timeToStep(note.time))
-			notePos.y -= ChartState.SQUARE_SIZE.y * ChartState.smoothScrollStep
+			notePos.y -= ChartState.SQUARE_SIZE.y * ChartState.lerpScrollStep
 
 			const posInScreen = vec2(
 				notePos.x - ChartState.SQUARE_SIZE.x / 2,
@@ -324,8 +351,25 @@ export function selectionBoxHandler(ChartState:StateChart) {
 			}
 		})
 
+		ChartState.song.chart.events.forEach((ev) => {
+			let evPos = ChartState.stepToPos(ChartState.conductor.timeToStep(ev.time))
+			evPos.y -= ChartState.SQUARE_SIZE.y * ChartState.lerpScrollStep
+			evPos.x = ChartState.INITIAL_POS.x + ChartState.SQUARE_SIZE.x
+
+			const posInScreen = vec2(
+				evPos.x - ChartState.SQUARE_SIZE.x / 2,
+				evPos.y - ChartState.SQUARE_SIZE.y / 2
+			)
+	
+			if (theRect.contains(posInScreen)) {
+				ChartState.selectedEvents.push(ev)
+			}
+		})
+
 		const newSelectedNotes = ChartState.selectedNotes
-		if (oldSelectedNotes != newSelectedNotes) ChartState.takeSnapshot();
+		const newSelectedEvents = ChartState.selectedEvents
+		
+		if (oldSelectedNotes != newSelectedNotes || oldSelectedEvents != newSelectedEvents) ChartState.takeSnapshot();
 		
 		ChartState.selectionBox.clickPos = vec2(0, 0)
 		ChartState.selectionBox.points = [vec2(0, 0), vec2(0, 0), vec2(0, 0), vec2(0, 0)]

@@ -1,5 +1,5 @@
 // The actual scene for the chart editor
-import { BpmChangeEV, BpmChangeEV as bpmChangeEvent, Conductor } from "../../conductor";
+import { Conductor } from "../../conductor";
 import { onBeatHit, onNoteHit, onStepHit, triggerEvent } from "../../core/events";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { customAudioPlay, playSound } from "../../core/plugins/features/sound";
@@ -9,10 +9,11 @@ import { deepDiffMapper, utils } from "../../utils";
 import { moveToColor } from "../objects/note";
 import { paramsGameScene } from "../playstate";
 import { addDummyDancer, addFloatingText, cameraControllerHandling, handlerForChangingInput, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, StateChart } from "./chartEditorBackend";
-import { addLeftInfo, addDialogButtons, drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, drawPlayBar, drawSelectGizmo, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE } from "./chartEditorElements";
+import { addLeftInfo, addDialogButtons, drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, drawPlayBar, drawSelectSquares, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE } from "./chartEditorElements";
 import { handleAudioInput } from "../../fileManaging";
 import { GameSave } from "../../core/gamesave";
-import { gameDialog, openChartAboutDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog";
+import { bpmChangeDialog, gameDialog, openChartAboutDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog";
+import { ChartEvent } from "../song";
 
 export function ChartEditorScene() { scene("charteditor", (params: paramsChartEditor) => {
 	// had an issue with BPM being NaN but it was because since this wasn't defined then it was NaN
@@ -36,14 +37,12 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		// IMPORTANT
 		ChartState.song = params.song;
 		
-		const bpmChanges = ChartState.song.chart.events.filter((ev) => ev.id == "change-bpm") as BpmChangeEV[]
-	
 		ChartState.conductor = new Conductor({
 			audioPlay: playSound(`${ChartState.song.manifest.uuid_DONT_CHANGE}-audio`, { channel: GameSave.sound.music, speed: params.playbackSpeed }),
 			initialBPM: ChartState.song.manifest.initial_bpm * params.playbackSpeed,
 			timeSignature: ChartState.song.manifest.time_signature,
 			offset: 0,
-			bpmChanges: bpmChanges
+			bpmChanges: ChartState.song.chart.events.filter((ev) => ev.id == "change-bpm"),
 		})
 		
 		ChartState.conductor.audioPlay.seek(params.seekTime)
@@ -56,8 +55,6 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	ChartState.curSnapshotIndex = 0
 
 	ChartState.snapshots = [JSON.parse(JSON.stringify(ChartState))];
-	ChartState.selectedNotes = []
-	ChartState.clipboard = []
 
 	let songDuration = 0
 	getSound(`${ChartState.song.manifest.uuid_DONT_CHANGE}-audio`).onLoad((data) => {
@@ -76,6 +73,8 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	})
 
 	onUpdate(() => {
+		ChartState.conductor.bpmChanges = ChartState.song.chart.events.filter((ev) => ev.id == "change-bpm")
+		
 		ChartState.song.chart.notes.forEach((note, index) => {
 			note.time = clamp(note.time, 0, songDuration)
 			
@@ -97,7 +96,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 			ChartState.conductor.timeInSeconds = ChartState.scrollTime
 		}
 
-		ChartState.smoothScrollStep = lerp(ChartState.smoothScrollStep, ChartState.scrollStep, SCROLL_LERP_VALUE)
+		ChartState.lerpScrollStep = lerp(ChartState.lerpScrollStep, ChartState.scrollStep, SCROLL_LERP_VALUE)
 
 		// MOUSE COLOR
 		const currentColor = moveToColor(ChartState.currentMove)
@@ -105,9 +104,11 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		gameCursor.color = lerp(gameCursor.color, mouseColor, SCROLL_LERP_VALUE)
 
 		// MANAGES some stuff for selecting
-		ChartState.cursorYPos = Math.floor(gameCursor.pos.y / ChartState.SQUARE_SIZE.y) * ChartState.SQUARE_SIZE.y + ChartState.SQUARE_SIZE.y / 2 
-		ChartState.cursorGridRow = Math.floor(ChartState.cursorYPos / ChartState.SQUARE_SIZE.y) - 0.5
-		ChartState.smoothCursorYPos = lerp(ChartState.smoothCursorYPos, ChartState.cursorYPos, SCROLL_LERP_VALUE)
+		ChartState.cursorPos.y = Math.floor(gameCursor.pos.y / ChartState.SQUARE_SIZE.y) * ChartState.SQUARE_SIZE.y + ChartState.SQUARE_SIZE.y / 2 
+		ChartState.cursorPos.x = Math.floor(gameCursor.pos.x / ChartState.SQUARE_SIZE.x) * ChartState.SQUARE_SIZE.x + ChartState.SQUARE_SIZE.x - 8
+		ChartState.lerpCursorPos = lerp(ChartState.lerpCursorPos, ChartState.cursorPos, SCROLL_LERP_VALUE)
+		
+		ChartState.cursorGridRow = Math.floor(ChartState.cursorPos.y / ChartState.SQUARE_SIZE.y) - 0.5
 		ChartState.hoveredStep = ChartState.scrollStep + ChartState.cursorGridRow
 
 		// Handle move change input 
@@ -143,9 +144,15 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 			if (ChartState.selectedNotes.length == 0) return
 			ChartState.takeSnapshot()
 			ChartState.selectedNotes.forEach((note) => {
-				ChartState.removeNoteFromChart(note)
+				ChartState.deleteNote(note)
 			})
 			playSound("noteRemove", { detune: rand(-50, 50) })
+			
+			if (ChartState.selectedEvents.length == 0) return
+			ChartState.selectedEvents.forEach((ev) => {
+				ChartState.deleteEvent(ev)
+			})
+			playSound("eventCog", { detune: rand(-50, 50) })
 		}
 
 		// undo
@@ -188,7 +195,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 			playSound("noteCopy", { detune: rand(0, 25) })
 			ChartState.clipboard = ChartState.selectedNotes
 			addFloatingText(`Cut ${ChartState.selectedNotes.length} notes!`);
-			ChartState.selectedNotes.forEach((note) => ChartState.removeNoteFromChart(note))
+			ChartState.selectedNotes.forEach((note) => ChartState.deleteNote(note))
 		}
 		
 		// paste
@@ -201,7 +208,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 			const newStepToTime = ChartState.conductor.stepToTime(ChartState.hoveredStep - 3.5)
 			ChartState.clipboard.forEach((note) => {
-				const newNote = ChartState.addNoteToChart(newStepToTime + note.time, note.move)
+				const newNote = ChartState.placeNote(newStepToTime + note.time, note.move)
 				// i have to add it and thenn find  the index in notes :)
 				const indexInNotes = ChartState.song.chart.notes.indexOf(newNote)
 				if (indexInNotes == -1) return
@@ -253,13 +260,18 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		
 		if (gameDialog.isOpen) return
 		drawCursor(ChartState)
-		drawSelectGizmo(ChartState)
+		drawSelectSquares(ChartState)
 	})
 
 	/** Gets the current note that is being hovered */
 	function getCurrentHoveredNote() {
 		const time = ChartState.conductor.stepToTime(ChartState.hoveredStep, ChartState.conductor.stepInterval)
 		return ChartState.song.chart.notes.find((note) => ChartState.conductor.timeToStep(note.time, ChartState.conductor.stepInterval) == ChartState.conductor.timeToStep(time, ChartState.conductor.stepInterval))
+	}
+
+	function getCurrentHoveredEvent() {
+		const time = ChartState.conductor.stepToTime(ChartState.hoveredStep, ChartState.conductor.stepInterval)
+		return ChartState.song.chart.events.find((ev) => ChartState.conductor.timeToStep(ev.time, ChartState.conductor.stepInterval) == ChartState.conductor.timeToStep(time, ChartState.conductor.stepInterval))
 	}
 
 	/** When you press left this stores the difference of that note to the leading note, this way i can move several notes */
@@ -271,40 +283,83 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	// Behaviour for placing and selecting notes
 	onMousePress("left", () => {
 		if (gameDialog.isOpen) return;
-		let note = getCurrentHoveredNote()
 		
-		const time = ChartState.conductor.stepToTime(ChartState.hoveredStep, ChartState.conductor.stepInterval)
+		function noteBehaviour() {
+			let note = getCurrentHoveredNote()
+				
+			// there's already a note in that place
+			if (note) {
+				// if the note is not already selected
+				if (!ChartState.selectedNotes.includes(note)) {
+					// if control is not down then reset the selected notes
+					if (!isKeyDown("control")) ChartState.resetSelectedNotes()
+					ChartState.selectedNotes.push(note) 
+					ChartState.takeSnapshot();
+				}
+			}
 	
+			// there's no note in that place
+			else {
+				ChartState.resetSelectedNotes()
+				note = ChartState.placeNote(hoveredTime, ChartState.currentMove)
+				playSound("noteAdd", { detune: moveToDetune(note.move) })
+				ChartState.takeSnapshot();
+			}
+	
+			ChartState.selectionBox.leadingNote = note
+			ChartState.stepForDetune = ChartState.conductor.timeToStep(note.time)
+			differencesToLeading = ChartState.song.chart.notes.map((note) => {
+				if (ChartState.selectionBox.leadingNote == undefined) return
+				return ChartState.conductor.timeToStep(note.time) - ChartState.conductor.timeToStep(ChartState.selectionBox.leadingNote.time)
+			})
+		}
+
+		function eventBehaviour() {
+			let event = getCurrentHoveredEvent()
+
+			if (event) {
+				if (!isKeyDown("shift")) {
+					if (ChartState.selectedEvents.includes(event)) return;
+
+					ChartState.selectedEvents.push(event)
+					if (!isKeyDown("control")) ChartState.selectedEvents = []
+					ChartState.selectedEvents.push(event)
+					return;
+				};
+
+				// will return the bpm textbox
+				const infoThing = bpmChangeDialog({ value: Number(event.value), time: event.time }, ChartState)
+				
+				let updateThing = infoThing.dialog.onUpdate(() => {
+					ChartState.song.chart.events.find((ev) => ev == event).value = Number(infoThing.bpmTextbox.value)		
+					ChartState.conductor.bpmChanges.find((bpmChange) => Math.round(bpmChange.time) == Math.round(event.time)).value = Number(infoThing.bpmTextbox.value)
+				})
+
+				infoThing.dialog.onClose(() => updateThing.cancel())
+			}
+
+			else {
+				ChartState.selectedEvents = []
+				ChartState.placeEvent({ id: "change-bpm", time: hoveredTime, value: 120 })
+				playSound("noteAdd", { detune: rand(-50, 50) })
+				playSound("eventCog", { detune: rand(-50, 50) })
+				ChartState.takeSnapshot()
+			}
+		}
+		
+		// the current hovered time
+		const hoveredTime = ChartState.conductor.stepToTime(ChartState.hoveredStep, ChartState.conductor.stepInterval)
+		
+		// if it's not on the grid at all simply reset selected notes
 		if (!ChartState.isCursorInGrid) {
 			ChartState.resetSelectedNotes()
 			return;	
 		}
-
-		// there's already a note in that place
-		if (note) {
-			// if the note is not already selected
-			if (!ChartState.selectedNotes.includes(note)) {
-				// if control is not down then reset the selected notes
-				if (!isKeyDown("control")) ChartState.resetSelectedNotes()
-				ChartState.selectedNotes.push(note) 
-				ChartState.takeSnapshot();
-			}
-		}
-
-		// there's no note in that place
+		
 		else {
-			ChartState.resetSelectedNotes()
-			note = ChartState.addNoteToChart(time, ChartState.currentMove)
-			playSound("noteAdd", { detune: moveToDetune(note.move) })
-			ChartState.takeSnapshot();
+			if (ChartState.isInNoteGrid) noteBehaviour()
+			else if (ChartState.isInEventGrid) eventBehaviour()
 		}
-
-		ChartState.selectionBox.leadingNote = note
-		ChartState.stepForDetune = ChartState.conductor.timeToStep(note.time)
-		differencesToLeading = ChartState.song.chart.notes.map((note) => {
-			if (ChartState.selectionBox.leadingNote == undefined) return
-			return ChartState.conductor.timeToStep(note.time) - ChartState.conductor.timeToStep(ChartState.selectionBox.leadingNote.time)
-		})
 	})
 
 	// Resets the detune for moving notes
@@ -316,12 +371,27 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	// Removing notes
 	onMousePress("right", () => {
 		if (gameDialog.isOpen) return;
-		if (!ChartState.isCursorInGrid) return
-		const note = getCurrentHoveredNote()
-		if (!note) return
-		ChartState.removeNoteFromChart(note)
-		playSound("noteRemove", { detune: moveToDetune(note.move) })
-		ChartState.takeSnapshot();
+		if (!ChartState.isCursorInGrid) return;
+		
+		function noteBehaviour() {
+			const note = getCurrentHoveredNote()
+			if (!note) return
+			ChartState.deleteNote(note)
+			playSound("noteRemove", { detune: moveToDetune(note.move) })
+			ChartState.takeSnapshot();
+		}
+
+		function eventBehaviour() {
+			const hoveredEvent = getCurrentHoveredEvent()
+			if (!hoveredEvent) return
+			const ev = ChartState.deleteEvent(hoveredEvent)
+			playSound("noteRemove")
+			playSound("eventCog", { detune: rand(-50, 50) })
+			ChartState.takeSnapshot();
+		}
+
+		if (ChartState.isInNoteGrid) noteBehaviour()
+		else if (ChartState.isInEventGrid) eventBehaviour()
 	})
 
 	// Behaviour for moving notes

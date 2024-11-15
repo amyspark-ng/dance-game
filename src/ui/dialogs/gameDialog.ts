@@ -6,7 +6,7 @@ import { dialog_addSlider, dialog_addTextbox, dialog_changeCover, dialog_changeS
 import { StateChart } from "../../play/chartEditor/chartEditorBackend";
 import { utils } from "../../utils";
 import { format } from "path";
-import { SongContent } from "../../play/song";
+import { ChartEvent, SongContent } from "../../play/song";
 
 /** Adds the dialog square object */
 function addDialogueThing(opts:openDialogOpts) {
@@ -25,7 +25,12 @@ function addDialogueThing(opts:openDialogOpts) {
 		{
 			close() {
 				this.destroy()
+				this.trigger("close")
 			},
+
+			onClose(action: () => void) {
+				return this.on("close", action)
+			}
 		}
 	])
 
@@ -284,6 +289,8 @@ export function openChartAboutDialog() {
 		"Left click - Place note",
 		"Middle click - Copy note color",
 		"Right click - Delete note",
+		"Shift + Left click - Open event dialog",
+		null,
 		"1, 2, 3, 4 - Change the note color",
 		"W, S - Moves up or down the camera",
 		"Space - Pause/Unpause",
@@ -322,4 +329,38 @@ export function addNotification(coloring: Color, text: string, duration: number 
 		z(1000),
 		color(),
 	])
+}
+
+export function bpmChangeDialog(event: ChartEvent, ChartState:StateChart) {
+	let canClick = false
+	wait(0.1, () => canClick = true)
+	
+	const dialog = gameDialog.openDialog({
+		width: 300,
+		height: 80,
+	})
+
+	const bpmTextbox = dialog_addTextbox({
+		title: "BPM",
+		formatFunc: (str: string) => {
+			const bpm = parseInt(str)
+			if (isNaN(bpm)) return "1"
+			// short it to 3 characters long
+			else return bpm.toString()
+		},
+		conditionsForTyping: (currentString: string, ch: string) => {
+			return !isNaN(parseInt(ch)) && currentString.length <= 3
+		},
+		fallBackValue: "100",
+		startingValue: event.value.toString(),
+		position: vec2(-dialog.width / 2 + 10, 0),
+		dialog: dialog,
+	})
+
+	dialog.onUpdate(() => {
+		bpmTextbox.canClick = canClick
+		event.value = parseInt(bpmTextbox.value)
+	})
+
+	return { dialog, bpmTextbox };
 }

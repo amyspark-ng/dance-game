@@ -70,7 +70,7 @@ export function drawPlayBar(ChartState: StateChart) {
 export function drawCheckerboard(ChartState: StateChart) {
 	for (let i = 0; i < ChartState.conductor.totalSteps; i++) {
 		const newPos = ChartState.stepToPos(i)
-		newPos.y -= ChartState.SQUARE_SIZE.y * ChartState.smoothScrollStep
+		newPos.y -= ChartState.SQUARE_SIZE.y * ChartState.lerpScrollStep
 		newPos.x = width() / 2
 		
 		const baseColor = WHITE.darken(100)
@@ -130,7 +130,7 @@ export function drawAllNotes(ChartState:StateChart) {
 	// draws the notes
 	ChartState.song.chart.notes.forEach((note, index) => {
 		let notePos = ChartState.stepToPos(ChartState.conductor.timeToStep(note.time))
-		notePos.y -= ChartState.SQUARE_SIZE.y * ChartState.smoothScrollStep
+		notePos.y -= ChartState.SQUARE_SIZE.y * ChartState.lerpScrollStep
 
 		const notePosLerped = lerp(notePos, notePos, ChartState.SCROLL_LERP_VALUE)
 		
@@ -150,20 +150,18 @@ export function drawAllNotes(ChartState:StateChart) {
 
 	ChartState.song.chart.events.forEach((ev, index) => {
 		let evPos = ChartState.stepToPos(ChartState.conductor.timeToStep(ev.time))
-		evPos.x = ChartState.INITIAL_POS.x
-		evPos.y -= ChartState.SQUARE_SIZE.y * ChartState.smoothScrollStep
+		evPos.x = ChartState.INITIAL_POS.x + ChartState.SQUARE_SIZE.x
+		evPos.y -= ChartState.SQUARE_SIZE.y * ChartState.lerpScrollStep
 
-		const notePosLerped = lerp(evPos, evPos, ChartState.SCROLL_LERP_VALUE)
+		const evPosLerp = lerp(evPos, evPos, ChartState.SCROLL_LERP_VALUE)
 		
 		if (conditionsForDrawing(evPos.y, ChartState.SQUARE_SIZE)) {
-			drawText({
-				width: width(),
-				size: ChartState.SQUARE_SIZE.y,
-				text: ev.value.toString(),
-				pos: notePosLerped,
+			drawSprite({
+				sprite: "bpmEvent",
+				width: ChartState.SQUARE_SIZE.x,
+				pos: evPosLerp,
 				opacity: ChartState.scrollTime >= ev.time ? 1 : 0.5,
 				anchor: "center",
-				align: "left"
 			})
 		}
 	})
@@ -186,14 +184,37 @@ export function drawStrumline(ChartState:StateChart) {
 export function drawCursor(ChartState:StateChart) {
 	const strumlineYPos = ChartState.SQUARE_SIZE.y * ChartState.strumlineStepOffset
 	
+	const minLeft = center().x - ChartState.SQUARE_SIZE.x / 2
+	const maxRight = (minLeft + ChartState.SQUARE_SIZE.x * 2) - 8
+
 	// if the distance between the cursor and the square is small enough then highlight it
-	if (gameCursor.pos.x <= center().x + ChartState.SQUARE_SIZE.x / 2 && gameCursor.pos.x >= center().x - ChartState.SQUARE_SIZE.x / 2) {
-		if (ChartState.scrollStep == 0 && gameCursor.pos.y <= strumlineYPos) ChartState.isCursorInGrid = false
-		else if (ChartState.scrollStep == ChartState.conductor.totalSteps && gameCursor.pos.y >= strumlineYPos) ChartState.isCursorInGrid = false
-		else ChartState.isCursorInGrid = true
+	if (utils.isInRange(gameCursor.pos.x, maxRight, minLeft)) {
+		if (ChartState.scrollStep == 0 && gameCursor.pos.y <= strumlineYPos) {
+			ChartState.isInEventGrid = false
+			ChartState.isInNoteGrid = false
+		}
+		
+		else if (ChartState.scrollStep == ChartState.conductor.totalSteps && gameCursor.pos.y >= strumlineYPos) {
+			ChartState.isInEventGrid = false
+			ChartState.isInNoteGrid = false
+		}
+		
+		else {
+			if (gameCursor.pos.x >= minLeft && gameCursor.pos.x <= maxRight - ChartState.SQUARE_SIZE.x) ChartState.isInNoteGrid = true
+			else ChartState.isInNoteGrid = false
+			
+			if (gameCursor.pos.x >= minLeft + ChartState.SQUARE_SIZE.x && gameCursor.pos.x <= maxRight) ChartState.isInEventGrid = true
+			else ChartState.isInEventGrid = false
+		}
 	}
 	
-	else ChartState.isCursorInGrid = false
+	else {
+		ChartState.isInEventGrid = false
+		ChartState.isInNoteGrid = false
+	}
+
+	// if it's on either of them then it's in the grid
+	ChartState.isCursorInGrid = ChartState.isInNoteGrid || ChartState.isInEventGrid
 
 	if (ChartState.isCursorInGrid) {
 		// cursor = the square you're hovering over
@@ -207,7 +228,7 @@ export function drawCursor(ChartState:StateChart) {
 			outline: {
 				width: 8, color: moveToColor(ChartState.currentMove).darken(50)
 			},
-			pos: vec2(center().x, ChartState.smoothCursorYPos),
+			pos: ChartState.lerpCursorPos,
 			anchor: "center",
 			fixed: true,
 		})
@@ -266,15 +287,64 @@ export function drawCameraControlAndNotes(ChartState:StateChart) {
 
 		drawRect(noteOpts)
 	})
+
+	ChartState.song.chart.events.forEach((ev) => {
+		const noteStep = ChartState.conductor.timeToStep(ev.time)
+		const xPos = width() - 25
+		const yPos = map(noteStep, 0, ChartState.conductor.totalSteps, 0, height() - ChartState.SQUARE_SIZE.y)
+
+		const isInSelected = ChartState.selectedEvents.includes(ev)
+
+		const selectColor = BLUE.lighten(50)
+		let theColor = WHITE
+		if (isInSelected) theColor = utils.blendColors(theColor, selectColor, 0.25)
+
+		const noteOpts = {
+			width: 50 / 5,
+			height: 50 / 20,
+			color: theColor,
+			anchor: "center",
+			pos: vec2(xPos, yPos),
+			opacity: 0.5,
+		} as DrawRectOpt
+
+		if (isInSelected) {
+			noteOpts.outline = {
+				color: selectColor,
+				width: 2,
+			}
+		}
+
+		drawRect(noteOpts)
+	})
 }
 
-/** Draw the gizmo for the selected note */
-export function drawSelectGizmo(ChartState:StateChart) {
-	// draw the selected gizmo
-	
+/** Draw the thing for the selected note */
+export function drawSelectSquares(ChartState:StateChart) {
 	ChartState.selectedNotes.forEach((note) => {
 		const stepOfSelectedNote = ChartState.conductor.timeToStep(note.time) - ChartState.scrollStep
 		const gizmoPos = ChartState.stepToPos(stepOfSelectedNote)
+		const celesteColor = BLUE.lighten(150)
+	
+		drawRect({
+			width: ChartState.SQUARE_SIZE.x,
+			height: ChartState.SQUARE_SIZE.y,
+			anchor: "center",
+			pos: vec2(gizmoPos.x, gizmoPos.y),
+			opacity: 0.5,
+			color: celesteColor,
+			outline: {
+				width: 5,
+				opacity: 1,
+				color: celesteColor
+			},
+		})
+	})
+	
+	ChartState.selectedEvents.forEach((ev) => {
+		const stepOfSelectedNote = ChartState.conductor.timeToStep(ev.time) - ChartState.scrollStep
+		const gizmoPos = ChartState.stepToPos(stepOfSelectedNote)
+		gizmoPos.x += ChartState.SQUARE_SIZE.x
 		const celesteColor = BLUE.lighten(150)
 	
 		drawRect({
@@ -421,7 +491,7 @@ export function addLeftInfo(ChartState:StateChart) {
 					// these things are wrong btw, except bpm at given time
 					"Current step": utils.formatNumber(ChartState.scrollStep, { type: "simple" }),
 					"Current beat": utils.formatNumber(ChartState.conductor.currentBeat, { type: "simple" }),
-					"Current BPM": ChartState.conductor.getCurrentBPMchange(ChartState.scrollTime).value,
+					"Current BPM": ChartState.conductor.getCurrentChange(ChartState.scrollTime).value,
 				}
 				
 				function formatTheInfo() {
@@ -502,38 +572,47 @@ export function addLeftInfo(ChartState:StateChart) {
 		ChartState.song.chart.events.filter((ev) => ev.id == "change-bpm").forEach((ev, index) => {
 			if (!bpmChangeButtons.includes(ev)) {
 				bpmChangeButtons.push(ev)
-				const btnThing = add([
+				const skipBtn = add([
 					text("", { size: 20, align: "left" }),
 					pos(xPos, center().y + index * 20),
 					area(),
 					anchor("left"),
 					opacity(),
 					"hover",
+					"skipBtn",
 					{
+						ev: ev,
 						update() {
 							this.text = `Time: ${ev.time} | BPM: ${ev.value}` + ` ${ChartState.conductor.timeInSeconds >= ev.time ? "✓" : "X"}`
 						}
 					}
 				])
 
-				btnThing.onUpdate(() => {
+				skipBtn.onUpdate(() => {
 					if (ChartState.conductor.timeInSeconds >= ev.time) {
-						if (btnThing.isHovering()) btnThing.opacity = lerp(btnThing.opacity, 1, 0.5)
-						else btnThing.opacity = lerp(btnThing.opacity, 0.75, 0.5)
+						if (skipBtn.isHovering()) skipBtn.opacity = lerp(skipBtn.opacity, 1, 0.5)
+						else skipBtn.opacity = lerp(skipBtn.opacity, 0.75, 0.5)
 					}
 
 					else { 
-						if (btnThing.isHovering()) btnThing.opacity = lerp(btnThing.opacity, 0.75, 0.5)
-						else btnThing.opacity = lerp(btnThing.opacity, 0.5, 0.5)
+						if (skipBtn.isHovering()) skipBtn.opacity = lerp(skipBtn.opacity, 0.75, 0.5)
+						else skipBtn.opacity = lerp(skipBtn.opacity, 0.5, 0.5)
 					}
+
+					// if the event doesn't exist anymore, auto destroy itself
+					if (!ChartState.song.chart.events.includes(ev)) skipBtn.destroy()
 				})
 
-				btnThing.onClick(() => {
+				skipBtn.onClick(() => {
 					if (!ChartState.paused) ChartState.paused = true
 					ChartState.scrollStep = ChartState.conductor.timeToStep(ev.time - 1)
 				})
 			}
 		})
-	})
 
+		get("skipBtn").forEach((obj) => {
+			// sort them vertically based on the time of their events
+			
+		})
+	})
 }

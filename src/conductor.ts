@@ -1,8 +1,9 @@
 import { triggerEvent } from "./core/events";
 import { customAudioPlay } from "./core/plugins/features/sound";
+import { ChartEvent } from "./play/song";
 import { utils } from "./utils";
 
-/*  
+/*
 	=== Some explanations about conducting and music ===
 	I had to learn music theory from start, props to flagBearer for teaching some of the code related stuff
 	And webadazzz <3 for teaching me some other music theory
@@ -19,7 +20,7 @@ import { utils } from "./utils";
 
 		eg:
 		- 4/4 = 4 beats per measure = 16 steps per measure
-		- 3/4 = 3 beats per measure = 12 steps per measure 
+		- 3/4 = 3 beats per measure = 12 steps per measure
 
 	'Step' is every little square we can place a note in, the numerator of the time signature.
 		Dictates how many steps there will be in a beat
@@ -34,22 +35,11 @@ import { utils } from "./utils";
 	Mostly used in fnf and rhythm games, but it's pretty helpful to code tons of stuff :)
 */
 
-/** Dummy class for the bpm change event */
-export class BpmChangeEV {
-	time: number;
-	value: number;
-}
-
-// what
-class cumulativeTime {
-	step: number; cumulativeTime: number; bpm: number;
-}
-
 /** Options to create a conductor */
 type conductorOpts = {
 	audioPlay: customAudioPlay;
 	initialBPM: number,
-	bpmChanges: BpmChangeEV[]
+	bpmChanges: ChartEvent[]
 	timeSignature: [number, number],
 	offset?: number,
 }
@@ -72,14 +62,19 @@ export class Conductor {
 	beatInterval: number = 0;
 
 	/** Is the top (0) number of the timeSignature */
-	stepsPerBeat: number = 0; 
+	stepsPerBeat: number = 0;
 
 	/** Is the bottom (1) number of the timeSignature */
 	beatsPerMeasure: number = 0;
 
+	/** Time in steps */
+	stepTime: number = 0;
+	
+	/** Time in beats */
+	beatTime: number = 0;
+
 	currentStep: number = 0;
 	currentBeat: number = 0;
-	currentMeasure: number = 0;
 
 	/** The BPM the song starts at */
 	initialBPM: number = 100;
@@ -88,13 +83,36 @@ export class Conductor {
 	BPM: number = 100;
 
 	/** The bpm changes of the song */
-	bpmChanges: BpmChangeEV[] = [];
+	bpmChanges: ChartEvent[] = [];
 
 	/** Wheter the conductor is playing */
 	paused: boolean = false;
 
 	/** Wheter the offset for the song has already passed */
 	private started: boolean = false
+
+	/** Adds a bmm change and then sorts them by time */
+	addBPMChange(time: number, bpm: number) {
+		this.bpmChanges.push({ time, value: bpm })
+		this.bpmChanges.sort((a, b) => a.time - b.time)
+	}
+
+	beatToTime(beat: number) {
+		// var step = beat * 4;
+		// var lastChange = getBPMFromStep(step);
+		// return lastChange.songTime + ((step - lastChange.stepTime) / (lastChange.bpm / 60)/4) * 1000; // TODO: make less shit and take BPM into account PROPERLY
+	}
+
+	/** Removes a bpm change and then sorts them by time */
+	removeBPMChange(time: number, bpm: number) {
+		if (!this.bpmChanges.find((ev) => ev.time == time && ev.value == bpm)) throw new Error("Tried removing a bpm change from the conductor that doesn't exist")
+		console.log("before removal", this.bpmChanges)
+		this.bpmChanges = utils.removeFromArr({ time, value: bpm }, this.bpmChanges)
+		console.log("after removal", this.bpmChanges)
+		this.bpmChanges.sort((a, b) => a.time - b.time)
+	}
+
+	// TODO:  i guess i'll just have to add step time to all the fuckin events fuck my small little penis lfie
 
 	/** Gets how many beats are in the song */
 	get totalBeats() {
@@ -110,92 +128,20 @@ export class Conductor {
 
 	/** Converts a given time to a beat */
 	timeToBeat(time: number) {
-		return this.timeToStep(time) / this.stepsPerBeat 
+		return time / this.beatInterval
 	}
 
-	// /**
-	//  * Given a time in beats and fractional beats, return a time in milliseconds.
-	//  * @param beatTime The time in beats.
-	//  * @return The time in milliseconds.
-	//  */
-	// beatToTime(beat:number) : number {
-	// 	if (this.bpmChanges.length == 0) {
-	// 		return beat * this.stepInterval * this.stepsPerBeat;
-	// 	}
-
-	// 	else {
-	// 		let resultMs = 0
-
-	// 		let lastTimeChange:BpmChangeEV = this.bpmChanges[0]
-	// 		for (const ev of this.bpmChanges) {
-	// 			// if (beat >= this.s)
-	// 		}
-	// 	}
-		
-	// 	if (timeChanges.length == 0)
-	// 	{
-	// 	// Assume a constant BPM equal to the forced value.
-	// 	return beatTime * stepLengthMs * Constants.STEPS_PER_BEAT;
-	// 	}
-	// 	else
-	// 	{
-	// 	var resultMs:Float = 0;
-
-	// 	var lastTimeChange:SongTimeChange = timeChanges[0];
-	// 	for (timeChange in timeChanges)
-	// 	{
-	// 		if (beatTime >= timeChange.beatTime)
-	// 		{
-	// 		lastTimeChange = timeChange;
-	// 		resultMs = lastTimeChange.timeStamp;
-	// 		}
-	// 		else
-	// 		{
-	// 		// This time change is after the requested time.
-	// 		break;
-	// 		}
-	// 	}
-
-	// 	var lastStepLengthMs:Float = ((Constants.SECS_PER_MIN / lastTimeChange.bpm) * Constants.MS_PER_SEC) / timeSignatureNumerator;
-	// 	resultMs += (beatTime - lastTimeChange.beatTime) * lastStepLengthMs * Constants.STEPS_PER_BEAT;
-
-	// 	return resultMs;
-	// 	}
-	// }
-
-	/** Get which time of a song is a certain step */
+	/** Given a time in seconds returns time in steps
+	 * @returns The time in steps
+	 */
 	timeToStep(timeInSeconds: number, lengthOfStep: number = this.stepInterval) {
-		return Math.floor(timeInSeconds / lengthOfStep);
+		var lastChange = this.getCurrentChange(timeInSeconds);
+		return lastChange.stepTime + (time - lastChange.songTime) / lastChange.stepCrochet;
 	}
-	
+
 	/** Get which step of a song is a certain time */
 	stepToTime(step: number, lengthOfStep: number = this.stepInterval) {
-		if (this.bpmChanges.length == 0) {
-			return step * lengthOfStep
-		}
-
-		else {
-			var resultMs = 0;
-
-			var lastTimeChange:BpmChangeEV = this.bpmChanges[0];
-			
-			for (const ev of this.bpmChanges) {
-				if (step >= this.timeToBeat(ev.time) * this.stepsPerBeat) {
-					lastTimeChange = ev
-					resultMs = ev.time
-				}
-	
-				else {
-					break;
-				}
-			}
-
-			let lastStepLengthMs = ((60 / lastTimeChange.value) * 1000) / this.stepsPerBeat;
-			resultMs += (step - (this.timeToBeat(lastTimeChange.time)) * this.stepsPerBeat) * lastStepLengthMs;
-	
-			// is in miliseconds due to being copied from funkin
-			return resultMs / 1000;
-		}
+		return step * lengthOfStep
 	}
 
 	/** Updates some intervals */
@@ -207,12 +153,11 @@ export class Conductor {
 		const timeInBeats = timeInSteps / this.stepsPerBeat
 
 		this.currentStep = Math.floor(timeInSteps);
-		this.currentBeat = Math.floor(timeInBeats);
-		this.currentMeasure = Math.floor(this.currentBeat / this.beatsPerMeasure);
+		this.currentBeat = Math.floor(Number(this.getCurrentChange(this.timeInSeconds).value) * 4);
 	}
 
 	/** Get the BPM at a certain time */
-	getCurrentBPMchange(time: number = this.timeInSeconds) : BpmChangeEV {
+	getCurrentChange(time: number = this.timeInSeconds) : ChartEvent {
 		const lastEvent = [...this.bpmChanges].reverse().find(ev => ev.time <= time);
 		return lastEvent ?? { time: 0, value: this.initialBPM };
 	}
@@ -220,10 +165,10 @@ export class Conductor {
 	/** Update function that should run onUpdate so the conductor gets updated */
 	private update() {
 		if (this.timeInSeconds >= 0) this.audioPlay.paused = this.paused;
-		
+
 		this.timeSignature[0] = this.stepsPerBeat;
 		this.timeSignature[1] = this.beatsPerMeasure;
-		
+
 		if (this.timeInSeconds < 0) {
 			if (this.paused) return;
 			this.timeInSeconds += dt()
@@ -233,12 +178,12 @@ export class Conductor {
 
 		// if it has to start playing and hasn't started playing, play!!
 		else if (this.timeInSeconds >= 0) {
-			this.BPM = this.getCurrentBPMchange(this.timeInSeconds).value
-			
+			this.BPM = Number(this.getCurrentChange(this.timeInSeconds).value)
+
 			if (!this.paused) {
 				this.timeInSeconds = this.audioPlay.time()
 			};
-			
+
 			if (!this.started) {
 				this.started = true
 				getTreeRoot().trigger("conductorStart")
@@ -246,8 +191,7 @@ export class Conductor {
 
 			let oldBeat = this.currentBeat;
 			let oldStep = this.currentStep;
-			let oldMeasure = this.currentMeasure;
-			
+
 			this.updateIntervals()
 
 			if (this.paused) return;
@@ -257,10 +201,6 @@ export class Conductor {
 
 			if (oldStep != this.currentStep) {
 				triggerEvent("onStepHit")
-			}
-			
-			if (oldMeasure != this.currentMeasure) {
-				triggerEvent("onMeasureHit")
 			}
 		}
 	}
@@ -277,16 +217,16 @@ export class Conductor {
 		this.bpmChanges = opts.bpmChanges;
 
 		opts.offset = opts.offset ?? 0
-		
+
 		this.stepsPerBeat = this.timeSignature[0];
 		this.beatsPerMeasure = this.timeSignature[1];
-	
+
 		this.currentBeat = 0
 		this.currentStep = 0
 		if (opts.offset > 0) this.timeInSeconds = -opts.offset
 		else this.timeInSeconds = 0
 		this.audioPlay?.stop();
-	
+
 		// i almost krilled myself because of this
 		this.updateIntervals()
 

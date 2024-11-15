@@ -41,7 +41,9 @@ export class utils {
 
 	/** Returns an array with the specified element removed from it */
 	static removeFromArr(el: any, arr: any[]) {
-		return arr.filter((e) => e != el)
+		const arrCopy = [...arr]
+		arrCopy.splice(arr.indexOf(el), 1)
+		return arrCopy
 	}
 
 	/** Gets the value of a path in a given object */

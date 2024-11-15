@@ -224,6 +224,8 @@ export async function loadAssets() {
 
 	loadSprite("optionsCursor", "sprites/optionsCursor.png")
 
+	loadSprite("bpmEvent", "sprites/changeSong.png")
+
 	let songRanksAtlasData = {}
 	rankings.forEach((rank, index) => {
 		songRanksAtlasData[`rank_${rank}`] = {
@@ -276,6 +278,7 @@ export async function loadAssets() {
 	loadSound("noteUndo", "sounds/chart-editor/noteUndo.wav")
 	loadSound("noteCopy", "sounds/chart-editor/noteCopy.wav")
 	loadSound("dialogOpen", "sounds/chart-editor/dialogOpen.ogg")
+	loadSound("eventCog", "sounds/chart-editor/eventCog.wav")
 
 	loadFont("lambda", "Lambda-Regular.ttf")
 	loadFont("lambdao", "Lambda-Regular.ttf", {
