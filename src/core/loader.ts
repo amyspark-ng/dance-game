@@ -279,6 +279,7 @@ export async function loadAssets() {
 	loadSound("noteCopy", "sounds/chart-editor/noteCopy.wav")
 	loadSound("dialogOpen", "sounds/chart-editor/dialogOpen.ogg")
 	loadSound("eventCog", "sounds/chart-editor/eventCog.wav")
+	loadSound("mouseClick", "sounds/chart-editor/mouseClick.ogg")
 
 	loadFont("lambda", "Lambda-Regular.ttf")
 	loadFont("lambdao", "Lambda-Regular.ttf", {

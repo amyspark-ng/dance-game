@@ -100,10 +100,9 @@ export function setupSong(params: paramsGameScene, GameState:StateGame) {
 	// then we actually setup the conductor and play the song
 	GameState.conductor = new Conductor({
 		audioPlay: playSound(`${params.songZip.manifest.uuid_DONT_CHANGE}-audio`, { volume: GameSave.sound.music.volume, speed: params.playbackSpeed }),
-		initialBPM: params.songZip.manifest.initial_bpm * params.playbackSpeed,
+		BPM: params.songZip.manifest.initial_bpm * params.playbackSpeed,
 		timeSignature: GameState.song.manifest.time_signature,
 		offset: TIME_FOR_STRUM,
-		bpmChanges: GameState.song.chart.events.filter((ev) => ev.id == "change-bpm"),
 	})
 
 	// there are the notes that have been spawned yet

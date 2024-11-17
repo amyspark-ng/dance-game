@@ -7,6 +7,7 @@ import { downloadChart, StateChart } from "./chartEditorBackend"
 import { gameCursor } from "../../core/plugins/features/gameCursor"
 import { gameDialog, openChartAboutDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog"
 import { onBeatHit } from "../../core/events"
+import { playSound } from "../../core/plugins/features/sound"
 
 /** Returns if a certain Y position mets the conditions to be drawn on the screen */
 function conditionsForDrawing(YPos: number, square_size: Vec2) {
@@ -491,9 +492,9 @@ export function addLeftInfo(ChartState:StateChart) {
 					// these things are wrong btw, except bpm at given time
 					"Current step": utils.formatNumber(ChartState.scrollStep, { type: "simple" }),
 					"Current beat": utils.formatNumber(ChartState.conductor.currentBeat, { type: "simple" }),
-					"Current BPM": ChartState.conductor.getCurrentChange(ChartState.scrollTime).value,
+					"Current BPM": ChartState.conductor.BPM,
 				}
-				
+
 				function formatTheInfo() {
 					let theText = ""
 					for (const [key, value] of Object.entries(info)) {
@@ -569,9 +570,10 @@ export function addLeftInfo(ChartState:StateChart) {
 
 	// buttons for skipping to time changes
 	onUpdate(() => {
-		ChartState.song.chart.events.filter((ev) => ev.id == "change-bpm").forEach((ev, index) => {
+		ChartState.song.chart.events.forEach((ev, index) => {
 			if (!bpmChangeButtons.includes(ev)) {
 				bpmChangeButtons.push(ev)
+				
 				const skipBtn = add([
 					text("", { size: 20, align: "left" }),
 					pos(xPos, center().y + index * 20),
@@ -601,18 +603,16 @@ export function addLeftInfo(ChartState:StateChart) {
 
 					// if the event doesn't exist anymore, auto destroy itself
 					if (!ChartState.song.chart.events.includes(ev)) skipBtn.destroy()
+			
+					const indexInEvents = ChartState.song.chart.events.indexOf(ev)
+					skipBtn.pos.y = lerp(skipBtn.pos.y, center().y + indexInEvents * 20, 0.5)
 				})
 
 				skipBtn.onClick(() => {
-					if (!ChartState.paused) ChartState.paused = true
-					ChartState.scrollStep = ChartState.conductor.timeToStep(ev.time - 1)
+					ChartState.scrollStep = Math.floor(ChartState.conductor.timeToStep(ev.time) - 1)
+					playSound("mouseClick", { detune: rand(-50, 50) })
 				})
 			}
-		})
-
-		get("skipBtn").forEach((obj) => {
-			// sort them vertically based on the time of their events
-			
 		})
 	})
 }

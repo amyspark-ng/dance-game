@@ -69,6 +69,10 @@ export function dialog_addTextbox(opts: textboxOpt) {
 		}
 	})
 
+	wait(0.1, () => {
+		textbox.canClick = true
+	})
+
 	// sets to focused true
 	textboxBg.onClick(() => {
 		if (!textbox.canClick) return;

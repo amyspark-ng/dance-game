@@ -199,6 +199,8 @@ export class StateChart {
 	placeEvent(event: ChartEvent) {
 		this.song.chart.events.push(event)
 		this.selectedEvents.push(event)
+		// now sort them in time order
+		this.song.chart.events.sort((a, b) => a.time - b.time)
 
 		return event;
 	}
@@ -207,6 +209,8 @@ export class StateChart {
 		const oldEvent = event
 
 		this.song.chart.events = utils.removeFromArr(oldEvent, this.song.chart.events)
+		this.song.chart.events.sort((a, b) => a.time - b.time)
+
 		this.selectedEvents = utils.removeFromArr(oldEvent, this.selectedEvents)
 		return oldEvent;
 	}
@@ -261,9 +265,8 @@ export class StateChart {
 
 		this.conductor = new Conductor({
 			audioPlay: playSound(this.song.manifest.uuid_DONT_CHANGE + "-audio"),
-			initialBPM: this.song.manifest.initial_bpm,
+			BPM: this.song.manifest.initial_bpm,
 			timeSignature: this.song.manifest.time_signature,
-			bpmChanges: [],
 		})
 
 		openChartInfoDialog(this)

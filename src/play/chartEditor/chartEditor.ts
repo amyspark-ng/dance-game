@@ -7,7 +7,7 @@ import { transitionToScene } from "../../core/scenes";
 import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { deepDiffMapper, utils } from "../../utils";
 import { moveToColor } from "../objects/note";
-import { paramsGameScene } from "../playstate";
+import { INPUT_THRESHOLD, paramsGameScene } from "../playstate";
 import { addDummyDancer, addFloatingText, cameraControllerHandling, handlerForChangingInput, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, StateChart } from "./chartEditorBackend";
 import { addLeftInfo, addDialogButtons, drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, drawPlayBar, drawSelectSquares, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE } from "./chartEditorElements";
 import { handleAudioInput } from "../../fileManaging";
@@ -39,10 +39,9 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		
 		ChartState.conductor = new Conductor({
 			audioPlay: playSound(`${ChartState.song.manifest.uuid_DONT_CHANGE}-audio`, { channel: GameSave.sound.music, speed: params.playbackSpeed }),
-			initialBPM: ChartState.song.manifest.initial_bpm * params.playbackSpeed,
+			BPM: ChartState.song.manifest.initial_bpm * params.playbackSpeed,
 			timeSignature: ChartState.song.manifest.time_signature,
 			offset: 0,
-			bpmChanges: ChartState.song.chart.events.filter((ev) => ev.id == "change-bpm"),
 		})
 		
 		ChartState.conductor.audioPlay.seek(params.seekTime)
@@ -51,7 +50,8 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	ChartState.params = params;
 	ChartState.paused = true
 
-	ChartState.scrollStep = ChartState.conductor.timeToStep(params.seekTime) 
+	ChartState.scrollStep = Math.floor(ChartState.conductor.timeToStep(params.seekTime)) 
+	
 	ChartState.curSnapshotIndex = 0
 
 	ChartState.snapshots = [JSON.parse(JSON.stringify(ChartState))];
@@ -73,8 +73,6 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	})
 
 	onUpdate(() => {
-		ChartState.conductor.bpmChanges = ChartState.song.chart.events.filter((ev) => ev.id == "change-bpm")
-		
 		ChartState.song.chart.notes.forEach((note, index) => {
 			note.time = clamp(note.time, 0, songDuration)
 			
@@ -86,11 +84,12 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		ChartState.conductor.paused = ChartState.paused;
 
 		// SCROLL STEP
-		if (!ChartState.paused) {
+		if (ChartState.paused == false) {
 			ChartState.scrollStep = ChartState.conductor.currentStep
 			ChartState.scrollTime = ChartState.conductor.timeInSeconds
 		}
 		
+		// not paused
 		else {
 			ChartState.scrollTime = ChartState.conductor.stepToTime(ChartState.scrollStep)
 			ChartState.conductor.timeInSeconds = ChartState.scrollTime
@@ -109,7 +108,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		ChartState.lerpCursorPos = lerp(ChartState.lerpCursorPos, ChartState.cursorPos, SCROLL_LERP_VALUE)
 		
 		ChartState.cursorGridRow = Math.floor(ChartState.cursorPos.y / ChartState.SQUARE_SIZE.y) - 0.5
-		ChartState.hoveredStep = ChartState.scrollStep + ChartState.cursorGridRow
+		ChartState.hoveredStep = Math.floor(ChartState.scrollStep + ChartState.cursorGridRow)
 
 		// Handle move change input 
 		handlerForChangingInput(ChartState)
@@ -225,6 +224,11 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 				if (ChartState.selectedNotes.includes(note)) return;
 				ChartState.selectedNotes.push(note)
 			})
+
+			ChartState.song.chart.events.forEach((ev) => {
+				if (ChartState.selectedEvents.includes(ev)) return;
+				ChartState.selectedEvents.push(ev)
+			})
 		}
 
 		if (isKeyPressed("q")) {
@@ -332,7 +336,6 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 				
 				let updateThing = infoThing.dialog.onUpdate(() => {
 					ChartState.song.chart.events.find((ev) => ev == event).value = Number(infoThing.bpmTextbox.value)		
-					ChartState.conductor.bpmChanges.find((bpmChange) => Math.round(bpmChange.time) == Math.round(event.time)).value = Number(infoThing.bpmTextbox.value)
 				})
 
 				infoThing.dialog.onClose(() => updateThing.cancel())
@@ -505,9 +508,11 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	// Scrolls the checkerboard
 	onStepHit(() => {
-		const someNote = ChartState.song.chart.notes.find((note) => ChartState.conductor.timeToStep(note.time, ChartState.conductor.stepInterval) == ChartState.conductor.timeToStep(ChartState.conductor.timeInSeconds, ChartState.conductor.stepInterval)) 
+		const someNote = ChartState.song.chart.notes.find((note) => {
+			return Math.round(ChartState.conductor.timeToStep(note.time)) == Math.round(ChartState.conductor.timeToStep(ChartState.conductor.timeInSeconds))
+		})
+
 		if (someNote) {
-			// get the note and make its scale bigger
 			const indexOfNote = ChartState.song.chart.notes.indexOf(someNote)
 			tween(vec2(NOTE_BIG_SCALE), vec2(1), 0.1, (p) => ChartState.noteProps[indexOfNote].scale = p)
 			playSound("noteHit", { detune: moveToDetune(someNote.move) })

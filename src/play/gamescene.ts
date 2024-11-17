@@ -2,7 +2,7 @@ import { addDancer, DANCER_POS, getDancer } from "./objects/dancer"
 import { playSound } from "../core/plugins/features/sound"
 import { onBeatHit, onMiss, onNoteHit, onReset, triggerEvent } from "../core/events"
 import { addStrumline, getStrumline } from "./objects/strumline"
-import { ChartNote, notesSpawner, TIME_FOR_STRUM } from "./objects/note"
+import { ChartNote, notesSpawner, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note"
 import { SaveScore } from "./song"
 import { goScene } from "../core/scenes"
 import { addComboText, addJudgement, getClosestNote, Scoring } from "./objects/scoring"
@@ -57,11 +57,21 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 
 	let hasPlayedGo = false
 
+	let hasPlayedEvent = false
+
 	onUpdate(() => {
 		if (GameState.conductor.timeInSeconds >= -(TIME_FOR_STRUM / 2) && !hasPlayedGo) {
 			introGo()
 			hasPlayedGo = true
 		}
+		
+		// if (GameState.conductor.timeInSeconds >= 10 && !hasPlayedEvent) {
+		// 	hasPlayedEvent = true
+		// 	// just a test for tim for strum, works cool
+		// 	tween(TIME_FOR_STRUM, TIME_FOR_STRUM / 2, 1, (p) => {
+		// 		setTimeForStrum(p)
+		// 	})
+		// } 
 		
 		manageInput(GameState);
 		ui.missesText.text = `X | ${GameState.tally.misses}`;

@@ -1,7 +1,6 @@
 import { triggerEvent } from "./core/events";
 import { customAudioPlay } from "./core/plugins/features/sound";
 import { ChartEvent } from "./play/song";
-import { utils } from "./utils";
 
 /*
 	=== Some explanations about conducting and music ===
@@ -31,6 +30,11 @@ import { utils } from "./utils";
 	'Measure' is simply a chunk of the song that changes every (denominator) beats.
 		A measure is also known as a 'Bar'
 
+	'Crochet' is found in the code of some engines i've seen.
+		It means step of, usually is beat, so Crochet would be length of beat
+		And stepCrochet length of step
+		I've usually  since this in miliseconds but i don't know if it exclusively means miliseconds
+
 	This is some basic knowledge about music theory and it's terminology
 	Mostly used in fnf and rhythm games, but it's pretty helpful to code tons of stuff :)
 */
@@ -38,8 +42,7 @@ import { utils } from "./utils";
 /** Options to create a conductor */
 type conductorOpts = {
 	audioPlay: customAudioPlay;
-	initialBPM: number,
-	bpmChanges: ChartEvent[]
+	BPM: number,
 	timeSignature: [number, number],
 	offset?: number,
 }
@@ -49,7 +52,7 @@ export class Conductor {
 	/** The customAudioPlay object of the current song that is playing */
 	audioPlay: customAudioPlay;
 
-	/** this.audioPlay.time() */
+	/** Is the current time in the song, the same as this.audioPlay.time() i think */
 	timeInSeconds: number = 0;
 
 	/** Beats per measure */
@@ -61,105 +64,73 @@ export class Conductor {
 	/** Interval between beats */
 	beatInterval: number = 0;
 
-	/** Is the top (0) number of the timeSignature */
+	/** Is the top (0) number of the timeSignature, how many steps are in a beat */
 	stepsPerBeat: number = 0;
 
-	/** Is the bottom (1) number of the timeSignature */
+	/** Is the bottom (1) number of the timeSignature, how many beats are in a measure */
 	beatsPerMeasure: number = 0;
 
-	/** Time in steps */
+	/** The time in steps */
 	stepTime: number = 0;
 	
-	/** Time in beats */
+	/** The time in beats */
 	beatTime: number = 0;
 
+	/** The current step at the current time */
 	currentStep: number = 0;
+	
+	/** The current beat at the current time */
 	currentBeat: number = 0;
-
-	/** The BPM the song starts at */
-	initialBPM: number = 100;
 
 	/** The bpm of the song on the audioPlay */
 	BPM: number = 100;
 
-	/** The bpm changes of the song */
-	bpmChanges: ChartEvent[] = [];
-
-	/** Wheter the conductor is playing */
+	/** Wheter the conductor is paused or nah */
 	paused: boolean = false;
 
 	/** Wheter the offset for the song has already passed */
 	private started: boolean = false
 
-	/** Adds a bmm change and then sorts them by time */
-	addBPMChange(time: number, bpm: number) {
-		this.bpmChanges.push({ time, value: bpm })
-		this.bpmChanges.sort((a, b) => a.time - b.time)
+	/** Sets the intervals */
+	private updateIntervals() {
+		this.beatInterval = 60 / this.BPM
+		this.stepInterval = this.beatInterval / this.stepsPerBeat
 	}
 
-	beatToTime(beat: number) {
-		// var step = beat * 4;
-		// var lastChange = getBPMFromStep(step);
-		// return lastChange.songTime + ((step - lastChange.stepTime) / (lastChange.bpm / 60)/4) * 1000; // TODO: make less shit and take BPM into account PROPERLY
+	/** Coverts a given time to a beat
+	 * @returns The time in beats (can be fractional)
+	 */
+	timeToBeat(time: number = this.timeInSeconds, lengthOfBeat: number = this.beatInterval) {
+		return time / lengthOfBeat != 0 ? time / lengthOfBeat : 0
 	}
 
-	/** Removes a bpm change and then sorts them by time */
-	removeBPMChange(time: number, bpm: number) {
-		if (!this.bpmChanges.find((ev) => ev.time == time && ev.value == bpm)) throw new Error("Tried removing a bpm change from the conductor that doesn't exist")
-		console.log("before removal", this.bpmChanges)
-		this.bpmChanges = utils.removeFromArr({ time, value: bpm }, this.bpmChanges)
-		console.log("after removal", this.bpmChanges)
-		this.bpmChanges.sort((a, b) => a.time - b.time)
-	}
-
-	// TODO:  i guess i'll just have to add step time to all the fuckin events fuck my small little penis lfie
-
-	/** Gets how many beats are in the song */
-	get totalBeats() {
-		// Converts the the duration to minutes, BPM is how many beats there are in a minute
-		// Multiplied by minutes in a song, total beats lol!
-		return this.BPM * (this.audioPlay.duration() / 60)
-	}
-
-	/** Gets how many steps are in the song */
-	get totalSteps() {
-		return this.stepsPerBeat * this.totalBeats
-	}
-
-	/** Converts a given time to a beat */
-	timeToBeat(time: number) {
-		return time / this.beatInterval
+	/** Converts a given beat to a time */
+	beatToTime(beat: number = this.currentBeat, lengthOfBeat: number = this.beatInterval) {
+		return beat * lengthOfBeat;
 	}
 
 	/** Given a time in seconds returns time in steps
-	 * @returns The time in steps
+	 * @returns The time in steps (can be fractional)
 	 */
-	timeToStep(timeInSeconds: number, lengthOfStep: number = this.stepInterval) {
-		var lastChange = this.getCurrentChange(timeInSeconds);
-		return lastChange.stepTime + (time - lastChange.songTime) / lastChange.stepCrochet;
+	timeToStep(time: number, lengthOfStep: number = this.stepInterval) {
+		return time / lengthOfStep
 	}
 
-	/** Get which step of a song is a certain time */
+	/** Get which step of a song is a certain time
+	 * @returns The time (can be fractional)
+	 */
 	stepToTime(step: number, lengthOfStep: number = this.stepInterval) {
 		return step * lengthOfStep
 	}
 
-	/** Updates some intervals */
-	private updateIntervals() {
-		this.beatInterval = 60 / this.BPM
-		this.stepInterval = this.beatInterval / this.stepsPerBeat
-
-		const timeInSteps = this.timeInSeconds / this.stepInterval
-		const timeInBeats = timeInSteps / this.stepsPerBeat
-
-		this.currentStep = Math.floor(timeInSteps);
-		this.currentBeat = Math.floor(Number(this.getCurrentChange(this.timeInSeconds).value) * 4);
+	/** Gets how many beats are in the song */
+	get totalBeats() {
+		return Math.floor(this.timeToBeat(this.audioPlay.duration()));
 	}
 
-	/** Get the BPM at a certain time */
-	getCurrentChange(time: number = this.timeInSeconds) : ChartEvent {
-		const lastEvent = [...this.bpmChanges].reverse().find(ev => ev.time <= time);
-		return lastEvent ?? { time: 0, value: this.initialBPM };
+	/** Gets how many steps are in the song */
+	get totalSteps() {
+		return Math.floor(this.timeToStep(this.audioPlay.duration()))
 	}
 
 	/** Update function that should run onUpdate so the conductor gets updated */
@@ -178,8 +149,6 @@ export class Conductor {
 
 		// if it has to start playing and hasn't started playing, play!!
 		else if (this.timeInSeconds >= 0) {
-			this.BPM = Number(this.getCurrentChange(this.timeInSeconds).value)
-
 			if (!this.paused) {
 				this.timeInSeconds = this.audioPlay.time()
 			};
@@ -189,10 +158,13 @@ export class Conductor {
 				getTreeRoot().trigger("conductorStart")
 			}
 
-			let oldBeat = this.currentBeat;
-			let oldStep = this.currentStep;
-
 			this.updateIntervals()
+			
+			const oldBeat = this.currentBeat;
+			const oldStep = this.currentStep;
+
+			this.currentBeat = Math.floor(this.timeToBeat(this.timeInSeconds))
+			this.currentStep = Math.floor(this.timeToStep(this.timeInSeconds))
 
 			if (this.paused) return;
 			if (oldBeat != this.currentBeat) {
@@ -210,25 +182,21 @@ export class Conductor {
 	}
 
 	constructor(opts: conductorOpts) {
-		this.initialBPM = opts.initialBPM;
-		this.BPM = this.initialBPM;
+		this.BPM = opts.BPM;
 		this.audioPlay = opts.audioPlay;
 		this.timeSignature = opts.timeSignature
-		this.bpmChanges = opts.bpmChanges;
 
 		opts.offset = opts.offset ?? 0
 
 		this.stepsPerBeat = this.timeSignature[0];
 		this.beatsPerMeasure = this.timeSignature[1];
+		this.updateIntervals()
 
 		this.currentBeat = 0
 		this.currentStep = 0
 		if (opts.offset > 0) this.timeInSeconds = -opts.offset
 		else this.timeInSeconds = 0
 		this.audioPlay?.stop();
-
-		// i almost krilled myself because of this
-		this.updateIntervals()
 
 		onUpdate(() => {
 			this.update()
