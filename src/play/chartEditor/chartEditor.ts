@@ -12,7 +12,7 @@ import { addDummyDancer, addFloatingText, cameraHandler, handlerForChangingInput
 import { addLeftInfo, addDialogButtons, drawAllNotes, drawCameraController, drawCheckerboard, drawCursor, drawPlayBar, drawSelectSquares, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE, addEventsPanel } from "./chartEditorElements";
 import { handleAudioInput } from "../../fileManaging";
 import { GameSave } from "../../core/gamesave";
-import { bpmChangeDialog, gameDialog, openChartAboutDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog";
+import { addEventDialog, gameDialog, openChartAboutDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog";
 import { ChartEvent } from "../song";
 
 export function ChartEditorScene() { scene("charteditor", (params: paramsChartEditor) => {
@@ -63,14 +63,6 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	})
 
 	gameCursor.show()
-
-	gameCursor.onDraw(() => {
-		drawSprite({
-			sprite: GameSave.noteskin + "_" + ChartState.currentMove,
-			width: gameCursor.width * 0.75,
-			height: gameCursor.height * 0.75,
-		})
-	})
 
 	onUpdate(() => {
 		ChartState.song.chart.notes.forEach((note, index) => {
@@ -287,10 +279,13 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	// Behaviour for placing and selecting notes
 	onMousePress("left", () => {
 		if (gameDialog.isOpen) return;
-		
+
+		/** The current hovered tim */
+		const hoveredTime = ChartState.conductor.stepToTime(ChartState.hoveredStep, ChartState.conductor.stepInterval)
+
 		function noteBehaviour() {
 			let note = getCurrentHoveredNote()
-				
+			
 			// there's already a note in that place
 			if (note) {
 				// if the note is not already selected
@@ -319,26 +314,31 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		}
 
 		function eventBehaviour() {
-			let event = getCurrentHoveredEvent()
+			let hoveredEvent = getCurrentHoveredEvent()
 
-			if (event) {
+			if (hoveredEvent) {
 				if (!isKeyDown("shift")) {
-					if (ChartState.selectedEvents.includes(event)) return;
+					if (ChartState.selectedEvents.includes(hoveredEvent)) return;
 
-					ChartState.selectedEvents.push(event)
+					ChartState.selectedEvents.push(hoveredEvent)
 					if (!isKeyDown("control")) ChartState.selectedEvents = []
-					ChartState.selectedEvents.push(event)
+					ChartState.selectedEvents.push(hoveredEvent)
 					return;
 				};
 
 				// will return the bpm textbox
-				// const infoThing = bpmChangeDialog({ value: Number(event.value), time: event.time }, ChartState)
+				const eventDialog = addEventDialog(hoveredEvent, ChartState)
 				
-				// let updateThing = infoThing.dialog.onUpdate(() => {
-				// 	ChartState.song.chart.events.find((ev) => ev == event).value = Number(infoThing.bpmTextbox.value)		
-				// })
+				let updateThing = eventDialog.onUpdate(() => {
+					// i need to find a way to get the event that was opened and set its values to the eventDialog event
+					const theEvent = ChartState.song.chart.events.find((ev) => ev.time == hoveredEvent.time) 
+					theEvent.value = eventDialog.event.value
+					theEvent.time = eventDialog.event.time
+					theEvent.duration = eventDialog.event.duration
+					theEvent.easing = eventDialog.event.easing
+				})
 
-				// infoThing.dialog.onClose(() => updateThing.cancel())
+				eventDialog.parent.onClose(() => updateThing.cancel())
 			}
 
 			else {
@@ -349,9 +349,6 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 				ChartState.takeSnapshot()
 			}
 		}
-		
-		// the current hovered time
-		const hoveredTime = ChartState.conductor.stepToTime(ChartState.hoveredStep, ChartState.conductor.stepInterval)
 		
 		// if it's not on the grid at all simply reset selected notes
 		if (!ChartState.isCursorInGrid) {

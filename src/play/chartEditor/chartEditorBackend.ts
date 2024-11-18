@@ -303,7 +303,7 @@ export function moveToDetune(move: Move) {
 export function selectionBoxHandler(ChartState:StateChart) {
 	
 	if (isMousePressed("left")) {
-		if (ChartState.cameraController.canMoveCamera || ChartState.isCursorInGrid) {
+		if (ChartState.cameraController.canMoveCamera || ChartState.isCursorInGrid || get("hover", { recursive: true }).some((obj) => obj.isHovering())) {
 			ChartState.selectionBox.canSelect = false
 		}
 	

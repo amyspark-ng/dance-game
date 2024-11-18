@@ -331,36 +331,28 @@ export function addNotification(coloring: Color, text: string, duration: number 
 	])
 }
 
-export function bpmChangeDialog(event: ChartEvent, ChartState:StateChart) {
-	let canClick = false
-	wait(0.1, () => canClick = true)
-	
+export function addEventDialog(event: ChartEvent, ChartState:StateChart) {
+
+	const spacing = 60
+	const elementsLength = Object.keys(event).length
 	const dialog = gameDialog.openDialog({
-		width: 300,
-		height: 80,
+		width: width() / 2,
+		height: spacing * elementsLength,
 	})
 
-	const bpmTextbox = dialog_addTextbox({
-		title: "BPM",
-		formatFunc: (str: string) => {
-			const bpm = parseInt(str)
-			if (isNaN(bpm)) return "1"
-			// short it to 3 characters long
-			else return bpm.toString()
-		},
-		conditionsForTyping: (currentString: string, ch: string) => {
-			return !isNaN(parseInt(ch)) && currentString.length <= 3
-		},
-		fallBackValue: "100",
-		startingValue: event.value.toString(),
-		position: vec2(-dialog.width / 2 + 10, 0),
-		dialog: dialog,
-	})
+	const eventObj = dialog.add([
+		{
+			event: event,
+		}
+	])
 
 	dialog.onUpdate(() => {
-		bpmTextbox.canClick = canClick
-		event.value = parseInt(bpmTextbox.value)
+		/* 
+		Here i'll put stuff like
+		eventObj.event.value = speedTextbox.value
+		That'd be for the scroll speed event i guess
+		*/
 	})
 
-	return { dialog, bpmTextbox };
+	return eventObj;
 }

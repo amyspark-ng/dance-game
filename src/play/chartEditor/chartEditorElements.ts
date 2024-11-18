@@ -2,7 +2,7 @@
 import { Color, DrawRectOpt, Vec2 } from "kaplay"
 import { GameSave } from "../../core/gamesave"
 import { utils } from "../../utils"
-import { moveToColor } from "../objects/note"
+import { moveToColor, notesSpawner } from "../objects/note"
 import { downloadChart, StateChart } from "./chartEditorBackend"
 import { gameCursor } from "../../core/plugins/features/gameCursor"
 import { gameDialog, openChartAboutDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog"
@@ -224,15 +224,40 @@ export function drawCursor(ChartState:StateChart) {
 	if (ChartState.isCursorInGrid) {
 		// cursor = the square you're hovering over
 		// draws the cursor
+		let theSprite = ""
+		if (ChartState.isInNoteGrid) theSprite = GameSave.noteskin + "_" + ChartState.currentMove
+		else theSprite = ChartState.currentEvent
+
+		const curColor = ChartState.isInNoteGrid ? moveToColor(ChartState.currentMove) : WHITE
+
 		drawRect({
 			width: ChartState.SQUARE_SIZE.x - 5,
 			height: ChartState.SQUARE_SIZE.y - 5,
-			color: WHITE,
 			fill: false,
-			scale: ChartState.cursorScale,
 			outline: {
-				width: 8, color: moveToColor(ChartState.currentMove).darken(50)
+				width: 5,
+				color: curColor,
+				opacity: 1,
+				cap: "round",
+				join: "round",
 			},
+			radius: 5,
+			pos: ChartState.lerpCursorPos,
+			anchor: "center",
+			fixed: true,
+		})
+
+		// if there's already a note or event in that space dont' draw the sprite
+		if (ChartState.song.chart.notes.some((note) => ChartState.conductor.timeToStep(note.time) == ChartState.hoveredStep)
+			|| ChartState.song.chart.events.some((ev) => ChartState.conductor.timeToStep(ev.time) == ChartState.hoveredStep)) return;
+
+		drawSprite({
+			sprite: theSprite,
+			width: ChartState.SQUARE_SIZE.x - 5,
+			height: ChartState.SQUARE_SIZE.y - 5,
+			color: WHITE,
+			opacity: wave(0.25, 0.75, time() * 6),
+			scale: vec2(0.9),
 			pos: ChartState.lerpCursorPos,
 			anchor: "center",
 			fixed: true,
@@ -630,18 +655,16 @@ export function addEventsPanel(ChartState:StateChart) {
 		opacity(0.5),
 	])
 
-	const testEvents = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-
 	const spacingPerEvent = 65
 	const eventsPerColumn = 3
 	const padding = spacingPerEvent / 2
 
 	trayEvents.onUpdate(() => {
-		const trayPeekingWidth = trayEvents.width * 0.25
+		const trayPeekingWidth = trayEvents.width * 0.4
 		const lerpValue = 0.3
 
 		// every 3 elelments, the tray width has to increase by 50
-		let trayWidth = (spacingPerEvent + Math.floor(testEvents.length / eventsPerColumn) * spacingPerEvent) + padding
+		let trayWidth = (Math.floor(ChartState.event_ids.length / eventsPerColumn) * spacingPerEvent) + padding + (ChartState.event_ids.length % eventsPerColumn != 0 ? spacingPerEvent : 0)
 		let trayHeight = (spacingPerEvent * 3) + padding
 		trayEvents.width = lerp(trayEvents.width, trayWidth, lerpValue)
 		trayEvents.height = lerp(trayEvents.height, trayHeight, lerpValue)
@@ -659,25 +682,30 @@ export function addEventsPanel(ChartState:StateChart) {
 		}
 	})
 	
-	testEvents.forEach((id, index) => {
+	ChartState.event_ids.forEach((id, index) => {
 		const row = Math.floor(index / eventsPerColumn)
 		const column = index % eventsPerColumn
 
+		const eventPaddingThing = padding * 1.5
 		const idButton = trayEvents.add([
-			rect(52, 52),
-			// sprite(),
-			pos((row * spacingPerEvent) + padding * 1.5, (column * spacingPerEvent) + padding * 1.5),
+			sprite(id),
+			pos((row * spacingPerEvent) + eventPaddingThing, (column * spacingPerEvent) + eventPaddingThing),
 			anchor("center"),
 			area(),
 			opacity(),
-			color(utils.blendColors(RED, YELLOW, 0.1 * index)),
+			scale(),
 			"hover",
 		])
 
 		idButton.onUpdate(() => {
 			if (trayEvents.isHovering()) {
-				if (idButton.isHovering()) idButton.opacity = lerp(idButton.opacity, 1, 0.5)
-				else idButton.opacity = lerp(idButton.opacity, 0.75, 0.5)
+				if (idButton.isHovering()) {
+					idButton.opacity = lerp(idButton.opacity, 1, 0.5)
+				}
+
+				else {
+					idButton.opacity = lerp(idButton.opacity, 0.75, 0.5)
+				}
 			}
 		
 			else {
@@ -687,7 +715,7 @@ export function addEventsPanel(ChartState:StateChart) {
 
 		idButton.onClick(() => {
 			playSound("mouseClick", { detune: rand(-50, 50) })
-			// ChartState.currentEvent = id
+			ChartState.currentEvent = id
 		})
 	})
 }
