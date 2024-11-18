@@ -162,7 +162,7 @@ export function checkForNoteHit(GameState:StateGame, move: Move) : ChartNote {
 	
 	// if time in seconds is in range by input_treshold 
 	// to the hit note of any note in the chart
-	if (utils.isInRange(time, closestNote.time + INPUT_THRESHOLD, closestNote.time - INPUT_THRESHOLD) && closestNote.move == move) {
+	if (utils.isInRange(time, closestNote.time - INPUT_THRESHOLD, closestNote.time + INPUT_THRESHOLD) && closestNote.move == move) {
 		return closestNote
 	}
 	

@@ -8,8 +8,8 @@ import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { deepDiffMapper, utils } from "../../utils";
 import { moveToColor } from "../objects/note";
 import { INPUT_THRESHOLD, paramsGameScene } from "../playstate";
-import { addDummyDancer, addFloatingText, cameraControllerHandling, handlerForChangingInput, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, StateChart } from "./chartEditorBackend";
-import { addLeftInfo, addDialogButtons, drawAllNotes, drawCameraControlAndNotes, drawCheckerboard, drawCursor, drawPlayBar, drawSelectSquares, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE } from "./chartEditorElements";
+import { addDummyDancer, addFloatingText, cameraHandler, handlerForChangingInput, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, StateChart } from "./chartEditorBackend";
+import { addLeftInfo, addDialogButtons, drawAllNotes, drawCameraController, drawCheckerboard, drawCursor, drawPlayBar, drawSelectSquares, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE, addEventsPanel } from "./chartEditorElements";
 import { handleAudioInput } from "../../fileManaging";
 import { GameSave } from "../../core/gamesave";
 import { bpmChangeDialog, gameDialog, openChartAboutDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog";
@@ -114,7 +114,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		handlerForChangingInput(ChartState)
 		
 		selectionBoxHandler(ChartState)
-		cameraControllerHandling(ChartState)
+		cameraHandler(ChartState)
 		
 		mouseAnimationHandling(ChartState)
 		
@@ -259,7 +259,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		drawCheckerboard(ChartState)
 		drawAllNotes(ChartState)
 		drawStrumline(ChartState)
-		drawCameraControlAndNotes(ChartState)
+		drawCameraController(ChartState)
 		drawPlayBar(ChartState)
 		
 		if (gameDialog.isOpen) return
@@ -332,18 +332,18 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 				};
 
 				// will return the bpm textbox
-				const infoThing = bpmChangeDialog({ value: Number(event.value), time: event.time }, ChartState)
+				// const infoThing = bpmChangeDialog({ value: Number(event.value), time: event.time }, ChartState)
 				
-				let updateThing = infoThing.dialog.onUpdate(() => {
-					ChartState.song.chart.events.find((ev) => ev == event).value = Number(infoThing.bpmTextbox.value)		
-				})
+				// let updateThing = infoThing.dialog.onUpdate(() => {
+				// 	ChartState.song.chart.events.find((ev) => ev == event).value = Number(infoThing.bpmTextbox.value)		
+				// })
 
-				infoThing.dialog.onClose(() => updateThing.cancel())
+				// infoThing.dialog.onClose(() => updateThing.cancel())
 			}
 
 			else {
 				ChartState.selectedEvents = []
-				ChartState.placeEvent({ id: "change-bpm", time: hoveredTime, value: 120 })
+				ChartState.placeEvent({ time: hoveredTime, id: ChartState.currentEvent, value: undefined, duration: 0 })
 				playSound("noteAdd", { detune: rand(-50, 50) })
 				playSound("eventCog", { detune: rand(-50, 50) })
 				ChartState.takeSnapshot()
@@ -502,7 +502,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	// makes the strumline BOP
 	onBeatHit(() => {
-		tween(vec2(4.5), vec2(1), 0.1, (p) => ChartState.strumlineScale = p)
+		tween(vec2(1.2), vec2(1), 0.1, (p) => ChartState.strumlineScale = p)
 		if (dummyDancer.currentMove == "idle") dummyDancer.moveBop()
 	})
 
@@ -531,6 +531,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	addDialogButtons(ChartState)
 	addLeftInfo(ChartState)
+	addEventsPanel(ChartState)
 
 	getTreeRoot().on("dialogOpen", () => ChartState.paused = true)
 })}

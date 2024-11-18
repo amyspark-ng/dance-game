@@ -15,6 +15,7 @@ import { paramsResultsScene } from "./ui/resultsScene"
 import { appWindow } from "@tauri-apps/api/window"
 import { PRODUCT } from "../core/initGame"
 import { gameCursor } from "../core/plugins/features/gameCursor"
+import { cam } from "../core/plugins/features/camera"
 
 export function GameScene() { scene("game", (params: paramsGameScene) => {
 	setBackground(RED.lighten(60))
@@ -57,22 +58,29 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 
 	let hasPlayedGo = false
 
-	let hasPlayedEvent = false
-
 	onUpdate(() => {
 		if (GameState.conductor.timeInSeconds >= -(TIME_FOR_STRUM / 2) && !hasPlayedGo) {
 			introGo()
 			hasPlayedGo = true
 		}
 		
-		// if (GameState.conductor.timeInSeconds >= 10 && !hasPlayedEvent) {
-		// 	hasPlayedEvent = true
-		// 	// just a test for tim for strum, works cool
-		// 	tween(TIME_FOR_STRUM, TIME_FOR_STRUM / 2, 1, (p) => {
-		// 		setTimeForStrum(p)
-		// 	})
-		// } 
-		
+		GameState.song.chart.events.forEach((ev) => {
+			if (GameState.conductor.timeInSeconds >= ev.time && !GameState.eventsDone.includes(ev)) {
+				if (ev.id == "change-scoll") {
+					tween(TIME_FOR_STRUM, 1.25 / ev.value / GameSave.scrollSpeed, ev.duration, (p) => setTimeForStrum(p), ev.easing)
+				}
+
+				else if (ev.id == "cam-stuff") {
+					const posToArr = Vec2.fromArray(ev.value.pos)
+					const zoomToArr = Vec2.fromArray(ev.value.scale)
+					const camAngle = ev.value.angle
+					tween(cam.pos, posToArr, ev.duration, (p) => cam.pos = p, ev.easing)
+					tween(cam.zoom, zoomToArr, ev.duration, (p) => cam.zoom = p, ev.easing)
+					tween(cam.rotation, camAngle, ev.duration, (p) => cam.rotation = p, ev.easing)
+				}
+			}
+		})
+
 		manageInput(GameState);
 		ui.missesText.text = `X | ${GameState.tally.misses}`;
 		const time = GameState.conductor.timeInSeconds < 0 ? 0 : GameState.conductor.timeInSeconds

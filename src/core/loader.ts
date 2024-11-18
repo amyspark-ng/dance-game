@@ -224,7 +224,20 @@ export async function loadAssets() {
 
 	loadSprite("optionsCursor", "sprites/optionsCursor.png")
 
-	loadSprite("bpmEvent", "sprites/changeSong.png")
+	loadSpriteAtlas("sprites/events.png", {
+		"change-scroll": {
+			width: 52,
+			height: 52,
+			x: 0,
+			y: 0,
+		},
+		"cam-stuff": {
+			width: 52,
+			height: 52,
+			x: 52,
+			y: 0,
+		}
+	})
 
 	let songRanksAtlasData = {}
 	rankings.forEach((rank, index) => {
@@ -309,8 +322,15 @@ export async function loadAssets() {
 	await load(new Promise(async (resolve, reject) => {
 		try {
 			defaultSongs.forEach(async (songzippath, index) => {
-				const songZip = await loadSongFromZIP(songzippath, true)
-				if (index == defaultSongs.length - 1) resolve(songZip)
+				try {
+					const songZip = await loadSongFromZIP(songzippath, true)
+				}
+
+				catch (err) {
+					throw new Error("There was an error loading the default songs")
+				}
+				
+				if (index == defaultSongs.length - 1) resolve("ok")
 			})
 		} catch (e) {
 			reject(e)

@@ -12,6 +12,7 @@ import { playSound } from "../../core/plugins/features/sound";
 import JSZip from "jszip";
 import TOML from "smol-toml"
 import { v4 as uuidv4 } from 'uuid';
+import { drawCameraController } from "./chartEditorElements";
 
 /** Class that manages the snapshots of the chart */
 export class ChartSnapshot {
@@ -61,11 +62,12 @@ export class StateChart {
 	};
 
 	cameraController = {
+		/** Wheter can move the camera */
 		canMoveCamera: false,
 		/** Wheter the camera is being moved by the camera controller */
 		isMovingCamera: false,
 		/** The position of the camera controller */
-		pos: vec2(width() - 25, 25),
+		pos: vec2(width() / 2 + 52 * 2, 25),
 	}
 
 	// SOME STUPID VARS
@@ -86,7 +88,13 @@ export class StateChart {
 	scrollTime = 0;
 	
 	/** When you hold down a key, the cursor will change color to signify the move */
-	currentMove: Move = "up"
+	currentMove: Move = "up";
+
+	/** All the ids for the events */
+	event_ids: string[] = [ "change-scroll", "cam-stuff" ];
+
+	/** When you hold down a key, the cursor will change color to signify the move */
+	currentEvent: string = "change-scroll";
 	
 	/** The pos of the cursor (is the pos of the step you're currently hovering) */
 	cursorPos = vec2(1);
@@ -382,10 +390,12 @@ export function selectionBoxHandler(ChartState:StateChart) {
 	}
 }
 
-export function cameraControllerHandling(ChartState:StateChart) {
+export function cameraHandler(ChartState:StateChart) {
 	if (gameDialog.isOpen) return;
-	if (gameCursor.pos.x >= width() - ChartState.SQUARE_SIZE.x && !ChartState.cameraController.isMovingCamera) ChartState.cameraController.canMoveCamera = true
-	else if (gameCursor.pos.x < width() - ChartState.SQUARE_SIZE.x && !ChartState.cameraController.isMovingCamera) ChartState.cameraController.canMoveCamera = false
+	const minLeft = ChartState.cameraController.pos.x - ChartState.SQUARE_SIZE.x / 2
+	const maxRight = ChartState.cameraController.pos.x + ChartState.SQUARE_SIZE.x / 2
+	if (gameCursor.pos.x >= minLeft && gameCursor.pos.x <= maxRight) ChartState.cameraController.canMoveCamera = true
+	else if ((gameCursor.pos.x < ChartState.cameraController.pos.x || gameCursor.pos.x > ChartState.cameraController.pos.x) && !ChartState.cameraController.isMovingCamera) ChartState.cameraController.canMoveCamera = false
 
 	if (!ChartState.cameraController.isMovingCamera) {
 		ChartState.cameraController.pos.y = mapc(ChartState.scrollStep, 0, ChartState.conductor.totalSteps, 25, height() - 25)

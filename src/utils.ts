@@ -104,7 +104,7 @@ export class utils {
 	}
 
 	/** Returns if a number is between a range */
-	static isInRange(num: number, max: number, min: number) : boolean {
+	static isInRange(num: number, min: number, max: number) : boolean {
 		return num >= min && num <= max
 	}
 

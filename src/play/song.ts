@@ -1,3 +1,4 @@
+import { EaseFunc } from "kaplay";
 import { ChartNote } from "./objects/note";
 import { Tally } from "./objects/scoring";
 
@@ -37,20 +38,14 @@ export class SongManifest {
 export class ChartEvent {
 	/** The time of the song the event must be triggered at */
 	time: number;
-	/** The event id, will be one of 3 values
-	 * 
-	 * 1. change-scrollspeed
-	 * 2. change-bpm
-	 * 3. play-anim
-	 */
-	id?: string;
-	/** The new value the event will set
-	 * 
-	 * If it's the play anim event the value may be something like "victory"
-	 * 
-	 * Else if the event it's something like change-bpmp the value may be something like 180
-	 */
-	value: string | number;
+	/** The event id, string to know what is it */
+	id: string;
+	/** The value the event contains, might be an object or something else idk */
+	value: any;
+	/** How long will the event last */
+	duration: number;
+	/** The easing function to use */
+	easing?: EaseFunc
 }
 
 /** The content of the chart file */

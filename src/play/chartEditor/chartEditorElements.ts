@@ -8,10 +8,11 @@ import { gameCursor } from "../../core/plugins/features/gameCursor"
 import { gameDialog, openChartAboutDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog"
 import { onBeatHit } from "../../core/events"
 import { playSound } from "../../core/plugins/features/sound"
+import { event } from "@tauri-apps/api"
 
 /** Returns if a certain Y position mets the conditions to be drawn on the screen */
 function conditionsForDrawing(YPos: number, square_size: Vec2) {
-	return utils.isInRange(YPos, height() + square_size.y, -square_size.y)
+	return utils.isInRange(YPos, -square_size.y, height() + square_size.y)
 }
 
 /** How lerped the scroll value is */
@@ -158,7 +159,7 @@ export function drawAllNotes(ChartState:StateChart) {
 		
 		if (conditionsForDrawing(evPos.y, ChartState.SQUARE_SIZE)) {
 			drawSprite({
-				sprite: "bpmEvent",
+				sprite: ev.id,
 				width: ChartState.SQUARE_SIZE.x,
 				pos: evPosLerp,
 				opacity: ChartState.scrollTime >= ev.time ? 1 : 0.5,
@@ -172,11 +173,14 @@ export function drawAllNotes(ChartState:StateChart) {
 export function drawStrumline(ChartState:StateChart) {
 	// # strumlineline
 	const strumlineYPos = ChartState.SQUARE_SIZE.y * ChartState.strumlineStepOffset
-	drawLine({
-		p1: vec2((center().x - ChartState.SQUARE_SIZE.x / 2 * 3) - 5 * ChartState.strumlineScale.x, strumlineYPos),
-		p2: vec2((center().x + ChartState.SQUARE_SIZE.x / 2 * 3) + 5 * ChartState.strumlineScale.x, strumlineYPos),
+	drawRect({
+		pos: vec2(center().x, strumlineYPos),
+		anchor: "center",
+		height: 5,
+		radius: 5,
 		color: RED,
-		width: 5,
+		scale: vec2(ChartState.strumlineScale.x, 1),
+		width: (ChartState.SQUARE_SIZE.x * 3),
 		fixed: true,
 	})
 }
@@ -189,7 +193,7 @@ export function drawCursor(ChartState:StateChart) {
 	const maxRight = (minLeft + ChartState.SQUARE_SIZE.x * 2) - 8
 
 	// if the distance between the cursor and the square is small enough then highlight it
-	if (utils.isInRange(gameCursor.pos.x, maxRight, minLeft)) {
+	if (utils.isInRange(gameCursor.pos.x, minLeft, maxRight)) {
 		if (ChartState.scrollStep == 0 && gameCursor.pos.y <= strumlineYPos) {
 			ChartState.isInEventGrid = false
 			ChartState.isInNoteGrid = false
@@ -237,7 +241,7 @@ export function drawCursor(ChartState:StateChart) {
 }
 
 /** Draw the camera controller and the tiny notess */
-export function drawCameraControlAndNotes(ChartState:StateChart) {
+export function drawCameraController(ChartState:StateChart) {
 	let cameraOp = 0
 
 	if (ChartState.cameraController.isMovingCamera) cameraOp = 0.5
@@ -261,7 +265,7 @@ export function drawCameraControlAndNotes(ChartState:StateChart) {
 	// draws the notes on the side of the camera controller
 	ChartState.song.chart.notes.forEach((note) => {
 		const noteStep = ChartState.conductor.timeToStep(note.time)
-		const xPos = width() - 25
+		const xPos = ChartState.cameraController.pos.x
 		const yPos = map(noteStep, 0, ChartState.conductor.totalSteps, 0, height() - ChartState.SQUARE_SIZE.y)
 
 		const isInSelected = ChartState.selectedNotes.includes(note)
@@ -291,7 +295,7 @@ export function drawCameraControlAndNotes(ChartState:StateChart) {
 
 	ChartState.song.chart.events.forEach((ev) => {
 		const noteStep = ChartState.conductor.timeToStep(ev.time)
-		const xPos = width() - 25
+		const xPos = ChartState.cameraController.pos.x
 		const yPos = map(noteStep, 0, ChartState.conductor.totalSteps, 0, height() - ChartState.SQUARE_SIZE.y)
 
 		const isInSelected = ChartState.selectedEvents.includes(ev)
@@ -613,6 +617,77 @@ export function addLeftInfo(ChartState:StateChart) {
 					playSound("mouseClick", { detune: rand(-50, 50) })
 				})
 			}
+		})
+	})
+}
+
+export function addEventsPanel(ChartState:StateChart) {
+	const trayEvents = add([
+		rect(1, 1, { radius: 5 }),
+		pos(),
+		anchor("topleft"),
+		area(),
+		opacity(0.5),
+	])
+
+	const testEvents = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+	const spacingPerEvent = 65
+	const eventsPerColumn = 3
+	const padding = spacingPerEvent / 2
+
+	trayEvents.onUpdate(() => {
+		const trayPeekingWidth = trayEvents.width * 0.25
+		const lerpValue = 0.3
+
+		// every 3 elelments, the tray width has to increase by 50
+		let trayWidth = (spacingPerEvent + Math.floor(testEvents.length / eventsPerColumn) * spacingPerEvent) + padding
+		let trayHeight = (spacingPerEvent * 3) + padding
+		trayEvents.width = lerp(trayEvents.width, trayWidth, lerpValue)
+		trayEvents.height = lerp(trayEvents.height, trayHeight, lerpValue)
+
+		trayEvents.pos.y = height() / 2 - trayEvents.height
+	
+		if (trayEvents.isHovering()) {
+			trayEvents.pos.x = lerp(trayEvents.pos.x, width() - (trayEvents.width), lerpValue)
+			trayEvents.opacity = lerp(trayEvents.opacity, 0.5, lerpValue)
+		}
+
+		else {
+			trayEvents.pos.x = lerp(trayEvents.pos.x, width() - trayPeekingWidth, lerpValue)
+			trayEvents.opacity = lerp(trayEvents.opacity, 0.25, lerpValue)
+		}
+	})
+	
+	testEvents.forEach((id, index) => {
+		const row = Math.floor(index / eventsPerColumn)
+		const column = index % eventsPerColumn
+
+		const idButton = trayEvents.add([
+			rect(52, 52),
+			// sprite(),
+			pos((row * spacingPerEvent) + padding * 1.5, (column * spacingPerEvent) + padding * 1.5),
+			anchor("center"),
+			area(),
+			opacity(),
+			color(utils.blendColors(RED, YELLOW, 0.1 * index)),
+			"hover",
+		])
+
+		idButton.onUpdate(() => {
+			if (trayEvents.isHovering()) {
+				if (idButton.isHovering()) idButton.opacity = lerp(idButton.opacity, 1, 0.5)
+				else idButton.opacity = lerp(idButton.opacity, 0.75, 0.5)
+			}
+		
+			else {
+				idButton.opacity = lerp(idButton.opacity, 0.5, 0.5)
+			}
+		})
+
+		idButton.onClick(() => {
+			playSound("mouseClick", { detune: rand(-50, 50) })
+			// ChartState.currentEvent = id
 		})
 	})
 }

@@ -12,7 +12,7 @@ import { getDancer } from "./objects/dancer";
 import { ChartNote, getNotesOnScreen, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
 import { Tally } from "./objects/scoring";
 import { getStrumline } from "./objects/strumline";
-import { SongContent } from "./song";
+import { ChartEvent, SongContent } from "./song";
 import { managePauseUI } from "./ui/pauseScreen";
 
 /** Class that holds and manages some important variables in the game scene */
@@ -34,6 +34,9 @@ export class StateGame {
 
 	/** Holds all the notes that have been spawned */
 	spawnedNotes: ChartNote[] = [];
+
+	/** All the events that are done */
+	eventsDone: ChartEvent[] = [];
 
 	/** Holds all the notes that have been hit */
 	hitNotes: ChartNote[] = [];
