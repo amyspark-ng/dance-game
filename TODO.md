@@ -1,5 +1,5 @@
 - Chart Editor: Add the notifications like, song loaded, song downloaded etc etc
-- Separate a lot of chartstate stuff on objects, cursor, camera, etc
+- Separate a lot of chartstate stuff on objects, cursor, camera, events, notes, etc
 
 - SORTA BUNCH OF STUFF like all of the input being on playstate, all of that system could be better organized
 - Game: Playback speed doesn't work at all

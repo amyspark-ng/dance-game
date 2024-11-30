@@ -231,10 +231,16 @@ export async function loadAssets() {
 			x: 0,
 			y: 0,
 		},
-		"cam-stuff": {
+		"cam-move": {
 			width: 52,
 			height: 52,
 			x: 52,
+			y: 0,
+		},
+		"play-anim": {
+			width: 52,
+			height: 52,
+			x: 104,
 			y: 0,
 		}
 	})

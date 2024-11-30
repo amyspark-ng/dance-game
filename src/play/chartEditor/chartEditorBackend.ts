@@ -12,22 +12,50 @@ import { playSound } from "../../core/plugins/features/sound";
 import JSZip from "jszip";
 import TOML from "smol-toml"
 import { v4 as uuidv4 } from 'uuid';
-import { drawCameraController } from "./chartEditorElements";
+
+/** Is either a note or an event */
+export type ChartStamp = (ChartNote | ChartEvent)
+/** Wheter the stamp is a note or not */
+export function isStampNote(stamp: ChartStamp) { return "move" in stamp }
 
 /** Class that manages the snapshots of the chart */
 export class ChartSnapshot {
 	song: SongContent;
-	selectedNotes: ChartNote[];
-	constructor(song: SongContent, selectedNotes: ChartNote[]) {
+	selectedStamps: ChartStamp[] = [];
+	constructor(song: SongContent, selectedStamps: ChartStamp[]) {
 		this.song = song;
-		this.selectedNotes = selectedNotes;
+		this.selectedStamps = selectedStamps;
 	}
 }
 
-/** Type for handling props of note drawing */
-type notePropThing = { 
+/** Type for handling props of stuff drawing */
+type stampPropThing = { 
 	angle: number,
 	scale: Vec2,
+}
+
+/** Concatenates the stamps */
+export function concatStamps(notes: ChartNote[], events: ChartEvent[]) : ChartStamp[] {
+	return [...notes, ...events]
+}
+
+/** Get the message for the clipboard */
+export function clipboardMessage(action: "copy" | "cut" | "paste", clipboard:ChartStamp[]) {
+	let message = ""
+	
+	const notesLength = clipboard.filter((thing) => isStampNote(thing)).length
+	const eventsLength = clipboard.filter((thing) => !isStampNote(thing)).length
+	const moreThanOneNote = notesLength > 1
+	const moreThanOneEvent = eventsLength > 1
+
+	const actionStr = action == "copy" ? "Copied" : action == "cut" ? "Cut" : "Pasted"
+
+	if (notesLength > 0 && eventsLength == 0) message = `${actionStr} ${notesLength} ${moreThanOneNote ? "notes" : "note"}!`
+	else if (notesLength == 0 && eventsLength > 0) message = `${actionStr} ${eventsLength} ${moreThanOneEvent ? "events" : "event"}!`
+	else if (notesLength > 0 && eventsLength > 0) message = `${actionStr} ${notesLength} ${moreThanOneNote ? "notes" : "note"} and ${eventsLength} ${moreThanOneEvent ? "events" : "event"}!`
+	else if (notesLength == 0 && eventsLength == 0) message = `${actionStr} nothing!`
+
+	return message;
 }
 
 /** Class that manages every important variable in the chart editor */
@@ -43,13 +71,19 @@ export class StateChart {
 	/** How many steps scrolled */
 	scrollStep: number = 0;
 
+	scrollToStep(newStep: number) {
+		newStep = Math.abs(Math.round(newStep))
+		newStep = clamp(newStep, 0, this.conductor.totalSteps)
+		this.scrollStep = newStep
+	}
+
 	/** Is ChartState.scrollstep but lerped */
 	lerpScrollStep = 0
 
 	/** Wheter the selection box is being shown */
 	selectionBox = {
 		/** The note that is the note the other notes move around when you're moving a bunch of notes */
-		leadingNote: undefined as ChartNote,
+		leadingStamp: undefined as ChartStamp,
 		/** Wheter the selection box can be triggered */
 		canSelect: false,
 		width: 0,
@@ -91,9 +125,13 @@ export class StateChart {
 	currentMove: Move = "up";
 
 	/** All the ids for the events */
-	event_ids: string[] = [ "change-scroll", "cam-stuff" ];
+	events = {
+		"change-scroll": { duration: 0, speed: 1, easing: easings.linear },
+		"cam-move": { duration: 0, pos: { x: 0, y: 0 }, zoom: 1, angle: 0, easing: easings.linear },
+		"play-anim": { anim: "", speed: 1, force: false }
+	};
 
-	/** When you hold down a key, the cursor will change color to signify the move */
+	/** The current selected event */
 	currentEvent: string = "change-scroll";
 	
 	/** The pos of the cursor (is the pos of the step you're currently hovering) */
@@ -120,23 +158,23 @@ export class StateChart {
 	/** The scale of the strumline line */
 	strumlineScale = vec2(1);
 
-	/** Scale and angle of all notes */
-	noteProps: notePropThing[] = [];
+	/** Scale and angle of all stamps */
+	stampProps = {
+		notes: [] as stampPropThing[],
+		events: [] as stampPropThing[],
+	};
 
 	/** The scale of the cursor */
 	cursorScale = vec2(1)
 
-	/** Array of selected notes */
-	selectedNotes: ChartNote[] = []
-
-	/** Array of selected events */
-	selectedEvents: ChartEvent[] = []
+	/** Array of all the selected things */
+	selectedStamps: ChartStamp[] = []
 
 	/** Every time you do something, the new state will be pushed to this array */
 	snapshots:StateChart[] = []
 	
-	/** The notes currently copied */
-	clipboard:ChartNote[] = []
+	/** The things currently copied */
+	clipboard:ChartStamp[] = []
 
 	/** The step that selected note started in before it was moved */
 	stepForDetune = 0
@@ -155,9 +193,9 @@ export class StateChart {
 		return utils.getPosInGrid(this.INITIAL_POS, step, 0, this.SQUARE_SIZE)
 	}
 
-	/** Unselects any note and the detune */
-	resetSelectedNotes() {
-		this.selectedNotes = []
+	/** Unselects any stamp and the detune */
+	resetSelectedStamps() {
+		this.selectedStamps = []
 		this.stepForDetune = 0
 	}
 
@@ -171,8 +209,6 @@ export class StateChart {
 	 * @returns The added note
 	 */
 	placeNote(time: number, move: Move) {
-		this.stepForDetune = 0
-		
 		const noteWithSameTimeButDifferentMove = this.song.chart.notes.find(note => note.time == time && note.move != move || note.time == time && note.move == move)
 		// if there's a note already at that time but a different move, remove it
 		if (noteWithSameTimeButDifferentMove) {
@@ -181,11 +217,12 @@ export class StateChart {
 		
 		const newNote:ChartNote = { time: time, move: move }
 		this.song.chart.notes.push(newNote)
+		this.song.chart.events.sort((a, b) => a.time - b.time)
 
 		const indexInNotes = this.song.chart.notes.indexOf(newNote)
-		this.noteProps[indexInNotes] = { scale: vec2(1), angle: 0 }
-		tween(vec2(this.NOTE_BIG_SCALE), vec2(1), 0.1, (p) => this.noteProps[indexInNotes].scale = p)
-		this.selectedNotes.push(newNote)
+		this.stampProps.notes[indexInNotes] = { scale: vec2(1), angle: 0 }
+		tween(vec2(this.NOTE_BIG_SCALE), vec2(1), 0.1, (p) => this.stampProps.notes[indexInNotes].scale = p)
+		this.selectedStamps.push(newNote)
 		
 		return newNote;
 	}
@@ -198,34 +235,41 @@ export class StateChart {
 		if (oldNote == undefined) return;
 		
 		this.song.chart.notes = utils.removeFromArr(oldNote, this.song.chart.notes)
-		this.selectedNotes = utils.removeFromArr(oldNote, this.selectedNotes)
+		this.selectedStamps = utils.removeFromArr(oldNote, this.selectedStamps)
 		
 		return oldNote;
 	}
 
 	/** Adds an event to the events array */
-	placeEvent(event: ChartEvent) {
-		this.song.chart.events.push(event)
-		this.selectedEvents.push(event)
+	placeEvent(time: number, id: string) {
+		const newEvent:ChartEvent = { time: time, id: id, value: this.events[id] }
+		
+		this.song.chart.events.push(newEvent)
 		// now sort them in time order
 		this.song.chart.events.sort((a, b) => a.time - b.time)
 
-		return event;
+		const indexInEvents = this.song.chart.events.indexOf(newEvent)
+		this.stampProps.events[indexInEvents] = { scale: vec2(1), angle: 0 }
+		tween(vec2(this.NOTE_BIG_SCALE), vec2(1), 0.1, (p) => this.stampProps.events[indexInEvents].scale = p)
+		this.selectedStamps.push(newEvent)
+
+		return newEvent;
 	}
 
+	/** Removes an event from the events array */
 	deleteEvent(event: ChartEvent) {
 		const oldEvent = event
 
 		this.song.chart.events = utils.removeFromArr(oldEvent, this.song.chart.events)
 		this.song.chart.events.sort((a, b) => a.time - b.time)
 
-		this.selectedEvents = utils.removeFromArr(oldEvent, this.selectedEvents)
+		this.selectedStamps = utils.removeFromArr(oldEvent, this.selectedStamps)
 		return oldEvent;
 	}
 
 	/** Pushes a snapshot of the current state of the chart */
 	takeSnapshot() {
-		const snapshot = new ChartSnapshot(this.song, this.selectedNotes);
+		const snapshot = new ChartSnapshot(this.song, this.selectedStamps);
 		// Remove any states ahead of the current index for redo to behave correctly
 		this.snapshots = this.snapshots.slice(0, this.curSnapshotIndex + 1);
 
@@ -238,8 +282,9 @@ export class StateChart {
 	undo() {
 		if (this.curSnapshotIndex > 0) {
 			this.curSnapshotIndex--;
-			const newState = JSON.parse(JSON.stringify(this.snapshots[this.curSnapshotIndex])); // Return deep copy of the state
-			this.selectedNotes = newState.selectedNotes
+			// Return deep copy of the state
+			const newState:ChartSnapshot = JSON.parse(JSON.stringify(this.snapshots[this.curSnapshotIndex])) 
+			this.selectedStamps = newState.selectedStamps
 			this.song = newState.song
 		}
 
@@ -250,8 +295,8 @@ export class StateChart {
 	redo() {
 		if (this.curSnapshotIndex < this.snapshots.length - 1) {
 			this.curSnapshotIndex++;
-			const newState = JSON.parse(JSON.stringify(this.snapshots[this.curSnapshotIndex])); // Return deep copy of the state
-			this.selectedNotes = newState.selectedNotes
+			const newState:ChartSnapshot = JSON.parse(JSON.stringify(this.snapshots[this.curSnapshotIndex])); // Return deep copy of the state
+			this.selectedStamps = newState.selectedStamps
 			this.song = newState.song
 		}
 		
@@ -260,10 +305,10 @@ export class StateChart {
 
 	/** Changes the song of the instance */
 	createNewSong() {
-		this.scrollStep = 0
+		this.scrollToStep(0)
 		this.snapshots = []
 		this.curSnapshotIndex = 0
-		this.selectedNotes = []
+		this.selectedStamps = []
 		
 		this.song = new SongContent()
 		this.song.manifest.uuid_DONT_CHANGE = uuidv4()
@@ -343,44 +388,43 @@ export function selectionBoxHandler(ChartState:StateChart) {
 
 	if (isMouseReleased("left") && ChartState.selectionBox.canSelect) {
 		const theRect = new Rect(ChartState.selectionBox.pos, ChartState.selectionBox.width, ChartState.selectionBox.height)
-		const oldSelectedNotes = ChartState.selectedNotes
-		const oldSelectedEvents = ChartState.selectedEvents
-		ChartState.selectedNotes = []
-		ChartState.selectedEvents = []
-
-		ChartState.song.chart.notes.forEach((note) => {
-			let notePos = ChartState.stepToPos(ChartState.conductor.timeToStep(note.time))
-			notePos.y -= ChartState.SQUARE_SIZE.y * ChartState.lerpScrollStep
-
-			const posInScreen = vec2(
-				notePos.x - ChartState.SQUARE_SIZE.x / 2,
-				notePos.y - ChartState.SQUARE_SIZE.y / 2
-			)
-	
-			if (theRect.contains(posInScreen)) {
-				ChartState.selectedNotes.push(note)
-			}
-		})
-
-		ChartState.song.chart.events.forEach((ev) => {
-			let evPos = ChartState.stepToPos(ChartState.conductor.timeToStep(ev.time))
-			evPos.y -= ChartState.SQUARE_SIZE.y * ChartState.lerpScrollStep
-			evPos.x = ChartState.INITIAL_POS.x + ChartState.SQUARE_SIZE.x
-
-			const posInScreen = vec2(
-				evPos.x - ChartState.SQUARE_SIZE.x / 2,
-				evPos.y - ChartState.SQUARE_SIZE.y / 2
-			)
-	
-			if (theRect.contains(posInScreen)) {
-				ChartState.selectedEvents.push(ev)
-			}
-		})
-
-		const newSelectedNotes = ChartState.selectedNotes
-		const newSelectedEvents = ChartState.selectedEvents
 		
-		if (oldSelectedNotes != newSelectedNotes || oldSelectedEvents != newSelectedEvents) ChartState.takeSnapshot();
+		const oldSelectStamps = ChartState.selectedStamps
+		ChartState.selectedStamps = []
+
+		const combined = concatStamps(ChartState.song.chart.notes, ChartState.song.chart.events)
+
+		combined.forEach((stamp) => {
+			let stampPos = ChartState.stepToPos(ChartState.conductor.timeToStep(stamp.time))
+			stampPos.y -= ChartState.SQUARE_SIZE.y * ChartState.lerpScrollStep
+			if (!isStampNote(stamp)) stampPos.x = ChartState.INITIAL_POS.x + ChartState.SQUARE_SIZE.x
+
+			// is the topleft of the position
+			const posInScreen = vec2(
+				stampPos.x - ChartState.SQUARE_SIZE.x / 2,
+				stampPos.y - ChartState.SQUARE_SIZE.y / 2
+			)
+
+			// these are the positions in all 4 corners
+			const possiblePos = [ 
+				posInScreen, // topleft
+				vec2(posInScreen.x + ChartState.SQUARE_SIZE.x, posInScreen.y), // topright
+				vec2(posInScreen.x, posInScreen.y + ChartState.SQUARE_SIZE.y), // bottomleft
+				vec2(posInScreen.x + ChartState.SQUARE_SIZE.x, posInScreen.y + ChartState.SQUARE_SIZE.y), // bottomright
+			]
+
+			// goes through each one and seeis if they're in the selection box
+			for (const posy in possiblePos) {
+				if (theRect.contains(possiblePos[posy])) {
+					ChartState.selectedStamps.push(stamp)
+					break;
+				}
+			}
+		})
+
+		const newSelectStamps = ChartState.selectedStamps
+
+		if (oldSelectStamps != newSelectStamps) ChartState.takeSnapshot();
 		
 		ChartState.selectionBox.clickPos = vec2(0, 0)
 		ChartState.selectionBox.points = [vec2(0, 0), vec2(0, 0), vec2(0, 0), vec2(0, 0)]
@@ -414,8 +458,7 @@ export function cameraHandler(ChartState:StateChart) {
 		if (ChartState.cameraController.isMovingCamera) {
 			ChartState.cameraController.pos.y = gameCursor.pos.y
 			ChartState.cameraController.pos.y = clamp(ChartState.cameraController.pos.y, 25, height() - 25)
-			ChartState.scrollStep = mapc(ChartState.cameraController.pos.y, 25, height() - 25, 0, ChartState.conductor.totalSteps)
-			ChartState.scrollStep = Math.round(ChartState.scrollStep)
+			ChartState.scrollToStep(mapc(ChartState.cameraController.pos.y, 25, height() - 25, 0, ChartState.conductor.totalSteps))
 		}
 	}
 }

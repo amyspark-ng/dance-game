@@ -42,10 +42,6 @@ export class ChartEvent {
 	id: string;
 	/** The value the event contains, might be an object or something else idk */
 	value: any;
-	/** How long will the event last */
-	duration: number;
-	/** The easing function to use */
-	easing?: EaseFunc
 }
 
 /** The content of the chart file */

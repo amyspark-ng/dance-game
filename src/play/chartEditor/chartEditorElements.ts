@@ -3,7 +3,7 @@ import { Color, DrawRectOpt, Vec2 } from "kaplay"
 import { GameSave } from "../../core/gamesave"
 import { utils } from "../../utils"
 import { moveToColor, notesSpawner } from "../objects/note"
-import { downloadChart, StateChart } from "./chartEditorBackend"
+import { ChartStamp, concatStamps, downloadChart, isStampNote, StateChart } from "./chartEditorBackend"
 import { gameCursor } from "../../core/plugins/features/gameCursor"
 import { gameDialog, openChartAboutDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog"
 import { onBeatHit } from "../../core/events"
@@ -127,46 +127,35 @@ export function drawCheckerboard(ChartState: StateChart) {
 	}
 }
 
-/** Draw the hittable notes */
+/** Draw the stamps of the song */
 export function drawAllNotes(ChartState:StateChart) {
-	// draws the notes
-	ChartState.song.chart.notes.forEach((note, index) => {
-		let notePos = ChartState.stepToPos(ChartState.conductor.timeToStep(note.time))
-		notePos.y -= ChartState.SQUARE_SIZE.y * ChartState.lerpScrollStep
-
-		const notePosLerped = lerp(notePos, notePos, ChartState.SCROLL_LERP_VALUE)
+	function drawStamp(stamp: ChartStamp, index: number) {
+		const isNote = isStampNote(stamp)
 		
-		if (conditionsForDrawing(notePos.y, ChartState.SQUARE_SIZE)) {
+		let stampPos = ChartState.stepToPos(ChartState.conductor.timeToStep(stamp.time))
+		stampPos.y -= ChartState.SQUARE_SIZE.y * ChartState.lerpScrollStep
+		if (!isNote) stampPos.x = ChartState.INITIAL_POS.x + ChartState.SQUARE_SIZE.x
+
+		const notePosLerped = lerp(stampPos, stampPos, ChartState.SCROLL_LERP_VALUE)
+		
+		if (!ChartState.stampProps[isNote ? "notes" : "events"][index]) return
+
+		if (conditionsForDrawing(stampPos.y, ChartState.SQUARE_SIZE)) {
 			drawSprite({
 				width: ChartState.SQUARE_SIZE.x,
 				height: ChartState.SQUARE_SIZE.y,
-				scale: ChartState.noteProps[index].scale,
-				angle: ChartState.noteProps[index].angle,
-				sprite: GameSave.noteskin + "_" + note.move,
+				scale: ChartState.stampProps[isNote ? "notes" : "events"][index].scale,
+				angle: ChartState.stampProps[isNote ? "notes" : "events"][index].angle,
+				sprite: isNote ? GameSave.noteskin + "_" + stamp.move : stamp.id,
 				pos: notePosLerped,
-				opacity: ChartState.scrollTime >= note.time ? 1 : 0.5,
+				opacity: ChartState.scrollTime >= stamp.time ? 1 : 0.5,
 				anchor: "center",
 			})
 		}
-	})
+	}
 
-	ChartState.song.chart.events.forEach((ev, index) => {
-		let evPos = ChartState.stepToPos(ChartState.conductor.timeToStep(ev.time))
-		evPos.x = ChartState.INITIAL_POS.x + ChartState.SQUARE_SIZE.x
-		evPos.y -= ChartState.SQUARE_SIZE.y * ChartState.lerpScrollStep
-
-		const evPosLerp = lerp(evPos, evPos, ChartState.SCROLL_LERP_VALUE)
-		
-		if (conditionsForDrawing(evPos.y, ChartState.SQUARE_SIZE)) {
-			drawSprite({
-				sprite: ev.id,
-				width: ChartState.SQUARE_SIZE.x,
-				pos: evPosLerp,
-				opacity: ChartState.scrollTime >= ev.time ? 1 : 0.5,
-				anchor: "center",
-			})
-		}
-	})
+	ChartState.song.chart.notes.forEach((note, index) => drawStamp(note, index))
+	ChartState.song.chart.events.forEach((ev, index) => drawStamp(ev, index))
 }
 
 /** Draw the strumline line */
@@ -192,8 +181,11 @@ export function drawCursor(ChartState:StateChart) {
 	const minLeft = center().x - ChartState.SQUARE_SIZE.x / 2
 	const maxRight = (minLeft + ChartState.SQUARE_SIZE.x * 2) - 8
 
+	/** It's a weird offseted version so it lines more with the actual mouse graphic */
+	const weirdX = gameCursor.pos.x + 11
+
 	// if the distance between the cursor and the square is small enough then highlight it
-	if (utils.isInRange(gameCursor.pos.x, minLeft, maxRight)) {
+	if (utils.isInRange(weirdX, minLeft, maxRight)) {
 		if (ChartState.scrollStep == 0 && gameCursor.pos.y <= strumlineYPos) {
 			ChartState.isInEventGrid = false
 			ChartState.isInNoteGrid = false
@@ -205,10 +197,10 @@ export function drawCursor(ChartState:StateChart) {
 		}
 		
 		else {
-			if (gameCursor.pos.x >= minLeft && gameCursor.pos.x <= maxRight - ChartState.SQUARE_SIZE.x) ChartState.isInNoteGrid = true
+			if (weirdX >= minLeft && weirdX <= maxRight - ChartState.SQUARE_SIZE.x) ChartState.isInNoteGrid = true
 			else ChartState.isInNoteGrid = false
 			
-			if (gameCursor.pos.x >= minLeft + ChartState.SQUARE_SIZE.x && gameCursor.pos.x <= maxRight) ChartState.isInEventGrid = true
+			if (weirdX >= minLeft + ChartState.SQUARE_SIZE.x && weirdX <= maxRight) ChartState.isInEventGrid = true
 			else ChartState.isInEventGrid = false
 		}
 	}
@@ -293,7 +285,7 @@ export function drawCameraController(ChartState:StateChart) {
 		const xPos = ChartState.cameraController.pos.x
 		const yPos = map(noteStep, 0, ChartState.conductor.totalSteps, 0, height() - ChartState.SQUARE_SIZE.y)
 
-		const isInSelected = ChartState.selectedNotes.includes(note)
+		const isInSelected = ChartState.selectedStamps.includes(note)
 
 		const selectColor = BLUE.lighten(50)
 		let theColor = moveToColor(note.move)
@@ -323,7 +315,7 @@ export function drawCameraController(ChartState:StateChart) {
 		const xPos = ChartState.cameraController.pos.x
 		const yPos = map(noteStep, 0, ChartState.conductor.totalSteps, 0, height() - ChartState.SQUARE_SIZE.y)
 
-		const isInSelected = ChartState.selectedEvents.includes(ev)
+		const isInSelected = ChartState.selectedStamps.includes(ev)
 
 		const selectColor = BLUE.lighten(50)
 		let theColor = WHITE
@@ -351,7 +343,8 @@ export function drawCameraController(ChartState:StateChart) {
 
 /** Draw the thing for the selected note */
 export function drawSelectSquares(ChartState:StateChart) {
-	ChartState.selectedNotes.forEach((note) => {
+	ChartState.selectedStamps.forEach((note) => {
+		if (!("move" in note)) return;
 		const stepOfSelectedNote = ChartState.conductor.timeToStep(note.time) - ChartState.scrollStep
 		const gizmoPos = ChartState.stepToPos(stepOfSelectedNote)
 		const celesteColor = BLUE.lighten(150)
@@ -371,7 +364,8 @@ export function drawSelectSquares(ChartState:StateChart) {
 		})
 	})
 	
-	ChartState.selectedEvents.forEach((ev) => {
+	ChartState.selectedStamps.forEach((ev) => {
+		if (("move" in ev)) return;
 		const stepOfSelectedNote = ChartState.conductor.timeToStep(ev.time) - ChartState.scrollStep
 		const gizmoPos = ChartState.stepToPos(stepOfSelectedNote)
 		gizmoPos.x += ChartState.SQUARE_SIZE.x
@@ -614,7 +608,7 @@ export function addLeftInfo(ChartState:StateChart) {
 					{
 						ev: ev,
 						update() {
-							this.text = `Time: ${ev.time} | BPM: ${ev.value}` + ` ${ChartState.conductor.timeInSeconds >= ev.time ? "✓" : "X"}`
+							this.text = `Step: ${ChartState.conductor.timeToStep(ev.time)} ${ChartState.conductor.timeInSeconds >= ev.time ? "✓" : "X"}`
 						}
 					}
 				])
@@ -638,7 +632,7 @@ export function addLeftInfo(ChartState:StateChart) {
 				})
 
 				skipBtn.onClick(() => {
-					ChartState.scrollStep = Math.floor(ChartState.conductor.timeToStep(ev.time) - 1)
+					ChartState.scrollToStep(Math.floor(ChartState.conductor.timeToStep(ev.time) - 1))
 					playSound("mouseClick", { detune: rand(-50, 50) })
 				})
 			}
@@ -663,8 +657,10 @@ export function addEventsPanel(ChartState:StateChart) {
 		const trayPeekingWidth = trayEvents.width * 0.4
 		const lerpValue = 0.3
 
+		const event_ids = Object.keys(ChartState.events)
+
 		// every 3 elelments, the tray width has to increase by 50
-		let trayWidth = (Math.floor(ChartState.event_ids.length / eventsPerColumn) * spacingPerEvent) + padding + (ChartState.event_ids.length % eventsPerColumn != 0 ? spacingPerEvent : 0)
+		let trayWidth = (Math.floor(event_ids.length / eventsPerColumn) * spacingPerEvent) + padding + (event_ids.length % eventsPerColumn != 0 ? spacingPerEvent : 0)
 		let trayHeight = (spacingPerEvent * 3) + padding
 		trayEvents.width = lerp(trayEvents.width, trayWidth, lerpValue)
 		trayEvents.height = lerp(trayEvents.height, trayHeight, lerpValue)
@@ -682,7 +678,7 @@ export function addEventsPanel(ChartState:StateChart) {
 		}
 	})
 	
-	ChartState.event_ids.forEach((id, index) => {
+	Object.keys(ChartState.events).forEach((id, index) => {
 		const row = Math.floor(index / eventsPerColumn)
 		const column = index % eventsPerColumn
 

@@ -2,18 +2,16 @@
 import { Conductor } from "../../conductor";
 import { onBeatHit, onNoteHit, onStepHit, triggerEvent } from "../../core/events";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
-import { customAudioPlay, playSound } from "../../core/plugins/features/sound";
+import { playSound } from "../../core/plugins/features/sound";
 import { transitionToScene } from "../../core/scenes";
 import { fadeOut } from "../../core/transitions/fadeOutTransition";
-import { deepDiffMapper, utils } from "../../utils";
-import { moveToColor } from "../objects/note";
-import { INPUT_THRESHOLD, paramsGameScene } from "../playstate";
-import { addDummyDancer, addFloatingText, cameraHandler, handlerForChangingInput, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, StateChart } from "./chartEditorBackend";
+import { utils } from "../../utils";
+import { ChartNote, moveToColor } from "../objects/note";
+import { paramsGameScene } from "../playstate";
+import { addDummyDancer, addFloatingText, cameraHandler, ChartStamp, clipboardMessage, concatStamps, handlerForChangingInput, isStampNote, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, StateChart } from "./chartEditorBackend";
 import { addLeftInfo, addDialogButtons, drawAllNotes, drawCameraController, drawCheckerboard, drawCursor, drawPlayBar, drawSelectSquares, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE, addEventsPanel } from "./chartEditorElements";
-import { handleAudioInput } from "../../fileManaging";
 import { GameSave } from "../../core/gamesave";
 import { addEventDialog, gameDialog, openChartAboutDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog";
-import { ChartEvent } from "../song";
 
 export function ChartEditorScene() { scene("charteditor", (params: paramsChartEditor) => {
 	// had an issue with BPM being NaN but it was because since this wasn't defined then it was NaN
@@ -27,7 +25,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	const newSong = params.song == null
 
-	// this sets the chartstate.sogn prop to new songcontent()
+	// this sets the chartstate.song prop to new songcontent()
 	// also sets the conductor
 	if (newSong) {
 		ChartState.createNewSong()
@@ -49,13 +47,11 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	
 	ChartState.params = params;
 	ChartState.paused = true
-
-	ChartState.scrollStep = Math.floor(ChartState.conductor.timeToStep(params.seekTime)) 
+	ChartState.scrollToStep(ChartState.conductor.timeToStep(params.seekTime))
 	
 	ChartState.curSnapshotIndex = 0
 
 	ChartState.snapshots = [JSON.parse(JSON.stringify(ChartState))];
-
 	let songDuration = 0
 	getSound(`${ChartState.song.manifest.uuid_DONT_CHANGE}-audio`).onLoad((data) => {
 		songDuration = data.buf.duration
@@ -65,19 +61,32 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	gameCursor.show()
 
 	onUpdate(() => {
-		ChartState.song.chart.notes.forEach((note, index) => {
-			note.time = clamp(note.time, 0, songDuration)
+		const allStamps = concatStamps(ChartState.song.chart.notes, ChartState.song.chart.events)
+		allStamps.forEach((stamp, index) => {
+			// clamps from 0 to time
+			stamp.time = clamp(stamp.time, 0, songDuration)
 			
-			if (!ChartState.noteProps[index]) {
-				ChartState.noteProps[index] = { scale: vec2(1), angle: 0 }
+			function snapToClosestStep(t: number) {
+				const stampStep = ChartState.conductor.timeToStep(t)
+				const closestStep = Math.round(stampStep)
+				return ChartState.conductor.stepToTime(closestStep)
 			}
+			
+			// clamps to closest step
+			stamp.time = snapToClosestStep(stamp.time)
+			
+			if (!ChartState.stampProps[isStampNote(stamp) ? "notes" : "events"][index]) {
+				ChartState.stampProps[isStampNote(stamp) ? "notes" : "events"][index] = { scale: vec2(1), angle: 0 }
+			}
+			
+			// TODO: Account for double notes or events
 		})
 		
 		ChartState.conductor.paused = ChartState.paused;
 
 		// SCROLL STEP
 		if (ChartState.paused == false) {
-			ChartState.scrollStep = ChartState.conductor.currentStep
+			ChartState.scrollToStep(ChartState.conductor.currentStep)
 			ChartState.scrollTime = ChartState.conductor.timeInSeconds
 		}
 		
@@ -132,18 +141,21 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 		// remove all selected notes
 		else if (isKeyPressed("backspace")) {
-			if (ChartState.selectedNotes.length == 0) return
+			if (ChartState.selectedStamps.length == 0) return
 			ChartState.takeSnapshot()
-			ChartState.selectedNotes.forEach((note) => {
-				ChartState.deleteNote(note)
-			})
-			playSound("noteRemove", { detune: rand(-50, 50) })
 			
-			if (ChartState.selectedEvents.length == 0) return
-			ChartState.selectedEvents.forEach((ev) => {
-				ChartState.deleteEvent(ev)
+			ChartState.selectedStamps.forEach((stamp) => {
+				if (isStampNote(stamp)) ChartState.deleteNote(stamp)
+				else ChartState.deleteEvent(stamp)
 			})
-			playSound("eventCog", { detune: rand(-50, 50) })
+			
+			playSound("noteRemove", { detune: rand(-50, 50) })
+			// there was an event in there
+			if (ChartState.selectedStamps.some((stamp) => !isStampNote(stamp))) {
+				playSound("eventCog", { detune: rand(-50, 50) })
+			}
+			
+			ChartState.selectedStamps = []
 		}
 
 		// undo
@@ -168,42 +180,69 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 		// copy
 		else if (isKeyDown("control") && isKeyPressed("c")) {
-			if (ChartState.selectedNotes.length == 0) return;
-			playSound("noteCopy", { detune: rand(25, 50) })
-			ChartState.clipboard = ChartState.selectedNotes
-			addFloatingText(`Copied ${ChartState.selectedNotes.length} notes!`);
+			if (ChartState.selectedStamps.length == 0) return;
 			
-			ChartState.selectedNotes.forEach((note) => {
-				const indexInNotes = ChartState.song.chart.notes.indexOf(note)
-				tween(choose([-1, 1]) * 20, 0, 0.5, (p) => ChartState.noteProps[indexInNotes].angle = p, easings.easeOutExpo)
-				tween(vec2(1.2), vec2(1), 0.5, (p) => ChartState.noteProps[indexInNotes].scale = p, easings.easeOutExpo)
+			ChartState.clipboard = ChartState.selectedStamps
+			addFloatingText(clipboardMessage("copy", ChartState.clipboard));
+			playSound("noteCopy", { detune: rand(25, 50) })
+			
+			ChartState.selectedStamps.forEach((stamp) => {
+				if (isStampNote(stamp)) {
+					const indexInNotes = ChartState.song.chart.notes.indexOf(stamp)
+					tween(choose([-1, 1]) * 20, 0, 0.5, (p) => ChartState.stampProps.notes[indexInNotes].angle = p, easings.easeOutExpo)
+					tween(vec2(1.2), vec2(1), 0.5, (p) => ChartState.stampProps.notes[indexInNotes].scale = p, easings.easeOutExpo)
+				}
+
+				else {
+					const indexInEvents = ChartState.song.chart.events.indexOf(stamp)
+					tween(choose([-1, 1]) * 20, 0, 0.5, (p) => ChartState.stampProps.events[indexInEvents].angle = p, easings.easeOutExpo)
+					tween(vec2(1.2), vec2(1), 0.5, (p) => ChartState.stampProps.events[indexInEvents].scale = p, easings.easeOutExpo)
+				}
 			})
 		}
 
 		// cut
 		else if (isKeyDown("control") && isKeyPressed("x")) {
-			if (ChartState.selectedNotes.length == 0) return;
+			if (ChartState.selectedStamps.length == 0) return;
+			
+			// some code from the copy action
+			ChartState.clipboard = ChartState.selectedStamps
+			addFloatingText(clipboardMessage("cut", ChartState.clipboard));
 			playSound("noteCopy", { detune: rand(0, 25) })
-			ChartState.clipboard = ChartState.selectedNotes
-			addFloatingText(`Cut ${ChartState.selectedNotes.length} notes!`);
-			ChartState.selectedNotes.forEach((note) => ChartState.deleteNote(note))
+
+			ChartState.selectedStamps.forEach((stamp) => {
+				if (isStampNote(stamp)) {
+					ChartState.deleteNote(stamp)
+				}
+				
+				else {
+					ChartState.deleteEvent(stamp)
+				}
+			})
 		}
 		
 		// paste
 		else if (isKeyDown("control") && isKeyPressed("v")) {
 			if (ChartState.clipboard.length == 0) return;
 			playSound("noteCopy", { detune: rand(-50, -25) })
-			addFloatingText(`Pasted ${ChartState.clipboard.length} notes!`);
-			
-			ChartState.selectedNotes = []
+			addFloatingText(clipboardMessage("paste", ChartState.clipboard));
 
-			const newStepToTime = ChartState.conductor.stepToTime(ChartState.hoveredStep - 3.5)
-			ChartState.clipboard.forEach((note) => {
-				const newNote = ChartState.placeNote(newStepToTime + note.time, note.move)
-				// i have to add it and thenn find  the index in notes :)
-				const indexInNotes = ChartState.song.chart.notes.indexOf(newNote)
-				if (indexInNotes == -1) return
-				tween(choose([-1, 1]) * 20, 0, 0.5, (p) => ChartState.noteProps[indexInNotes].angle = p, easings.easeOutExpo)
+			ChartState.clipboard.forEach((stamp) => {
+				const newTime = stamp.time + ChartState.conductor.stepToTime(ChartState.hoveredStep - 3.5)
+
+				if (isStampNote(stamp)) {
+					const newNote = ChartState.placeNote(newTime, stamp.move)
+					const indexInNotes = ChartState.song.chart.notes.indexOf(newNote)
+					if (indexInNotes == -1) return
+					tween(choose([-1, 1]) * 20, 0, 0.5, (p) => ChartState.stampProps.notes[indexInNotes].angle = p, easings.easeOutExpo)
+				}
+
+				else {
+					const newEvent = ChartState.placeEvent(newTime, stamp.id)
+					const indexInEvents = ChartState.song.chart.events.indexOf(newEvent)
+					if (indexInEvents == -1) return
+					tween(choose([-1, 1]) * 20, 0, 0.5, (p) => ChartState.stampProps.events[indexInEvents].angle = p, easings.easeOutExpo)
+				}
 			})
 
 			// shickiiii
@@ -212,20 +251,15 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 		// select all!
 		else if (isKeyDown("control") && isKeyPressed("a")) {
-			ChartState.song.chart.notes.forEach((note) => {
-				if (ChartState.selectedNotes.includes(note)) return;
-				ChartState.selectedNotes.push(note)
-			})
-
-			ChartState.song.chart.events.forEach((ev) => {
-				if (ChartState.selectedEvents.includes(ev)) return;
-				ChartState.selectedEvents.push(ev)
+			concatStamps(ChartState.song.chart.notes, ChartState.song.chart.events).forEach((stamp) => {
+				if (ChartState.selectedStamps.includes(stamp)) return;
+				ChartState.selectedStamps.push(stamp)
 			})
 		}
 
-		if (isKeyPressed("q")) {
-			handleAudioInput(ChartState)
-		}
+		// if (isKeyPressed("q")) {
+		// 	handleAudioInput(ChartState)
+		// }
 
 		else if (isKeyPressed("e")) {
 			openChartInfoDialog(ChartState)
@@ -270,89 +304,95 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		return ChartState.song.chart.events.find((ev) => ChartState.conductor.timeToStep(ev.time, ChartState.conductor.stepInterval) == ChartState.conductor.timeToStep(time, ChartState.conductor.stepInterval))
 	}
 
-	/** When you press left this stores the difference of that note to the leading note, this way i can move several notes */
-	let differencesToLeading = ChartState.song.chart.notes.map((note) => {
-		if (ChartState.selectionBox.leadingNote == undefined) return
-		return ChartState.conductor.timeToStep(note.time) - ChartState.conductor.timeToStep(ChartState.selectionBox.leadingNote.time)
-	})
+	/** When a leading note is selected, this gets filled with times of how far every other selected thing was from the new leading note */
+	let differencesToLeading = { notes: [], events: [] }
+	function setLeading(stamp: ChartStamp) {
+		ChartState.selectionBox.leadingStamp = stamp;
+		
+		differencesToLeading.notes = ChartState.song.chart.notes.map((note) => {
+			return ChartState.conductor.timeToStep(note.time) - ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time)
+		})
+	
+		differencesToLeading.events = ChartState.song.chart.events.map((ev) => {
+			return ChartState.conductor.timeToStep(ev.time) - ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time)
+		})
+	}
 
 	// Behaviour for placing and selecting notes
 	onMousePress("left", () => {
 		if (gameDialog.isOpen) return;
 
-		/** The current hovered tim */
+		/** The current hovered time */
 		const hoveredTime = ChartState.conductor.stepToTime(ChartState.hoveredStep, ChartState.conductor.stepInterval)
 
 		function noteBehaviour() {
-			let note = getCurrentHoveredNote()
+			let hoveredNote = getCurrentHoveredNote()
 			
 			// there's already a note in that place
-			if (note) {
+			if (hoveredNote) {
 				// if the note is not already selected
-				if (!ChartState.selectedNotes.includes(note)) {
+				if (!ChartState.selectedStamps.includes(hoveredNote)) {
 					// if control is not down then reset the selected notes
-					if (!isKeyDown("control")) ChartState.resetSelectedNotes()
-					ChartState.selectedNotes.push(note) 
+					if (!isKeyDown("control")) ChartState.resetSelectedStamps()
+					ChartState.selectedStamps.push(hoveredNote) 
 					ChartState.takeSnapshot();
 				}
 			}
 	
 			// there's no note in that place
 			else {
-				ChartState.resetSelectedNotes()
-				note = ChartState.placeNote(hoveredTime, ChartState.currentMove)
-				playSound("noteAdd", { detune: moveToDetune(note.move) })
+				ChartState.resetSelectedStamps()
+				hoveredNote = ChartState.placeNote(hoveredTime, ChartState.currentMove)
+				playSound("noteAdd", { detune: moveToDetune(hoveredNote.move) })
 				ChartState.takeSnapshot();
 			}
 	
-			ChartState.selectionBox.leadingNote = note
-			ChartState.stepForDetune = ChartState.conductor.timeToStep(note.time)
-			differencesToLeading = ChartState.song.chart.notes.map((note) => {
-				if (ChartState.selectionBox.leadingNote == undefined) return
-				return ChartState.conductor.timeToStep(note.time) - ChartState.conductor.timeToStep(ChartState.selectionBox.leadingNote.time)
-			})
+			setLeading(hoveredNote)
+			ChartState.stepForDetune = ChartState.conductor.timeToStep(hoveredNote.time)
 		}
 
 		function eventBehaviour() {
 			let hoveredEvent = getCurrentHoveredEvent()
 
+			// there's already an event in that place
 			if (hoveredEvent) {
-				if (!isKeyDown("shift")) {
-					if (ChartState.selectedEvents.includes(hoveredEvent)) return;
+				if (isKeyDown("shift")) {
+					// do the open dialogue thing
+					// will return the dialog
+					const eventDialog = addEventDialog(hoveredEvent, ChartState)
+	
+					let updateThing = eventDialog.onUpdate(() => {
+						// i need to find a way to get the event that was opened and set its values to the eventDialog event
+						const theEvent = ChartState.song.chart.events.find((ev) => ev.time == hoveredEvent.time) 
+						theEvent.value = eventDialog.event.value
+						theEvent.time = eventDialog.event.time
+					})
+	
+					eventDialog.parent.onClose(() => updateThing.cancel())
+				}
 
-					ChartState.selectedEvents.push(hoveredEvent)
-					if (!isKeyDown("control")) ChartState.selectedEvents = []
-					ChartState.selectedEvents.push(hoveredEvent)
-					return;
+				if (!ChartState.selectedStamps.includes(hoveredEvent)) {
+					if (!isKeyDown("control")) ChartState.resetSelectedStamps()
+					ChartState.selectedStamps.push(hoveredEvent) 
+					ChartState.takeSnapshot();
 				};
-
-				// will return the bpm textbox
-				const eventDialog = addEventDialog(hoveredEvent, ChartState)
-				
-				let updateThing = eventDialog.onUpdate(() => {
-					// i need to find a way to get the event that was opened and set its values to the eventDialog event
-					const theEvent = ChartState.song.chart.events.find((ev) => ev.time == hoveredEvent.time) 
-					theEvent.value = eventDialog.event.value
-					theEvent.time = eventDialog.event.time
-					theEvent.duration = eventDialog.event.duration
-					theEvent.easing = eventDialog.event.easing
-				})
-
-				eventDialog.parent.onClose(() => updateThing.cancel())
 			}
 
 			else {
-				ChartState.selectedEvents = []
-				ChartState.placeEvent({ time: hoveredTime, id: ChartState.currentEvent, value: undefined, duration: 0 })
+				ChartState.selectedStamps = []
+				hoveredEvent = ChartState.placeEvent(hoveredTime, ChartState.currentEvent)
 				playSound("noteAdd", { detune: rand(-50, 50) })
 				playSound("eventCog", { detune: rand(-50, 50) })
 				ChartState.takeSnapshot()
 			}
+
+			setLeading(hoveredEvent)
+			ChartState.stepForDetune = ChartState.conductor.timeToStep(hoveredEvent.time)
 		}
 		
 		// if it's not on the grid at all simply reset selected notes
 		if (!ChartState.isCursorInGrid) {
-			ChartState.resetSelectedNotes()
+			ChartState.resetSelectedStamps()
 			return;	
 		}
 		
@@ -365,7 +405,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	// Resets the detune for moving notes
 	onMouseRelease("left", () => {
 		if (gameDialog.isOpen) return;
-		ChartState.selectionBox.leadingNote = undefined;
+		ChartState.selectionBox.leadingStamp = undefined;
 	})
 
 	// Removing notes
@@ -397,37 +437,61 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	// Behaviour for moving notes
 	onMouseDown("left", () => {
 		if (gameDialog.isOpen) return;
-		if (!ChartState.selectionBox.leadingNote) return;
+		if (!ChartState.selectionBox.leadingStamp) return;
 		
-		let oldStepOfLeading = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingNote.time)
+		let oldStepOfLeading = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time)
 		
-		ChartState.selectedNotes.forEach((selectedNote, index) => {
-			if (selectedNote == ChartState.selectionBox.leadingNote) {
+		ChartState.selectedStamps.forEach((selectedStamp, index) => {
+			// is the leading stamp
+			if (selectedStamp == ChartState.selectionBox.leadingStamp) {
 				let newStep = ChartState.hoveredStep
 				newStep = clamp(newStep, 0, ChartState.conductor.totalSteps - 1)
 
-				selectedNote.time = ChartState.conductor.stepToTime(newStep)
-				ChartState.selectionBox.leadingNote = selectedNote
+				selectedStamp.time = ChartState.conductor.stepToTime(newStep)
+				ChartState.selectionBox.leadingStamp = selectedStamp
 			}
 
 			else {
-				const indexInNotes = ChartState.song.chart.notes.indexOf(selectedNote)
-				const leadingNoteStep = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingNote.time)
+				const isNote = isStampNote(selectedStamp)
 
-				// this is some big brain code i swear
-				const stepDiff = differencesToLeading[indexInNotes]
-				let newStep = leadingNoteStep + stepDiff
-				newStep = clamp(newStep, 0, ChartState.conductor.totalSteps - 1)
-				selectedNote.time = ChartState.conductor.stepToTime(newStep)
+				const leadingStampStep = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time)
+				
+				if (isNote) {
+					const indexInNotes = ChartState.song.chart.notes.indexOf(selectedStamp)
+	
+					// this is some big brain code i swear
+					const stepDiff = differencesToLeading.notes[indexInNotes]
+					let newStep = leadingStampStep + stepDiff
+					newStep = clamp(newStep, 0, ChartState.conductor.totalSteps - 1)
+					selectedStamp.time = ChartState.conductor.stepToTime(newStep)
+				}
+
+				else {
+					const indexInEvents = ChartState.song.chart.events.indexOf(selectedStamp)
+	
+					// this is some big brain code i swear
+					const stepDiff = differencesToLeading.events[indexInEvents]
+					let newStep = leadingStampStep + stepDiff
+					newStep = clamp(newStep, 0, ChartState.conductor.totalSteps - 1)
+					selectedStamp.time = ChartState.conductor.stepToTime(newStep)
+				}
 			}
 		})
 	
-		let newStepOfLeading = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingNote.time)
+		let newStepOfLeading = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time)
 		
 		if (newStepOfLeading != oldStepOfLeading) {
 			// thinking WAY too hard for a simple sound effect lol!
 			const diff = newStepOfLeading - ChartState.stepForDetune
-			const baseDetune = Math.abs(moveToDetune(ChartState.selectionBox.leadingNote.move)) * 0.5
+			let baseDetune = 0
+			
+			if (isStampNote(ChartState.selectionBox.leadingStamp)) {
+				baseDetune = Math.abs(moveToDetune(ChartState.selectionBox.leadingStamp.move)) * 0.5
+			}
+
+			else {
+				baseDetune = Object.keys(ChartState.events).indexOf(ChartState.selectionBox.leadingStamp.id) * 10	
+			}
 			
 			playSound("noteMove", { detune: baseDetune * diff })
 			ChartState.takeSnapshot();
@@ -437,9 +501,19 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	// Copies the color of a note
 	onMousePress("middle", () => {
 		if (gameDialog.isOpen) return;
-		const currentHoveredNote = getCurrentHoveredNote()
-		if (currentHoveredNote && ChartState.currentMove != currentHoveredNote.move) {
-			ChartState.changeMove(currentHoveredNote.move)
+		
+		if (ChartState.isInNoteGrid) {
+			const currentHoveredNote = getCurrentHoveredNote()
+			if (currentHoveredNote && ChartState.currentMove != currentHoveredNote.move) {
+				ChartState.changeMove(currentHoveredNote.move)
+			}
+		}
+
+		else {
+			const currentHoveredEvent = getCurrentHoveredEvent()
+			if (currentHoveredEvent && ChartState.currentEvent != currentHoveredEvent.id) {
+				ChartState.currentEvent = currentHoveredEvent.id
+			}
 		}
 	})
 
@@ -489,7 +563,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		if (ChartState.paused == false) {
 			// all of this is kinda like a math.ceil(), fixes the weird stutter
 			const timeToStep = ChartState.conductor.timeToStep(ChartState.conductor.timeInSeconds)
-			ChartState.scrollStep = timeToStep
+			ChartState.scrollToStep(timeToStep)
 			const newTime = ChartState.conductor.stepToTime(ChartState.scrollStep)
 			ChartState.conductor.audioPlay.seek(newTime)
 		}
@@ -511,7 +585,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 		if (someNote) {
 			const indexOfNote = ChartState.song.chart.notes.indexOf(someNote)
-			tween(vec2(NOTE_BIG_SCALE), vec2(1), 0.1, (p) => ChartState.noteProps[indexOfNote].scale = p)
+			tween(vec2(NOTE_BIG_SCALE), vec2(1), 0.1, (p) => ChartState.stampProps.notes[indexOfNote].scale = p)
 			playSound("noteHit", { detune: moveToDetune(someNote.move) })
 			triggerEvent("onNoteHit", someNote)
 		}

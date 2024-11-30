@@ -329,6 +329,8 @@ export function addNotification(coloring: Color, text: string, duration: number 
 		z(1000),
 		color(),
 	])
+
+	return notification;
 }
 
 export function addEventDialog(event: ChartEvent, ChartState:StateChart) {

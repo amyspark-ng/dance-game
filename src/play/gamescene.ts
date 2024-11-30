@@ -66,17 +66,17 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 		
 		GameState.song.chart.events.forEach((ev) => {
 			if (GameState.conductor.timeInSeconds >= ev.time && !GameState.eventsDone.includes(ev)) {
-				if (ev.id == "change-scoll") {
-					tween(TIME_FOR_STRUM, 1.25 / ev.value / GameSave.scrollSpeed, ev.duration, (p) => setTimeForStrum(p), ev.easing)
+				if (ev.id == "change-scroll") {
+					tween(TIME_FOR_STRUM, 1.25 / ev.value / GameSave.scrollSpeed, ev.value.duration, (p) => setTimeForStrum(p), ev.value.easing)
 				}
 
-				else if (ev.id == "cam-stuff") {
+				else if (ev.id == "cam-move") {
 					const posToArr = Vec2.fromArray(ev.value.pos)
 					const zoomToArr = Vec2.fromArray(ev.value.scale)
 					const camAngle = ev.value.angle
-					tween(cam.pos, posToArr, ev.duration, (p) => cam.pos = p, ev.easing)
-					tween(cam.zoom, zoomToArr, ev.duration, (p) => cam.zoom = p, ev.easing)
-					tween(cam.rotation, camAngle, ev.duration, (p) => cam.rotation = p, ev.easing)
+					tween(cam.pos, posToArr, ev.value.duration, (p) => cam.pos = p, ev.value.easing)
+					tween(cam.zoom, zoomToArr, ev.value.duration, (p) => cam.zoom = p, ev.value.easing)
+					tween(cam.rotation, camAngle, ev.value.duration, (p) => cam.rotation = p, ev.value.easing)
 				}
 			}
 		})
