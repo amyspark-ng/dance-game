@@ -224,27 +224,17 @@ export async function loadAssets() {
 
 	loadSprite("optionsCursor", "sprites/optionsCursor.png")
 
-	const events = ["change-scroll", "cam-move", "play-anim"]
-	loadSpriteAtlas("sprites/events.png", {
-		"change-scroll": {
+	const events = ["change-scroll", "cam-move", "play-anim", "change-dancer"]
+	const eventsSpriteAtlas = {}
+	events.forEach((event, index) => {
+		eventsSpriteAtlas[event] = {
 			width: 52,
 			height: 52,
-			x: 0,
-			y: 0,
-		},
-		"cam-move": {
-			width: 52,
-			height: 52,
-			x: 52,
-			y: 0,
-		},
-		"play-anim": {
-			width: 52,
-			height: 52,
-			x: 104,
-			y: 0,
+			x: 52 * index,
+			y: 0
 		}
 	})
+	loadSpriteAtlas("sprites/events.png", eventsSpriteAtlas)
 
 	let songRanksAtlasData = {}
 	rankings.forEach((rank, index) => {

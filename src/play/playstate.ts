@@ -3,6 +3,7 @@ import { Conductor } from "../conductor";
 import { triggerEvent } from "../core/events";
 import { GameSave } from "../core/gamesave";
 import { PRODUCT } from "../core/initGame";
+import { cam } from "../core/plugins/features/camera";
 import { playSound } from "../core/plugins/features/sound";
 import { goScene, transitionToScene } from "../core/scenes";
 import { fadeOut } from "../core/transitions/fadeOutTransition";
@@ -145,6 +146,10 @@ export function restartSong(GameState:StateGame) {
 	else {
 		GameState.conductor.timeInSeconds = -TIME_FOR_STRUM
 	}
+
+	tween(cam.pos, center(), 0.1, (p) => cam.pos = p, easings.easeOutExpo)
+	tween(cam.zoom, vec2(1), 0.1, (p) => cam.zoom = p, easings.easeOutExpo)
+	tween(cam.rotation, 0, 0.1, (p) => cam.rotation = p, easings.easeOutExpo)
 
 	getNotesOnScreen().forEach((noteObj) => {
 		noteObj.destroy()

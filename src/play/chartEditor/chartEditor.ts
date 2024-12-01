@@ -13,6 +13,7 @@ import { addLeftInfo, addDialogButtons, drawAllNotes, drawCameraController, draw
 import { GameSave } from "../../core/gamesave";
 import { gameDialog } from "../../ui/dialogs/gameDialog";
 import { openEventDialog as openChartEventDialog, openChartAboutDialog, openChartInfoDialog } from "./chartEditorDialogs";
+import { ChartEvent } from "../song";
 
 export function ChartEditorScene() { scene("charteditor", (params: paramsChartEditor) => {
 	// had an issue with BPM being NaN but it was because since this wasn't defined then it was NaN
@@ -82,7 +83,39 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 			
 			// TODO: Account for double notes or events
 		})
-		
+
+		// TODO: Do stuff for properly animating dancer
+		ChartState.song.chart.events.forEach((ev) => {
+			if (ChartState.conductor.timeInSeconds >= ev.time) {
+				if (ChartState.doneEvents.includes(ev)) return;
+				ChartState.doneEvents.push(ev)
+			
+				// do stuff here
+				if (ev.id == "play-anim") {
+					if (dummyDancer.getAnim(ev.value.anim) == null) {
+						console.warn("Animation not found for dancer: " + ev.value.anim)
+						return;
+					}
+					
+					dummyDancer.forcedAnim = ev.value.force
+					
+					// @ts-ignore
+					const animSpeed = dummyDancer.getAnim(ev.value.anim)?.speed
+					dummyDancer.play(ev.value.anim, { speed: animSpeed * ev.value.speed, loop: true, pingpong: ev.value.ping_pong })
+					dummyDancer.onAnimEnd((animEnded) => {
+						if (animEnded != ev.value.anim) return;
+						dummyDancer.forcedAnim = false
+						dummyDancer.doMove("idle")
+					})
+				}
+			}
+
+			else {
+				ChartState.doneEvents = utils.removeFromArr(ev, ChartState.doneEvents)
+			}
+		})
+
+		dummyDancer.sprite = "dancer_" + ChartState.getDancerAtTime() 
 		ChartState.conductor.paused = ChartState.paused;
 
 		// SCROLL STEP

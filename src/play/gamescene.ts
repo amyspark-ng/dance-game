@@ -16,6 +16,8 @@ import { appWindow } from "@tauri-apps/api/window"
 import { PRODUCT } from "../core/initGame"
 import { gameCursor } from "../core/plugins/features/gameCursor"
 import { cam } from "../core/plugins/features/camera"
+import { TweenController } from "kaplay"
+import { dancers } from "../core/loader"
 
 export function GameScene() { scene("game", (params: paramsGameScene) => {
 	setBackground(RED.lighten(60))
@@ -58,6 +60,8 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 
 	let hasPlayedGo = false
 
+	const camTweens:TweenController[] = []
+
 	onUpdate(() => {
 		if (GameState.conductor.timeInSeconds >= -(TIME_FOR_STRUM / 2) && !hasPlayedGo) {
 			introGo()
@@ -76,9 +80,13 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 					const posToArr = vec2(ev.value.x, ev.value.y)
 					const zoomToArr = vec2(ev.value.zoom)
 					const camAngle = ev.value.angle
-					tween(cam.pos, center().add(posToArr), ev.value.duration, (p) => cam.pos = p, easings[ev.value.easing])
-					tween(cam.zoom, zoomToArr, ev.value.duration, (p) => cam.zoom = p, easings[ev.value.easing])
-					tween(cam.rotation, camAngle, ev.value.duration, (p) => cam.rotation = p, easings[ev.value.easing])
+					const camPosTween = tween(cam.pos, center().add(posToArr), ev.value.duration, (p) => cam.pos = p, easings[ev.value.easing])
+					const camZoomTween = tween(cam.zoom, zoomToArr, ev.value.duration, (p) => cam.zoom = p, easings[ev.value.easing])
+					const camRotationTween = tween(cam.rotation, camAngle, ev.value.duration, (p) => cam.rotation = p, easings[ev.value.easing])
+					
+					camTweens.push(camPosTween)
+					camTweens.push(camZoomTween)
+					camTweens.push(camRotationTween)
 				}
 
 				else if (ev.id == "play-anim") {
@@ -98,7 +106,20 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 						getDancer().play("idle")
 					})
 				}
+
+				else if (ev.id == "change-dancer") {
+					if (!dancers.map((names) => names.dancerName).includes(ev.value.dancer)) {
+						console.warn("Dancer not found: " + ev.value.dancer)
+						return;
+					}
+
+					getDancer().sprite = "dancer_" + ev.value.dancer
+				}
 			}
+		})
+
+		camTweens.forEach((tweenT) => {
+			tweenT.paused = GameState.paused
 		})
 
 		manageInput(GameState);

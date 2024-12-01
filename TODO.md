@@ -1,5 +1,7 @@
 - Chart Editor: Add the notifications like, song loaded, song downloaded etc etc
 - Chart Editor: Make it so the dancer on the corner is also affected by anims like the 
+- Chart Editor: Fix the thing of events moving to the X button thing
+- Chart Editor: 
 
 - SORTA BUNCH OF STUFF like all of the input being on playstate, all of that system could be better organized
 - Game: Playback speed doesn't work at all

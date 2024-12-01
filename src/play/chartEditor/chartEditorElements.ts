@@ -345,7 +345,7 @@ export function drawCameraController(ChartState:StateChart) {
 export function drawSelectSquares(ChartState:StateChart) {
 	// unify this
 	ChartState.selectedStamps.forEach((note) => {
-		if (!("move" in note)) return;
+		if (!isStampNote(note)) return;
 		const stepOfSelectedNote = ChartState.conductor.timeToStep(note.time) - ChartState.scrollStep
 		const gizmoPos = ChartState.stepToPos(stepOfSelectedNote)
 		const celesteColor = BLUE.lighten(150)
@@ -366,7 +366,7 @@ export function drawSelectSquares(ChartState:StateChart) {
 	})
 	
 	ChartState.selectedStamps.forEach((ev) => {
-		if (("move" in ev)) return;
+		if (isStampNote(ev)) return;
 		const stepOfSelectedNote = ChartState.conductor.timeToStep(ev.time) - ChartState.scrollStep
 		const gizmoPos = ChartState.stepToPos(stepOfSelectedNote)
 		gizmoPos.x += ChartState.SQUARE_SIZE.x

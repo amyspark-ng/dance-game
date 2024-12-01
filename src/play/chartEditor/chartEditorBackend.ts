@@ -13,6 +13,8 @@ import JSZip from "jszip";
 import TOML from "smol-toml"
 import { v4 as uuidv4 } from 'uuid';
 import { openChartInfoDialog } from "./chartEditorDialogs";
+import { GameSave } from "../../core/gamesave";
+import { dancers } from "../../core/loader";
 
 /** Is either a note or an event */
 export type ChartStamp = (ChartNote | ChartEvent)
@@ -72,12 +74,6 @@ export class StateChart {
 	/** How many steps scrolled */
 	scrollStep: number = 0;
 
-	scrollToStep(newStep: number) {
-		newStep = Math.abs(Math.round(newStep))
-		newStep = clamp(newStep, 0, this.conductor.totalSteps)
-		this.scrollStep = newStep
-	}
-
 	/** Is ChartState.scrollstep but lerped */
 	lerpScrollStep = 0
 
@@ -105,6 +101,8 @@ export class StateChart {
 		pos: vec2(width() / 2 + 52 * 2, 25),
 	}
 
+	doneEvents: ChartEvent[] = [];
+
 	// SOME STUPID VARS
 
 	/** How lerped the scroll value is */
@@ -129,7 +127,8 @@ export class StateChart {
 	events = {
 		"change-scroll": { duration: 0, speed: 1, easing: "linear" },
 		"cam-move": { duration: 0, x: 0, y: 0, zoom: 1, angle: 0, easing: "linear" },
-		"play-anim": { anim: "victory", speed: 1, force: false, looped: false, ping_pong: false }
+		"play-anim": { anim: "victory", speed: 1, force: false, looped: false, ping_pong: false },
+		"change-dancer": { dancer: "astri", },
 	};
 
 	/** The current selected event */
@@ -188,6 +187,13 @@ export class StateChart {
 
 	/** Buffer of the audio play in the conductor */
 	audioBuffer: AudioBuffer = null;
+
+	/** Sets scrollStep to a clamped and rounded value */
+	scrollToStep(newStep: number) {
+		newStep = Math.abs(Math.round(newStep))
+		newStep = clamp(newStep, 0, this.conductor.totalSteps)
+		this.scrollStep = newStep
+	}
 
 	/** Converts a step to a position (a hawk to a) */
 	stepToPos(step: number) {
@@ -301,6 +307,27 @@ export class StateChart {
 		}
 		
 		return null; // No more states to redo
+	}
+
+	/** Gets the dancer at a current time in the song */
+	getDancerAtTime() {
+		let dancerChangeEvents = this.song.chart.events.filter((event) => event.id == "change-dancer")
+		
+		// some stuff to remove faulty names from dancer list
+		const dancersInEvents = dancerChangeEvents.map((ev) => ev.value.dancer)
+		const allDancerNames = dancers.map((dancerFiles) => dancerFiles.dancerName)
+		if (dancersInEvents.some((dancerInEvent) => allDancerNames.includes(dancerInEvent)) == false) {
+			const indexOfFaultyDancer = dancerChangeEvents.findIndex((ev) => dancersInEvents.some((dancerInEvent) => ev.value.dancer == dancerInEvent))
+			dancerChangeEvents = utils.removeFromArr(dancersInEvents[indexOfFaultyDancer], dancerChangeEvents)
+		}
+
+		if (dancerChangeEvents.length == 0 || this.conductor.timeInSeconds < dancerChangeEvents[0].time) return GameSave.dancer;
+
+		for (const event in dancerChangeEvents) {
+			if (dancerChangeEvents[event].time <= this.conductor.timeInSeconds) {
+				return dancerChangeEvents[event].value.dancer
+			}
+		}
 	}
 
 	/** Changes the song of the instance */
@@ -560,6 +587,9 @@ export function addDummyDancer(dancerName: string) {
 		scale(DANCER_SCALE),
 		juice(),
 		fakeDancerComp(),
+		{
+			forcedAnim: false,
+		}
 	])
 
 	dancer.onClick(() => {
