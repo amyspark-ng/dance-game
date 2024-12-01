@@ -5,10 +5,10 @@ import { utils } from "../../utils"
 import { moveToColor, notesSpawner } from "../objects/note"
 import { ChartStamp, concatStamps, downloadChart, isStampNote, StateChart } from "./chartEditorBackend"
 import { gameCursor } from "../../core/plugins/features/gameCursor"
-import { gameDialog, openChartAboutDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog"
+import { gameDialog } from "../../ui/dialogs/gameDialog"
 import { onBeatHit } from "../../core/events"
 import { playSound } from "../../core/plugins/features/sound"
-import { event } from "@tauri-apps/api"
+import { openChartAboutDialog, openChartInfoDialog } from "./chartEditorDialogs"
 
 /** Returns if a certain Y position mets the conditions to be drawn on the screen */
 function conditionsForDrawing(YPos: number, square_size: Vec2) {
@@ -240,8 +240,8 @@ export function drawCursor(ChartState:StateChart) {
 		})
 
 		// if there's already a note or event in that space dont' draw the sprite
-		if (ChartState.song.chart.notes.some((note) => ChartState.conductor.timeToStep(note.time) == ChartState.hoveredStep)
-			|| ChartState.song.chart.events.some((ev) => ChartState.conductor.timeToStep(ev.time) == ChartState.hoveredStep)) return;
+		if (ChartState.isInNoteGrid && ChartState.song.chart.notes.some((note) => ChartState.conductor.timeToStep(note.time) == ChartState.hoveredStep)) return
+		else if (ChartState.isInEventGrid && ChartState.song.chart.events.some((ev) => ChartState.conductor.timeToStep(ev.time) == ChartState.hoveredStep)) return
 
 		drawSprite({
 			sprite: theSprite,
@@ -343,6 +343,7 @@ export function drawCameraController(ChartState:StateChart) {
 
 /** Draw the thing for the selected note */
 export function drawSelectSquares(ChartState:StateChart) {
+	// unify this
 	ChartState.selectedStamps.forEach((note) => {
 		if (!("move" in note)) return;
 		const stepOfSelectedNote = ChartState.conductor.timeToStep(note.time) - ChartState.scrollStep

@@ -11,7 +11,8 @@ import { paramsGameScene } from "../playstate";
 import { addDummyDancer, addFloatingText, cameraHandler, ChartStamp, clipboardMessage, concatStamps, handlerForChangingInput, isStampNote, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, StateChart } from "./chartEditorBackend";
 import { addLeftInfo, addDialogButtons, drawAllNotes, drawCameraController, drawCheckerboard, drawCursor, drawPlayBar, drawSelectSquares, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE, addEventsPanel } from "./chartEditorElements";
 import { GameSave } from "../../core/gamesave";
-import { addEventDialog, gameDialog, openChartAboutDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog";
+import { gameDialog } from "../../ui/dialogs/gameDialog";
+import { openEventDialog as openChartEventDialog, openChartAboutDialog, openChartInfoDialog } from "./chartEditorDialogs";
 
 export function ChartEditorScene() { scene("charteditor", (params: paramsChartEditor) => {
 	// had an issue with BPM being NaN but it was because since this wasn't defined then it was NaN
@@ -353,22 +354,11 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 		function eventBehaviour() {
 			let hoveredEvent = getCurrentHoveredEvent()
-
+			
 			// there's already an event in that place
 			if (hoveredEvent) {
 				if (isKeyDown("shift")) {
-					// do the open dialogue thing
-					// will return the dialog
-					const eventDialog = addEventDialog(hoveredEvent, ChartState)
-	
-					let updateThing = eventDialog.onUpdate(() => {
-						// i need to find a way to get the event that was opened and set its values to the eventDialog event
-						const theEvent = ChartState.song.chart.events.find((ev) => ev.time == hoveredEvent.time) 
-						theEvent.value = eventDialog.event.value
-						theEvent.time = eventDialog.event.time
-					})
-	
-					eventDialog.parent.onClose(() => updateThing.cancel())
+					openChartEventDialog(hoveredEvent, ChartState)
 				}
 
 				if (!ChartState.selectedStamps.includes(hoveredEvent)) {

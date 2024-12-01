@@ -6,12 +6,13 @@ import { utils } from "../../utils";
 import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { Conductor } from "../../conductor";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
-import { gameDialog, openChartInfoDialog } from "../../ui/dialogs/gameDialog";
+import { gameDialog } from "../../ui/dialogs/gameDialog";
 import { ChartEvent, SongContent } from "../song";
 import { playSound } from "../../core/plugins/features/sound";
 import JSZip from "jszip";
 import TOML from "smol-toml"
 import { v4 as uuidv4 } from 'uuid';
+import { openChartInfoDialog } from "./chartEditorDialogs";
 
 /** Is either a note or an event */
 export type ChartStamp = (ChartNote | ChartEvent)
@@ -126,9 +127,9 @@ export class StateChart {
 
 	/** All the ids for the events */
 	events = {
-		"change-scroll": { duration: 0, speed: 1, easing: easings.linear },
-		"cam-move": { duration: 0, pos: { x: 0, y: 0 }, zoom: 1, angle: 0, easing: easings.linear },
-		"play-anim": { anim: "", speed: 1, force: false }
+		"change-scroll": { duration: 0, speed: 1, easing: "linear" },
+		"cam-move": { duration: 0, x: 0, y: 0, zoom: 1, angle: 0, easing: "linear" },
+		"play-anim": { anim: "victory", speed: 1, force: false, looped: false, ping_pong: false }
 	};
 
 	/** The current selected event */
@@ -243,7 +244,6 @@ export class StateChart {
 	/** Adds an event to the events array */
 	placeEvent(time: number, id: string) {
 		const newEvent:ChartEvent = { time: time, id: id, value: this.events[id] }
-		
 		this.song.chart.events.push(newEvent)
 		// now sort them in time order
 		this.song.chart.events.sort((a, b) => a.time - b.time)
@@ -346,7 +346,6 @@ export function moveToDetune(move: Move) {
 
 /** RUns on update */
 export function selectionBoxHandler(ChartState:StateChart) {
-	
 	if (isMousePressed("left")) {
 		if (ChartState.cameraController.canMoveCamera || ChartState.isCursorInGrid || get("hover", { recursive: true }).some((obj) => obj.isHovering())) {
 			ChartState.selectionBox.canSelect = false

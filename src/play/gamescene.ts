@@ -66,17 +66,37 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 		
 		GameState.song.chart.events.forEach((ev) => {
 			if (GameState.conductor.timeInSeconds >= ev.time && !GameState.eventsDone.includes(ev)) {
+				GameState.eventsDone.push(ev)
+
 				if (ev.id == "change-scroll") {
-					tween(TIME_FOR_STRUM, 1.25 / ev.value / GameSave.scrollSpeed, ev.value.duration, (p) => setTimeForStrum(p), ev.value.easing)
+					tween(TIME_FOR_STRUM, (1.25 / ev.value.speed) / GameSave.scrollSpeed, ev.value.duration, (p) => setTimeForStrum(p), easings[ev.value.easing])
 				}
 
 				else if (ev.id == "cam-move") {
-					const posToArr = Vec2.fromArray(ev.value.pos)
-					const zoomToArr = Vec2.fromArray(ev.value.scale)
+					const posToArr = vec2(ev.value.x, ev.value.y)
+					const zoomToArr = vec2(ev.value.zoom)
 					const camAngle = ev.value.angle
-					tween(cam.pos, posToArr, ev.value.duration, (p) => cam.pos = p, ev.value.easing)
-					tween(cam.zoom, zoomToArr, ev.value.duration, (p) => cam.zoom = p, ev.value.easing)
-					tween(cam.rotation, camAngle, ev.value.duration, (p) => cam.rotation = p, ev.value.easing)
+					tween(cam.pos, center().add(posToArr), ev.value.duration, (p) => cam.pos = p, easings[ev.value.easing])
+					tween(cam.zoom, zoomToArr, ev.value.duration, (p) => cam.zoom = p, easings[ev.value.easing])
+					tween(cam.rotation, camAngle, ev.value.duration, (p) => cam.rotation = p, easings[ev.value.easing])
+				}
+
+				else if (ev.id == "play-anim") {
+					if (getDancer().getAnim(ev.value.anim) == null) {
+						console.warn("Animation not found for dancer: " + ev.value.anim)
+						return;
+					}
+					
+					getDancer().forcedAnim = ev.value.force
+					
+					// @ts-ignore
+					const animSpeed = getDancer().getAnim(ev.value.anim)?.speed
+					getDancer().play(ev.value.anim, { speed: animSpeed * ev.value.speed, loop: true, pingpong: ev.value.ping_pong })
+					getDancer().onAnimEnd((animEnded) => {
+						if (animEnded != ev.value.anim) return;
+						getDancer().forcedAnim = false
+						getDancer().play("idle")
+					})
 				}
 			}
 		})

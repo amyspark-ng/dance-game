@@ -224,6 +224,7 @@ export async function loadAssets() {
 
 	loadSprite("optionsCursor", "sprites/optionsCursor.png")
 
+	const events = ["change-scroll", "cam-move", "play-anim"]
 	loadSpriteAtlas("sprites/events.png", {
 		"change-scroll": {
 			width: 52,

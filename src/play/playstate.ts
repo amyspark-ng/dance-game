@@ -125,6 +125,7 @@ export function restartSong(GameState:StateGame) {
 
 	GameState.health = 100
 	GameState.spawnedNotes = []
+	GameState.eventsDone = [];
 	GameState.hitNotes = []
 	GameState.tally = new Tally();
 	GameState.combo = 0

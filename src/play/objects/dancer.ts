@@ -21,6 +21,7 @@ export function addDancer(dancerName: string) {
 		z(1),
 		"dancerObj",
 		{
+			forcedAnim: false,
 			/** The timer controller for the wait for the idle */
 			waitForIdle: null,
 			add() {
@@ -28,6 +29,8 @@ export function addDancer(dancerName: string) {
 			},
 
 			doMove(move: Move) : void {
+				if (this.forcedAnim) return;
+				
 				onAnimEndEvent?.cancel()
 				this.play(move)
 	
@@ -71,6 +74,7 @@ export function addDancer(dancerName: string) {
 		
 			/** miss */
 			miss() : void {
+				if (this.forcedAnim) return;
 				this.play("miss");
 				this.moveBop();
 		

@@ -1,44 +1,58 @@
-import { Vec2 } from "kaplay";
+import { KEventController, Vec2 } from "kaplay";
 import { gameDialog, gameDialogObj } from "./gameDialog";
 import { playSound } from "../../core/plugins/features/sound";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { utils } from "../../utils";
 import { StateChart } from "../../play/chartEditor/chartEditorBackend";
 import { handleCoverInput, handleAudioInput } from "../../fileManaging";
+import { openSync } from "fs";
 
 const textSize = 30
 const padding = 5
 
-type textboxOpt = {
-	title: string,
-	dialog: gameDialogObj,
-	position: Vec2,
-	formatFunc?: (str:string) => string,
-	conditionsForTyping: (currentSring: string, ch:string) => boolean,
-	fallBackValue: string,
-	startingValue: string,
-}
+export type textboxOpt = {
+	title: string;
+	dialog: gameDialogObj;
+	position?: Vec2;
+	/** How long can the textbox be (in characters) */
+	length: number;
+} & (
+	| { type: "string"; fallBackValue: string; startingValue: string }
+	| { type: "number"; fallBackValue: number; startingValue: number }
+);
 
-/** Will return the object with some info
- * 
- * obj.value Will be the set value
+/** Adds a textbox to type things in the dialog
+ * @returns The object that holds the REAL value to use
  */
 export function dialog_addTextbox(opts: textboxOpt) {
+	function isNumberTextBox(opt: textboxOpt): opt is textboxOpt & { type: "number"; fallBackValue: number; startingValue: number } {
+		return opt.type === "number";
+	}
+	
 	const title = opts.dialog.add([
 		text(opts.title + ":", { align: "right", size: textSize }),
 		anchor("left"),
 		pos(opts.position),
 	])
 
+	const widthOfText = formatText({ text: "A", size: textSize }).width
+	const widthOfBox = ((widthOfText * 0.8) * opts.length) + widthOfText * 2 
+
 	const textboxBg = opts.dialog.add([
 		pos((title.pos.x + title.width) + padding, title.pos.y),
-		rect(opts.dialog.width - title.width - padding * 14, textSize + padding, { radius: 2.5 }),
+		rect(widthOfBox, textSize + padding, { radius: 2.5 }),
 		color(opts.dialog.outline.color.lighten(5)),
 		outline(1, opts.dialog.outline.color.lighten(20)),
 		anchor("left"),
 		area(),
 	])
 	
+	/** The value we'll be using, which can be undefined or have some weird typing going on */
+	let workingValue = String(opts.startingValue)
+
+	let charInputEv:KEventController = null;
+	let backspaceEv:KEventController = null;
+
 	/** Is the actual object that contains the value and the text */
 	const textbox = opts.dialog.add([
 		text("", { align: "left", size: textSize * 0.9 }),
@@ -46,11 +60,18 @@ export function dialog_addTextbox(opts: textboxOpt) {
 		anchor("left"),
 		"textbox",
 		{
-			value: opts.startingValue,
+			value: isNumberTextBox(opts) ? opts.startingValue : opts.startingValue,
 			canClick: false,
 			focus: false,
+			widthOfBox: widthOfBox,
 			update() {
-				this.text = opts.formatFunc(this.value)
+				if (workingValue == "") this.value = opts.fallBackValue
+				else {
+					if (isNumberTextBox(opts)) this.value = Number(workingValue)
+					else this.value = String(workingValue)
+				}
+
+				this.text = workingValue.toString();
 			}
 		}
 	])
@@ -62,6 +83,17 @@ export function dialog_addTextbox(opts: textboxOpt) {
 			const textboxWorldPos = textbox.screenPos()
 			gameCursor.pos.y = lerp(gameCursor.pos.y, textboxWorldPos.y - textbox.height / 2, 0.5)
 			gameCursor.pos.x = lerp(gameCursor.pos.x, textboxWorldPos.x + textbox.width, 0.5)
+		
+			if (isKeyPressed("enter") || isKeyPressed("escape")) {
+				if (workingValue == "") workingValue = String(opts.fallBackValue)
+				playSound("keyClick", { detune: rand(-100, 100) })
+				charInputEv.cancel()
+				backspaceEv.cancel()
+	
+				textbox.focus = false
+				gameCursor.typeMode = false
+				gameDialog.canClose = true
+			}
 		}
 		
 		else {
@@ -82,45 +114,39 @@ export function dialog_addTextbox(opts: textboxOpt) {
 		textbox.focus = true
 		gameCursor.typeMode = true
 		gameDialog.canClose = false
-		const charinputEv = textbox.onCharInput((ch) => {
-			if (isKeyDown("shift")) ch = ch.toUpperCase()
-			
-			if (opts.conditionsForTyping(textbox.value, ch)) {
-				textbox.value += ch
-				playSound("keyClick", { detune: rand(-100, 100) })
-			};
-		})
-
-		const backspaceEv = textbox.onKeyPressRepeat("backspace", () => {
-			if (textbox.value.length == 0) return
-			
-			if (isKeyDown("control")) {
-				// remove the last word
-				if (textbox.value.split(" ").length == 1) textbox.value = ""
-				else textbox.value = textbox.value.slice(0, textbox.value.lastIndexOf(" "))
+		
+		// typing stuff
+		charInputEv = textbox.onCharInput((ch) => {
+			if (isNumberTextBox(opts)) {
+				if (workingValue.length >= opts.length) return
+				if (isNaN(Number(ch))) return;
+				workingValue += ch
 			}
 
+			// string textbox
 			else {
-				textbox.value = textbox.value.slice(0, -1)
+				if (isKeyDown("shift")) ch = ch.toUpperCase()
+				if (workingValue.length >= opts.length) return
+				workingValue += ch
 			}
 			
 			playSound("keyClick", { detune: rand(-100, 100) })
 		})
 
-		textboxBg.onUpdate(() => {
-			if (!textbox.focus) return;
+		backspaceEv = textbox.onKeyPressRepeat("backspace", () => {
+			if (workingValue == "") return
 			
-			if (isKeyPressed("enter") || isKeyPressed("escape")) {
-				playSound("keyClick", { detune: rand(-100, 100) })
-				charinputEv.cancel()
-				backspaceEv.cancel()
-
-				if (textbox.value.length == 0) textbox.value = opts.fallBackValue
-
-				textbox.focus = false
-				gameCursor.typeMode = false
-				gameDialog.canClose = true
+			if (isKeyDown("control")) {
+				// remove the last word
+				if (workingValue.split(" ").length == 1) workingValue = ""
+				else workingValue = workingValue.slice(0, workingValue.lastIndexOf(" "))
 			}
+
+			else {
+				workingValue = workingValue.slice(0, -1)
+			}
+			
+			playSound("keyClick", { detune: rand(-100, 100) })
 		})
 	})
 
@@ -334,4 +360,50 @@ export function dialog_changeSong(opts:changeThingOpt) {
 	})
 
 	return textbox;
+}
+
+export type checkboxOpt = {
+	title: string;
+	dialog: gameDialogObj;
+	position?: Vec2;
+	startingValue: boolean;
+}
+
+export function dialog_addCheckbox(opts: checkboxOpt) {
+	const title = opts.dialog.add([
+		pos(opts.position),
+		text(opts.title + ":", { align: "left", size: textSize }),
+		anchor("left"),
+	])
+
+	const checkbox = opts.dialog.add([
+		pos(title.pos.x + title.width, title.pos.y),
+		rect(textSize + padding, textSize + padding, { radius: 2.5 }),
+		color(opts.dialog.outline.color.lighten(5)),
+		outline(1, opts.dialog.outline.color.lighten(20)),
+		anchor("left"),
+		area(),
+		"checkbox",
+		{
+			value: opts.startingValue,
+			draw() {
+				if (this.value == true) {
+					drawRect({
+						pos: vec2(checkbox.width / 2, 0),
+						width: checkbox.width - 10,
+						height: checkbox.height - 10,
+						anchor: "center",
+						color: WHITE.darken(5),
+						radius: 2.5,
+					})
+				}
+			}
+		}
+	])
+
+	checkbox.onClick(() => {
+		checkbox.value = !checkbox.value
+	})
+
+	return checkbox;
 }
