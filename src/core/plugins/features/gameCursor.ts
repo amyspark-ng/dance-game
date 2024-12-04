@@ -1,4 +1,5 @@
 import { Comp } from "kaplay"
+import { GameDialog } from "../../../ui/dialogs/gameDialog"
 
 export let gameCursor:cursorObjectType = null
 export type cursorDoing = "default" | "up" | "down" | "x" | "text" | "load"
@@ -27,6 +28,8 @@ export function addCursorObject() {
 	
 	let theMousePos = mousePos()
 	
+	let customBehaviours: (() => void)[] = []
+
 	let blinkTimer = 0;
 	const mouse = add([
 		sprite("cursor_default"),
@@ -47,6 +50,7 @@ export function addCursorObject() {
 			intendedOpa: 1,
 			canMove: true,
 			typeMode: false,
+			isHoveringAnObject: false,
 
 			hide() {
 				this.intendedOpa = 0
@@ -56,50 +60,90 @@ export function addCursorObject() {
 				this.intendedOpa = 1
 			},
 
-			update() {
-				if (this.typeMode) {
-					this.canMove = false
-					
-					blinkTimer += dt()
-					if (blinkTimer >= 1) {
-						blinkTimer = 0
-						this.opacity = 0
-						wait(0.25, () => {
-							this.opacity = 1
-						})
-					}
-
-					return;
-				}
-
-				else {
-					blinkTimer = 0
-					this.canMove = true
-				}
-				
-				// shown
-				theMousePos = lerp(theMousePos, mousePos(), 0.8)
-				if (this.intendedOpa == 1) {
-					if (this.canMove) {
-						if (isMouseMoved()) this.pos = theMousePos
-					}
-				}
-
-				else {
-					this.pos = vec2()
-				}
-				
-				if (this.sprite == "cursor_load") {
-					if (Math.floor(time()*15)%2==0) {
-						this.angle += 90 / 3
-						this.angle = this.angle % 360
-					}
-				}
-				
-				this.opacity = lerp(this.opacity, this.intendedOpa, 0.5)
-			}
+			addAnimCondition(action: () => void) {
+				customBehaviours.push(action)
+			},
 		}
 	])
+
+	mouse.onUpdate(() => {
+		if (mouse.typeMode) {
+			mouse.canMove = false
+			
+			blinkTimer += dt()
+			if (blinkTimer >= 1) {
+				blinkTimer = 0
+				mouse.opacity = 0
+				wait(0.25, () => {
+					mouse.opacity = 1
+				})
+			}
+
+			return;
+		}
+
+		else {
+			blinkTimer = 0
+			mouse.canMove = true
+		}
+		
+		// shown
+		theMousePos = lerp(theMousePos, mousePos(), 0.8)
+		if (mouse.intendedOpa == 1) {
+			if (mouse.canMove) {
+				if (isMouseMoved()) mouse.pos = theMousePos
+			}
+		}
+
+		else {
+			mouse.pos = vec2()
+		}
+		
+		if (mouse.sprite == "cursor_load") {
+			if (Math.floor(time()*15)%2==0) {
+				mouse.angle += 90 / 3
+				mouse.angle = mouse.angle % 360
+			}
+		}
+		
+		mouse.opacity = lerp(mouse.opacity, mouse.intendedOpa, 0.5)
+	
+		// higher priority type mode
+		if (mouse.typeMode) {
+			if (mouse.sprite != "cursor_text") mouse.do("text")
+			return;
+		}
+
+		// then the animations for game dialog
+		const hoveredObjects = get("hover", { recursive: true })
+		hoveredObjects.forEach((obj) => {
+			if (!obj.isHovering()) {
+				if (obj.dragging) mouse.do("down")
+				else {
+					if (hoveredObjects.some((otherObj) => otherObj.isHovering())) return
+					else {
+						mouse.isHoveringAnObject = false
+						mouse.do("default")
+					}
+					
+				}
+			}
+
+			else {
+				if (obj.dragging || isMouseDown("left")) mouse.do("down")
+				else {
+					mouse.do("up")
+					mouse.isHoveringAnObject = true
+				}
+			}
+		})
+
+		if (GameDialog.isOpen || hoveredObjects.some((obj) => obj.isHovering())) return;
+		
+		customBehaviours.forEach((behav) => {
+			behav()
+		})
+	})
 
 	mouse.do("default")
 

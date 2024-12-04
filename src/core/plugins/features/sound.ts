@@ -6,6 +6,10 @@ import { GameSave } from "../../gamesave";
 export class volumeChannel {
 	muted: boolean = false;
 	volume: number = 1;
+	constructor() {
+		this.muted = false;
+		this.volume = 1;
+	}
 }
 
 type scratchOpts = {

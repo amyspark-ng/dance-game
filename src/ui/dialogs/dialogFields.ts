@@ -1,5 +1,5 @@
 import { KEventController, Vec2 } from "kaplay";
-import { gameDialog, gameDialogObj } from "./gameDialog";
+import { GameDialog, gameDialogObj } from "./gameDialog";
 import { playSound } from "../../core/plugins/features/sound";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { utils } from "../../utils";
@@ -92,7 +92,7 @@ export function dialog_addTextbox(opts: textboxOpt) {
 	
 				textbox.focus = false
 				gameCursor.typeMode = false
-				gameDialog.canClose = true
+				GameDialog.canClose = true
 			}
 		}
 		
@@ -113,7 +113,7 @@ export function dialog_addTextbox(opts: textboxOpt) {
 
 		textbox.focus = true
 		gameCursor.typeMode = true
-		gameDialog.canClose = false
+		GameDialog.canClose = false
 		
 		// typing stuff
 		charInputEv = textbox.onCharInput((ch) => {

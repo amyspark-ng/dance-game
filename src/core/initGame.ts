@@ -7,14 +7,9 @@ import { setupLayers } from "./layers"
 import { getSong, loadAssets, loadingScreen } from "./loader"
 import { goScene, setupScenes } from "./scenes"
 import { setupWatch } from "./plugins/features/watcher"
-import { paramsSongSelect } from "../ui/songselectscene"
 import { utils } from "../utils"
-import { paramsGameScene } from "../play/playstate"
 import { paramsChartEditor } from "../play/chartEditor/chartEditorBackend"
 import { getCurrent, WebviewWindow } from "@tauri-apps/api/window"
-import { paramsResultsScene } from "../play/ui/resultsScene"
-import { Scoring } from "../play/objects/scoring"
-import { SongContent } from "../play/song"
 
 /** Class that handles some variables related to the game as a product */
 export class PRODUCT {

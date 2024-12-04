@@ -8,12 +8,13 @@ import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { utils } from "../../utils";
 import { ChartNote, moveToColor } from "../objects/note";
 import { paramsGameScene } from "../playstate";
-import { addDummyDancer, addFloatingText, cameraHandler, ChartStamp, clipboardMessage, concatStamps, handlerForChangingInput, isStampNote, mouseAnimationHandling, moveToDetune, paramsChartEditor, selectionBoxHandler, StateChart } from "./chartEditorBackend";
+import { addDummyDancer, addFloatingText, cameraHandler, ChartStamp, clipboardMessage, concatStamps, moveHandler, isStampNote, setMouseAnimConditions, moveToDetune, paramsChartEditor, selectionBoxHandler, StateChart } from "./chartEditorBackend";
 import { addLeftInfo, addDialogButtons, drawAllNotes, drawCameraController, drawCheckerboard, drawCursor, drawPlayBar, drawSelectSquares, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE, addEventsPanel } from "./chartEditorElements";
 import { GameSave } from "../../core/gamesave";
-import { gameDialog } from "../../ui/dialogs/gameDialog";
+import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { openEventDialog as openChartEventDialog, openChartAboutDialog, openChartInfoDialog } from "./chartEditorDialogs";
 import { ChartEvent } from "../song";
+import { isMouseDoublePressed, onDoubleClick } from "../../core/plugins/features/onDoubleCLick";
 
 export function ChartEditorScene() { scene("charteditor", (params: paramsChartEditor) => {
 	// had an issue with BPM being NaN but it was because since this wasn't defined then it was NaN
@@ -26,6 +27,19 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	setBackground(Color.fromArray(ChartState.bgColor))
 
 	const newSong = params.song == null
+
+	setMouseAnimConditions(ChartState)
+
+	/** Gets the current note that is being hovered */
+	function getCurrentHoveredNote() {
+		const time = ChartState.conductor.stepToTime(ChartState.hoveredStep, ChartState.conductor.stepInterval)
+		return ChartState.song.chart.notes.find((note) => ChartState.conductor.timeToStep(note.time, ChartState.conductor.stepInterval) == ChartState.conductor.timeToStep(time, ChartState.conductor.stepInterval))
+	}
+
+	function getCurrentHoveredEvent() {
+		const time = ChartState.conductor.stepToTime(ChartState.hoveredStep, ChartState.conductor.stepInterval)
+		return ChartState.song.chart.events.find((ev) => ChartState.conductor.timeToStep(ev.time, ChartState.conductor.stepInterval) == ChartState.conductor.timeToStep(time, ChartState.conductor.stepInterval))
+	}
 
 	// this sets the chartstate.song prop to new songcontent()
 	// also sets the conductor
@@ -146,14 +160,12 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		ChartState.hoveredStep = Math.floor(ChartState.scrollStep + ChartState.cursorGridRow)
 
 		// Handle move change input 
-		handlerForChangingInput(ChartState)
+		moveHandler(ChartState)
 		
 		selectionBoxHandler(ChartState)
 		cameraHandler(ChartState)
 		
-		mouseAnimationHandling(ChartState)
-		
-		if (gameDialog.isOpen) return;
+		if (GameDialog.isOpen) return;
 
 		let stepsToScroll = 0
 		
@@ -291,16 +303,19 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 			})
 		}
 
-		// if (isKeyPressed("q")) {
-		// 	handleAudioInput(ChartState)
-		// }
-
 		else if (isKeyPressed("e")) {
 			openChartInfoDialog(ChartState)
 		}
 		
 		else if (isKeyPressed("r")) {
 			openChartAboutDialog()
+		}
+
+		// does the thing to open event dialog with click
+		if (isMouseDoublePressed() && getCurrentHoveredEvent()) {
+			const hoveredEvent = getCurrentHoveredEvent()
+			if (hoveredEvent == null) return
+			openChartEventDialog(hoveredEvent, ChartState)
 		}
 	})
 
@@ -310,7 +325,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	])
 
 	selectDraw.onDraw(() => {
-		if (gameDialog.isOpen) return
+		if (GameDialog.isOpen) return
 		drawSelectionBox(ChartState)
 	})
 
@@ -322,21 +337,10 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		drawCameraController(ChartState)
 		drawPlayBar(ChartState)
 		
-		if (gameDialog.isOpen) return
+		if (GameDialog.isOpen) return
 		drawCursor(ChartState)
 		drawSelectSquares(ChartState)
 	})
-
-	/** Gets the current note that is being hovered */
-	function getCurrentHoveredNote() {
-		const time = ChartState.conductor.stepToTime(ChartState.hoveredStep, ChartState.conductor.stepInterval)
-		return ChartState.song.chart.notes.find((note) => ChartState.conductor.timeToStep(note.time, ChartState.conductor.stepInterval) == ChartState.conductor.timeToStep(time, ChartState.conductor.stepInterval))
-	}
-
-	function getCurrentHoveredEvent() {
-		const time = ChartState.conductor.stepToTime(ChartState.hoveredStep, ChartState.conductor.stepInterval)
-		return ChartState.song.chart.events.find((ev) => ChartState.conductor.timeToStep(ev.time, ChartState.conductor.stepInterval) == ChartState.conductor.timeToStep(time, ChartState.conductor.stepInterval))
-	}
 
 	/** When a leading note is selected, this gets filled with times of how far every other selected thing was from the new leading note */
 	let differencesToLeading = { notes: [], events: [] }
@@ -354,7 +358,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	// Behaviour for placing and selecting notes
 	onMousePress("left", () => {
-		if (gameDialog.isOpen) return;
+		if (GameDialog.isOpen) return;
 
 		/** The current hovered time */
 		const hoveredTime = ChartState.conductor.stepToTime(ChartState.hoveredStep, ChartState.conductor.stepInterval)
@@ -427,13 +431,13 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	// Resets the detune for moving notes
 	onMouseRelease("left", () => {
-		if (gameDialog.isOpen) return;
+		if (GameDialog.isOpen) return;
 		ChartState.selectionBox.leadingStamp = undefined;
 	})
 
 	// Removing notes
 	onMousePress("right", () => {
-		if (gameDialog.isOpen) return;
+		if (GameDialog.isOpen) return;
 		if (!ChartState.isCursorInGrid) return;
 		
 		function noteBehaviour() {
@@ -459,7 +463,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	// Behaviour for moving notes
 	onMouseDown("left", () => {
-		if (gameDialog.isOpen) return;
+		if (GameDialog.isOpen) return;
 		if (!ChartState.selectionBox.leadingStamp) return;
 		
 		let oldStepOfLeading = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time)
@@ -523,7 +527,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	// Copies the color of a note
 	onMousePress("middle", () => {
-		if (gameDialog.isOpen) return;
+		if (GameDialog.isOpen) return;
 		
 		if (ChartState.isInNoteGrid) {
 			const currentHoveredNote = getCurrentHoveredNote()
@@ -542,7 +546,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	// The scroll event
 	onScroll((delta) => {
-		if (gameDialog.isOpen) return;
+		if (GameDialog.isOpen) return;
 		let scrollPlus = 0
 		if (!ChartState.paused) ChartState.paused = true
 		
@@ -559,7 +563,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	// Send you to the game
 	onKeyPress("enter", async () => {
-		if (gameDialog.isOpen) return;
+		if (GameDialog.isOpen) return;
 		if (ChartState.inputDisabled) return
 		ChartState.inputDisabled = true
 		ChartState.paused = true
@@ -579,7 +583,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	// Pausing unpausing behaviour
 	onKeyPress("space", () => {
-		if (gameDialog.isOpen) return;
+		if (GameDialog.isOpen) return;
 		if (ChartState.inputDisabled) return
 		ChartState.paused = !ChartState.paused
 	

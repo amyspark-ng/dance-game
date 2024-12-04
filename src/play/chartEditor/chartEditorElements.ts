@@ -5,7 +5,7 @@ import { utils } from "../../utils"
 import { moveToColor, notesSpawner } from "../objects/note"
 import { ChartStamp, concatStamps, downloadChart, isStampNote, StateChart } from "./chartEditorBackend"
 import { gameCursor } from "../../core/plugins/features/gameCursor"
-import { gameDialog } from "../../ui/dialogs/gameDialog"
+import { GameDialog } from "../../ui/dialogs/gameDialog"
 import { onBeatHit } from "../../core/events"
 import { playSound } from "../../core/plugins/features/sound"
 import { openChartAboutDialog, openChartInfoDialog } from "./chartEditorDialogs"
@@ -429,7 +429,7 @@ export function addDialogButtons(ChartState:StateChart) {
 			rotate(),
 			{
 				update() {
-					if (gameDialog.isOpen) return;
+					if (GameDialog.isOpen) return;
 					if (this.isHovering()) {
 						this.scale.x = lerp(this.scale.x, 1.1, 0.5)
 						this.scale.y = lerp(this.scale.y, 1.1, 0.5)
@@ -458,7 +458,7 @@ export function addDialogButtons(ChartState:StateChart) {
 		button.area.offset = vec2(-button.width * 0.3, 0)
 
 		iconObj.onUpdate(() => {
-			if (gameDialog.isOpen) return;
+			if (GameDialog.isOpen) return;
 			iconObj.pos.y = button.pos.y + iconObj.height * 0.2
 			
 			if (button.isHovering()) {
@@ -475,7 +475,7 @@ export function addDialogButtons(ChartState:StateChart) {
 		})
 
 		button.onClick(() => {
-			if (gameDialog.isOpen) return;
+			if (GameDialog.isOpen) return;
 			action()
 		})
 

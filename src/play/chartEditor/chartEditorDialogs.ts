@@ -1,5 +1,5 @@
 import { dialog_addCheckbox, dialog_addSlider, dialog_addTextbox, dialog_changeCover, dialog_changeSong, textboxOpt } from "../../ui/dialogs/dialogFields";
-import { gameDialog } from "../../ui/dialogs/gameDialog";
+import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { utils } from "../../utils";
 import { ChartEvent, SongContent } from "../song";
 import { StateChart } from "./chartEditorBackend";
@@ -9,7 +9,7 @@ export function openChartInfoDialog(ChartState:StateChart) {
 	const newSong = new SongContent();
 	const leftPadding = 10
 	
-	const dialog = gameDialog.openDialog({
+	const dialog = GameDialog.openDialog({
 		width: 600,
 		height: 450,
 	})
@@ -146,7 +146,7 @@ export function openChartAboutDialog() {
 		"Ctrl + Y - Redo",
 	]
 
-	const dialog = gameDialog.openDialog({
+	const dialog = GameDialog.openDialog({
 		width: 400,
 		height: 500,
 	})
@@ -167,7 +167,7 @@ export function openEventDialog(event: ChartEvent, ChartState:StateChart) {
 	const spacing = 50
 	const elementsLength = Object.keys(event.value).length
 	
-	const dialog = gameDialog.openDialog({
+	const dialog = GameDialog.openDialog({
 		width: width() / 2,
 		height: (spacing + 10) * elementsLength,
 	})

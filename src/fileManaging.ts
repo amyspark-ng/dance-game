@@ -4,7 +4,7 @@ import { gameCursor } from "./core/plugins/features/gameCursor"
 import { playSound } from "./core/plugins/features/sound"
 import { StateChart } from "./play/chartEditor/chartEditorBackend"
 import { addSongCapsule, StateSongSelect } from "./ui/songselectscene"
-import { gameDialog } from "./ui/dialogs/gameDialog"
+import { GameDialog } from "./ui/dialogs/gameDialog"
 import { utils } from "./utils"
 import { GameSave } from "./core/gamesave"
 import { Chart } from "./play/song"
@@ -112,7 +112,7 @@ export function handleCoverInput(ChartState:StateChart) {
 	fileManager.accept= ".png,.jpg"
 	
 	gameCursor.canMove = false
-	gameDialog.canClose = false
+	GameDialog.canClose = false
 	gameCursor.do("load")
 	
 	fileManager.onchange = async () => {
@@ -125,7 +125,7 @@ export function handleCoverInput(ChartState:StateChart) {
 		
 		ChartState.song.manifest.cover_file = gottenFile.name
 
-		gameDialog.canClose = true
+		GameDialog.canClose = true
 		ChartState.inputDisabled = false
 		gameCursor.canMove = true
 	}
@@ -133,7 +133,7 @@ export function handleCoverInput(ChartState:StateChart) {
 	fileManager.oncancel = async () => {
 		ChartState.inputDisabled = false
 		gameCursor.canMove = true
-		gameDialog.canClose = true
+		GameDialog.canClose = true
 		debug.log("user cancelled cover input")
 	}
 }

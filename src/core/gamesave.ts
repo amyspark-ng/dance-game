@@ -1,16 +1,16 @@
 import { Key } from "kaplay";
-import { volumeChannel } from "./plugins/features/sound";
 import { SaveScore } from "../play/song";
 import { Move } from "../play/objects/dancer";
 import { PRODUCT } from "./initGame";
+import { volumeChannel } from "./plugins/features/sound";
 
 type gameKey = { kbKey: Key, move: Move }
 
 /** Holds all the info that should be saved and loaded through sessions */
 export class GameSaveClass {
 	sound = {
-		sfx: new volumeChannel(),
-		music: new volumeChannel(),
+		sfx: { volume: 1, muted: false } as volumeChannel,
+		music: { volume: 1, muted: false } as volumeChannel,
 		masterVolume: 1,
 	};
 

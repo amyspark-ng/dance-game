@@ -1,12 +1,12 @@
 // File that stores some of the chart editor behaviour backend
 import { GameObj, Key, Vec2 } from "kaplay";
 import { Move } from "../objects/dancer";
-import { ChartNote } from "../objects/note";
+import { ChartNote, moveToColor } from "../objects/note";
 import { utils } from "../../utils";
 import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { Conductor } from "../../conductor";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
-import { gameDialog } from "../../ui/dialogs/gameDialog";
+import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { ChartEvent, SongContent } from "../song";
 import { playSound } from "../../core/plugins/features/sound";
 import JSZip from "jszip";
@@ -15,6 +15,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { openChartInfoDialog } from "./chartEditorDialogs";
 import { GameSave } from "../../core/gamesave";
 import { dancers } from "../../core/loader";
+import { finished } from "stream";
 
 /** Is either a note or an event */
 export type ChartStamp = (ChartNote | ChartEvent)
@@ -461,7 +462,7 @@ export function selectionBoxHandler(ChartState:StateChart) {
 }
 
 export function cameraHandler(ChartState:StateChart) {
-	if (gameDialog.isOpen) return;
+	if (GameDialog.isOpen) return;
 	const minLeft = ChartState.cameraController.pos.x - ChartState.SQUARE_SIZE.x / 2
 	const maxRight = ChartState.cameraController.pos.x + ChartState.SQUARE_SIZE.x / 2
 	if (gameCursor.pos.x >= minLeft && gameCursor.pos.x <= maxRight) ChartState.cameraController.canMoveCamera = true
@@ -490,64 +491,109 @@ export function cameraHandler(ChartState:StateChart) {
 }
 
 /** Handles the animation of the mouse */
-export function mouseAnimationHandling(ChartState:StateChart) {
-	// higher priority type mode
-	if (gameCursor.typeMode) {
-		if (gameCursor.sprite != "cursor_text") gameCursor.do("text")
-		return;
-	}
-	
-	// then the animations for game dialog
-	const hoveredObjects = get("hover", { recursive: true })
-	hoveredObjects.forEach((obj) => {
-		if (!obj.isHovering()) {
-			if (obj.dragging) gameCursor.do("down")
-			else {
-				if (hoveredObjects.some((otherObj) => otherObj.isHovering())) return
+export function setMouseAnimConditions(ChartState:StateChart) {
+	gameCursor.addAnimCondition(() => {
+		// then the ones for the actual charting state
+		// kinda hardcoded, this probably just means the player is loading something nothing  else
+		if (!gameCursor.canMove && ChartState.inputDisabled) gameCursor.do("load")
+		else {
+			if (!ChartState.isCursorInGrid) {
+				if (isMouseDown("left") && ChartState.cameraController.isMovingCamera) gameCursor.do("down")
 				else gameCursor.do("default")
 			}
-		}
-
-		else {
-			if (obj.dragging || isMouseDown("left")) gameCursor.do("down")
-			else gameCursor.do("up")
+	
+			else {
+				if (!isMouseDown("left") && !isMouseDown("right")) gameCursor.do("up")
+				else if (isMouseDown("left") && !isMouseDown("right")) gameCursor.do("down")
+				else if (!isMouseDown("left") && isMouseDown("right")) gameCursor.do("x")
+			}
 		}
 	})
+}
 
-	if (gameDialog.isOpen || hoveredObjects.some((obj) => obj.isHovering())) return;
-	
-	// then the ones for the actual charting state
-	// kinda hardcoded, this probably just means the player is loading something nothing  else
-	if (!gameCursor.canMove && ChartState.inputDisabled) gameCursor.do("load")
-	else {
-		if (!ChartState.isCursorInGrid) {
-			if (isMouseDown("left") && ChartState.cameraController.isMovingCamera) gameCursor.do("down")
-			else gameCursor.do("default")
-		}
+const keysAndMoves = {
+	"1": "left",
+	"2": "down",
+	"3": "up",
+	"4": "right"
+}
 
-		else {
-			if (!isMouseDown("left") && !isMouseDown("right")) gameCursor.do("up")
-			else if (isMouseDown("left") && !isMouseDown("right")) gameCursor.do("down")
-			else if (!isMouseDown("left") && isMouseDown("right")) gameCursor.do("x")
-		}
-	}
+function finishMoveMenu() {
+	get("moveSelector").forEach((moveThing) => {
+		moveThing._pos.y = gameCursor.pos.y * 0.5
+		moveThing._opacity = 0
+		moveThing.area.scale = vec2(0)
+		wait(1, () => {
+			moveThing.destroy()
+		})
+	})
 }
 
 /** Creates the 'isKeyPressed' event to change notes */
-export function handlerForChangingInput(ChartState:StateChart) {
-	const keysAndMoves = {
-		"1": "left",
-		"2": "down",
-		"3": "up",
-		"4": "right"
-	}
-
+export function moveHandler(ChartState:StateChart) {
 	Object.keys(keysAndMoves).forEach((key) => {
-		if (gameDialog.isOpen) return;
+		if (GameDialog.isOpen) return;
 		if (isKeyPressed(key as Key)) {
 			ChartState.changeMove(keysAndMoves[key])
 		}
 	})
+
+	// if it exists, remove it
+	if (isMousePressed("left") && !ChartState.isCursorInGrid && !gameCursor.isHoveringAnObject) {
+		finishMoveMenu()
+	}
+
+	// creates cool menu
+	else if (isMousePressed("right") && !ChartState.isCursorInGrid && !gameCursor.isHoveringAnObject) {
+
+		finishMoveMenu()
+		
+		Object.values(keysAndMoves).forEach((move, index) => {
+			const size = 30
+			
+			let startingMousePos = gameCursor.pos
+
+			const sqThing = add([
+				rect(size, size, { radius: 2.5 }),
+				pos(gameCursor.pos.x + size + (size * 1.05) * index, startingMousePos.y),
+				anchor("center"),
+				color(BLACK.lighten(50)),
+				area(),
+				opacity(0),
+				outline(1.5, WHITE),
+				"moveSelector",
+				"hover",
+				{
+					_pos: vec2(),
+					_opacity: 1,
+				}
+			])
+
+			sqThing._pos = vec2(sqThing.pos.x, startingMousePos.y + gameCursor.height)
+
+			sqThing.onUpdate(() => {
+				sqThing.opacity = lerp(sqThing.opacity, sqThing._opacity, 0.25 * (index + 1))
+				sqThing.pos.y = lerp(sqThing.pos.y, sqThing._pos.y, 0.25 * (index + 1))
+				const moveCoolColor = moveToColor(move as Move).lighten(30)
+				sqThing.outline.color = lerp(sqThing.outline.color, sqThing.isHovering() ? moveCoolColor : sqThing.color.lighten(20), 0.8)
+			})
+
+			sqThing.onClick(() => {
+				ChartState.currentMove = move as Move
+				finishMoveMenu()
+			})
+
+			sqThing.onDraw(() => {
+				drawSprite({
+					sprite: GameSave.noteskin + "_" + move,
+					anchor: "center",
+					width: size,
+					height: size,
+					opacity: sqThing.opacity,
+				})
+			})
+		})
+	}
 }
 
 /** Adds a dummy dancer for moving to the fake notes in the chart */

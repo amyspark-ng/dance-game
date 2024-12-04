@@ -63,7 +63,7 @@ export type gameDialogObj = ReturnType<typeof addDialogueThing>
 type openDialogOpts = { width: number, height: number }
 
 /** Class that handles dialogs for the game */
-export class gameDialog {
+export class GameDialog {
 	/** Wheter there's a dialog open */
 	static isOpen: boolean = false;
 
@@ -138,7 +138,7 @@ export class gameDialog {
 
 
 // adds a square notification to the bottom
-export function addNotification(coloring: Color, text: string, duration: number = 3) {
+export function addNotification(text: string, duration: number = 3, status: "Good" | "Error" | "Warning") {
 	const notification = add([
 		rect(400, 50),
 		pos(0, -50),
