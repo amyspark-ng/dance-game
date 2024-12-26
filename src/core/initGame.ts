@@ -12,7 +12,7 @@ import { paramsChartEditor } from "../play/chartEditor/chartEditorBackend"
 import { getCurrent, WebviewWindow } from "@tauri-apps/api/window"
 
 /** Class that handles some variables related to the game as a product */
-export class PRODUCT {
+export class GAME {
 	static DEBUG = true
 	static AUTHOR = "amyspark-ng"
 	static NAME = "dance-game"
@@ -27,91 +27,92 @@ export class PRODUCT {
 
 /** The window (in case you're using desktop) */
 export let appWindow:WebviewWindow = null
+document.title = GAME.NAME
+utils.runInDesktop(() => {
+	appWindow = getCurrent()
+	appWindow.setTitle(GAME.NAME)
+})
+
+setCursor("none")
+GameSave.load()
+onLoading((progress:number) => loadingScreen(progress))
+await loadAssets()
+
+onLoad(() => {
+	
+})
 
 export function INITIAL_SCENE() {
-	// goScene("title")
-	// goScene("menu", { index: 0 })
-	
-	// goScene("game", { song: getSong("bopeebo"), dancer: "gru"} as paramsGameScene)
-	
-	// goScene("songselect", { index: 0 } as paramsSongSelect)
-	
-	goScene("charteditor", { song: getSong("unholy-blight") } as paramsChartEditor )
-	
-	// goScene("results", { GameState: {
-	// 	song: getSong("bopeebo"),
-	// 	params: { dancer: "gru" },
-	// 	tally: Scoring.tally.random()
-	// }} as paramsResultsScene )
+
 }
 
 export async function initGame() {
-	document.title = PRODUCT.NAME
-	utils.runInDesktop(() => {
-		appWindow = getCurrent()
-		appWindow.setTitle(PRODUCT.name)
-	})
+	// document.title = PRODUCT.NAME
+	// utils.runInDesktop(() => {
+	// 	appWindow = getCurrent()
+	// 	appWindow.setTitle(PRODUCT.name)
+	// })
 	
-	setCursor("none")
+	// setCursor("none")
 	
-	GameSave.load()
-	onLoading((progress:number) => loadingScreen(progress))
-	await loadAssets()
+	// GameSave.load()
+	// onLoading((progress:number) => loadingScreen(progress))
+	// await loadAssets()
 	
-	onLoad(() => {
-		// sets up a bunch of stuff
-		setupLayers(); // sets up layers before for any object
-		setupScenes(); // sets up the scenes for objects
-		setupCursor() // sets up the cursor
-		setupCamera(); // sets up the camera
-		setupSoundtray(); // sets up the soundtray
-		setupWatch(); // sets up the watcher
-		volume(GameSave.sound.masterVolume)
+	// onLoad(() => {
+	// 	// sets up a bunch of stuff
+	// 	setupLayers(); // sets up layers before for any object
+	// 	setupScenes(); // sets up the scenes for objects
+	// 	setupCursor() // sets up the cursor
+	// 	setupCamera(); // sets up the camera
+	// 	setupSoundtray(); // sets up the soundtray
+	// 	setupWatch(); // sets up the watcher
+	// 	volume(GameSave.sound.masterVolume)
 	
-		console.log(`${PRODUCT.AUTHOR}.${PRODUCT.NAME} v: ${PRODUCT.VERSION}`)
+	// 	console.log(`${PRODUCT.AUTHOR}.${PRODUCT.NAME} v: ${PRODUCT.VERSION}`)
 		
-		// determins the scene the scene
-		if (PRODUCT.FEATURE_FOCUS) {
-			if (isFocused()) INITIAL_SCENE()
-			else goScene("focus")
-		}
+	// 	// determins the scene the scene
+	// 	if (PRODUCT.FEATURE_FOCUS) {
+	// 		if (isFocused()) INITIAL_SCENE()
+	// 		else goScene("focus")
+	// 	}
 	
-		else {
-			INITIAL_SCENE()
-		}
+	// 	else {
+	// 		INITIAL_SCENE()
+	// 	}
 	
-		setGravity(1000)
-		globalThis.GameSave = GameSave
-	})
+	// 	setGravity(1000)
+	// 	globalThis.GameSave = GameSave
+	// })
 	
-	// for drag
-	document.getElementById("kanva").addEventListener("mouseout", () => {
-		// all of the objects that are draggable have this function
-		if (drag.getCurDragging()) drag.getCurDragging().drop()
-	}, false);
+	// // for drag
+	// document.getElementById("kanva").addEventListener("mouseout", () => {
+	// 	// all of the objects that are draggable have this function
+	// 	if (drag.getCurDragging()) drag.getCurDragging().drop()
+	// }, false);
 	
-	// for middle click
-	document.body.onmousedown = function(e) {
-		if(e.button == 1) {
-			e.preventDefault();
-			return false;
-		}
-	}
+	// // for middle click
+	// document.body.onmousedown = function(e) {
+	// 	if(e.button == 1) {
+	// 		e.preventDefault();
+	// 		return false;
+	// 	}
+	// }
 	
-	// prevent ctrl + s weirdness
-	document.addEventListener("keydown", function(e) {
-		if (e.key === 's' && (navigator.userAgent.includes('Mac') ? e.metaKey : e.ctrlKey)) {
-			e.preventDefault();
-		}
-	}, false);
+	// // prevent ctrl + s weirdness
+	// document.addEventListener("keydown", function(e) {
+	// 	if (e.key === 's' && (navigator.userAgent.includes('Mac') ? e.metaKey : e.ctrlKey)) {
+	// 		e.preventDefault();
+	// 	}
+	// }, false);
 
-	// update fullscreen
-	document.addEventListener("fullscreenchange", (event) => {
-		if (document.fullscreenElement) GameSave.fullscreen = true
-		else GameSave.fullscreen = false
-	});
+	// // update fullscreen
+	// document.addEventListener("fullscreenchange", (event) => {
+	// 	if (document.fullscreenElement) GameSave.fullscreen = true
+	// 	else GameSave.fullscreen = false
+	// });
 
-	utils.runInDesktop(() => {
-		if (GameSave.fullscreen) appWindow.setFullscreen(GameSave.fullscreen)
-	})
+	// utils.runInDesktop(() => {
+	// 	if (GameSave.fullscreen) appWindow.setFullscreen(GameSave.fullscreen)
+	// })
 }

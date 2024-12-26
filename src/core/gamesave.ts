@@ -1,7 +1,7 @@
 import { Key } from "kaplay";
 import { SaveScore } from "../play/song";
 import { Move } from "../play/objects/dancer";
-import { PRODUCT } from "./initGame";
+import { GAME } from "./initGame";
 import { volumeChannel } from "./plugins/features/sound";
 
 type gameKey = { kbKey: Key, move: Move }
@@ -33,7 +33,7 @@ export class GameSaveClass {
 
 	/** Writes current instance to localStorage */
 	save() {
-		setData(PRODUCT.SAVE_NAME, this)
+		setData(GAME.SAVE_NAME, this)
 	};
 
 	/**
@@ -62,14 +62,14 @@ export class GameSaveClass {
 		}
 
 		const newGameSave = new GameSaveClass()
-		const data = getData(PRODUCT.SAVE_NAME)
+		const data = getData(GAME.SAVE_NAME)
 
 		return deepMerge(data, newGameSave);
 	}
 
 	/** Assigns itself to {@link getLatestSave `getLatestSave()`}  */
 	load() {
-		const data = getData(PRODUCT.SAVE_NAME)
+		const data = getData(GAME.SAVE_NAME)
 		this.set(data as GameSaveClass)
 	}
 }

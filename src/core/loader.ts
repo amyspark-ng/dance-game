@@ -291,8 +291,8 @@ export async function loadAssets() {
 	loadSound("eventCog", "sounds/chart-editor/eventCog.wav")
 	loadSound("mouseClick", "sounds/chart-editor/mouseClick.ogg")
 
-	loadFont("lambda", "Lambda-Regular.ttf")
-	loadFont("lambdao", "Lambda-Regular.ttf", {
+	loadFont("lambda", "lambda.ttf")
+	loadFont("lambdao", "lambda.ttf", {
 		outline: {
 			width: 5,
 			color: BLACK,

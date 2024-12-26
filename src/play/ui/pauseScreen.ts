@@ -3,7 +3,7 @@ import { playSound } from "../../core/plugins/features/sound"
 import { DANCER_POS, getDancer } from "../objects/dancer"
 import { exitToChartEditor, exitToMenu, restartSong, StateGame } from "../playstate"
 import { utils } from "../../utils"
-import { PRODUCT } from "../../core/initGame"
+import { GAME } from "../../core/initGame"
 import { getStrumline } from "../objects/strumline"
 
 /** Runs when the game is paused */
@@ -64,7 +64,7 @@ export function managePauseUI(pause:boolean, GameState:StateGame) {
 			makePauseButton("EXIT TO MENU", 2, () => { exitToMenu(GameState) }),
 		]
 
-		if (PRODUCT.DEBUG) {
+		if (GAME.DEBUG) {
 			allButtons.push(makePauseButton("CHART EDITOR", 3, () => { exitToChartEditor(GameState) }))
 		}
 

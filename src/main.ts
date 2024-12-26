@@ -1,6 +1,3 @@
+import { appWindow, getCurrent } from "@tauri-apps/api/window"
 import "./engine"
-
-import { initGame } from "./core/initGame"
-
-// // ===== WHERE THE GAME ACTUALLY STARTS =====
-await initGame()
+import "./core/initGame"

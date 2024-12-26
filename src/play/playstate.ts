@@ -2,7 +2,7 @@
 import { Conductor } from "../conductor";
 import { triggerEvent } from "../core/events";
 import { GameSave } from "../core/gamesave";
-import { PRODUCT } from "../core/initGame";
+import { GAME } from "../core/initGame";
 import { cam } from "../core/plugins/features/camera";
 import { playSound } from "../core/plugins/features/sound";
 import { goScene, transitionToScene } from "../core/scenes";

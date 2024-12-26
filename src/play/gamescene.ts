@@ -13,7 +13,7 @@ import { paramsGameScene, StateGame, manageInput, setupSong, stopPlay, introGo }
 import { paramsDeathScene } from "./ui/deathScene"
 import { paramsResultsScene } from "./ui/resultsScene"
 import { appWindow } from "@tauri-apps/api/window"
-import { PRODUCT } from "../core/initGame"
+import { GAME } from "../core/initGame"
 import { gameCursor } from "../core/plugins/features/gameCursor"
 import { cam } from "../core/plugins/features/camera"
 import { TweenController } from "kaplay"
@@ -221,6 +221,6 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 	})
 
 	utils.runInDesktop(() => {
-		appWindow.setTitle(PRODUCT.NAME + " - " + params.songZip.manifest.name)
+		appWindow.setTitle(GAME.NAME + " - " + params.songZip.manifest.name)
 	})
 })}

@@ -14,7 +14,6 @@ import { GameSave } from "../../core/gamesave";
 import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { openEventDialog as openChartEventDialog, openChartAboutDialog, openChartInfoDialog } from "./chartEditorDialogs";
 import { ChartEvent } from "../song";
-import { isMouseDoublePressed, onDoubleClick } from "../../core/plugins/features/onDoubleCLick";
 
 export function ChartEditorScene() { scene("charteditor", (params: paramsChartEditor) => {
 	// had an issue with BPM being NaN but it was because since this wasn't defined then it was NaN
@@ -309,13 +308,6 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		
 		else if (isKeyPressed("r")) {
 			openChartAboutDialog()
-		}
-
-		// does the thing to open event dialog with click
-		if (isMouseDoublePressed() && getCurrentHoveredEvent()) {
-			const hoveredEvent = getCurrentHoveredEvent()
-			if (hoveredEvent == null) return
-			openChartEventDialog(hoveredEvent, ChartState)
 		}
 	})
 

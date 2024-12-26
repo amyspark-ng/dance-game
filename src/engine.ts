@@ -1,7 +1,6 @@
 import kaplay, { KAPLAYOpt } from "kaplay"
 import "kaplay/global"
 
-import { PRODUCT } from "./core/initGame"
 import { utils } from "./utils";
 
 // # KAPLAY
@@ -10,7 +9,7 @@ const libraryOpts = {
 	height: 576,
 	canvas: document.querySelector("#kanva"),
 	debugKey: "f1",
-	debug: PRODUCT.DEBUG,
+	debug: true,
 	loadingScreen: true,
 	crisp: false,
 	backgroundAudio: false,
