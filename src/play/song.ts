@@ -58,7 +58,7 @@ export class SongContent {
 	manifest: SongManifest;
 	/** The content of the chart.json in the zip */
 	chart: Chart;
-	constructor() {
+	constructor(param?: SongContent) {
 		this.manifest = {
 			name: "New song",
 			artist: "Someone",
@@ -79,6 +79,10 @@ export class SongContent {
 			events: [
 				
 			]
+		}
+	
+		if (param) {
+			Object.assign(this, param);
 		}
 	}
 }

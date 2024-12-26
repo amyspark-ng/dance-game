@@ -93,5 +93,5 @@ utils.runInDesktop(() => {
 })
 
 export function INITIAL_SCENE() {
-	goScene("title")
+	goScene("charteditor", { song: getSong("unholy-blight") } as paramsChartEditor)
 }

@@ -3,7 +3,7 @@ import { Conductor } from "../../conductor";
 import { onBeatHit, onNoteHit, onStepHit, triggerEvent } from "../../core/events";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { playSound } from "../../core/plugins/features/sound";
-import { transitionToScene } from "../../core/scenes";
+import { goScene, transitionToScene } from "../../core/scenes";
 import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { utils } from "../../utils";
 import { ChartNote, moveToColor } from "../objects/note";
@@ -12,8 +12,10 @@ import { addDummyDancer, addFloatingText, cameraHandler, ChartStamp, clipboardMe
 import { addLeftInfo, addDialogButtons, drawAllNotes, drawCameraController, drawCheckerboard, drawCursor, drawPlayBar, drawSelectSquares, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE, addEventsPanel } from "./chartEditorElements";
 import { GameSave } from "../../core/gamesave";
 import { GameDialog } from "../../ui/dialogs/gameDialog";
-import { openEventDialog as openChartEventDialog, openChartAboutDialog, openChartInfoDialog } from "./chartEditorDialogs";
-import { ChartEvent } from "../song";
+import { openEventDialog as openChartEventDialog, openChartAboutDialog, openChartInfoDialog, openExitDialog } from "./chartEditorDialogs";
+import { ChartEvent, SongContent } from "../song";
+import { loadedSongs } from "../../core/loader";
+import { paramsSongSelect } from "../../ui/songselectscene";
 
 export function ChartEditorScene() { scene("charteditor", (params: paramsChartEditor) => {
 	// had an issue with BPM being NaN but it was because since this wasn't defined then it was NaN
@@ -21,11 +23,12 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	params.seekTime = params.seekTime ?? 0
 	params.seekTime = Math.abs(params.seekTime)
 	params.dancer = params.dancer ?? "astri"
+	GameDialog.isOpen = false
 
 	const ChartState = new StateChart()
 	setBackground(Color.fromArray(ChartState.bgColor))
 
-	const newSong = params.song == null
+	const isNewSong = params.song == null
 
 	setMouseAnimConditions(ChartState)
 
@@ -42,14 +45,14 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	// this sets the chartstate.song prop to new songcontent()
 	// also sets the conductor
-	if (newSong) {
+	if (isNewSong) {
 		ChartState.createNewSong()
-	} 
+	}
 
 	else {
 		// IMPORTANT
-		ChartState.song = params.song;
-		
+		ChartState.song = JSON.parse(JSON.stringify(params.song)) as SongContent
+
 		ChartState.conductor = new Conductor({
 			audioPlay: playSound(`${ChartState.song.manifest.uuid_DONT_CHANGE}-audio`, { channel: GameSave.sound.music, speed: params.playbackSpeed }),
 			BPM: ChartState.song.manifest.initial_bpm * params.playbackSpeed,
@@ -570,7 +573,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		}
 
 		// transition to scene normally
-		transitionToScene(fadeOut, "game", { songZip: ChartState.song, seekTime: ChartState.scrollTime, dancer: params.dancer } as paramsGameScene)
+		transitionToScene(fadeOut, "game", { songZip: ChartState.song, seekTime: ChartState.scrollTime, dancer: params.dancer, fromChartEditor: true } as paramsGameScene)
 	})
 
 	// Pausing unpausing behaviour
@@ -586,6 +589,11 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 			const newTime = ChartState.conductor.stepToTime(ChartState.scrollStep)
 			ChartState.conductor.audioPlay.seek(newTime)
 		}
+	})
+
+	onKeyPress("escape", () => {
+		if (GameDialog.isOpen) return;
+		openExitDialog()
 	})
 
 	const dummyDancer = addDummyDancer(ChartState.params.dancer)

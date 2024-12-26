@@ -518,17 +518,6 @@ const keysAndMoves = {
 	"4": "right"
 }
 
-function finishMoveMenu() {
-	get("moveSelector").forEach((moveThing) => {
-		moveThing._pos.y = gameCursor.pos.y * 0.5
-		moveThing._opacity = 0
-		moveThing.area.scale = vec2(0)
-		wait(1, () => {
-			moveThing.destroy()
-		})
-	})
-}
-
 /** Creates the 'isKeyPressed' event to change notes */
 export function moveHandler(ChartState:StateChart) {
 	Object.keys(keysAndMoves).forEach((key) => {
@@ -537,63 +526,6 @@ export function moveHandler(ChartState:StateChart) {
 			ChartState.changeMove(keysAndMoves[key])
 		}
 	})
-
-	// if it exists, remove it
-	if (isMousePressed("left") && !ChartState.isCursorInGrid && !gameCursor.isHoveringAnObject) {
-		finishMoveMenu()
-	}
-
-	// creates cool menu
-	else if (isMousePressed("right") && !ChartState.isCursorInGrid && !gameCursor.isHoveringAnObject) {
-
-		finishMoveMenu()
-		
-		Object.values(keysAndMoves).forEach((move, index) => {
-			const size = 30
-			
-			let startingMousePos = gameCursor.pos
-
-			const sqThing = add([
-				rect(size, size, { radius: 2.5 }),
-				pos(gameCursor.pos.x + size + (size * 1.05) * index, startingMousePos.y),
-				anchor("center"),
-				color(BLACK.lighten(50)),
-				area(),
-				opacity(0),
-				outline(1.5, WHITE),
-				"moveSelector",
-				"hover",
-				{
-					_pos: vec2(),
-					_opacity: 1,
-				}
-			])
-
-			sqThing._pos = vec2(sqThing.pos.x, startingMousePos.y + gameCursor.height)
-
-			sqThing.onUpdate(() => {
-				sqThing.opacity = lerp(sqThing.opacity, sqThing._opacity, 0.25 * (index + 1))
-				sqThing.pos.y = lerp(sqThing.pos.y, sqThing._pos.y, 0.25 * (index + 1))
-				const moveCoolColor = moveToColor(move as Move).lighten(30)
-				sqThing.outline.color = lerp(sqThing.outline.color, sqThing.isHovering() ? moveCoolColor : sqThing.color.lighten(20), 0.8)
-			})
-
-			sqThing.onClick(() => {
-				ChartState.currentMove = move as Move
-				finishMoveMenu()
-			})
-
-			sqThing.onDraw(() => {
-				drawSprite({
-					sprite: GameSave.noteskin + "_" + move,
-					anchor: "center",
-					width: size,
-					height: size,
-					opacity: sqThing.opacity,
-				})
-			})
-		})
-	}
 }
 
 /** Adds a dummy dancer for moving to the fake notes in the chart */

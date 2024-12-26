@@ -58,14 +58,15 @@ export function managePauseUI(pause:boolean, GameState:StateGame) {
 		const pauseScratch = playSound("pauseScratch", { volume: 0.1, detune: 0, speed: 1 })
 		pauseScratch.detune = rand(-100, 100)
 	
-		const allButtons = [
+		let allButtons = [
 			makePauseButton("CONTINUE", 0, () => { GameState.managePause(false) }),
 			makePauseButton("RESTART", 1, () => { restartSong(GameState) }),
 			makePauseButton("EXIT TO MENU", 2, () => { exitToMenu(GameState) }),
 		]
 
-		if (GAME.DEBUG) {
-			allButtons.push(makePauseButton("CHART EDITOR", 3, () => { exitToChartEditor(GameState) }))
+		if (GameState.params.fromChartEditor) {
+			allButtons = utils.removeFromArr(allButtons[2], allButtons) as typeof allButtons
+			allButtons[2] = makePauseButton("RETURN TO CHART EDITOR", 2, () => { exitToChartEditor(GameState) })
 		}
 
 		// not found pauseBlack

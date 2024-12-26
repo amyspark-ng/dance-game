@@ -1,3 +1,5 @@
+import { goScene, transitionToScene } from "../../core/scenes";
+import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { dialog_addCheckbox, dialog_addSlider, dialog_addTextbox, dialog_changeCover, dialog_changeSong, textboxOpt } from "../../ui/dialogs/dialogFields";
 import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { utils } from "../../utils";
@@ -265,4 +267,39 @@ export function openEventDialog(event: ChartEvent, ChartState:StateChart) {
 	})
 
 	return null;
+}
+
+export function openExitDialog() {
+	const dialog = GameDialog.openDialog({
+		width: 300,
+		height: 200,
+	})
+
+	dialog.add([
+		text("Are you sure you want to exit?\n(You will lose all unsaved progress)", { size: 30, align: "center"}),
+		pos(0, -50),
+		anchor("center"),
+	])
+
+	const yesButton = dialog.add([
+		text("Yes"),
+		area(),
+		pos(vec2(-50, 0)),
+		"hover",
+	])
+
+	yesButton.onClick(() => {
+		transitionToScene(fadeOut, "menu", { index: 0 })
+	})
+
+	const noButton = dialog.add([
+		text("No"),
+		area(),
+		pos(vec2(50, 0)),
+		"hover",
+	])
+
+	noButton.onClick(() => {
+		GameDialog.closeDialog()
+	})
 }

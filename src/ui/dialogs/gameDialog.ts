@@ -113,14 +113,16 @@ export class GameDialog {
 			this.isInside = recty.contains(gameCursor.pos)
 		})
 
-		this.currentDialogue.onKeyPress("escape", () => {
-			if (!this.canClose) return
-			this.closeDialog()
-		})
-
-		this.currentDialogue.on("xClose", () => {
-			if (!this.canClose) return
-			this.closeDialog()
+		wait(0.05, () => {
+			this.currentDialogue.onKeyPress("escape", () => {
+				if (!this.canClose) return
+				this.closeDialog()
+			})
+	
+			this.currentDialogue.on("xClose", () => {
+				if (!this.canClose) return
+				this.closeDialog()
+			})
 		})
 
 		return this.currentDialogue;
