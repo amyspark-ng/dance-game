@@ -1,9 +1,8 @@
 import { setupCamera } from "./plugins/features/camera"
-import { setupCursor } from "./plugins/features/gameCursor"
+import { gameCursor, setupCursor } from "./plugins/features/gameCursor"
 import { drag } from "./plugins/features/drag"
 import { setupSoundtray } from "./plugins/features/soundtray"
 import { GameSave } from "./gamesave"
-import { setupLayers } from "./layers"
 import { getSong, loadAssets, loadingScreen } from "./loader"
 import { goScene, setupScenes } from "./scenes"
 import { setupWatch } from "./plugins/features/watcher"
@@ -34,85 +33,65 @@ utils.runInDesktop(() => {
 })
 
 setCursor("none")
+layers([
+	"background",
+	"cursor",
+], "background")
+setGravity(1000)
+
 GameSave.load()
+globalThis.GameSave = GameSave
 onLoading((progress:number) => loadingScreen(progress))
 await loadAssets()
 
-onLoad(() => {
-	
+setupScenes()
+setupCursor()
+setupCamera()
+setupSoundtray()
+volume(GameSave.sound.masterVolume)
+
+console.log(`${GAME.AUTHOR}.${GAME.NAME} v: ${GAME.VERSION}`)
+
+if (GAME.FEATURE_FOCUS) {
+	if (isFocused()) INITIAL_SCENE()
+	else goScene("focus")
+}
+
+else {
+	INITIAL_SCENE()
+}
+
+// for drag
+document.getElementById("kanva").addEventListener("mouseout", () => {
+	// all of the objects that are draggable have this function
+	if (drag.getCurDragging()) drag.getCurDragging().drop()
+}, false);
+
+// for middle click
+document.body.onmousedown = function(e) {
+	if(e.button == 1) {
+		e.preventDefault();
+		return false;
+	}
+}
+
+// prevent ctrl + s weirdness
+document.addEventListener("keydown", function(e) {
+	if (e.key === 's' && (navigator.userAgent.includes('Mac') ? e.metaKey : e.ctrlKey)) {
+		e.preventDefault();
+	}
+}, false);
+
+// update fullscreen
+document.addEventListener("fullscreenchange", (event) => {
+	if (document.fullscreenElement) GameSave.fullscreen = true
+	else GameSave.fullscreen = false
+});
+
+utils.runInDesktop(() => {
+	if (GameSave.fullscreen) appWindow.setFullscreen(GameSave.fullscreen)
 })
 
 export function INITIAL_SCENE() {
-
-}
-
-export async function initGame() {
-	// document.title = PRODUCT.NAME
-	// utils.runInDesktop(() => {
-	// 	appWindow = getCurrent()
-	// 	appWindow.setTitle(PRODUCT.name)
-	// })
-	
-	// setCursor("none")
-	
-	// GameSave.load()
-	// onLoading((progress:number) => loadingScreen(progress))
-	// await loadAssets()
-	
-	// onLoad(() => {
-	// 	// sets up a bunch of stuff
-	// 	setupLayers(); // sets up layers before for any object
-	// 	setupScenes(); // sets up the scenes for objects
-	// 	setupCursor() // sets up the cursor
-	// 	setupCamera(); // sets up the camera
-	// 	setupSoundtray(); // sets up the soundtray
-	// 	setupWatch(); // sets up the watcher
-	// 	volume(GameSave.sound.masterVolume)
-	
-	// 	console.log(`${PRODUCT.AUTHOR}.${PRODUCT.NAME} v: ${PRODUCT.VERSION}`)
-		
-	// 	// determins the scene the scene
-	// 	if (PRODUCT.FEATURE_FOCUS) {
-	// 		if (isFocused()) INITIAL_SCENE()
-	// 		else goScene("focus")
-	// 	}
-	
-	// 	else {
-	// 		INITIAL_SCENE()
-	// 	}
-	
-	// 	setGravity(1000)
-	// 	globalThis.GameSave = GameSave
-	// })
-	
-	// // for drag
-	// document.getElementById("kanva").addEventListener("mouseout", () => {
-	// 	// all of the objects that are draggable have this function
-	// 	if (drag.getCurDragging()) drag.getCurDragging().drop()
-	// }, false);
-	
-	// // for middle click
-	// document.body.onmousedown = function(e) {
-	// 	if(e.button == 1) {
-	// 		e.preventDefault();
-	// 		return false;
-	// 	}
-	// }
-	
-	// // prevent ctrl + s weirdness
-	// document.addEventListener("keydown", function(e) {
-	// 	if (e.key === 's' && (navigator.userAgent.includes('Mac') ? e.metaKey : e.ctrlKey)) {
-	// 		e.preventDefault();
-	// 	}
-	// }, false);
-
-	// // update fullscreen
-	// document.addEventListener("fullscreenchange", (event) => {
-	// 	if (document.fullscreenElement) GameSave.fullscreen = true
-	// 	else GameSave.fullscreen = false
-	// });
-
-	// utils.runInDesktop(() => {
-	// 	if (GameSave.fullscreen) appWindow.setFullscreen(GameSave.fullscreen)
-	// })
+	goScene("title")
 }

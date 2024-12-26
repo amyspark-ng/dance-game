@@ -8,9 +8,7 @@ export type Move = "left" | "right" | "up" | "down" | "idle"
 /** Time it'll take for the dancer to go back to idleing */
 const TIME_FOR_IDLE = 1
 
-const gfff = vec2()
-
-export const DANCER_POS = [518, 377]
+export const DANCER_POS = vec2(518, 377)
 export function addDancer(dancerName: string) {
 	let onAnimEndEvent:KEventController = null
 	

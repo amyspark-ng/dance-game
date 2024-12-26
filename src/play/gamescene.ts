@@ -36,7 +36,7 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 
 	// ==== DANCER + UI =====
 	const dancer = addDancer(params.dancer)
-	dancer.pos = Vec2.fromArray(DANCER_POS)
+	dancer.pos = DANCER_POS
 	dancer.onUpdate(() => {
 		if (dancer.waitForIdle) dancer.waitForIdle.paused = GameState.paused;
 	})

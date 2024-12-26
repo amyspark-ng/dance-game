@@ -161,7 +161,7 @@ export function managePauseUI(pause:boolean, GameState:StateGame) {
 		})
 		
 		const ogDancer = getDancer()
-		tween(ogDancer.pos, Vec2.fromArray(DANCER_POS), 0.1, (p) => getDancer().pos = p)
+		tween(ogDancer.pos, DANCER_POS, 0.1, (p) => getDancer().pos = p)
 		tween(ogDancer.scale, vec2(1), 0.1, (p) => getDancer().scale = p)
 	}
 }
