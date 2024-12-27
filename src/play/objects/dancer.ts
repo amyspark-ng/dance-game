@@ -9,7 +9,7 @@ export type Move = "left" | "right" | "up" | "down" | "idle"
 const TIME_FOR_IDLE = 1
 
 export const DANCER_POS = vec2(518, 377)
-export function addDancer(dancerName: string) {
+export function createDancer(dancerName: string) {
 	let onAnimEndEvent:KEventController = null
 	
 	const dancerObj = add([
@@ -23,7 +23,7 @@ export function addDancer(dancerName: string) {
 		{
 			forcedAnim: false,
 			/** The timer controller for the wait for the idle */
-			waitForIdle: null,
+			waitForIdle: null as KEventController,
 			add() {
 				this.waitForIdle = wait(0)
 			},
@@ -91,7 +91,7 @@ export function addDancer(dancerName: string) {
 }
 
 /** The type that a dancer game object would be */
-export type DancerGameObj = ReturnType<typeof addDancer>
+export type DancerGameObj = ReturnType<typeof createDancer>
 
 /** Gets the current dancer */
 export function getDancer() : DancerGameObj {

@@ -358,7 +358,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 	onMousePress("left", () => {
 		if (GameDialog.isOpen) return;
 
-		debug.log(trailAtStep(ChartState.hoveredStep, ChartState))
+		// debug.log(trailAtStep(ChartState.hoveredStep, ChartState))
 
 		/** The current hovered time */
 		const hoveredTime = ChartState.conductor.stepToTime(ChartState.hoveredStep, ChartState.conductor.stepInterval)
@@ -646,9 +646,9 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		}
 	})
 
-	ChartState.song.chart.notes.forEach((note) => {
-		note.length = 2
-	})
+	// ChartState.song.chart.notes.forEach((note) => {
+	// 	note.length = 2
+	// })
 
 	// animate the dancer
 	onNoteHit((note) => {

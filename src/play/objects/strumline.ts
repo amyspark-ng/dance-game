@@ -10,7 +10,7 @@ import { utils } from "../../utils";
 /** Scale of the strumlin when pressed */
 const PRESS_SCALE = 1.2
 
-export function addStrumline(GameState:StateGame) {
+export function createStrumline(GameState:StateGame) {
 	const STRUM_POS = vec2(center().x, height() - 60);
 	
 	const strumlineObj = add([
@@ -45,9 +45,16 @@ export function addStrumline(GameState:StateGame) {
 						const hitNote = get("noteObj", { recursive: true }).find((noteGameObj) => noteGameObj.chartNote == note) as NoteGameObj
 						
 						if (hitNote) {
-							hitNote.destroy()
-							triggerEvent("onNoteHit", hitNote.chartNote)
+							if (!hitNote.chartNote.length) {
+								hitNote.destroy()
+							}
+
+							else {
+								hitNote.holding = true
+							}
+							
 							tween(moveToColor(move), WHITE.darken(80), 0.5, (p) => this.color = p)
+							triggerEvent("onNoteHit", hitNote.chartNote)
 						}
 					}
 		
@@ -78,7 +85,7 @@ export function addStrumline(GameState:StateGame) {
 	return strumlineObj;
 }
 
-export type StrumlineGameObj = ReturnType<typeof addStrumline>
+export type StrumlineGameObj = ReturnType<typeof createStrumline>
 
 export function getStrumline() : StrumlineGameObj {
 	return get("strumlineObj", { recursive: true })[0] as StrumlineGameObj

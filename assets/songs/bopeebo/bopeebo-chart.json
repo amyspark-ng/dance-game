@@ -1,1 +1,1 @@
-{"notes":[{"time":2.4,"move":"up"},{"time":3,"move":"right"},{"time":3.5999999999999996,"move":"right"},{"time":7.199999999999999,"move":"down"},{"time":7.8,"move":"left"},{"time":8.4,"move":"right"}],"events":[]}
+{"notes":[{"time":2.4,"move":"up","spawnTime":1.15},{"time":3.5999999999999996,"move":"right","length":2,"spawnTime":2.3499999999999996},{"time":3,"move":"right","length":2,"spawnTime":1.75},{"time":7.199999999999999,"move":"down","length":2},{"time":7.8,"move":"left","length":2},{"time":8.4,"move":"right","length":1.999999999999993}],"events":[]}

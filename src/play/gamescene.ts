@@ -1,8 +1,8 @@
-import { addDancer, DANCER_POS, getDancer } from "./objects/dancer"
+import { createDancer, DANCER_POS, getDancer } from "./objects/dancer"
 import { playSound } from "../core/plugins/features/sound"
-import { onBeatHit, onMiss, onNoteHit, onReset, triggerEvent } from "../core/events"
-import { addStrumline, getStrumline } from "./objects/strumline"
-import { ChartNote, notesSpawner, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note"
+import { onBeatHit, onMiss, onNoteHit, onReset, onStepHit, triggerEvent } from "../core/events"
+import { createStrumline, getStrumline } from "./objects/strumline"
+import { ChartNote, NoteGameObj, notesSpawner, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note"
 import { SaveScore } from "./song"
 import { goScene } from "../core/scenes"
 import { addComboText, addJudgement, getClosestNote, Scoring } from "./objects/scoring"
@@ -25,17 +25,18 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 	const GameState = new StateGame()
 	GameState.params = params;
 	GameState.song = params.songZip;
+	params.dancer = params.dancer ?? "astri"
 	setupSong(params, GameState)
 
 	// ==== SETS UP SOME IMPORTANT STUFF ====
-	addStrumline(GameState);
+	const strumline = createStrumline(GameState);
 	notesSpawner(GameState);
 
 	GameState.gameInputEnabled = true
 	gameCursor.hide()
 
 	// ==== DANCER + UI =====
-	const dancer = addDancer(params.dancer)
+	const dancer = createDancer(params.dancer)
 	dancer.pos = DANCER_POS
 	dancer.onUpdate(() => {
 		if (dancer.waitForIdle) dancer.waitForIdle.paused = GameState.paused;
@@ -176,6 +177,14 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 		
 		addComboText(GameState.combo)
 		getDancer().doMove(chartNote.move)
+	
+		if (chartNote.length) {
+			const noteObj = get("noteObj", { recursive: true }).find((obj:NoteGameObj) => obj.chartNote == chartNote) as NoteGameObj
+			noteObj.opacity = 0
+			onStepHit(() => {
+				noteObj.chartNote.length -= 1
+			})
+		}
 	})
 
 	onMiss((harm:boolean) => {

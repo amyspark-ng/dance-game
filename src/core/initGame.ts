@@ -9,6 +9,7 @@ import { setupWatch } from "./plugins/features/watcher"
 import { utils } from "../utils"
 import { paramsChartEditor } from "../play/chartEditor/chartEditorBackend"
 import { getCurrent, WebviewWindow } from "@tauri-apps/api/window"
+import { paramsGameScene } from "../play/playstate"
 
 /** Class that handles some variables related to the game as a product */
 export class GAME {
@@ -94,5 +95,6 @@ utils.runInDesktop(() => {
 
 export function INITIAL_SCENE() {
 	goScene("charteditor", { song: getSong("bopeebo") } as paramsChartEditor)
+	goScene("game", { songZip: getSong("bopeebo"), seekTime: 1 } as paramsGameScene)
 	// goScene("menu", { index: 0 })
 }

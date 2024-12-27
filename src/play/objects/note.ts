@@ -1,4 +1,4 @@
-import { Color, Comp } from "kaplay";
+import { Color, Comp, KEventController } from "kaplay";
 import { Move } from "./dancer";
 import { utils } from "../../utils";
 import { getStrumline } from "./strumline";
@@ -46,6 +46,7 @@ export function setTimeForStrum(value: number) {
 
 /** Adds a note to the game */
 export function addNote(chartNote: ChartNote, GameState:StateGame) {
+	let lengthDraw:KEventController = null
 	const noteObj = add([
 		sprite(GameSave.noteskin +  "_" + chartNote.move),
 		pos(width() + NOTE_WIDTH, getStrumline().pos.y),
@@ -54,19 +55,52 @@ export function addNote(chartNote: ChartNote, GameState:StateGame) {
 		z(2),
 		"noteObj",
 		{
+			holding: chartNote.length ? false : null,
 			chartNote: { time: 0, move: "left" } as ChartNote
 		}
 	])
 
 	noteObj.chartNote = chartNote;
 
+	lengthDraw = onDraw(() => {
+		for (let i = 0; i < noteObj.chartNote.length + 1; i++) {
+			if (i == 0) {
+				drawSprite({
+					width: noteObj.width / 2,
+					height: noteObj.height,
+					sprite: GameSave.noteskin + "_" + "trail",
+					pos: vec2(noteObj.pos.x + noteObj.width / 4, noteObj.pos.y),
+					anchor: "center",
+					shader: "replacecolor",
+					uniform: {
+						"u_targetcolor": moveToColor(noteObj.chartNote.move),
+					}
+				})
+			}
+
+			drawSprite({
+				width: noteObj.width,
+				height: noteObj.height,
+				sprite: GameSave.noteskin + "_" + (i == noteObj.chartNote.length ? "tail" : "trail"),
+				pos: vec2(noteObj.pos.x + ((i + 1) * noteObj.height), noteObj.pos.y),
+				anchor: "center",
+				shader: "replacecolor",
+				uniform: {
+					"u_targetcolor": moveToColor(noteObj.chartNote.move),
+				}
+			})
+		}
+	})
+
 	let hasMissedNote = false
 	noteObj.onUpdate(() => {
 		if (GameState.paused) return
 		
-		let mapValue = (GameState.conductor.timeInSeconds - chartNote.spawnTime) / TIME_FOR_STRUM
-		const xPos = map(mapValue, 0, 1, NOTE_SPAWNPOINT, getStrumline().pos.x - NOTE_WIDTH / 2);
-		noteObj.pos.x = xPos;
+		if (!noteObj.holding) {
+			let mapValue = (GameState.conductor.timeInSeconds - chartNote.spawnTime) / TIME_FOR_STRUM
+			const xPos = map(mapValue, 0, 1, NOTE_SPAWNPOINT, getStrumline().pos.x - NOTE_WIDTH / 2);
+			noteObj.pos.x = xPos;
+		}
 
 		// if the time has already passed to hit a note and the note is not on spawned notes
 		function conditionsForPassedNote(note: ChartNote) {
@@ -86,6 +120,10 @@ export function addNote(chartNote: ChartNote, GameState:StateGame) {
 			}
 		}
 	})
+	
+	noteObj.onDestroy(() => {
+		lengthDraw?.cancel()
+	})
 
 	return noteObj;
 }
@@ -94,7 +132,7 @@ export type NoteGameObj = ReturnType<typeof addNote>
 
 // MF you genius
 
-/** Crucial function that spawns the notes in the game */
+/** Crucial function that handles the spawning of notes in the game */
 export function notesSpawner(GameState:StateGame) {
 	// sets the spawnTime
 	GameState.song.chart.notes.forEach((note) => {
