@@ -9,7 +9,7 @@ import { utils } from "../../utils";
 import { ChartNote, moveToColor } from "../objects/note";
 import { paramsGameScene } from "../playstate";
 import { addDummyDancer, addFloatingText, cameraHandler, ChartStamp, clipboardMessage, concatStamps, moveHandler, isStampNote, setMouseAnimConditions, moveToDetune, paramsChartEditor, selectionBoxHandler, StateChart } from "./chartEditorBackend";
-import { addLeftInfo, addDialogButtons, drawAllNotes, drawCameraController, drawCheckerboard, drawCursor, drawPlayBar, drawSelectSquares, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE, addEventsPanel } from "./chartEditorElements";
+import { addLeftInfo, addDialogButtons, drawAllNotes, drawCameraController, drawCheckerboard, drawNoteCursor, drawPlayBar, drawSelectSquares, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE, addEventsPanel } from "./chartEditorElements";
 import { GameSave } from "../../core/gamesave";
 import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { openEventDialog as openChartEventDialog, openChartAboutDialog, openChartInfoDialog, openExitDialog } from "./chartEditorDialogs";
@@ -333,7 +333,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		drawPlayBar(ChartState)
 		
 		if (GameDialog.isOpen) return
-		drawCursor(ChartState)
+		drawNoteCursor(ChartState)
 		drawSelectSquares(ChartState)
 	})
 

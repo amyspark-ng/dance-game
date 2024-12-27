@@ -56,7 +56,7 @@ function loadNoteSkins() {
 	let spriteAtlasData = {}
 
 	let noteSkinTypes = ["P", "T", "A"]
-	let movements = ["up", "down", "left", "right"]
+	let movements = ["up", "down", "left", "right", "trail", "tail"]
 	noteskins = noteSkinTypes
 	
 	let x = 0
@@ -84,6 +84,41 @@ function loadDancer(dancerName: string, spriteData: LoadSpriteOpt) {
 	loadSprite(`bg_${dancerName}`, `sprites/dancers/${dancerName}/bg_${dancerName}.png`)
 	
 	// load the background and other stuff here
+}
+
+function loadSongFromFolder(folderPath: string) : Promise<SongContent> {
+	// this was wholely written by github copilot madly impressive 
+	return new Promise(async (resolve, reject) => {
+		try {
+			const manifest = await fetch(`${folderPath}/manifest.toml`).then((thing) => thing.text()).then((text) => TOML.parse(text))
+			const chart = await fetch(`${folderPath}/${manifest.chart_file}`).then((thing) => thing.json())
+			const audio = await fetch(`${folderPath}/${manifest.audio_file}`).then((thing) => thing.blob()).then((blob) => blob.arrayBuffer())
+			loadSound(manifest.uuid_DONT_CHANGE + "-audio", audio)
+			const cover = await fetch(`${folderPath}/${manifest.cover_file}`).then((thing) => thing.blob()).then((blob) => URL.createObjectURL(blob))
+			loadSprite(manifest.uuid_DONT_CHANGE + "-cover", cover)
+
+			const songContent:SongContent = {
+				manifest: {
+					name: manifest["name"].toString(),
+					artist: manifest["artist"].toString(),
+					charter: manifest["charter"].toString(),
+					initial_bpm: Number(manifest["initial_bpm"]),
+					initial_scrollspeed: Number(manifest["initial_scrollspeed"]),
+					time_signature: manifest["time_signature"] as [number, number],
+					uuid_DONT_CHANGE: manifest.uuid_DONT_CHANGE.toString(),
+					chart_file: manifest.chart_file.toString(),
+					audio_file: manifest.audio_file.toString(),
+					cover_file: manifest.cover_file.toString(),
+				},
+				chart: chart,
+			}
+
+			loadedSongs.push(songContent)
+			resolve(songContent)
+		} catch (e) {
+			reject(e)
+		}
+	})
 }
 
 /** Loads a song from a zip file
@@ -315,12 +350,23 @@ export async function loadAssets() {
 		}
 	`)
 
+	loadShader("replacecolor", null, `
+		uniform vec3 u_targetcolor;
+
+		vec4 frag(vec2 pos, vec2 uv, vec4 color, sampler2D tex) {
+			vec4 o_color = texture2D(tex, uv);
+			if (o_color.r > 0.01 && o_color.g < 0.01 && o_color.b < 0.01) return vec4(u_targetcolor / 255., o_color.a);
+			return o_color;
+		}
+	`)
+
 	// load default songs
 	await load(new Promise(async (resolve, reject) => {
 		try {
 			defaultSongs.forEach(async (songzippath, index) => {
+				songzippath	= `songs/${songzippath}`
 				try {
-					const songZip = await loadSongFromZIP(songzippath, true)
+					const songZip = await loadSongFromFolder(songzippath)
 				}
 
 				catch (err) {

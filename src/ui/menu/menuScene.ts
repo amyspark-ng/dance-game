@@ -2,6 +2,8 @@ import { GameSave } from "../../core/gamesave";
 import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { goScene } from "../../core/scenes"
 import { paramsChartEditor } from "../../play/chartEditor/chartEditorBackend";
+import { Move } from "../../play/objects/dancer";
+import { moveToColor } from "../../play/objects/note";
 import { SongContent } from "../../play/song";
 import { utils } from "../../utils";
 import { paramsSongSelect } from "../songselectscene"

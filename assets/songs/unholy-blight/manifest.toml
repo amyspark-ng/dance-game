@@ -1,0 +1,10 @@
+name = "Unholy Blight"
+artist = "DevkyRD"
+charter = "amyspark-ng"
+initial_bpm = 160
+initial_scrollspeed = 1
+time_signature = [ 4, 4 ]
+uuid_DONT_CHANGE = "14e1c3e9-b24f-4aaa-8401-d772d8725f51"
+chart_file = "unholy-blight-chart.json"
+audio_file = "unholy-blight-song.ogg"
+cover_file = "unholy-blight-cover.png"

@@ -23,6 +23,8 @@ export class ChartNote {
 	move: Move = "up";
 	/** the time the note must be spawned at */
 	spawnTime?: number;
+	/** How long the note is in steps */
+	length?: number;
 }
 
 /** Converts a move to a color (based on fnf lol) */

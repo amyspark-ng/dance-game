@@ -175,7 +175,7 @@ export function drawStrumline(ChartState:StateChart) {
 }
 
 /** Draw the cursor to highlight notes */
-export function drawCursor(ChartState:StateChart) {
+export function drawNoteCursor(ChartState:StateChart) {
 	const strumlineYPos = ChartState.SQUARE_SIZE.y * ChartState.strumlineStepOffset
 	
 	const minLeft = center().x - ChartState.SQUARE_SIZE.x / 2
@@ -233,7 +233,7 @@ export function drawCursor(ChartState:StateChart) {
 				cap: "round",
 				join: "round",
 			},
-			radius: 5,
+			radius: 3,
 			pos: ChartState.lerpCursorPos,
 			anchor: "center",
 			fixed: true,
