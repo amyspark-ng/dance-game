@@ -93,6 +93,6 @@ utils.runInDesktop(() => {
 })
 
 export function INITIAL_SCENE() {
-	goScene("charteditor", { song: getSong("unholy-blight") } as paramsChartEditor)
+	goScene("charteditor", { song: getSong("bopeebo") } as paramsChartEditor)
 	// goScene("menu", { index: 0 })
 }

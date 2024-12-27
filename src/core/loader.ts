@@ -322,6 +322,7 @@ export async function loadAssets() {
 	loadSound("noteMove", "sounds/chart-editor/noteMove.ogg")
 	loadSound("noteUndo", "sounds/chart-editor/noteUndo.wav")
 	loadSound("noteCopy", "sounds/chart-editor/noteCopy.wav")
+	loadSound("noteStretch", "sounds/chart-editor/noteStretch.ogg")
 	loadSound("dialogOpen", "sounds/chart-editor/dialogOpen.ogg")
 	loadSound("eventCog", "sounds/chart-editor/eventCog.wav")
 	loadSound("mouseClick", "sounds/chart-editor/mouseClick.ogg")

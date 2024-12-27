@@ -43,6 +43,48 @@ export function concatStamps(notes: ChartNote[], events: ChartEvent[]) : ChartSt
 	return [...notes, ...events]
 }
 
+/** Gets the closest note at a certain step (accounts for length of step)
+ * @param step The step to find the note at
+ */
+export function findNoteAtStep(step: number, ChartState:StateChart) : ChartNote {
+	const note = ChartState.song.chart.notes.find((note) => ChartState.conductor.timeToStep(note.time) == step)
+	
+	// if there is no note at the step, check if there's a trail to a note, if there is, return the note
+	if (!note) {
+		const stepToTime = ChartState.conductor.stepToTime(step)
+		const closestNote = ChartState.song.chart.notes.reduce((prev, curr) => Math.abs(curr.time - stepToTime) < Math.abs(prev.time - stepToTime) ? curr : prev)
+		// now find if the step is in the trail of the closest note
+		const stepOfNote = ChartState.conductor.timeToStep(closestNote.time)
+		if (utils.isInRange(step, stepOfNote, stepOfNote + closestNote.length)) return closestNote
+		else return undefined
+	}
+	
+	else {
+		return note
+	}
+}
+
+/** Determins wheter there's a trail at a certain step
+ * @param step The step to find the trail at
+ */
+export function trailAtStep(step: number, ChartState:StateChart) : boolean {
+	const note = ChartState.song.chart.notes.find((note) => ChartState.conductor.timeToStep(note.time) == step)
+	
+	// if there is no note at the step, check if there's a trail to a note, if there is, return the note
+	if (!note) {
+		const stepToTime = ChartState.conductor.stepToTime(step)
+		const closestNote = ChartState.song.chart.notes.reduce((prev, curr) => Math.abs(curr.time - stepToTime) < Math.abs(prev.time - stepToTime) ? curr : prev)
+		// now find if the step is in the trail of the closest note
+		const stepOfNote = ChartState.conductor.timeToStep(closestNote.time)
+		if (utils.isInRange(step, stepOfNote, stepOfNote + closestNote.length)) return true
+		else return false
+	}
+	
+	else {
+		return false
+	}
+}
+
 /** Get the message for the clipboard */
 export function clipboardMessage(action: "copy" | "cut" | "paste", clipboard:ChartStamp[]) {
 	let message = ""

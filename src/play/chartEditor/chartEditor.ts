@@ -8,14 +8,15 @@ import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { utils } from "../../utils";
 import { ChartNote, moveToColor } from "../objects/note";
 import { paramsGameScene } from "../playstate";
-import { addDummyDancer, addFloatingText, cameraHandler, ChartStamp, clipboardMessage, concatStamps, moveHandler, isStampNote, setMouseAnimConditions, moveToDetune, paramsChartEditor, selectionBoxHandler, StateChart } from "./chartEditorBackend";
-import { addLeftInfo, addDialogButtons, drawAllNotes, drawCameraController, drawCheckerboard, drawNoteCursor, drawPlayBar, drawSelectSquares, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE, addEventsPanel } from "./chartEditorElements";
+import { addDummyDancer, addFloatingText, cameraHandler, ChartStamp, clipboardMessage, concatStamps, moveHandler, isStampNote, setMouseAnimConditions, moveToDetune, paramsChartEditor, selectionBoxHandler, StateChart, findNoteAtStep, trailAtStep } from "./chartEditorBackend";
+import { addLeftInfo, addDialogButtons, stampRenderer, drawCameraController, checkerboardRenderer, drawNoteCursor, drawPlayBar, drawSelectSquares, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE, addEventsPanel } from "./chartEditorElements";
 import { GameSave } from "../../core/gamesave";
 import { GameDialog } from "../../ui/dialogs/gameDialog";
-import { openEventDialog as openChartEventDialog, openChartAboutDialog, openChartInfoDialog, openExitDialog } from "./chartEditorDialogs";
+import { openChartAboutDialog, openChartInfoDialog, openEventDialog, openExitDialog } from "./chartEditorDialogs";
 import { ChartEvent, SongContent } from "../song";
 import { loadedSongs } from "../../core/loader";
 import { paramsSongSelect } from "../../ui/songselectscene";
+import { KEventController } from "kaplay";
 
 export function ChartEditorScene() { scene("charteditor", (params: paramsChartEditor) => {
 	// had an issue with BPM being NaN but it was because since this wasn't defined then it was NaN
@@ -34,8 +35,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	/** Gets the current note that is being hovered */
 	function getCurrentHoveredNote() {
-		const time = ChartState.conductor.stepToTime(ChartState.hoveredStep, ChartState.conductor.stepInterval)
-		return ChartState.song.chart.notes.find((note) => ChartState.conductor.timeToStep(note.time, ChartState.conductor.stepInterval) == ChartState.conductor.timeToStep(time, ChartState.conductor.stepInterval))
+		return findNoteAtStep(ChartState.hoveredStep, ChartState)
 	}
 
 	function getCurrentHoveredEvent() {
@@ -326,8 +326,8 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	/** The main event, draws everything so i don't have to use objects */
 	onDraw(() => {
-		drawCheckerboard(ChartState)
-		drawAllNotes(ChartState)
+		checkerboardRenderer(ChartState)
+		stampRenderer(ChartState)
 		drawStrumline(ChartState)
 		drawCameraController(ChartState)
 		drawPlayBar(ChartState)
@@ -351,9 +351,14 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		})
 	}
 
+	/** The event for stretching a note */
+	let stretchingNoteEV:KEventController = null
+
 	// Behaviour for placing and selecting notes
 	onMousePress("left", () => {
 		if (GameDialog.isOpen) return;
+
+		debug.log(trailAtStep(ChartState.hoveredStep, ChartState))
 
 		/** The current hovered time */
 		const hoveredTime = ChartState.conductor.stepToTime(ChartState.hoveredStep, ChartState.conductor.stepInterval)
@@ -370,6 +375,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 					ChartState.selectedStamps.push(hoveredNote) 
 					ChartState.takeSnapshot();
 				}
+				setLeading(hoveredNote)
 			}
 	
 			// there's no note in that place
@@ -378,9 +384,27 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 				hoveredNote = ChartState.placeNote(hoveredTime, ChartState.currentMove)
 				playSound("noteAdd", { detune: moveToDetune(hoveredNote.move) })
 				ChartState.takeSnapshot();
+				
+				setLeading(hoveredNote)
+
+				stretchingNoteEV?.cancel()
+				stretchingNoteEV = onMouseMove(() => {
+					let oldLength = hoveredNote.length
+					hoveredNote.length = (ChartState.hoveredStep - 1) - ChartState.conductor.timeToStep(hoveredNote.time)
+					let newLength = hoveredNote.length
+					if (oldLength != newLength) {
+						playSound("noteStretch", { detune: 50 * newLength + (newLength % 2 == 0 ? 100 : 0) })
+					}
+				})
+	
+				const releaseEV = onMouseRelease(() => {
+					releaseEV.cancel()
+					stretchingNoteEV.cancel()
+					stretchingNoteEV = null
+					playSound("noteStretch", { detune: 300, speed: 2 })
+				})
 			}
 	
-			setLeading(hoveredNote)
 			ChartState.stepForDetune = ChartState.conductor.timeToStep(hoveredNote.time)
 		}
 
@@ -390,7 +414,7 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 			// there's already an event in that place
 			if (hoveredEvent) {
 				if (isKeyDown("shift")) {
-					openChartEventDialog(hoveredEvent, ChartState)
+					openEventDialog(hoveredEvent, ChartState)
 				}
 
 				if (!ChartState.selectedStamps.includes(hoveredEvent)) {
@@ -430,11 +454,14 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 		ChartState.selectionBox.leadingStamp = undefined;
 	})
 
+	let stepClicked = 0
+
 	// Removing notes
 	onMousePress("right", () => {
 		if (GameDialog.isOpen) return;
 		if (!ChartState.isCursorInGrid) return;
-		
+		stepClicked = ChartState.hoveredStep
+
 		function noteBehaviour() {
 			const note = getCurrentHoveredNote()
 			if (!note) return
@@ -458,66 +485,67 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 
 	// Behaviour for moving notes
 	onMouseDown("left", () => {
+		if (stretchingNoteEV) return;
 		if (GameDialog.isOpen) return;
 		if (!ChartState.selectionBox.leadingStamp) return;
-		
+
 		let oldStepOfLeading = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time)
 		
-		ChartState.selectedStamps.forEach((selectedStamp, index) => {
-			// is the leading stamp
-			if (selectedStamp == ChartState.selectionBox.leadingStamp) {
-				let newStep = ChartState.hoveredStep
-				newStep = clamp(newStep, 0, ChartState.conductor.totalSteps - 1)
+		// ChartState.selectedStamps.forEach((selectedStamp, index) => {
+		// 	// is the leading stamp
+		// 	if (selectedStamp == ChartState.selectionBox.leadingStamp) {
+		// 		let newStep = ChartState.hoveredStep
+		// 		newStep = clamp(newStep, 0, ChartState.conductor.totalSteps - 1)
 
-				selectedStamp.time = ChartState.conductor.stepToTime(newStep)
-				ChartState.selectionBox.leadingStamp = selectedStamp
-			}
+		// 		selectedStamp.time = ChartState.conductor.stepToTime(newStep)
+		// 		ChartState.selectionBox.leadingStamp = selectedStamp
+		// 	}
 
-			else {
-				const isNote = isStampNote(selectedStamp)
+		// 	else {
+		// 		const isNote = isStampNote(selectedStamp)
 
-				const leadingStampStep = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time)
+		// 		const leadingStampStep = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time)
 				
-				if (isNote) {
-					const indexInNotes = ChartState.song.chart.notes.indexOf(selectedStamp)
+		// 		if (isNote) {
+		// 			const indexInNotes = ChartState.song.chart.notes.indexOf(selectedStamp)
 	
-					// this is some big brain code i swear
-					const stepDiff = differencesToLeading.notes[indexInNotes]
-					let newStep = leadingStampStep + stepDiff
-					newStep = clamp(newStep, 0, ChartState.conductor.totalSteps - 1)
-					selectedStamp.time = ChartState.conductor.stepToTime(newStep)
-				}
+		// 			// this is some big brain code i swear
+		// 			const stepDiff = differencesToLeading.notes[indexInNotes]
+		// 			let newStep = leadingStampStep + stepDiff
+		// 			newStep = clamp(newStep, 0, ChartState.conductor.totalSteps - 1)
+		// 			selectedStamp.time = ChartState.conductor.stepToTime(newStep)
+		// 		}
 
-				else {
-					const indexInEvents = ChartState.song.chart.events.indexOf(selectedStamp)
+		// 		else {
+		// 			const indexInEvents = ChartState.song.chart.events.indexOf(selectedStamp)
 	
-					// this is some big brain code i swear
-					const stepDiff = differencesToLeading.events[indexInEvents]
-					let newStep = leadingStampStep + stepDiff
-					newStep = clamp(newStep, 0, ChartState.conductor.totalSteps - 1)
-					selectedStamp.time = ChartState.conductor.stepToTime(newStep)
-				}
-			}
-		})
+		// 			// this is some big brain code i swear
+		// 			const stepDiff = differencesToLeading.events[indexInEvents]
+		// 			let newStep = leadingStampStep + stepDiff
+		// 			newStep = clamp(newStep, 0, ChartState.conductor.totalSteps - 1)
+		// 			selectedStamp.time = ChartState.conductor.stepToTime(newStep)
+		// 		}
+		// 	}
+		// })
 	
-		let newStepOfLeading = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time)
+		// let newStepOfLeading = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time)
 		
-		if (newStepOfLeading != oldStepOfLeading) {
-			// thinking WAY too hard for a simple sound effect lol!
-			const diff = newStepOfLeading - ChartState.stepForDetune
-			let baseDetune = 0
+		// if (newStepOfLeading != oldStepOfLeading) {
+		// 	// thinking WAY too hard for a simple sound effect lol!
+		// 	const diff = newStepOfLeading - ChartState.stepForDetune
+		// 	let baseDetune = 0
 			
-			if (isStampNote(ChartState.selectionBox.leadingStamp)) {
-				baseDetune = Math.abs(moveToDetune(ChartState.selectionBox.leadingStamp.move)) * 0.5
-			}
+		// 	if (isStampNote(ChartState.selectionBox.leadingStamp)) {
+		// 		baseDetune = Math.abs(moveToDetune(ChartState.selectionBox.leadingStamp.move)) * 0.5
+		// 	}
 
-			else {
-				baseDetune = Object.keys(ChartState.events).indexOf(ChartState.selectionBox.leadingStamp.id) * 10	
-			}
+		// 	else {
+		// 		baseDetune = Object.keys(ChartState.events).indexOf(ChartState.selectionBox.leadingStamp.id) * 10	
+		// 	}
 			
-			playSound("noteMove", { detune: baseDetune * diff })
-			ChartState.takeSnapshot();
-		}
+		// 	playSound("noteMove", { detune: baseDetune * diff })
+		// 	ChartState.takeSnapshot();
+		// }
 	})
 
 	// Copies the color of a note
@@ -616,6 +644,10 @@ export function ChartEditorScene() { scene("charteditor", (params: paramsChartEd
 			playSound("noteHit", { detune: moveToDetune(someNote.move) })
 			triggerEvent("onNoteHit", someNote)
 		}
+	})
+
+	ChartState.song.chart.notes.forEach((note) => {
+		note.length = 2
 	})
 
 	// animate the dancer

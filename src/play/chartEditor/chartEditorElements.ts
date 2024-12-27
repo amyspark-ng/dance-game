@@ -69,7 +69,7 @@ export function drawPlayBar(ChartState: StateChart) {
 }
 
 /** Draws as many steps for the song checkerboard */
-export function drawCheckerboard(ChartState: StateChart) {
+export function checkerboardRenderer(ChartState: StateChart) {
 	for (let i = 0; i < ChartState.conductor.totalSteps; i++) {
 		const newPos = ChartState.stepToPos(i)
 		newPos.y -= ChartState.SQUARE_SIZE.y * ChartState.lerpScrollStep
@@ -127,8 +127,8 @@ export function drawCheckerboard(ChartState: StateChart) {
 	}
 }
 
-/** Draw the stamps of the song */
-export function drawAllNotes(ChartState:StateChart) {
+/** Is in charge of drawing all the stamps (notes and events in the {@link checkerboardRenderer `drawCheckerboard()`} ) */
+export function stampRenderer(ChartState:StateChart) {
 	function drawStamp(stamp: ChartStamp, index: number) {
 		const isNote = isStampNote(stamp)
 		
@@ -141,6 +141,44 @@ export function drawAllNotes(ChartState:StateChart) {
 		if (!ChartState.stampProps[isNote ? "notes" : "events"][index]) return
 
 		if (conditionsForDrawing(stampPos.y, ChartState.SQUARE_SIZE)) {
+			// i do this before so it's below the note in case it is
+			if (isNote) {
+				for (let i = 0; i < stamp.length + 1; i++) {
+					if (i == 0) {
+						drawSprite({
+							width: ChartState.SQUARE_SIZE.x / 2,
+							height: ChartState.SQUARE_SIZE.y,
+							scale: ChartState.stampProps.notes[index].scale,
+							angle: 90 + ChartState.stampProps.notes[index].angle,
+							sprite: GameSave.noteskin + "_" + "trail",
+							pos: vec2(notePosLerped.x, notePosLerped.y + ChartState.SQUARE_SIZE.y / 4),
+							opacity: ChartState.scrollTime >= stamp.time ? 1 : 0.5,
+							anchor: "center",
+							shader: "replacecolor",
+							uniform: {
+								"u_targetcolor": moveToColor(stamp.move),
+							}
+						})
+					}
+
+					drawSprite({
+						width: ChartState.SQUARE_SIZE.x,
+						height: ChartState.SQUARE_SIZE.y,
+						scale: ChartState.stampProps.notes[index].scale,
+						angle: 90,
+						sprite: GameSave.noteskin + "_" + (i == stamp.length ? "tail" : "trail"),
+						// sprite: GameSave.noteskin + "_" + "trail",
+						pos: vec2(notePosLerped.x, notePosLerped.y + ((i + 1) * ChartState.SQUARE_SIZE.y)),
+						opacity: ChartState.scrollTime >= stamp.time ? 1 : 0.5,
+						anchor: "center",
+						shader: "replacecolor",
+						uniform: {
+							"u_targetcolor": moveToColor(stamp.move),
+						}
+					})
+				}
+			}
+			
 			drawSprite({
 				width: ChartState.SQUARE_SIZE.x,
 				height: ChartState.SQUARE_SIZE.y,
@@ -151,6 +189,7 @@ export function drawAllNotes(ChartState:StateChart) {
 				opacity: ChartState.scrollTime >= stamp.time ? 1 : 0.5,
 				anchor: "center",
 			})
+
 		}
 	}
 
@@ -292,8 +331,8 @@ export function drawCameraController(ChartState:StateChart) {
 		if (isInSelected) theColor = utils.blendColors(theColor, selectColor, 0.25)
 
 		const noteOpts = {
-			width: 50 / 5,
-			height: 50 / 20,
+			width: ChartState.SQUARE_SIZE.x / 5,
+			height: ChartState.SQUARE_SIZE.y / 20,
 			color: theColor,
 			anchor: "center",
 			pos: vec2(xPos, yPos),
@@ -344,17 +383,20 @@ export function drawCameraController(ChartState:StateChart) {
 /** Draw the thing for the selected note */
 export function drawSelectSquares(ChartState:StateChart) {
 	// unify this
-	ChartState.selectedStamps.forEach((note) => {
-		if (!isStampNote(note)) return;
-		const stepOfSelectedNote = ChartState.conductor.timeToStep(note.time) - ChartState.scrollStep
+	ChartState.selectedStamps.forEach((stamp) => {
+		if (!isStampNote(stamp)) return;
+		const stepOfSelectedNote = ChartState.conductor.timeToStep(stamp.time) - ChartState.scrollStep
 		const gizmoPos = ChartState.stepToPos(stepOfSelectedNote)
 		const celesteColor = BLUE.lighten(150)
-	
+		const isNote = isStampNote(stamp)
+		let height = ChartState.SQUARE_SIZE.y
+		if (isNote) height = ChartState.SQUARE_SIZE.y * (stamp.length ? stamp.length + 2 : 1)
+
 		drawRect({
 			width: ChartState.SQUARE_SIZE.x,
-			height: ChartState.SQUARE_SIZE.y,
-			anchor: "center",
-			pos: vec2(gizmoPos.x, gizmoPos.y),
+			height: height,
+			anchor: "top",
+			pos: vec2(gizmoPos.x, gizmoPos.y - ChartState.SQUARE_SIZE.y / 2),
 			opacity: 0.5,
 			color: celesteColor,
 			outline: {
