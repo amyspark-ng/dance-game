@@ -72,13 +72,12 @@ export class StateGame {
 	}
 
 	/** Will set the pause to true or false, if a parameter isn't passed it will be toggled */
-	setPause(newPause?: boolean) {
+	setPause(newPause: boolean) {
 		newPause = newPause ?? !this._paused;
 
 		this._paused = newPause;
 		this.conductor.paused = this._paused;
-
-		managePauseUI(newPause, this);
+		getTreeRoot().trigger("pauseChange", this._paused);
 	}
 
 	/** Add score to the tally (animates the ui too)
@@ -89,6 +88,11 @@ export class StateGame {
 		this.ui.scoreDiffText.value = amount;
 		this.ui.scoreDiffText.opacity = 1;
 		this.ui.scoreDiffText.bop({ startScale: vec2(1.1), endScale: vec2(1) });
+	}
+
+	/** Runs when the pause has changed */
+	onPauseChange(action: (newPause: boolean) => void) {
+		return getTreeRoot().on("pauseChange", action);
 	}
 
 	constructor(params: paramsGameScene) {
@@ -279,7 +283,7 @@ export function manageInput(GameState: StateGame) {
 	if (!GameState.menuInputEnabled) return;
 
 	if (isKeyPressed("escape")) {
-		GameState.setPause();
+		GameState.setPause(!GameState.paused);
 	}
 	else if (isKeyDown("shift") && isKeyDown("r")) {
 		restartSong(GameState);

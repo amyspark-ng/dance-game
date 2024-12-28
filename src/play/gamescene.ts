@@ -14,6 +14,7 @@ import { addComboText, addJudgement, getClosestNote, Scoring } from "./objects/s
 import { getKeyForMove, introGo, manageInput, paramsGameScene, StateGame } from "./PlayState";
 import { SaveScore } from "./song";
 import { paramsDeathScene } from "./ui/DeathScene";
+import { managePauseUI } from "./ui/pauseScreen";
 import { paramsResultsScene } from "./ui/ResultsScene";
 
 export function GameScene() {
@@ -26,6 +27,8 @@ export function GameScene() {
 
 		GameState.gameInputEnabled = true;
 		gameCursor.hide();
+
+		managePauseUI(GameState);
 
 		// ==== DANCER + UI =====
 		GameState.dancer.onUpdate(() => {
@@ -115,6 +118,7 @@ export function GameScene() {
 							loop: true,
 							pingpong: ev.value.ping_pong,
 						});
+
 						GameState.dancer.onAnimEnd((animEnded) => {
 							if (animEnded != ev.value.anim) return;
 							GameState.dancer.forcedAnim = false;

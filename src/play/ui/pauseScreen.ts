@@ -1,27 +1,23 @@
 import { GameObj, OpacityComp } from "kaplay";
+import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { playSound } from "../../core/plugins/features/sound";
 import { utils } from "../../utils";
 import { DANCER_POS } from "../objects/dancer";
 import { exitToChartEditor, exitToMenu, restartSong, StateGame } from "../PlayState";
 
 /** Runs when the game is paused */
-export function managePauseUI(pause: boolean, GameState: StateGame) {
-	let currentIndex = 0;
-
+export function managePauseUI(GameState: StateGame) {
 	const baseZ = 100;
-	let pauseBlack = get("pauseBlack")[0];
+	const baseLerp = 0.5;
+	let scrollindex = 0;
 
-	const tagsToPause = ["judgementObj", "strumlineObj"];
+	function addPauseButton(buttonName: string, buttonIndex: number, buttonAction: () => void) {
+		const startingY = 200;
+		const buttonSpacing = 80;
 
-	// get all the objects and filter the ones that have any tag that is included in tagsToPause
-	get("*").filter((obj) => obj.tags.some((tag) => tagsToPause.includes(tag))).forEach((obj) => {
-		obj.paused = pause;
-	});
-
-	function makePauseButton(buttonName: string, buttonIndex: number, buttonAction: () => void) {
-		const buttonObj = make([
+		const buttonObj = add([
 			text(buttonName, { size: 60 }),
-			pos(-100, 100 + 100 * buttonIndex),
+			pos(-100, startingY + buttonSpacing * buttonIndex),
 			anchor("left"),
 			opacity(0.5),
 			z(baseZ + 2),
@@ -29,146 +25,130 @@ export function managePauseUI(pause: boolean, GameState: StateGame) {
 			{
 				index: buttonIndex,
 				action: buttonAction,
-				update() {
-					if (currentIndex == this.index) this.opacity = 1;
-					else this.opacity = 0.5;
-				},
 			},
 		]);
 
-		const Xpos = 50;
-		tween(buttonObj.pos.x, Xpos, 0.25, (p) => buttonObj.pos.x = p, easings.easeOutQuint).onEnd(() => {
-			buttonObj.onUpdate(() => {
-				if (currentIndex == buttonObj.index) {
-					buttonObj.pos.x = lerp(buttonObj.pos.x, Xpos + 15, 0.5);
-				}
-				else {
-					buttonObj.pos.x = lerp(buttonObj.pos.x, Xpos, 0.5);
-				}
-			});
+		const baseXpos = 50;
+		buttonObj.onUpdate(() => {
+			const buttonLerp = (baseLerp / 2) * (buttonIndex + 1);
+			if (GameState.paused) {
+				const buttonXPos = baseXpos - (scrollindex == buttonIndex ? 30 : 0);
+				buttonObj.pos.x = lerp(buttonObj.pos.x, buttonXPos, buttonLerp);
+				buttonObj.opacity = lerp(buttonObj.opacity, 1, baseLerp);
+			}
+			else {
+				buttonObj.pos.x = lerp(buttonObj.pos.x, -700, buttonLerp);
+				buttonObj.opacity = lerp(buttonObj.opacity, 0, baseLerp);
+			}
+
+			buttonObj.opacity = lerp(buttonObj.opacity, scrollindex == buttonIndex ? 1 : 0.5, baseLerp);
 		});
 
 		return buttonObj;
 	}
 
-	if (pause == true) {
-		const pauseScratch = playSound("pauseScratch", { volume: 0.1, detune: 0, speed: 1 });
-		pauseScratch.detune = rand(-100, 100);
+	// black screen
+	const blackScreen = add([
+		rect(width(), height()),
+		pos(center()),
+		anchor("center"),
+		color(BLACK),
+		opacity(),
+		z(baseZ),
+		"blackScreen",
+	]);
 
-		let allButtons = [
-			makePauseButton("CONTINUE", 0, () => {
-				GameState.setPause(false);
-			}),
-			makePauseButton("RESTART", 1, () => {
-				restartSong(GameState);
-			}),
-			makePauseButton("EXIT TO MENU", 2, () => {
-				exitToMenu(GameState);
-			}),
-		];
+	blackScreen.onUpdate(() => {
+		blackScreen.opacity = lerp(blackScreen.opacity, GameState.paused ? 0.5 : 0, baseLerp);
+	});
 
-		if (GameState.params.fromChartEditor) {
-			allButtons = utils.removeFromArr(allButtons[2], allButtons) as typeof allButtons;
-			allButtons[2] = makePauseButton("RETURN TO CHART EDITOR", 2, () => {
-				exitToChartEditor(GameState);
-			});
+	// title stuff
+	const title = add([
+		text(GameState.song.manifest.name, { size: 60, align: "center" }),
+		pos(),
+		anchor("center"),
+		opacity(),
+		z(baseZ),
+	]);
+
+	const pausedText = add([
+		text("(paused)", { size: title.textSize - 10, align: "center" }),
+		pos(),
+		anchor("center"),
+		opacity(),
+		z(baseZ),
+	]);
+
+	title.onUpdate(() => {
+		pausedText.pos = lerp(pausedText.pos, title.pos.add(vec2(0, title.height)), baseLerp * 0.9);
+
+		if (GameState.paused) {
+			title.pos = lerp(title.pos, vec2(center().x, 70), baseLerp);
+			title.opacity = lerp(title.opacity, 1, baseLerp);
 		}
-
-		// not found pauseBlack
-		if (!pauseBlack) {
-			pauseBlack = add([
-				rect(width(), height()),
-				color(BLACK),
-				pos(center()),
-				anchor("center"),
-				z(baseZ),
-				opacity(0.5),
-				"pauseBlack",
-			]);
-
-			pauseBlack.onUpdate(() => {
-				if (!GameState.paused) return;
-
-				// using these because key events were being little biiiiitches
-				if (isKeyPressed("down")) currentIndex = utils.scrollIndex(currentIndex, 1, allButtons.length);
-				else if (isKeyPressed("up")) currentIndex = utils.scrollIndex(currentIndex, -1, allButtons.length);
-				else if (isKeyPressed("enter")) allButtons[currentIndex].action();
-			});
-
-			pauseBlack.fadeIn(0.1);
-
-			const pauseText = pauseBlack.add([
-				text("PAUSED" + ` (${GameState.song.manifest.name})`, { size: 50 }),
-				pos(0, -pauseBlack.height / 2 + 50),
-				anchor("center"),
-				opacity(),
-				{
-					update() {
-						this.opacity = pauseBlack.opacity * 2;
-					},
-				},
-			]);
-
-			const someInfoText = pauseBlack.add([
-				text(`Artist: ${GameState.song.manifest.artist}\nCharter: ${GameState.song.manifest.charter}`, {
-					size: 30,
-					align: "right",
-				}),
-				pos(pauseBlack.width / 2, -pauseBlack.height / 2 + 60),
-				anchor("topright"),
-				opacity(),
-				{
-					update() {
-						this.opacity = pauseBlack.opacity * 2;
-					},
-				},
-			]);
-
-			const ogDancer = GameState.dancer;
-			tween(ogDancer.scale.x, 0, 0.1, (p) => ogDancer.scale.x = p);
-			tween(ogDancer.pos.y, height() + ogDancer.height, 0.1, (p) => ogDancer.pos.y = p);
-
-			// fake dancer
-			const fakeDancer = add([
-				sprite("dancer_" + GameState.params.dancer, { anim: "idle" }),
-				pos(center().x + ogDancer.width, center().y + height() / 10),
-				anchor("center"),
-				scale(),
-				z(baseZ + 1),
-			]);
-
-			pauseBlack.onDestroy(() => {
-				pauseText.destroy();
-				fakeDancer.destroy();
-			});
-
-			tween(fakeDancer.pos.y, height() - ogDancer.height / 2, 0.1, (p) => fakeDancer.pos.y = p);
-			tween(0, 1, 0.1, (p) => fakeDancer.scale.x = p);
-
-			allButtons.forEach((button, index) => {
-				wait(0.1 * (index + 1), () => {
-					add(button);
-				});
-			});
+		else {
+			title.pos = lerp(title.pos, vec2(center().x, -100), baseLerp);
+			title.opacity = lerp(title.opacity, 0, baseLerp);
 		}
-	}
-	else if (pause == false) {
-		let pauseBlack = get("pauseBlack")[0] as GameObj<OpacityComp>;
+		pausedText.opacity = lerp(pausedText.opacity, title.opacity, baseLerp * 0.9);
+	});
 
-		if (pauseBlack) {
-			pauseBlack.fadeOut(0.1).onEnd(() => {
-				pauseBlack.destroy();
-			});
+	// buttons
+	const inputManager = add([]);
+	inputManager.onUpdate(() => {
+		if (isKeyPressed("down")) scrollindex = utils.scrollIndex(scrollindex, 1, 3);
+		else if (isKeyPressed("up")) scrollindex = utils.scrollIndex(scrollindex, -1, 3);
+		else if (isKeyPressed("enter")) {
+			const selectedButton = get("pauseButton").find((obj) => obj.index == scrollindex);
+			if (selectedButton) selectedButton.action();
 		}
+	});
 
-		get("pauseButton").forEach((button) => {
-			tween(button.pos.x, -100, 0.1, (p) => button.pos.x = p, easings.easeOutQuint).onEnd(() => {
-				button.destroy();
-			});
+	const buttons = [
+		addPauseButton("Resume", 0, () => {
+			GameState.setPause(false);
+		}),
+		addPauseButton("Restart", 1, () => {
+			restartSong(GameState);
+		}),
+		addPauseButton("Exit to menu", 2, () => {
+			exitToMenu(GameState);
+		}),
+	];
+
+	if (GameState.params.fromChartEditor) {
+		buttons[2].destroy();
+		buttons[2] = addPauseButton("Exit to chart editor", 2, () => {
+			exitToChartEditor(GameState);
 		});
-
-		const ogDancer = GameState.dancer;
-		tween(ogDancer.pos, DANCER_POS, 0.1, (p) => GameState.dancer.pos = p);
-		tween(ogDancer.scale, vec2(1), 0.1, (p) => GameState.dancer.scale = p);
 	}
+
+	// dancer
+	const fakeDancer = add([
+		sprite("dancer_" + GameState.params.dancer, { anim: "idle" }),
+		pos(center()),
+		z(baseZ),
+		anchor("center"),
+		"pauseDancer",
+	]);
+
+	const fakeDancerPos = vec2(center().x + fakeDancer.width, center().y);
+	fakeDancer.onUpdate(() => {
+		if (GameState.paused) {
+			fakeDancer.pos = lerp(fakeDancer.pos, fakeDancerPos, baseLerp);
+		}
+		else {
+			fakeDancer.pos = lerp(fakeDancer.pos, vec2(fakeDancerPos.x, height() + fakeDancer.height), baseLerp);
+		}
+	});
+
+	const tagsToPause = ["judgementObj", "strumlineObj"];
+	GameState.onPauseChange(() => {
+		GameState.dancer.hidden = GameState.paused;
+	});
+
+	// get all the objects and filter the ones that have any tag that is included in tagsToPause
+	get("*").filter((obj) => obj.tags.some((tag) => tagsToPause.includes(tag))).forEach((obj) => {
+		obj.paused = GameState.paused;
+	});
 }
