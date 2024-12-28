@@ -95,6 +95,6 @@ utils.runInDesktop(() => {
 
 export function INITIAL_SCENE() {
 	goScene("charteditor", { song: getSong("bopeebo") } as paramsChartEditor)
-	goScene("game", { songZip: getSong("bopeebo"), seekTime: 1 } as paramsGameScene)
+	// goScene("game", { songZip: getSong("bopeebo") } as paramsGameScene)
 	// goScene("menu", { index: 0 })
 }

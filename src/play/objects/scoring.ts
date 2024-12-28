@@ -1,7 +1,7 @@
 // # This file will manage the ranking system
 import { utils } from "../../utils";
 import { StateGame, INPUT_THRESHOLD } from "../playstate";
-import { getDancer, Move } from "./dancer";
+import { DANCER_POS, Move } from "./dancer";
 import { ChartNote } from "./note";
 
 /** Rankings for the game */
@@ -109,7 +109,7 @@ export const MISS_TIMING = 0.166
 export function addJudgement(judgement: Judgement) {
 	const judgementObj = add([
 		text(judgement),
-		pos(getDancer().pos.x + 50, getDancer().pos.y),
+		pos(DANCER_POS.x + 50, DANCER_POS.y),
 		anchor("left"),
 		opacity(1),
 		timer(),

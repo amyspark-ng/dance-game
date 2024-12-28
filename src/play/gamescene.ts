@@ -1,45 +1,35 @@
-import { createDancer, DANCER_POS, getDancer } from "./objects/dancer"
 import { playSound } from "../core/plugins/features/sound"
 import { onBeatHit, onMiss, onNoteHit, onReset, onStepHit, triggerEvent } from "../core/events"
-import { createStrumline, getStrumline } from "./objects/strumline"
 import { ChartNote, NoteGameObj, notesSpawner, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note"
 import { SaveScore } from "./song"
 import { goScene } from "../core/scenes"
 import { addComboText, addJudgement, getClosestNote, Scoring } from "./objects/scoring"
 import { GameSave } from "../core/gamesave"
 import { utils } from "../utils"
-import { addUI } from "./ui/gameUi"
-import { paramsGameScene, StateGame, manageInput, setupSong, stopPlay, introGo } from "./playstate"
+import { paramsGameScene, StateGame, manageInput, stopPlay, introGo, getKeyForMove } from "./playstate"
 import { paramsDeathScene } from "./ui/deathScene"
 import { paramsResultsScene } from "./ui/resultsScene"
 import { appWindow } from "@tauri-apps/api/window"
 import { GAME } from "../core/initGame"
 import { gameCursor } from "../core/plugins/features/gameCursor"
 import { cam } from "../core/plugins/features/camera"
-import { TweenController } from "kaplay"
+import { KEventController, TweenController } from "kaplay"
 import { dancers } from "../core/loader"
+import { addUI } from "./ui/gameUi"
 
 export function GameScene() { scene("game", (params: paramsGameScene) => {
 	setBackground(RED.lighten(60))
-
-	const GameState = new StateGame()
-	GameState.params = params;
-	GameState.song = params.songZip;
-	params.dancer = params.dancer ?? "astri"
-	setupSong(params, GameState)
+	const GameState = new StateGame(params)
 
 	// ==== SETS UP SOME IMPORTANT STUFF ====
-	const strumline = createStrumline(GameState);
 	notesSpawner(GameState);
 
 	GameState.gameInputEnabled = true
 	gameCursor.hide()
 
 	// ==== DANCER + UI =====
-	const dancer = createDancer(params.dancer)
-	dancer.pos = DANCER_POS
-	dancer.onUpdate(() => {
-		if (dancer.waitForIdle) dancer.waitForIdle.paused = GameState.paused;
+	GameState.dancer.onUpdate(() => {
+		if (GameState.dancer.waitForIdle) GameState.dancer.waitForIdle.paused = GameState.paused;
 	})
 
 	let dancerHasBg = false
@@ -56,8 +46,6 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 			z(0),
 		])
 	}
-
-	const ui = addUI()
 
 	let hasPlayedGo = false
 
@@ -91,20 +79,20 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 				}
 
 				else if (ev.id == "play-anim") {
-					if (getDancer().getAnim(ev.value.anim) == null) {
+					if (GameState.dancer.getAnim(ev.value.anim) == null) {
 						console.warn("Animation not found for dancer: " + ev.value.anim)
 						return;
 					}
 					
-					getDancer().forcedAnim = ev.value.force
+					GameState.dancer.forcedAnim = ev.value.force
 					
 					// @ts-ignore
-					const animSpeed = getDancer().getAnim(ev.value.anim)?.speed
-					getDancer().play(ev.value.anim, { speed: animSpeed * ev.value.speed, loop: true, pingpong: ev.value.ping_pong })
-					getDancer().onAnimEnd((animEnded) => {
+					const animSpeed = GameState.dancer.getAnim(ev.value.anim)?.speed
+					GameState.dancer.play(ev.value.anim, { speed: animSpeed * ev.value.speed, loop: true, pingpong: ev.value.ping_pong })
+					GameState.dancer.onAnimEnd((animEnded) => {
 						if (animEnded != ev.value.anim) return;
-						getDancer().forcedAnim = false
-						getDancer().play("idle")
+						GameState.dancer.forcedAnim = false
+						GameState.dancer.play("idle")
 					})
 				}
 
@@ -114,7 +102,7 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 						return;
 					}
 
-					getDancer().sprite = "dancer_" + ev.value.dancer
+					GameState.dancer.sprite = "dancer_" + ev.value.dancer
 				}
 			}
 		})
@@ -124,25 +112,23 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 		})
 
 		manageInput(GameState);
-		ui.missesText.text = `X | ${GameState.tally.misses}`;
-		const time = GameState.conductor.timeInSeconds < 0 ? 0 : GameState.conductor.timeInSeconds
-		ui.timeText.text = `${utils.formatTime(time)}`;
-		
-		ui.healthText.value = lerp(ui.healthText.value, GameState.health, 0.5)
-		ui.scoreText.value = lerp(ui.scoreText.value, GameState.tally.score, 0.5)
+		GameState.ui.missesText.misses = GameState.tally.misses;
+		GameState.ui.timeText.time = GameState.conductor.timeInSeconds < 0 ? 0 : GameState.conductor.timeInSeconds
+		GameState.ui.healthText.health = lerp(GameState.ui.healthText.health, GameState.health, 0.5)
+		GameState.ui.scoreText.score = lerp(GameState.ui.scoreText.score, GameState.tally.score, 0.5)
 	})
 	
 	onHide(() => {
 		if (!GameState.paused) {
-			GameState.managePause(true)
+			GameState.setPause(true)
 		}
 	})
 
 	onBeatHit(() => {
 		if (GameState.health <= 25) playSound("lowhealth", { detune: GameState.conductor.currentBeat % 2 == 0 ? 0 : 25 })
 
-		if (dancer.getMove() == "idle") {
-			dancer.moveBop()
+		if (GameState.dancer.getMove() == "idle") {
+			GameState.dancer.moveBop()
 		}
 	})
 
@@ -161,12 +147,8 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 
 		// score stuff
 		let scorePerDiff = Scoring.getScorePerDiff(GameState.conductor.timeInSeconds, chartNote)
-		GameState.tally.score += scorePerDiff
+		GameState.addScore(scorePerDiff)
 		GameState.hitNotes.push(chartNote)
-
-		ui.scoreDiffText.value = scorePerDiff
-		ui.scoreDiffText.opacity = 1
-		ui.scoreDiffText.bop({ startScale: vec2(1.1), endScale: vec2(1) })
 
 		if (GameState.health < 100) GameState.health += randi(2, 6)
 
@@ -176,19 +158,40 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 		else if (GameState.tally.misses < 1) judgementText.text += "!"
 		
 		addComboText(GameState.combo)
-		getDancer().doMove(chartNote.move)
+		GameState.dancer.doMove(chartNote.move)
 	
 		if (chartNote.length) {
+			let keyRelease: KEventController = null
+			
 			const noteObj = get("noteObj", { recursive: true }).find((obj:NoteGameObj) => obj.chartNote == chartNote) as NoteGameObj
 			noteObj.opacity = 0
-			onStepHit(() => {
-				noteObj.chartNote.length -= 1
+			const stepHit = onStepHit(() => {
+				noteObj.visualLength -= 1
+
+				if (noteObj.visualLength >= 0) {
+					GameState.addScore(scorePerDiff)
+				}
+
+				else {
+					keyRelease?.cancel()
+					stepHit.cancel()
+					noteObj.holding = false
+					noteObj.destroy()
+				}
+			})
+		
+			keyRelease = onKeyRelease(getKeyForMove(chartNote.move), () => {
+				keyRelease.cancel()
+				stepHit.cancel()
+				
+				noteObj.holding = false
+				noteObj.destroy()
 			})
 		}
 	})
 
 	onMiss((harm:boolean) => {
-		getDancer().miss()
+		GameState.dancer.miss()
 		
 		if (harm == false) return
 		playSound("missnote");
@@ -202,10 +205,12 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 		if (GameState.tally.score > 0) GameState.tally.score -= scoreDiff
 
 		if (GameState.tally.score > 0) {
-			ui.scoreDiffText.value = -(scoreDiff)
-			ui.scoreDiffText.opacity = 1
-			ui.scoreDiffText.bop({ startScale: vec2(1.1), endScale: vec2(1) })
-		} else ui.scoreDiffText.value = 0
+			GameState.ui.scoreDiffText.value = -(scoreDiff)
+			GameState.ui.scoreDiffText.opacity = 1
+			GameState.ui.scoreDiffText.bop({ startScale: vec2(1.1), endScale: vec2(1) })
+		}
+		
+		else GameState.ui.scoreDiffText.value = 0
 
 		GameState.tally.misses += 1
 		GameState.combo = 0
@@ -217,7 +222,7 @@ export function GameScene() { scene("game", (params: paramsGameScene) => {
 		}
 	})
 
-	onReset(() => getDancer().doMove("idle"))
+	onReset(() => GameState.dancer.doMove("idle"))
 
 	// END SONG
 	GameState.conductor.audioPlay.onEnd(() => {

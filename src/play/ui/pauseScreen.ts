@@ -1,10 +1,9 @@
 import { GameObj, KEventController, OpacityComp } from "kaplay"
 import { playSound } from "../../core/plugins/features/sound"
-import { DANCER_POS, getDancer } from "../objects/dancer"
+import { DANCER_POS } from "../objects/dancer"
 import { exitToChartEditor, exitToMenu, restartSong, StateGame } from "../playstate"
 import { utils } from "../../utils"
 import { GAME } from "../../core/initGame"
-import { getStrumline } from "../objects/strumline"
 
 /** Runs when the game is paused */
 export function managePauseUI(pause:boolean, GameState:StateGame) {
@@ -59,7 +58,7 @@ export function managePauseUI(pause:boolean, GameState:StateGame) {
 		pauseScratch.detune = rand(-100, 100)
 	
 		let allButtons = [
-			makePauseButton("CONTINUE", 0, () => { GameState.managePause(false) }),
+			makePauseButton("CONTINUE", 0, () => { GameState.setPause(false) }),
 			makePauseButton("RESTART", 1, () => { restartSong(GameState) }),
 			makePauseButton("EXIT TO MENU", 2, () => { exitToMenu(GameState) }),
 		]
@@ -117,7 +116,7 @@ export function managePauseUI(pause:boolean, GameState:StateGame) {
 				}
 			])
 	
-			const ogDancer = getDancer()
+			const ogDancer = GameState.dancer
 			tween(ogDancer.scale.x, 0, 0.1, (p) => ogDancer.scale.x = p)
 			tween(ogDancer.pos.y, height() + ogDancer.height, 0.1, (p) => ogDancer.pos.y = p)
 		
@@ -161,8 +160,8 @@ export function managePauseUI(pause:boolean, GameState:StateGame) {
 			})
 		})
 		
-		const ogDancer = getDancer()
-		tween(ogDancer.pos, DANCER_POS, 0.1, (p) => getDancer().pos = p)
-		tween(ogDancer.scale, vec2(1), 0.1, (p) => getDancer().scale = p)
+		const ogDancer = GameState.dancer
+		tween(ogDancer.pos, DANCER_POS, 0.1, (p) => GameState.dancer.pos = p)
+		tween(ogDancer.scale, vec2(1), 0.1, (p) => GameState.dancer.scale = p)
 	}
 }

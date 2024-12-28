@@ -7,10 +7,10 @@ import { triggerEvent } from "../../core/events";
 import { INPUT_THRESHOLD, StateGame } from "../playstate";
 import { utils } from "../../utils";
 
-/** Scale of the strumlin when pressed */
+/** Scale of the strumline when pressed */
 const PRESS_SCALE = 1.2
-
 export function createStrumline(GameState:StateGame) {
+	/** The position of the strumline */
 	const STRUM_POS = vec2(center().x, height() - 60);
 	
 	const strumlineObj = add([
@@ -86,7 +86,3 @@ export function createStrumline(GameState:StateGame) {
 }
 
 export type StrumlineGameObj = ReturnType<typeof createStrumline>
-
-export function getStrumline() : StrumlineGameObj {
-	return get("strumlineObj", { recursive: true })[0] as StrumlineGameObj
-}

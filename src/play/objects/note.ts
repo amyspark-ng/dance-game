@@ -1,7 +1,6 @@
 import { Color, Comp, KEventController } from "kaplay";
 import { Move } from "./dancer";
 import { utils } from "../../utils";
-import { getStrumline } from "./strumline";
 import { onReset, triggerEvent } from "../../core/events";
 import { StateGame, INPUT_THRESHOLD } from "../playstate";
 import { GameSave } from "../../core/gamesave";
@@ -49,21 +48,29 @@ export function addNote(chartNote: ChartNote, GameState:StateGame) {
 	let lengthDraw:KEventController = null
 	const noteObj = add([
 		sprite(GameSave.noteskin +  "_" + chartNote.move),
-		pos(width() + NOTE_WIDTH, getStrumline().pos.y),
+		pos(width() + NOTE_WIDTH, GameState.strumline.pos.y),
 		anchor("center"),
 		opacity(),
 		z(2),
 		"noteObj",
 		{
+			visualLength: 0,
 			holding: chartNote.length ? false : null,
-			chartNote: { time: 0, move: "left" } as ChartNote
+			chartNote: { time: 0, move: "left" } as ChartNote,
 		}
 	])
 
 	noteObj.chartNote = chartNote;
+	noteObj.visualLength = noteObj.chartNote.length
+	
+	/** if the time has already passed to hit a note and the note is not on spawned notes */
+	function conditionsForPassedNote(note: ChartNote) {
+		return GameState.conductor.timeInSeconds >= note.time + INPUT_THRESHOLD &&
+		!hasMissedNote && GameState.spawnedNotes.includes(note) && !GameState.hitNotes.includes(note)
+	}
 
 	lengthDraw = onDraw(() => {
-		for (let i = 0; i < noteObj.chartNote.length + 1; i++) {
+		for (let i = 0; i < noteObj.visualLength + 1; i++) {
 			if (i == 0) {
 				drawSprite({
 					width: noteObj.width / 2,
@@ -72,9 +79,10 @@ export function addNote(chartNote: ChartNote, GameState:StateGame) {
 					pos: vec2(noteObj.pos.x + noteObj.width / 4, noteObj.pos.y),
 					anchor: "center",
 					shader: "replacecolor",
+					// opacity: noteObj.opacity,
 					uniform: {
 						"u_targetcolor": moveToColor(noteObj.chartNote.move),
-					}
+					},
 				})
 			}
 
@@ -85,6 +93,7 @@ export function addNote(chartNote: ChartNote, GameState:StateGame) {
 				pos: vec2(noteObj.pos.x + ((i + 1) * noteObj.height), noteObj.pos.y),
 				anchor: "center",
 				shader: "replacecolor",
+				// opacity: noteObj.opacity,
 				uniform: {
 					"u_targetcolor": moveToColor(noteObj.chartNote.move),
 				}
@@ -98,14 +107,8 @@ export function addNote(chartNote: ChartNote, GameState:StateGame) {
 		
 		if (!noteObj.holding) {
 			let mapValue = (GameState.conductor.timeInSeconds - chartNote.spawnTime) / TIME_FOR_STRUM
-			const xPos = map(mapValue, 0, 1, NOTE_SPAWNPOINT, getStrumline().pos.x - NOTE_WIDTH / 2);
+			const xPos = map(mapValue, 0, 1, NOTE_SPAWNPOINT, GameState.strumline.pos.x - NOTE_WIDTH / 2);
 			noteObj.pos.x = xPos;
-		}
-
-		// if the time has already passed to hit a note and the note is not on spawned notes
-		function conditionsForPassedNote(note: ChartNote) {
-			return GameState.conductor.timeInSeconds >= note.time + INPUT_THRESHOLD &&
-			!hasMissedNote && GameState.spawnedNotes.includes(note) && !GameState.hitNotes.includes(note)
 		}
 		
 		if (conditionsForPassedNote(chartNote)) {

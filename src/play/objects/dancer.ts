@@ -18,7 +18,7 @@ export function createDancer(dancerName: string) {
 		anchor("bot"),
 		scale(),
 		juice(),
-		z(1),
+		z(2),
 		"dancerObj",
 		{
 			forcedAnim: false,
@@ -87,16 +87,12 @@ export function createDancer(dancerName: string) {
 		}
 	])
 
+	dancerObj.pos = DANCER_POS
 	return dancerObj;
 }
 
 /** The type that a dancer game object would be */
 export type DancerGameObj = ReturnType<typeof createDancer>
-
-/** Gets the current dancer */
-export function getDancer() : DancerGameObj {
-	return get("dancerObj", { recursive: true })[0] as DancerGameObj
-}
 
 /** Class that holds some info related to a dancer */
 export class DancerFile {

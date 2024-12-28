@@ -8,12 +8,13 @@ import { playSound } from "../core/plugins/features/sound";
 import { goScene, transitionToScene } from "../core/scenes";
 import { fadeOut } from "../core/transitions/fadeOutTransition";
 import { paramsSongSelect } from "../ui/songselectscene";
-import { paramsChartEditor } from "./chartEditor/chartEditorBackend";
-import { getDancer } from "./objects/dancer";
+import { addDummyDancer, paramsChartEditor } from "./chartEditor/chartEditorBackend";
+import { createDancer, DancerGameObj, Move } from "./objects/dancer";
 import { ChartNote, getNotesOnScreen, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
 import { Tally } from "./objects/scoring";
-import { getStrumline } from "./objects/strumline";
+import { createStrumline, StrumlineGameObj } from "./objects/strumline";
 import { ChartEvent, SongContent } from "./song";
+import { addUI } from "./ui/gameUi";
 import { managePauseUI } from "./ui/pauseScreen";
 
 /** Class that holds and manages some important variables in the game scene */
@@ -45,6 +46,23 @@ export class StateGame {
 	/** Current player health */
 	health: number = 100;
 
+	params: paramsGameScene = null;
+
+	/** Wheter the player can press keys to play */
+	gameInputEnabled: boolean = true
+
+	/** Wheter the player can press keys to pause */
+	menuInputEnabled: boolean = true
+
+	/** The ui for the gameplay */
+	ui: ReturnType<typeof addUI> = null
+
+	/** The dancer in the gameplay */
+	dancer: DancerGameObj = null
+
+	/** The strumline in the gameplay */
+	strumline: StrumlineGameObj = null
+
 	/** Dictates wheter the game is paused or not, please do not touch if not through the manage pause function */
 	private _paused: boolean;
 	
@@ -54,7 +72,7 @@ export class StateGame {
 	}
 
 	/** Will set the pause to true or false, if a parameter isn't passed it will be toggled */
-	managePause(newPause?:boolean) {
+	setPause(newPause?:boolean) {
 		newPause = newPause ?? !this._paused
 
 		this._paused = newPause;
@@ -63,13 +81,52 @@ export class StateGame {
 		managePauseUI(newPause, this)
 	};
 
-	params: paramsGameScene = null;
+	/** Add score to the tally (animates the ui too)
+	 * @param amount The amount to add
+	 */
+	addScore(amount: number) {
+		this.tally.score += amount
+		this.ui.scoreDiffText.value = amount
+		this.ui.scoreDiffText.opacity = 1
+		this.ui.scoreDiffText.bop({ startScale: vec2(1.1), endScale: vec2(1) })
+	}
 
-	/** Wheter the player can press keys to play */
-	gameInputEnabled: boolean = true
+	constructor(params: paramsGameScene) {
+		params.playbackSpeed = params.playbackSpeed ?? 1
+		params.seekTime = params.seekTime ?? 0
+		params.dancer = params.dancer ?? "astri"
+		params.songZip = params.songZip ?? null
+		
+		this.params = params
+		this.song = this.params.songZip
 
-	/** Wheter the player can press keys to pause */
-	menuInputEnabled: boolean = true
+		// now that we have the song we can get the scroll speed multiplier and set the playback speed for funzies
+		const speed = (this.song.manifest.initial_scrollspeed * GameSave.scrollSpeed)
+		setTimeForStrum(1.25)
+		setTimeForStrum(TIME_FOR_STRUM / speed)
+	
+		// then we actually setup the conductor and play the song
+		this.conductor = new Conductor({
+			audioPlay: playSound(`${this.params.songZip.manifest.uuid_DONT_CHANGE}-audio`, { volume: GameSave.sound.music.volume, speed: this.params.playbackSpeed }),
+			BPM: this.params.songZip.manifest.initial_bpm * this.params.playbackSpeed,
+			timeSignature: this.song.manifest.time_signature,
+			offset: TIME_FOR_STRUM,
+		})
+
+		// adds the ui to the game
+		this.ui = addUI()
+		this.dancer = createDancer(this.params.dancer)
+		this.strumline = createStrumline(this)
+
+		// there are the notes that have been spawned yet
+		this.song.chart.notes.filter((note) => note.time <= this.params.seekTime).forEach((passedNote) => {
+			this.spawnedNotes.push(passedNote)
+			this.hitNotes.push(passedNote)
+		})
+	
+		this.conductor.audioPlay.seek(this.params.seekTime)
+		if (this.dancer) this.dancer.doMove("idle")
+	}
 }
 
 export type paramsGameScene = {
@@ -86,41 +143,8 @@ export type paramsGameScene = {
 	fromChartEditor: boolean,
 }
 
-export function setupSong(params: paramsGameScene, GameState:StateGame) {
-	// ==== PLAYS THE AUDIO AND SETS UP THE CONDUCTOR ===
-	// Reset stuff related to gamestate
-	
-	// now that we have the song we can get the scroll speed multiplier and set the playback speed for funzies
-	params.playbackSpeed = params.playbackSpeed ?? 1;
-	
-	const speed = (GameState.song.manifest.initial_scrollspeed * GameSave.scrollSpeed)
-
-	// Set it back to the original value
-	setTimeForStrum(1.25)
-	setTimeForStrum(TIME_FOR_STRUM / speed)
-	params.seekTime = params.seekTime ?? 0
-	GameState.params.seekTime = params.seekTime
-
-	// then we actually setup the conductor and play the song
-	GameState.conductor = new Conductor({
-		audioPlay: playSound(`${params.songZip.manifest.uuid_DONT_CHANGE}-audio`, { volume: GameSave.sound.music.volume, speed: params.playbackSpeed }),
-		BPM: params.songZip.manifest.initial_bpm * params.playbackSpeed,
-		timeSignature: GameState.song.manifest.time_signature,
-		offset: TIME_FOR_STRUM,
-	})
-
-	// there are the notes that have been spawned yet
-	GameState.song.chart.notes.filter((note) => note.time <= params.seekTime).forEach((passedNote) => {
-		GameState.spawnedNotes.push(passedNote)
-		GameState.hitNotes.push(passedNote)
-	})
-
-	GameState.conductor.audioPlay.seek(params.seekTime)
-	if (getDancer()) getDancer().doMove("idle")
-}
-
 export function restartSong(GameState:StateGame) {
-	if (GameState.paused) GameState.managePause(false)
+	if (GameState.paused) GameState.setPause(false)
 
 	GameState.conductor.audioPlay.stop()
 
@@ -220,6 +244,11 @@ export function introGo() {
 	})
 }
 
+/** Returns the user key for a given move */
+export function getKeyForMove(move: Move) {
+	return Object.values(GameSave.gameControls).find((gameKey) => gameKey.move == move).kbKey
+}
+
 /** The function that manages input functions inside the game, must be called onUpdate */
 export function manageInput(GameState: StateGame) {
 	Object.values(GameSave.gameControls).forEach((gameKey, index) => {
@@ -230,18 +259,18 @@ export function manageInput(GameState: StateGame) {
 
 		if (isKeyPressed(kbKey) || isKeyPressed(defaultKey)) {
 			// bust a move
-			getStrumline().press(gameKey.move)
+			GameState.strumline.press(gameKey.move)
 		}
 
 		else if (isKeyReleased(kbKey) || isKeyReleased(defaultKey)) {
-			getStrumline().release()
+			GameState.strumline.release()
 		}
 	});
 
 	if (!GameState.menuInputEnabled) return
 
 	if (isKeyPressed("escape")) {
-		GameState.managePause();
+		GameState.setPause();
 	}
 
 	else if (isKeyDown("shift") && isKeyDown("r")) {
