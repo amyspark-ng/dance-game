@@ -1,10 +1,10 @@
 import { Key } from "kaplay";
-import { SaveScore } from "../play/song";
 import { Move } from "../play/objects/dancer";
+import { SaveScore } from "../play/song";
 import { GAME } from "./initGame";
 import { volumeChannel } from "./plugins/features/sound";
 
-type gameKey = { kbKey: Key, move: Move }
+type gameKey = { kbKey: Key; move: Move; };
 
 /** Holds all the info that should be saved and loaded through sessions */
 export class GameSaveClass {
@@ -14,11 +14,11 @@ export class GameSaveClass {
 		masterVolume: 1,
 	};
 
-	scrollSpeed:number = 1;
-	fullscreen:boolean = false;
-	
-	dancer:string = "astri";
-	
+	scrollSpeed: number = 1;
+	fullscreen: boolean = false;
+
+	dancer: string = "astri";
+
 	gameControls = {
 		left: { kbKey: "left", move: "left" } as gameKey,
 		down: { kbKey: "down", move: "down" } as gameKey,
@@ -29,29 +29,29 @@ export class GameSaveClass {
 	noteskin: string = "A";
 
 	/** The songs that have been played, check {@link songSaveScore} type for more info */
-	songsPlayed:SaveScore[] = [];
+	songsPlayed: SaveScore[] = [];
 
 	/** Writes current instance to localStorage */
 	save() {
-		setData(GAME.SAVE_NAME, this)
-	};
+		setData(GAME.SAVE_NAME, this);
+	}
 
 	/**
 	 * Sets GameSave to an instance
 	 * @param theNewSave The instance
 	 */
-	set(theNewSave:GameSaveClass = this.getLatestSave()) {
-		Object.assign(this, theNewSave)
+	set(theNewSave: GameSaveClass = this.getLatestSave()) {
+		Object.assign(this, theNewSave);
 	}
 
 	/** Sets this class to a new instance of itself */
 	delete() {
-		const theNewSave = new GameSaveClass()
-		this.set(theNewSave)
+		const theNewSave = new GameSaveClass();
+		this.set(theNewSave);
 	}
 
 	/** Gets the latest instance in localStorage */
-	getLatestSave() : GameSaveClass {
+	getLatestSave(): GameSaveClass {
 		function deepMerge(target: any, source: any): any {
 			for (const key in source) {
 				if (source[key] instanceof Object && key in target) {
@@ -61,18 +61,18 @@ export class GameSaveClass {
 			return Object.assign(target || {}, source);
 		}
 
-		const newGameSave = new GameSaveClass()
-		const data = getData(GAME.SAVE_NAME)
+		const newGameSave = new GameSaveClass();
+		const data = getData(GAME.SAVE_NAME);
 
 		return deepMerge(data, newGameSave);
 	}
 
 	/** Assigns itself to {@link getLatestSave `getLatestSave()`}  */
 	load() {
-		const data = getData(GAME.SAVE_NAME)
-		this.set(data as GameSaveClass)
+		const data = getData(GAME.SAVE_NAME);
+		this.set(data as GameSaveClass);
 	}
 }
 
 /** The game save, an instance of GameSaveClass */
-export let GameSave = new GameSaveClass()
+export let GameSave = new GameSaveClass();

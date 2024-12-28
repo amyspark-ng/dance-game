@@ -1,5 +1,5 @@
-import kaplay, { KAPLAYOpt } from "kaplay"
-import "kaplay/global"
+import kaplay, { KAPLAYOpt } from "kaplay";
+import "kaplay/global";
 
 import { utils } from "./utils";
 
@@ -17,12 +17,12 @@ const libraryOpts = {
 	letterbox: false,
 	maxFPS: 90,
 	font: "lambdao",
-} as KAPLAYOpt
+} as KAPLAYOpt;
 
 utils.runInDesktop(() => {
-    libraryOpts.stretch = true;
-    libraryOpts.letterbox = true
-})
+	libraryOpts.stretch = true;
+	libraryOpts.letterbox = true;
+});
 
-console.log("EXECUTED KAPLAY")
-const k = kaplay(libraryOpts)
+console.log("EXECUTED KAPLAY");
+const k = kaplay(libraryOpts);

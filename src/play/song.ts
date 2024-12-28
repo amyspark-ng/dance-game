@@ -13,25 +13,25 @@ export class SaveScore {
 /** The content of the manifest in the song zip */
 export class SongManifest {
 	/** Name of the song */
-	name:string;
+	name: string;
 	/** Artist of the song */
-	artist:string;
+	artist: string;
 	/** Charter of the song */
-	charter:string;
+	charter: string;
 	/** The initial bpm of the song */
-	initial_bpm:number;
+	initial_bpm: number;
 	/** The initial scroll speed of the song */
-	initial_scrollspeed:number;
+	initial_scrollspeed: number;
 	/** The time signature of the song */
-	time_signature:[number, number];
+	time_signature: [number, number];
 	/** The UUID (universally unique identifier) of the song, please don't change */
 	uuid_DONT_CHANGE: string;
 	/** The path/url of the chart file */
-	chart_file:string;
+	chart_file: string;
 	/** The path/url of the audio file */
-	audio_file:string;
+	audio_file: string;
 	/** The path/url of the cover file */
-	cover_file:string;
+	cover_file: string;
 }
 
 /** An event in the chart */
@@ -69,18 +69,16 @@ export class SongContent {
 			initial_bpm: 100,
 			initial_scrollspeed: 1,
 			time_signature: [4, 4],
-			uuid_DONT_CHANGE: ""
-		}
+			uuid_DONT_CHANGE: "",
+		};
 
 		this.chart = {
 			notes: [
 				{ time: 1, move: "up" },
 			],
-			events: [
-				
-			]
-		}
-	
+			events: [],
+		};
+
 		if (param) {
 			Object.assign(this, param);
 		}

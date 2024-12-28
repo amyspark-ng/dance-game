@@ -42,10 +42,10 @@ import { ChartEvent } from "./play/song";
 /** Options to create a conductor */
 type conductorOpts = {
 	audioPlay: customAudioPlay;
-	BPM: number,
-	timeSignature: [number, number],
-	offset?: number,
-}
+	BPM: number;
+	timeSignature: [number, number];
+	offset?: number;
+};
 
 /** Manages the stuff related to music and beats */
 export class Conductor {
@@ -56,7 +56,7 @@ export class Conductor {
 	timeInSeconds: number = 0;
 
 	/** Beats per measure */
-	timeSignature: [number, number] = [4, 4]
+	timeSignature: [number, number] = [4, 4];
 
 	/** Interval between steps */
 	stepInterval: number = 0;
@@ -72,13 +72,13 @@ export class Conductor {
 
 	/** The time in steps */
 	stepTime: number = 0;
-	
+
 	/** The time in beats */
 	beatTime: number = 0;
 
 	/** The current step at the current time */
 	currentStep: number = 0;
-	
+
 	/** The current beat at the current time */
 	currentBeat: number = 0;
 
@@ -89,19 +89,19 @@ export class Conductor {
 	paused: boolean = false;
 
 	/** Wheter the offset for the song has already passed */
-	private started: boolean = false
+	private started: boolean = false;
 
 	/** Sets the intervals */
 	private updateIntervals() {
-		this.beatInterval = 60 / this.BPM
-		this.stepInterval = this.beatInterval / this.stepsPerBeat
+		this.beatInterval = 60 / this.BPM;
+		this.stepInterval = this.beatInterval / this.stepsPerBeat;
 	}
 
 	/** Coverts a given time to a beat
 	 * @returns The time in beats (can be fractional)
 	 */
 	timeToBeat(time: number = this.timeInSeconds, lengthOfBeat: number = this.beatInterval) {
-		return time / lengthOfBeat != 0 ? time / lengthOfBeat : 0
+		return time / lengthOfBeat != 0 ? time / lengthOfBeat : 0;
 	}
 
 	/** Converts a given beat to a time */
@@ -113,14 +113,14 @@ export class Conductor {
 	 * @returns The time in steps (can be fractional)
 	 */
 	timeToStep(time: number, lengthOfStep: number = this.stepInterval) {
-		return time / lengthOfStep
+		return time / lengthOfStep;
 	}
 
 	/** Get which step of a song is a certain time
 	 * @returns The time (can be fractional)
 	 */
 	stepToTime(step: number, lengthOfStep: number = this.stepInterval) {
-		return step * lengthOfStep
+		return step * lengthOfStep;
 	}
 
 	/** Gets how many beats are in the song */
@@ -130,7 +130,7 @@ export class Conductor {
 
 	/** Gets how many steps are in the song */
 	get totalSteps() {
-		return Math.floor(this.timeToStep(this.audioPlay.duration()))
+		return Math.floor(this.timeToStep(this.audioPlay.duration()));
 	}
 
 	/** Update function that should run onUpdate so the conductor gets updated */
@@ -142,64 +142,63 @@ export class Conductor {
 
 		if (this.timeInSeconds < 0) {
 			if (this.paused) return;
-			this.timeInSeconds += dt()
-			this.audioPlay.paused = true
-			this.started = false
+			this.timeInSeconds += dt();
+			this.audioPlay.paused = true;
+			this.started = false;
 		}
-
 		// if it has to start playing and hasn't started playing, play!!
 		else if (this.timeInSeconds >= 0) {
 			if (!this.paused) {
-				this.timeInSeconds = this.audioPlay.time()
-			};
-
-			if (!this.started) {
-				this.started = true
-				getTreeRoot().trigger("conductorStart")
+				this.timeInSeconds = this.audioPlay.time();
 			}
 
-			this.updateIntervals()
-			
+			if (!this.started) {
+				this.started = true;
+				getTreeRoot().trigger("conductorStart");
+			}
+
+			this.updateIntervals();
+
 			const oldBeat = this.currentBeat;
 			const oldStep = this.currentStep;
 
-			this.currentBeat = Math.floor(this.timeToBeat(this.timeInSeconds))
-			this.currentStep = Math.floor(this.timeToStep(this.timeInSeconds))
+			this.currentBeat = Math.floor(this.timeToBeat(this.timeInSeconds));
+			this.currentStep = Math.floor(this.timeToStep(this.timeInSeconds));
 
 			if (this.paused) return;
 			if (oldBeat != this.currentBeat) {
-				triggerEvent("onBeatHit")
+				triggerEvent("onBeatHit");
 			}
 
 			if (oldStep != this.currentStep) {
-				triggerEvent("onStepHit")
+				triggerEvent("onStepHit");
 			}
 		}
 	}
 
 	onStart(action: () => void) {
-		return getTreeRoot().on("conductorStart", action)
+		return getTreeRoot().on("conductorStart", action);
 	}
 
 	constructor(opts: conductorOpts) {
 		this.BPM = opts.BPM;
 		this.audioPlay = opts.audioPlay;
-		this.timeSignature = opts.timeSignature
+		this.timeSignature = opts.timeSignature;
 
-		opts.offset = opts.offset ?? 0
+		opts.offset = opts.offset ?? 0;
 
 		this.stepsPerBeat = this.timeSignature[0];
 		this.beatsPerMeasure = this.timeSignature[1];
-		this.updateIntervals()
+		this.updateIntervals();
 
-		this.currentBeat = 0
-		this.currentStep = 0
-		if (opts.offset > 0) this.timeInSeconds = -opts.offset
-		else this.timeInSeconds = 0
+		this.currentBeat = 0;
+		this.currentStep = 0;
+		if (opts.offset > 0) this.timeInSeconds = -opts.offset;
+		else this.timeInSeconds = 0;
 		this.audioPlay?.stop();
 
 		onUpdate(() => {
-			this.update()
-		})
+			this.update();
+		});
 	}
 }

@@ -1,18 +1,18 @@
 import { Color, Comp, KEventController } from "kaplay";
-import { Move } from "./dancer";
-import { utils } from "../../utils";
 import { onReset, triggerEvent } from "../../core/events";
-import { StateGame, INPUT_THRESHOLD } from "../PlayState";
 import { GameSave } from "../../core/gamesave";
+import { utils } from "../../utils";
+import { INPUT_THRESHOLD, StateGame } from "../PlayState";
+import { Move } from "./dancer";
 
 /** How much pixels per second does the note move at */
 export const NOTE_PXPERSECOND = 5;
 
 /** The width of the note */
-export const NOTE_WIDTH = 80
+export const NOTE_WIDTH = 80;
 
 /** The spawn point of the note */
-export const NOTE_SPAWNPOINT = 1024 + NOTE_WIDTH / 2
+export const NOTE_SPAWNPOINT = 1024 + NOTE_WIDTH / 2;
 
 /** Type that holds the properties a note in a chart file would have */
 export class ChartNote {
@@ -27,27 +27,31 @@ export class ChartNote {
 }
 
 /** Converts a move to a color (based on fnf lol) */
-export function moveToColor(move: Move) : Color {
+export function moveToColor(move: Move): Color {
 	switch (move) {
-		case "left": return utils.blendColors(RED, BLUE, 0.5).lighten(10)
-		case "down": return BLUE.lighten(50)
-		case "up": return GREEN.lighten(25)
-		case "right": return RED.lighten(25)
+		case "left":
+			return utils.blendColors(RED, BLUE, 0.5).lighten(10);
+		case "down":
+			return BLUE.lighten(50);
+		case "up":
+			return GREEN.lighten(25);
+		case "right":
+			return RED.lighten(25);
 	}
 }
 
 /** How much time will take for the note to reach the strum */
-export let TIME_FOR_STRUM = 1.25
+export let TIME_FOR_STRUM = 1.25;
 
 export function setTimeForStrum(value: number) {
 	TIME_FOR_STRUM = value;
 }
 
 /** Adds a note to the game */
-export function addNote(chartNote: ChartNote, GameState:StateGame) {
-	let lengthDraw:KEventController = null
+export function addNote(chartNote: ChartNote, GameState: StateGame) {
+	let lengthDraw: KEventController = null;
 	const noteObj = add([
-		sprite(GameSave.noteskin +  "_" + chartNote.move),
+		sprite(GameSave.noteskin + "_" + chartNote.move),
 		pos(width() + NOTE_WIDTH, GameState.strumline.pos.y),
 		anchor("center"),
 		opacity(),
@@ -57,16 +61,16 @@ export function addNote(chartNote: ChartNote, GameState:StateGame) {
 			visualLength: 0,
 			holding: chartNote.length ? false : null,
 			chartNote: { time: 0, move: "left" } as ChartNote,
-		}
-	])
+		},
+	]);
 
 	noteObj.chartNote = chartNote;
-	noteObj.visualLength = noteObj.chartNote.length
-	
+	noteObj.visualLength = noteObj.chartNote.length;
+
 	/** if the time has already passed to hit a note and the note is not on spawned notes */
 	function conditionsForPassedNote(note: ChartNote) {
-		return GameState.conductor.timeInSeconds >= note.time + INPUT_THRESHOLD &&
-		!hasMissedNote && GameState.spawnedNotes.includes(note) && !GameState.hitNotes.includes(note)
+		return GameState.conductor.timeInSeconds >= note.time + INPUT_THRESHOLD
+			&& !hasMissedNote && GameState.spawnedNotes.includes(note) && !GameState.hitNotes.includes(note);
 	}
 
 	lengthDraw = onDraw(() => {
@@ -83,7 +87,7 @@ export function addNote(chartNote: ChartNote, GameState:StateGame) {
 					uniform: {
 						"u_targetcolor": moveToColor(noteObj.chartNote.move),
 					},
-				})
+				});
 			}
 
 			drawSprite({
@@ -96,67 +100,67 @@ export function addNote(chartNote: ChartNote, GameState:StateGame) {
 				// opacity: noteObj.opacity,
 				uniform: {
 					"u_targetcolor": moveToColor(noteObj.chartNote.move),
-				}
-			})
+				},
+			});
 		}
-	})
+	});
 
-	let hasMissedNote = false
+	let hasMissedNote = false;
 	noteObj.onUpdate(() => {
-		if (GameState.paused) return
-		
+		if (GameState.paused) return;
+
 		if (!noteObj.holding) {
-			let mapValue = (GameState.conductor.timeInSeconds - chartNote.spawnTime) / TIME_FOR_STRUM
+			let mapValue = (GameState.conductor.timeInSeconds - chartNote.spawnTime) / TIME_FOR_STRUM;
 			const xPos = map(mapValue, 0, 1, NOTE_SPAWNPOINT, GameState.strumline.pos.x - NOTE_WIDTH / 2);
 			noteObj.pos.x = xPos;
 		}
-		
+
 		if (conditionsForPassedNote(chartNote)) {
-			hasMissedNote = true
-			triggerEvent("onMiss")
+			hasMissedNote = true;
+			triggerEvent("onMiss");
 		}
 
 		if (hasMissedNote) {
-			noteObj.opacity -= 0.085
+			noteObj.opacity -= 0.085;
 			if (noteObj.pos.x < -noteObj.width) {
-				noteObj.destroy()
+				noteObj.destroy();
 			}
 		}
-	})
-	
+	});
+
 	noteObj.onDestroy(() => {
-		lengthDraw?.cancel()
-	})
+		lengthDraw?.cancel();
+	});
 
 	return noteObj;
 }
 
-export type NoteGameObj = ReturnType<typeof addNote>
+export type NoteGameObj = ReturnType<typeof addNote>;
 
 // MF you genius
 
 /** Crucial function that handles the spawning of notes in the game */
-export function notesSpawner(GameState:StateGame) {
+export function notesSpawner(GameState: StateGame) {
 	// sets the spawnTime
 	GameState.song.chart.notes.forEach((note) => {
-		note.spawnTime = note.time - TIME_FOR_STRUM
-	})
+		note.spawnTime = note.time - TIME_FOR_STRUM;
+	});
 
 	/** holds all the chart.notes that have not been spawned */
 	let waiting: ChartNote[] = [];
-	
+
 	function resetWaiting() {
-		waiting = GameState.song.chart.notes.toSorted((a, b) => b.spawnTime - a.spawnTime)
+		waiting = GameState.song.chart.notes.toSorted((a, b) => b.spawnTime - a.spawnTime);
 	}
 
-	resetWaiting()
+	resetWaiting();
 
-	onReset(() => resetWaiting())
+	onReset(() => resetWaiting());
 
 	function checkNotes() {
 		const t = GameState.conductor.timeInSeconds;
 		let index = waiting.length - 1;
-		
+
 		// while there are notes to spawn
 		while (index >= 0) {
 			const note = waiting[index];
@@ -170,18 +174,18 @@ export function notesSpawner(GameState:StateGame) {
 
 		// remove all the notes that have been spawned
 		if (index < waiting.length - 1) {
-			GameState.spawnedNotes.push(...waiting.slice(index + 1, waiting.length))
-			waiting.splice(index + 1, waiting.length - 1 - index)
+			GameState.spawnedNotes.push(...waiting.slice(index + 1, waiting.length));
+			waiting.splice(index + 1, waiting.length - 1 - index);
 		}
 	}
 
 	onUpdate(() => {
 		if (GameState.conductor.paused) return;
-		checkNotes()
-	})
+		checkNotes();
+	});
 }
 
 /** Returns an array of all the notes currently on the screen */
 export function getNotesOnScreen() {
-	return get("noteObj", { recursive: true })
+	return get("noteObj", { recursive: true });
 }

@@ -12,19 +12,19 @@ export function curtainTransition(newScene: sceneNameType) {
 		layer("background"),
 		z(1),
 		timer(),
-	])
+	]);
 
-	triggerEvent("transitionStart", "curtainTransition")
+	triggerEvent("transitionStart", "curtainTransition");
 
 	fade.tween(-width(), center().x, 1, (p) => fade.pos.x = p).onEnd(() => {
-		goScene(newScene)
-	})
+		goScene(newScene);
+	});
 
 	const sceneLeave = onSceneLeave(() => {
 		fade.tween(fade.pos.x, -width(), 1, (p) => fade.pos.x = p).onEnd(() => {
-			fade.destroy()
-			sceneLeave.cancel()
-			triggerEvent("transitionEnd", "curtainTransition")
-		})
-	})
+			fade.destroy();
+			sceneLeave.cancel();
+			triggerEvent("transitionEnd", "curtainTransition");
+		});
+	});
 }

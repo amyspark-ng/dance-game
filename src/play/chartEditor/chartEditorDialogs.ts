@@ -1,22 +1,29 @@
 import { goScene, transitionToScene } from "../../core/scenes";
 import { fadeOut } from "../../core/transitions/fadeOutTransition";
-import { dialog_addCheckbox, dialog_addSlider, dialog_addTextbox, dialog_changeCover, dialog_changeSong, textboxOpt } from "../../ui/dialogs/dialogFields";
+import {
+	dialog_addCheckbox,
+	dialog_addSlider,
+	dialog_addTextbox,
+	dialog_changeCover,
+	dialog_changeSong,
+	textboxOpt,
+} from "../../ui/dialogs/dialogFields";
 import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { utils } from "../../utils";
 import { ChartEvent, SongContent } from "../song";
 import { StateChart } from "./chartEditorBackend";
 
 /** Opens the dialog for the fields of the song in the chart editor */
-export function openChartInfoDialog(ChartState:StateChart) {
+export function openChartInfoDialog(ChartState: StateChart) {
 	const newSong = new SongContent();
-	const leftPadding = 10
-	
+	const leftPadding = 10;
+
 	const dialog = GameDialog.openDialog({
 		width: 600,
 		height: 450,
-	})
+	});
 
-	const textboxesOpts:textboxOpt[] = [
+	const textboxesOpts: textboxOpt[] = [
 		{
 			title: "Name",
 			type: "string",
@@ -65,19 +72,19 @@ export function openChartInfoDialog(ChartState:StateChart) {
 			startingValue: ChartState.conductor.beatsPerMeasure,
 			dialog,
 		},
-	]
+	];
 
-	const textboxes:ReturnType<typeof dialog_addTextbox>[] = []
+	const textboxes: ReturnType<typeof dialog_addTextbox>[] = [];
 
-	const xPos = -(dialog.width / 2) + leftPadding
-	const ySpacing = 50
-	const initialYPos = -dialog.height / 2 + ySpacing / 1.5
+	const xPos = -(dialog.width / 2) + leftPadding;
+	const ySpacing = 50;
+	const initialYPos = -dialog.height / 2 + ySpacing / 1.5;
 	textboxesOpts.forEach((opts, index) => {
-		const optsWithPos = { ...opts, position: vec2(xPos, initialYPos + ySpacing * index) }
-		const textbox = dialog_addTextbox(optsWithPos)
-	
-		textboxes[index] = textbox
-	})
+		const optsWithPos = { ...opts, position: vec2(xPos, initialYPos + ySpacing * index) };
+		const textbox = dialog_addTextbox(optsWithPos);
+
+		textboxes[index] = textbox;
+	});
 
 	const scrollSpeedSlider = dialog_addSlider({
 		title: "Scroll speed",
@@ -85,48 +92,48 @@ export function openChartInfoDialog(ChartState:StateChart) {
 		position: vec2(xPos, textboxes[textboxes.length - 1].pos.y + ySpacing / 2),
 		range: [1, 10],
 		initialValue: ChartState.song.manifest.initial_scrollspeed,
-	})
+	});
 
 	const changeCover = dialog_changeCover({
 		position: vec2(xPos, dialog.height / 2 - 75),
 		dialog,
 		ChartState,
-	})
+	});
 
 	const changeSong = dialog_changeSong({
 		position: vec2(xPos, changeCover.pos.y + 45),
 		dialog,
 		ChartState,
-	})
+	});
 
 	dialog.onUpdate(() => {
-		const nameTextbox = textboxes[0]
-		if (nameTextbox.focus) ChartState.song.manifest.name = String(nameTextbox.value)
-		else nameTextbox.value = ChartState.song.manifest.name
-		ChartState.song.manifest.chart_file = utils.kebabCase(ChartState.song.manifest.name) + "-chart.json"
+		const nameTextbox = textboxes[0];
+		if (nameTextbox.focus) ChartState.song.manifest.name = String(nameTextbox.value);
+		else nameTextbox.value = ChartState.song.manifest.name;
+		ChartState.song.manifest.chart_file = utils.kebabCase(ChartState.song.manifest.name) + "-chart.json";
 
-		const artistBox = textboxes[1]
-		if (artistBox.focus) ChartState.song.manifest.artist = String(artistBox.value)
-		else artistBox.value = ChartState.song.manifest.artist
+		const artistBox = textboxes[1];
+		if (artistBox.focus) ChartState.song.manifest.artist = String(artistBox.value);
+		else artistBox.value = ChartState.song.manifest.artist;
 
-		const charterBox = textboxes[2]
-		if (charterBox.focus) ChartState.song.manifest.charter = String(charterBox.value)
-		else charterBox.value = ChartState.song.manifest.charter
+		const charterBox = textboxes[2];
+		if (charterBox.focus) ChartState.song.manifest.charter = String(charterBox.value);
+		else charterBox.value = ChartState.song.manifest.charter;
 
-		const bpmTextbox = textboxes[3]
-		if (bpmTextbox.focus) ChartState.song.manifest.initial_bpm = Number(bpmTextbox.value)
-		else bpmTextbox.value = ChartState.song.manifest.initial_bpm.toString()
+		const bpmTextbox = textboxes[3];
+		if (bpmTextbox.focus) ChartState.song.manifest.initial_bpm = Number(bpmTextbox.value);
+		else bpmTextbox.value = ChartState.song.manifest.initial_bpm.toString();
 
-		const stepsPerBeatBox = textboxes[4]
-		if (stepsPerBeatBox.focus) ChartState.conductor.stepsPerBeat = Number(stepsPerBeatBox.value)
-		else stepsPerBeatBox.value = ChartState.conductor.stepsPerBeat.toString()
+		const stepsPerBeatBox = textboxes[4];
+		if (stepsPerBeatBox.focus) ChartState.conductor.stepsPerBeat = Number(stepsPerBeatBox.value);
+		else stepsPerBeatBox.value = ChartState.conductor.stepsPerBeat.toString();
 
-		const beatsPerMeasureBox = textboxes[5]
-		if (beatsPerMeasureBox.focus) ChartState.conductor.beatsPerMeasure = Number(beatsPerMeasureBox.value)
-		else beatsPerMeasureBox.value = ChartState.conductor.beatsPerMeasure.toString()
-	
-		ChartState.song.manifest.initial_scrollspeed = scrollSpeedSlider.value
-	})
+		const beatsPerMeasureBox = textboxes[5];
+		if (beatsPerMeasureBox.focus) ChartState.conductor.beatsPerMeasure = Number(beatsPerMeasureBox.value);
+		else beatsPerMeasureBox.value = ChartState.conductor.beatsPerMeasure.toString();
+
+		ChartState.song.manifest.initial_scrollspeed = scrollSpeedSlider.value;
+	});
 }
 
 /** Opens the dialog with extra info for the chart editor */
@@ -146,67 +153,65 @@ export function openChartAboutDialog() {
 		"Ctrl + X - Cut notes",
 		"Ctrl + Z - Undo",
 		"Ctrl + Y - Redo",
-	]
+	];
 
 	const dialog = GameDialog.openDialog({
 		width: 400,
 		height: 500,
-	})
+	});
 
 	const controlsText = dialog.add([
-		text(controls.join("\n"), { size: 16, font: "lambda"}),
+		text(controls.join("\n"), { size: 16, font: "lambda" }),
 		pos(),
 		opacity(0.5),
 		anchor("botleft"),
-	])
+	]);
 
 	const aboutText = dialog.add([
-		text("Amy's dance game chart editor (v1.0)", { size: 16, font: "lambda"}),
-	])
+		text("Amy's dance game chart editor (v1.0)", { size: 16, font: "lambda" }),
+	]);
 }
 
-export function openEventDialog(event: ChartEvent, ChartState:StateChart) {
-	const spacing = 50
-	const elementsLength = Object.keys(event.value).length
-	
+export function openEventDialog(event: ChartEvent, ChartState: StateChart) {
+	const spacing = 50;
+	const elementsLength = Object.keys(event.value).length;
+
 	const dialog = GameDialog.openDialog({
 		width: width() / 2,
 		height: (spacing + 10) * elementsLength,
-	})
+	});
 
-	const initialPos = vec2(-dialog.width / 2, -dialog.height * 0.5)
-	
+	const initialPos = vec2(-dialog.width / 2, -dialog.height * 0.5);
+
 	function getTypeOfValue(key: string) {
-		if (typeof event.value[key] == "string") return "string"
-		else if (typeof event.value[key] == "number") return "number"
-		else if (typeof event.value[key] == "boolean") return "boolean"
+		if (typeof event.value[key] == "string") return "string";
+		else if (typeof event.value[key] == "number") return "number";
+		else if (typeof event.value[key] == "boolean") return "boolean";
 	}
 
-	const keysAndBoxes = {
-
-	}
+	const keysAndBoxes = {};
 
 	Object.keys(event.value).forEach((valueKey, index) => {
-		let position = vec2(initialPos.x, initialPos.y + spacing * index)
+		let position = vec2(initialPos.x, initialPos.y + spacing * index);
 
 		// handle x and y
 		if (Object.keys(event.value).includes("x") && Object.keys(event.value).includes("y")) {
 			// if the property was already passed
 			if (keysAndBoxes["y"]) {
 				// reduces one
-				position.y -= spacing
+				position.y -= spacing;
 			}
 		}
 
 		if (getTypeOfValue(valueKey) == "number") {
 			if (valueKey == "y") {
 				// get previous textbox
-				const previousTextbox = keysAndBoxes["x"]
-				if (!previousTextbox) throw new Error("Tried adding a Y textbox without a X textbox what a noob")
-				position.x = previousTextbox.pos.x + previousTextbox.widthOfBox
-				position.y = previousTextbox.pos.y
+				const previousTextbox = keysAndBoxes["x"];
+				if (!previousTextbox) throw new Error("Tried adding a Y textbox without a X textbox what a noob");
+				position.x = previousTextbox.pos.x + previousTextbox.widthOfBox;
+				position.y = previousTextbox.pos.y;
 			}
-			
+
 			const textbox = dialog_addTextbox({
 				title: valueKey,
 				dialog,
@@ -215,11 +220,10 @@ export function openEventDialog(event: ChartEvent, ChartState:StateChart) {
 				position: position,
 				fallBackValue: 0,
 				startingValue: event.value[valueKey],
-			})
+			});
 
-			keysAndBoxes[valueKey] = textbox
+			keysAndBoxes[valueKey] = textbox;
 		}
-
 		else if (getTypeOfValue(valueKey) == "string") {
 			const textbox = dialog_addTextbox({
 				title: valueKey,
@@ -229,27 +233,26 @@ export function openEventDialog(event: ChartEvent, ChartState:StateChart) {
 				position: position,
 				fallBackValue: "",
 				startingValue: event.value[valueKey],
-			})
+			});
 
-			keysAndBoxes[valueKey] = textbox
+			keysAndBoxes[valueKey] = textbox;
 		}
-
 		else if (getTypeOfValue(valueKey) == "boolean") {
 			const textbox = dialog_addCheckbox({
 				title: valueKey,
 				dialog,
 				position: position,
 				startingValue: event.value[valueKey],
-			})
+			});
 
-			keysAndBoxes[valueKey] = textbox
+			keysAndBoxes[valueKey] = textbox;
 		}
-	})
+	});
 
 	dialog.onUpdate(() => {
 		Object.keys(keysAndBoxes).forEach((key) => {
-			event.value[key] = keysAndBoxes[key].value
-			
+			event.value[key] = keysAndBoxes[key].value;
+
 			// this would be the vec2
 			// event.value[key]
 
@@ -260,11 +263,13 @@ export function openEventDialog(event: ChartEvent, ChartState:StateChart) {
 			// 	event.value[key].x = keysAndBoxes[key].x
 			// 	event.value[key].y = keysAndBoxes[key].y
 			// }
-		})
+		});
 
-		const eventThing = ChartState.song.chart.events.find((ev) => ChartState.conductor.timeToStep(ev.time) == ChartState.conductor.timeToStep(event.time))
-		if (eventThing) eventThing.value = event.value
-	})
+		const eventThing = ChartState.song.chart.events.find((ev) =>
+			ChartState.conductor.timeToStep(ev.time) == ChartState.conductor.timeToStep(event.time)
+		);
+		if (eventThing) eventThing.value = event.value;
+	});
 
 	return null;
 }
@@ -273,33 +278,33 @@ export function openExitDialog() {
 	const dialog = GameDialog.openDialog({
 		width: 300,
 		height: 200,
-	})
+	});
 
 	dialog.add([
-		text("Are you sure you want to exit?\n(You will lose all unsaved progress)", { size: 30, align: "center"}),
+		text("Are you sure you want to exit?\n(You will lose all unsaved progress)", { size: 30, align: "center" }),
 		pos(0, -50),
 		anchor("center"),
-	])
+	]);
 
 	const yesButton = dialog.add([
 		text("Yes"),
 		area(),
 		pos(vec2(-50, 0)),
 		"hover",
-	])
+	]);
 
 	yesButton.onClick(() => {
-		transitionToScene(fadeOut, "menu", { index: 0 })
-	})
+		transitionToScene(fadeOut, "menu", { index: 0 });
+	});
 
 	const noButton = dialog.add([
 		text("No"),
 		area(),
 		pos(vec2(50, 0)),
 		"hover",
-	])
+	]);
 
 	noButton.onClick(() => {
-		GameDialog.closeDialog()
-	})
+		GameDialog.closeDialog();
+	});
 }

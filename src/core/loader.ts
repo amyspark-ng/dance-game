@@ -1,23 +1,23 @@
-import { LoadSpriteOpt } from "kaplay";
-import { DancerFile } from "../play/objects/dancer";
-import { SongManifest, SongContent } from "../play/song";
-import { loadCursor } from "./plugins/features/gameCursor";
-import { rankings } from "../play/objects/scoring";
-import JSZip from "jszip";
-import TOML from "smol-toml"
 import isUrl from "is-url";
+import JSZip from "jszip";
+import { LoadSpriteOpt } from "kaplay";
+import TOML from "smol-toml";
+import { DancerFile } from "../play/objects/dancer";
+import { rankings } from "../play/objects/scoring";
+import { SongContent, SongManifest } from "../play/song";
 import { utils } from "../utils";
+import { loadCursor } from "./plugins/features/gameCursor";
 
 /** Array of zip names to load songs */
-export const defaultSongs = ["bopeebo", "unholy-blight"]
+export const defaultSongs = ["bopeebo", "unholy-blight"];
 
 /** Array of contents of song zip for the songs loaded */
-export const loadedSongs:SongContent[] = [  ]
+export const loadedSongs: SongContent[] = [];
 
 /** Gets a song with the kebab case of its name */
-export function getSong(kebabCase:string) {
+export function getSong(kebabCase: string) {
 	// returns undefined on unholy-blight because it hasn't been loaded apparently
-	const result = loadedSongs.find((songzip) => utils.kebabCase(songzip.manifest.name) == kebabCase)
+	const result = loadedSongs.find((songzip) => utils.kebabCase(songzip.manifest.name) == kebabCase);
 	return result;
 }
 
@@ -47,57 +47,63 @@ export function loadingScreen(progress: number) {
 }
 
 /** Holds all the dancers in the game */
-export let dancers:DancerFile[] = []
+export let dancers: DancerFile[] = [];
 /** Holds all the noteskins in the game */
-export let noteskins:string[] = []
+export let noteskins: string[] = [];
 
 /** Loads the noteskins */
 function loadNoteSkins() {
-	let spriteAtlasData = {}
+	let spriteAtlasData = {};
 
-	let noteSkinTypes = ["P", "T", "A"]
-	let movements = ["up", "down", "left", "right", "trail", "tail"]
-	noteskins = noteSkinTypes
-	
-	let x = 0
-	let y = 0
-	let size = 80
+	let noteSkinTypes = ["P", "T", "A"];
+	let movements = ["up", "down", "left", "right", "trail", "tail"];
+	noteskins = noteSkinTypes;
+
+	let x = 0;
+	let y = 0;
+	let size = 80;
 	noteSkinTypes.forEach((noteSkinType, noteIndex) => {
 		movements.forEach((move, movIndex) => {
-			x = movIndex * size
-			y = noteIndex * size
+			x = movIndex * size;
+			y = noteIndex * size;
 
 			spriteAtlasData[noteSkinType + "_" + move] = {
 				width: size,
 				height: size,
 				x: x,
 				y: y,
-			}
-		})
-	})
+			};
+		});
+	});
 
-	loadSpriteAtlas("sprites/noteSkins.png", spriteAtlasData)
+	loadSpriteAtlas("sprites/noteSkins.png", spriteAtlasData);
 }
 
 function loadDancer(dancerName: string, spriteData: LoadSpriteOpt) {
-	loadSprite(`dancer_${dancerName}`, `sprites/dancers/${dancerName}/${dancerName}.png`, spriteData)
-	loadSprite(`bg_${dancerName}`, `sprites/dancers/${dancerName}/bg_${dancerName}.png`)
-	
+	loadSprite(`dancer_${dancerName}`, `sprites/dancers/${dancerName}/${dancerName}.png`, spriteData);
+	loadSprite(`bg_${dancerName}`, `sprites/dancers/${dancerName}/bg_${dancerName}.png`);
+
 	// load the background and other stuff here
 }
 
-function loadSongFromFolder(folderPath: string) : Promise<SongContent> {
-	// this was wholely written by github copilot madly impressive 
+function loadSongFromFolder(folderPath: string): Promise<SongContent> {
+	// this was wholely written by github copilot madly impressive
 	return new Promise(async (resolve, reject) => {
 		try {
-			const manifest = await fetch(`${folderPath}/manifest.toml`).then((thing) => thing.text()).then((text) => TOML.parse(text))
-			const chart = await fetch(`${folderPath}/${manifest.chart_file}`).then((thing) => thing.json())
-			const audio = await fetch(`${folderPath}/${manifest.audio_file}`).then((thing) => thing.blob()).then((blob) => blob.arrayBuffer())
-			loadSound(manifest.uuid_DONT_CHANGE + "-audio", audio)
-			const cover = await fetch(`${folderPath}/${manifest.cover_file}`).then((thing) => thing.blob()).then((blob) => URL.createObjectURL(blob))
-			loadSprite(manifest.uuid_DONT_CHANGE + "-cover", cover)
+			const manifest = await fetch(`${folderPath}/manifest.toml`).then((thing) => thing.text()).then((text) =>
+				TOML.parse(text)
+			);
+			const chart = await fetch(`${folderPath}/${manifest.chart_file}`).then((thing) => thing.json());
+			const audio = await fetch(`${folderPath}/${manifest.audio_file}`).then((thing) => thing.blob()).then((
+				blob,
+			) => blob.arrayBuffer());
+			loadSound(manifest.uuid_DONT_CHANGE + "-audio", audio);
+			const cover = await fetch(`${folderPath}/${manifest.cover_file}`).then((thing) => thing.blob()).then((
+				blob,
+			) => URL.createObjectURL(blob));
+			loadSprite(manifest.uuid_DONT_CHANGE + "-cover", cover);
 
-			const songContent:SongContent = {
+			const songContent: SongContent = {
 				manifest: {
 					name: manifest["name"].toString(),
 					artist: manifest["artist"].toString(),
@@ -111,60 +117,60 @@ function loadSongFromFolder(folderPath: string) : Promise<SongContent> {
 					cover_file: manifest.cover_file.toString(),
 				},
 				chart: chart,
-			}
+			};
 
-			loadedSongs.push(songContent)
-			resolve(songContent)
-		} catch (e) {
-			reject(e)
+			loadedSongs.push(songContent);
+			resolve(songContent);
 		}
-	})
+		catch (e) {
+			reject(e);
+		}
+	});
 }
 
 /** Loads a song from a zip file
  * @param zipThing It will be either the url of the zip inside the game folder
- * 
+ *
  * Or the File object to load the zip
  * @param Wheter it's a default song to put it in order or just put it in wharever order
  */
-export async function loadSongFromZIP(zipThing:string | File, defaultSong:boolean = false) : Promise<SongContent> {
-	const jsZip = new JSZip()
+export async function loadSongFromZIP(zipThing: string | File, defaultSong: boolean = false): Promise<SongContent> {
+	const jsZip = new JSZip();
 
-	let zipFile:JSZip = null
+	let zipFile: JSZip = null;
 	if (typeof zipThing == "string") {
-		const blobOfZip = await fetch(`songs/${zipThing}.zip`).then((thing) => thing.blob())
-		zipFile = await jsZip.loadAsync(blobOfZip)
+		const blobOfZip = await fetch(`songs/${zipThing}.zip`).then((thing) => thing.blob());
+		zipFile = await jsZip.loadAsync(blobOfZip);
 	}
+	else zipFile = await jsZip.loadAsync(zipThing);
 
-	else zipFile = await jsZip.loadAsync(zipThing)
-	
-	const manifestTOML = await zipFile.file("manifest.toml").async("string")
-	const manifest = TOML.parse(manifestTOML)
-	
-	const uuid = manifest.uuid_DONT_CHANGE.toString()
-	const audioPath = manifest["audio_file"].toString()
-	const coverPath = manifest.cover_file.toString()
-	const chartPath = manifest.chart_file.toString()
+	const manifestTOML = await zipFile.file("manifest.toml").async("string");
+	const manifest = TOML.parse(manifestTOML);
 
-	// loads audio 
-	if (isUrl(audioPath)) await loadSound(uuid + "-audio", audioPath)
+	const uuid = manifest.uuid_DONT_CHANGE.toString();
+	const audioPath = manifest["audio_file"].toString();
+	const coverPath = manifest.cover_file.toString();
+	const chartPath = manifest.chart_file.toString();
+
+	// loads audio
+	if (isUrl(audioPath)) await loadSound(uuid + "-audio", audioPath);
 	else {
-		const arrBuffer = await zipFile.file(audioPath).async("arraybuffer")
-		await loadSound(uuid + "-audio", arrBuffer)
+		const arrBuffer = await zipFile.file(audioPath).async("arraybuffer");
+		await loadSound(uuid + "-audio", arrBuffer);
 	}
 
 	// loads cover
-	if (isUrl(coverPath)) await loadSprite(uuid + "-cover", coverPath)
+	if (isUrl(coverPath)) await loadSprite(uuid + "-cover", coverPath);
 	else {
-		const blobOfCover = await jsZip.file(coverPath).async("blob")
-		await loadSprite(uuid + "-cover", URL.createObjectURL(blobOfCover))
+		const blobOfCover = await jsZip.file(coverPath).async("blob");
+		await loadSprite(uuid + "-cover", URL.createObjectURL(blobOfCover));
 	}
 
 	// loads chart
-	const chart = JSON.parse(await jsZip.file(chartPath).async("string"))
+	const chart = JSON.parse(await jsZip.file(chartPath).async("string"));
 
 	// gets everything
-	const zipContent:SongContent = {
+	const zipContent: SongContent = {
 		manifest: {
 			name: manifest["name"].toString(),
 			artist: manifest["artist"].toString(),
@@ -178,19 +184,18 @@ export async function loadSongFromZIP(zipThing:string | File, defaultSong:boolea
 			cover_file: coverPath,
 		},
 		chart: chart,
-	}
+	};
 
 	if (defaultSong) {
-		const kebab = utils.kebabCase(zipContent.manifest.name)
-		const indexInDefaultSongs = defaultSongs.indexOf(kebab)
-		if (indexInDefaultSongs != -1) loadedSongs[indexInDefaultSongs] = zipContent
-		else throw new Error("The song " + zipContent.manifest.name + " is not a default song")
+		const kebab = utils.kebabCase(zipContent.manifest.name);
+		const indexInDefaultSongs = defaultSongs.indexOf(kebab);
+		if (indexInDefaultSongs != -1) loadedSongs[indexInDefaultSongs] = zipContent;
+		else throw new Error("The song " + zipContent.manifest.name + " is not a default song");
+	}
+	else {
+		loadedSongs.push(zipContent);
 	}
 
-	else {
-		loadedSongs.push(zipContent)
-	}
-	
 	return zipContent;
 }
 
@@ -207,9 +212,9 @@ async function loadContent() {
 				"down": 2,
 				"right": 3,
 				"idle": 4,
-				"victory": { "from": 5, "to": 12, "speed": 10 }, 
-				"miss": 13
-			}
+				"victory": { "from": 5, "to": 12, "speed": 10 },
+				"miss": 13,
+			},
 		},
 		"astri-blight": {
 			"sliceX": 6,
@@ -221,8 +226,8 @@ async function loadContent() {
 				"left": 3,
 				"right": 4,
 				"miss": 5,
-				"victory": { "from": 6, "to": 7, "speed": 10 }
-			}	
+				"victory": { "from": 6, "to": 7, "speed": 10 },
+			},
 		},
 		"gru": {
 			"sliceX": 6,
@@ -234,111 +239,114 @@ async function loadContent() {
 				"left": 3,
 				"right": 4,
 				"miss": 5,
-				"victory": { "from": 6, "to": 11, "speed": 10 }
-			}
+				"victory": { "from": 6, "to": 11, "speed": 10 },
+			},
 		},
-	}
-	
-	loadSprite("defaultCover", "sprites/defaultCover.png")
+	};
+
+	loadSprite("defaultCover", "sprites/defaultCover.png");
 
 	Object.keys(dancersToLoad).forEach((dancer, index) => {
-		dancers[index] = { dancerName: dancer, dancerBg: dancer }
-		loadDancer(dancer, dancersToLoad[dancer])
-	})
+		dancers[index] = { dancerName: dancer, dancerBg: dancer };
+		loadDancer(dancer, dancersToLoad[dancer]);
+	});
 
 	// loads noteskins
-	loadNoteSkins()
+	loadNoteSkins();
 }
 
 /** Loads all the assets of the game */
 export async function loadAssets() {
-	loadBean()
-	loadSound("volumeChange", "sounds/volumeChange.wav")
+	loadBean();
+	loadSound("volumeChange", "sounds/volumeChange.wav");
 	loadCursor();
 	loadContent();
 
-	loadSprite("optionsCursor", "sprites/optionsCursor.png")
+	loadSprite("optionsCursor", "sprites/optionsCursor.png");
 
-	const events = ["change-scroll", "cam-move", "play-anim", "change-dancer"]
-	const eventsSpriteAtlas = {}
+	const events = ["change-scroll", "cam-move", "play-anim", "change-dancer"];
+	const eventsSpriteAtlas = {};
 	events.forEach((event, index) => {
 		eventsSpriteAtlas[event] = {
 			width: 52,
 			height: 52,
 			x: 52 * index,
-			y: 0
-		}
-	})
-	loadSpriteAtlas("sprites/events.png", eventsSpriteAtlas)
+			y: 0,
+		};
+	});
+	loadSpriteAtlas("sprites/events.png", eventsSpriteAtlas);
 
-	let songRanksAtlasData = {}
+	let songRanksAtlasData = {};
 	rankings.forEach((rank, index) => {
 		songRanksAtlasData[`rank_${rank}`] = {
 			width: 130,
 			height: 130,
 			x: 130 * index + 20 * index,
 			y: 0,
-		}
-	})
+		};
+	});
 
-	loadSpriteAtlas("sprites/songRanks.png", songRanksAtlasData)
-	loadSprite("importedSong", "sprites/imported.png")
-	loadSprite("importSongBtn", "sprites/importSong.png")
+	loadSpriteAtlas("sprites/songRanks.png", songRanksAtlasData);
+	loadSprite("importedSong", "sprites/imported.png");
+	loadSprite("importSongBtn", "sprites/importSong.png");
 
-	const icons = [ "about", "fields", "download", "new" ]
-	const iconsAtlas = {}
+	const icons = ["about", "fields", "download", "new"];
+	const iconsAtlas = {};
 	icons.forEach((icon, index) => {
 		iconsAtlas[icon + "_charticon"] = {
 			width: 45,
 			height: 50,
 			x: 45 * index,
 			y: 0,
-		}
-	})
+		};
+	});
 
-	loadSound("new-song-audio", "new-song-audio.ogg")
-	loadSpriteAtlas("sprites/chartEditorIcons.png", iconsAtlas)
+	loadSound("new-song-audio", "new-song-audio.ogg");
+	loadSpriteAtlas("sprites/chartEditorIcons.png", iconsAtlas);
 
-	loadSound("uiMove", "sounds/uiMove.wav")
-	loadSound("uiSelect", "sounds/uiSelect.wav")
-	loadSound("keyClick", "sounds/keyClick.ogg")
+	loadSound("uiMove", "sounds/uiMove.wav");
+	loadSound("uiSelect", "sounds/uiSelect.wav");
+	loadSound("keyClick", "sounds/keyClick.ogg");
 
 	// # SONG SELECT
-	loadSprite("cdCase", "sprites/songSelect/cdCase.png")
+	loadSprite("cdCase", "sprites/songSelect/cdCase.png");
 
 	// # GAMEPLAY
-	loadSound("introGo", "sounds/introgo.mp3")
-	loadSound("lowhealth", "sounds/lowhealth.ogg")
-	loadSound("pauseScratch", "sounds/pauseScratch.mp3")
-	loadSound("missnote", "sounds/missnote.mp3")
-	
+	loadSound("introGo", "sounds/introgo.mp3");
+	loadSound("lowhealth", "sounds/lowhealth.ogg");
+	loadSound("pauseScratch", "sounds/pauseScratch.mp3");
+	loadSound("missnote", "sounds/missnote.mp3");
+
 	// # RESULTS SCREEN
-	loadSound("drumroll", "sounds/drumroll.mp3")
+	loadSound("drumroll", "sounds/drumroll.mp3");
 
 	// # CHART-EDITOR
-	loadSound("noteAdd", "sounds/chart-editor/noteAdd.mp3")
-	loadSound("noteRemove", "sounds/chart-editor/noteRemove.mp3")
-	loadSound("noteHit", "sounds/chart-editor/noteHit.ogg")
-	loadSound("noteMove", "sounds/chart-editor/noteMove.ogg")
-	loadSound("noteUndo", "sounds/chart-editor/noteUndo.wav")
-	loadSound("noteCopy", "sounds/chart-editor/noteCopy.wav")
-	loadSound("noteStretch", "sounds/chart-editor/noteStretch.ogg")
-	loadSound("dialogOpen", "sounds/chart-editor/dialogOpen.ogg")
-	loadSound("eventCog", "sounds/chart-editor/eventCog.wav")
-	loadSound("mouseClick", "sounds/chart-editor/mouseClick.ogg")
+	loadSound("noteAdd", "sounds/chart-editor/noteAdd.mp3");
+	loadSound("noteRemove", "sounds/chart-editor/noteRemove.mp3");
+	loadSound("noteHit", "sounds/chart-editor/noteHit.ogg");
+	loadSound("noteMove", "sounds/chart-editor/noteMove.ogg");
+	loadSound("noteUndo", "sounds/chart-editor/noteUndo.wav");
+	loadSound("noteCopy", "sounds/chart-editor/noteCopy.wav");
+	loadSound("noteStretch", "sounds/chart-editor/noteStretch.ogg");
+	loadSound("dialogOpen", "sounds/chart-editor/dialogOpen.ogg");
+	loadSound("eventCog", "sounds/chart-editor/eventCog.wav");
+	loadSound("mouseClick", "sounds/chart-editor/mouseClick.ogg");
 
-	loadFont("lambda", "lambda.ttf")
+	loadFont("lambda", "lambda.ttf");
 	loadFont("lambdao", "lambda.ttf", {
 		outline: {
 			width: 5,
 			color: BLACK,
-		}
-	})
+		},
+	});
 
-	loadNoteSkins()
+	loadNoteSkins();
 
 	// Written by MF
-	loadShader("saturate", null, `
+	loadShader(
+		"saturate",
+		null,
+		`
 		uniform float u_time;
 		uniform vec2 u_pos;
 		uniform vec2 u_size;
@@ -349,9 +357,13 @@ export async function loadAssets() {
 			vec4 col = vec4(u_color/255.0, 1);
 			return (c + vec4(mix(vec3(0), vec3(1), u_time), 0)) * col;
 		}
-	`)
+	`,
+	);
 
-	loadShader("replacecolor", null, `
+	loadShader(
+		"replacecolor",
+		null,
+		`
 		uniform vec3 u_targetcolor;
 
 		vec4 frag(vec2 pos, vec2 uv, vec4 color, sampler2D tex) {
@@ -359,25 +371,28 @@ export async function loadAssets() {
 			if (o_color.r > 0.01 && o_color.g < 0.01 && o_color.b < 0.01) return vec4(u_targetcolor / 255., o_color.a);
 			return o_color;
 		}
-	`)
+	`,
+	);
 
 	// load default songs
-	await load(new Promise(async (resolve, reject) => {
-		try {
-			defaultSongs.forEach(async (songzippath, index) => {
-				songzippath	= `songs/${songzippath}`
-				try {
-					const songZip = await loadSongFromFolder(songzippath)
-				}
+	await load(
+		new Promise(async (resolve, reject) => {
+			try {
+				defaultSongs.forEach(async (songzippath, index) => {
+					songzippath = `songs/${songzippath}`;
+					try {
+						const songZip = await loadSongFromFolder(songzippath);
+					}
+					catch (err) {
+						throw new Error("There was an error loading the default songs");
+					}
 
-				catch (err) {
-					throw new Error("There was an error loading the default songs")
-				}
-				
-				if (index == defaultSongs.length - 1) resolve("ok")
-			})
-		} catch (e) {
-			reject(e)
-		}
-	}))
+					if (index == defaultSongs.length - 1) resolve("ok");
+				});
+			}
+			catch (e) {
+				reject(e);
+			}
+		}),
+	);
 }

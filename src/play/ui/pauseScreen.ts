@@ -1,22 +1,22 @@
-import { GameObj, OpacityComp } from "kaplay"
-import { playSound } from "../../core/plugins/features/sound"
-import { DANCER_POS } from "../objects/dancer"
-import { exitToChartEditor, exitToMenu, restartSong, StateGame } from "../PlayState"
-import { utils } from "../../utils"
+import { GameObj, OpacityComp } from "kaplay";
+import { playSound } from "../../core/plugins/features/sound";
+import { utils } from "../../utils";
+import { DANCER_POS } from "../objects/dancer";
+import { exitToChartEditor, exitToMenu, restartSong, StateGame } from "../PlayState";
 
 /** Runs when the game is paused */
-export function managePauseUI(pause:boolean, GameState:StateGame) {
-	let currentIndex = 0
-	
-	const baseZ = 100
-	let pauseBlack = get("pauseBlack")[0]
+export function managePauseUI(pause: boolean, GameState: StateGame) {
+	let currentIndex = 0;
 
-	const tagsToPause = [ "judgementObj", "strumlineObj" ]
+	const baseZ = 100;
+	let pauseBlack = get("pauseBlack")[0];
+
+	const tagsToPause = ["judgementObj", "strumlineObj"];
 
 	// get all the objects and filter the ones that have any tag that is included in tagsToPause
 	get("*").filter((obj) => obj.tags.some((tag) => tagsToPause.includes(tag))).forEach((obj) => {
-		obj.paused = pause
-	})
+		obj.paused = pause;
+	});
 
 	function makePauseButton(buttonName: string, buttonIndex: number, buttonAction: () => void) {
 		const buttonObj = make([
@@ -30,46 +30,52 @@ export function managePauseUI(pause:boolean, GameState:StateGame) {
 				index: buttonIndex,
 				action: buttonAction,
 				update() {
-					if (currentIndex == this.index) this.opacity = 1
-					else this.opacity = 0.5
-				}
-			}
-		])
+					if (currentIndex == this.index) this.opacity = 1;
+					else this.opacity = 0.5;
+				},
+			},
+		]);
 
-		const Xpos = 50
+		const Xpos = 50;
 		tween(buttonObj.pos.x, Xpos, 0.25, (p) => buttonObj.pos.x = p, easings.easeOutQuint).onEnd(() => {
 			buttonObj.onUpdate(() => {
 				if (currentIndex == buttonObj.index) {
-					buttonObj.pos.x = lerp(buttonObj.pos.x, Xpos + 15, 0.5)
+					buttonObj.pos.x = lerp(buttonObj.pos.x, Xpos + 15, 0.5);
 				}
-				
 				else {
-					buttonObj.pos.x = lerp(buttonObj.pos.x, Xpos, 0.5)
+					buttonObj.pos.x = lerp(buttonObj.pos.x, Xpos, 0.5);
 				}
-			})
-		})
+			});
+		});
 
 		return buttonObj;
 	}
 
 	if (pause == true) {
-		const pauseScratch = playSound("pauseScratch", { volume: 0.1, detune: 0, speed: 1 })
-		pauseScratch.detune = rand(-100, 100)
-	
+		const pauseScratch = playSound("pauseScratch", { volume: 0.1, detune: 0, speed: 1 });
+		pauseScratch.detune = rand(-100, 100);
+
 		let allButtons = [
-			makePauseButton("CONTINUE", 0, () => { GameState.setPause(false) }),
-			makePauseButton("RESTART", 1, () => { restartSong(GameState) }),
-			makePauseButton("EXIT TO MENU", 2, () => { exitToMenu(GameState) }),
-		]
+			makePauseButton("CONTINUE", 0, () => {
+				GameState.setPause(false);
+			}),
+			makePauseButton("RESTART", 1, () => {
+				restartSong(GameState);
+			}),
+			makePauseButton("EXIT TO MENU", 2, () => {
+				exitToMenu(GameState);
+			}),
+		];
 
 		if (GameState.params.fromChartEditor) {
-			allButtons = utils.removeFromArr(allButtons[2], allButtons) as typeof allButtons
-			allButtons[2] = makePauseButton("RETURN TO CHART EDITOR", 2, () => { exitToChartEditor(GameState) })
+			allButtons = utils.removeFromArr(allButtons[2], allButtons) as typeof allButtons;
+			allButtons[2] = makePauseButton("RETURN TO CHART EDITOR", 2, () => {
+				exitToChartEditor(GameState);
+			});
 		}
 
 		// not found pauseBlack
 		if (!pauseBlack) {
-			
 			pauseBlack = add([
 				rect(width(), height()),
 				color(BLACK),
@@ -78,19 +84,19 @@ export function managePauseUI(pause:boolean, GameState:StateGame) {
 				z(baseZ),
 				opacity(0.5),
 				"pauseBlack",
-			])
+			]);
 
 			pauseBlack.onUpdate(() => {
-				if (!GameState.paused) return 
-				
+				if (!GameState.paused) return;
+
 				// using these because key events were being little biiiiitches
-				if (isKeyPressed("down")) currentIndex = utils.scrollIndex(currentIndex, 1, allButtons.length)
-				else if (isKeyPressed("up")) currentIndex = utils.scrollIndex(currentIndex, -1, allButtons.length)
-				else if (isKeyPressed("enter")) allButtons[currentIndex].action()
-			})
-	
-			pauseBlack.fadeIn(0.1)
-		
+				if (isKeyPressed("down")) currentIndex = utils.scrollIndex(currentIndex, 1, allButtons.length);
+				else if (isKeyPressed("up")) currentIndex = utils.scrollIndex(currentIndex, -1, allButtons.length);
+				else if (isKeyPressed("enter")) allButtons[currentIndex].action();
+			});
+
+			pauseBlack.fadeIn(0.1);
+
 			const pauseText = pauseBlack.add([
 				text("PAUSED" + ` (${GameState.song.manifest.name})`, { size: 50 }),
 				pos(0, -pauseBlack.height / 2 + 50),
@@ -98,27 +104,30 @@ export function managePauseUI(pause:boolean, GameState:StateGame) {
 				opacity(),
 				{
 					update() {
-						this.opacity = pauseBlack.opacity * 2
-					}
-				}
-			])
-			
+						this.opacity = pauseBlack.opacity * 2;
+					},
+				},
+			]);
+
 			const someInfoText = pauseBlack.add([
-				text(`Artist: ${GameState.song.manifest.artist}\nCharter: ${GameState.song.manifest.charter}`, { size: 30, align: "right" }),
+				text(`Artist: ${GameState.song.manifest.artist}\nCharter: ${GameState.song.manifest.charter}`, {
+					size: 30,
+					align: "right",
+				}),
 				pos(pauseBlack.width / 2, -pauseBlack.height / 2 + 60),
 				anchor("topright"),
 				opacity(),
 				{
 					update() {
-						this.opacity = pauseBlack.opacity * 2
-					}
-				}
-			])
-	
-			const ogDancer = GameState.dancer
-			tween(ogDancer.scale.x, 0, 0.1, (p) => ogDancer.scale.x = p)
-			tween(ogDancer.pos.y, height() + ogDancer.height, 0.1, (p) => ogDancer.pos.y = p)
-		
+						this.opacity = pauseBlack.opacity * 2;
+					},
+				},
+			]);
+
+			const ogDancer = GameState.dancer;
+			tween(ogDancer.scale.x, 0, 0.1, (p) => ogDancer.scale.x = p);
+			tween(ogDancer.pos.y, height() + ogDancer.height, 0.1, (p) => ogDancer.pos.y = p);
+
 			// fake dancer
 			const fakeDancer = add([
 				sprite("dancer_" + GameState.params.dancer, { anim: "idle" }),
@@ -126,41 +135,40 @@ export function managePauseUI(pause:boolean, GameState:StateGame) {
 				anchor("center"),
 				scale(),
 				z(baseZ + 1),
-			])
-	
+			]);
+
 			pauseBlack.onDestroy(() => {
-				pauseText.destroy()
-				fakeDancer.destroy()
-			})
-	
-			tween(fakeDancer.pos.y, height() - ogDancer.height / 2, 0.1, (p) => fakeDancer.pos.y = p)
-			tween(0, 1, 0.1, (p) => fakeDancer.scale.x = p)
+				pauseText.destroy();
+				fakeDancer.destroy();
+			});
+
+			tween(fakeDancer.pos.y, height() - ogDancer.height / 2, 0.1, (p) => fakeDancer.pos.y = p);
+			tween(0, 1, 0.1, (p) => fakeDancer.scale.x = p);
 
 			allButtons.forEach((button, index) => {
 				wait(0.1 * (index + 1), () => {
-					add(button)
-				})
-			})
+					add(button);
+				});
+			});
 		}
 	}
-
 	else if (pause == false) {
-		let pauseBlack = get("pauseBlack")[0] as GameObj<OpacityComp>
-		
+		let pauseBlack = get("pauseBlack")[0] as GameObj<OpacityComp>;
+
 		if (pauseBlack) {
 			pauseBlack.fadeOut(0.1).onEnd(() => {
-				pauseBlack.destroy()
-			})
+				pauseBlack.destroy();
+			});
 		}
 
 		get("pauseButton").forEach((button) => {
 			tween(button.pos.x, -100, 0.1, (p) => button.pos.x = p, easings.easeOutQuint).onEnd(() => {
-				button.destroy()
-			})
-		})
-		
-		const ogDancer = GameState.dancer
-		tween(ogDancer.pos, DANCER_POS, 0.1, (p) => GameState.dancer.pos = p)
-		tween(ogDancer.scale, vec2(1), 0.1, (p) => GameState.dancer.scale = p)
+				button.destroy();
+			});
+		});
+
+		const ogDancer = GameState.dancer;
+		tween(ogDancer.pos, DANCER_POS, 0.1, (p) => GameState.dancer.pos = p);
+		tween(ogDancer.scale, vec2(1), 0.1, (p) => GameState.dancer.scale = p);
 	}
 }

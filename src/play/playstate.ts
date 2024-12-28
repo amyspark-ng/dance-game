@@ -5,10 +5,10 @@ import { GameSave } from "../core/gamesave";
 import { GAME } from "../core/initGame";
 import { cam } from "../core/plugins/features/camera";
 import { playSound } from "../core/plugins/features/sound";
-import { goScene, transitionToScene } from "../core/scenes";
+import { transitionToScene } from "../core/scenes";
 import { fadeOut } from "../core/transitions/fadeOutTransition";
-import { paramsSongSelect } from "../ui/songselectscene";
-import { addDummyDancer, paramsChartEditor } from "./chartEditor/chartEditorBackend";
+import { paramsSongSelect } from "../ui/SongSelectScene";
+import { paramsChartEditor } from "./chartEditor/chartEditorBackend";
 import { createDancer, DancerGameObj, Move } from "./objects/dancer";
 import { ChartNote, getNotesOnScreen, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
 import { Tally } from "./objects/scoring";
@@ -24,7 +24,7 @@ export class StateGame {
 
 	/** Holds the current song chart */
 	song: SongContent = null;
-	
+
 	/** Holds the current tallies for the song */
 	tally: Tally = new Tally();
 
@@ -49,184 +49,194 @@ export class StateGame {
 	params: paramsGameScene = null;
 
 	/** Wheter the player can press keys to play */
-	gameInputEnabled: boolean = true
+	gameInputEnabled: boolean = true;
 
 	/** Wheter the player can press keys to pause */
-	menuInputEnabled: boolean = true
+	menuInputEnabled: boolean = true;
 
 	/** The ui for the gameplay */
-	ui: ReturnType<typeof addUI> = null
+	ui: ReturnType<typeof addUI> = null;
 
 	/** The dancer in the gameplay */
-	dancer: DancerGameObj = null
+	dancer: DancerGameObj = null;
 
 	/** The strumline in the gameplay */
-	strumline: StrumlineGameObj = null
+	strumline: StrumlineGameObj = null;
 
 	/** Dictates wheter the game is paused or not, please do not touch if not through the manage pause function */
 	private _paused: boolean;
-	
+
 	/** Wheter the game is currently paused or not */
 	get paused() {
 		return this._paused;
 	}
 
 	/** Will set the pause to true or false, if a parameter isn't passed it will be toggled */
-	setPause(newPause?:boolean) {
-		newPause = newPause ?? !this._paused
+	setPause(newPause?: boolean) {
+		newPause = newPause ?? !this._paused;
 
 		this._paused = newPause;
-		this.conductor.paused = this._paused
+		this.conductor.paused = this._paused;
 
-		managePauseUI(newPause, this)
-	};
+		managePauseUI(newPause, this);
+	}
 
 	/** Add score to the tally (animates the ui too)
 	 * @param amount The amount to add
 	 */
 	addScore(amount: number) {
-		this.tally.score += amount
-		this.ui.scoreDiffText.value = amount
-		this.ui.scoreDiffText.opacity = 1
-		this.ui.scoreDiffText.bop({ startScale: vec2(1.1), endScale: vec2(1) })
+		this.tally.score += amount;
+		this.ui.scoreDiffText.value = amount;
+		this.ui.scoreDiffText.opacity = 1;
+		this.ui.scoreDiffText.bop({ startScale: vec2(1.1), endScale: vec2(1) });
 	}
 
 	constructor(params: paramsGameScene) {
-		params.playbackSpeed = params.playbackSpeed ?? 1
-		params.seekTime = params.seekTime ?? 0
-		params.dancer = params.dancer ?? "astri"
-		params.songZip = params.songZip ?? null
-		
-		this.params = params
-		this.song = this.params.songZip
+		params.playbackSpeed = params.playbackSpeed ?? 1;
+		params.seekTime = params.seekTime ?? 0;
+		params.dancer = params.dancer ?? "astri";
+		params.songZip = params.songZip ?? null;
+
+		this.params = params;
+		this.song = this.params.songZip;
 
 		// now that we have the song we can get the scroll speed multiplier and set the playback speed for funzies
-		const speed = (this.song.manifest.initial_scrollspeed * GameSave.scrollSpeed)
-		setTimeForStrum(1.25)
-		setTimeForStrum(TIME_FOR_STRUM / speed)
-	
+		const speed = this.song.manifest.initial_scrollspeed * GameSave.scrollSpeed;
+		setTimeForStrum(1.25);
+		setTimeForStrum(TIME_FOR_STRUM / speed);
+
 		// then we actually setup the conductor and play the song
 		this.conductor = new Conductor({
-			audioPlay: playSound(`${this.params.songZip.manifest.uuid_DONT_CHANGE}-audio`, { volume: GameSave.sound.music.volume, speed: this.params.playbackSpeed }),
+			audioPlay: playSound(`${this.params.songZip.manifest.uuid_DONT_CHANGE}-audio`, {
+				volume: GameSave.sound.music.volume,
+				speed: this.params.playbackSpeed,
+			}),
 			BPM: this.params.songZip.manifest.initial_bpm * this.params.playbackSpeed,
 			timeSignature: this.song.manifest.time_signature,
 			offset: TIME_FOR_STRUM,
-		})
+		});
 
 		// adds the ui to the game
-		this.ui = addUI()
-		this.dancer = createDancer(this.params.dancer)
-		this.strumline = createStrumline(this)
+		this.ui = addUI();
+		this.dancer = createDancer(this.params.dancer);
+		this.strumline = createStrumline(this);
 
 		// there are the notes that have been spawned yet
 		this.song.chart.notes.filter((note) => note.time <= this.params.seekTime).forEach((passedNote) => {
-			this.spawnedNotes.push(passedNote)
-			this.hitNotes.push(passedNote)
-		})
-	
-		this.conductor.audioPlay.seek(this.params.seekTime)
-		if (this.dancer) this.dancer.doMove("idle")
+			this.spawnedNotes.push(passedNote);
+			this.hitNotes.push(passedNote);
+		});
+
+		this.conductor.audioPlay.seek(this.params.seekTime);
+		if (this.dancer) this.dancer.doMove("idle");
 	}
 }
 
 export type paramsGameScene = {
-	songZip: SongContent,
+	songZip: SongContent;
 	/** The name of the dancer */
-	dancer: string,
+	dancer: string;
 	/** How fast to make the song :smiling_imp: */
-	playbackSpeed?: number,
+	playbackSpeed?: number;
 
 	/** If the song should start at a specific second */
-	seekTime?: number,
+	seekTime?: number;
 
 	/** Wheter the player is coming from the chart editor or from regular gameplay */
-	fromChartEditor: boolean,
-}
+	fromChartEditor: boolean;
+};
 
-export function restartSong(GameState:StateGame) {
-	if (GameState.paused) GameState.setPause(false)
+export function restartSong(GameState: StateGame) {
+	if (GameState.paused) GameState.setPause(false);
 
-	GameState.conductor.audioPlay.stop()
+	GameState.conductor.audioPlay.stop();
 
-	GameState.health = 100
-	GameState.spawnedNotes = []
+	GameState.health = 100;
+	GameState.spawnedNotes = [];
 	GameState.eventsDone = [];
-	GameState.hitNotes = []
+	GameState.hitNotes = [];
 	GameState.tally = new Tally();
-	GameState.combo = 0
-	GameState.highestCombo = 0
+	GameState.combo = 0;
+	GameState.highestCombo = 0;
 
 	GameState.song.chart.notes.forEach((note) => {
 		if (note.time <= GameState.params.seekTime) {
-			GameState.hitNotes.push(note)
-			GameState.spawnedNotes.push(note)
+			GameState.hitNotes.push(note);
+			GameState.spawnedNotes.push(note);
 		}
-	})
+	});
 
 	if (GameState.params.seekTime > 0) {
-		GameState.conductor.audioPlay.seek(GameState.params.seekTime)
+		GameState.conductor.audioPlay.seek(GameState.params.seekTime);
 	}
-
 	else {
-		GameState.conductor.timeInSeconds = -TIME_FOR_STRUM
+		GameState.conductor.timeInSeconds = -TIME_FOR_STRUM;
 	}
 
-	tween(cam.pos, center(), 0.1, (p) => cam.pos = p, easings.easeOutExpo)
-	tween(cam.zoom, vec2(1), 0.1, (p) => cam.zoom = p, easings.easeOutExpo)
-	tween(cam.rotation, 0, 0.1, (p) => cam.rotation = p, easings.easeOutExpo)
+	tween(cam.pos, center(), 0.1, (p) => cam.pos = p, easings.easeOutExpo);
+	tween(cam.zoom, vec2(1), 0.1, (p) => cam.zoom = p, easings.easeOutExpo);
+	tween(cam.rotation, 0, 0.1, (p) => cam.rotation = p, easings.easeOutExpo);
 
 	getNotesOnScreen().forEach((noteObj) => {
-		noteObj.destroy()
+		noteObj.destroy();
 
-		let rotationDirection = choose([-10, 10])
+		let rotationDirection = choose([-10, 10]);
 		const newdumbnote = add([
-			sprite(GameSave.noteskin +  "_" + noteObj.chartNote.move),
+			sprite(GameSave.noteskin + "_" + noteObj.chartNote.move),
 			pos(noteObj.pos),
 			anchor(noteObj.anchor),
 			opacity(noteObj.opacity),
 			z(noteObj.z),
 			body(),
-			area({ collisionIgnore: [ "dumbNote" ] }),
+			area({ collisionIgnore: ["dumbNote"] }),
 			rotate(0),
 			"dumbNote",
 			{
 				update() {
-					this.angle += rotationDirection
-					if (this.pos.y >= height() + this.height) this.destroy()
-				}
-			}
-		])
+					this.angle += rotationDirection;
+					if (this.pos.y >= height() + this.height) this.destroy();
+				},
+			},
+		]);
 
-		newdumbnote.fadeOut(TIME_FOR_STRUM)
-		newdumbnote.jump(rand(250, 500))
-	})
+		newdumbnote.fadeOut(TIME_FOR_STRUM);
+		newdumbnote.jump(rand(250, 500));
+	});
 
-	triggerEvent("onReset")
+	triggerEvent("onReset");
 }
 
-export function stopPlay(GameState:StateGame) {
-	GameState.conductor.paused = true
-	GameState.conductor.audioPlay.stop()
-	GameState.menuInputEnabled = true
+export function stopPlay(GameState: StateGame) {
+	GameState.conductor.paused = true;
+	GameState.conductor.audioPlay.stop();
+	GameState.menuInputEnabled = true;
 }
 
 /** Function to exit to the song select menu from the gamescene */
-export function exitToMenu(GameState:StateGame) {
+export function exitToMenu(GameState: StateGame) {
 	// let song = getSong(GameState.songZip.)
 	// let index = song ? allSongCharts.indexOf(song) : 0
 	// TODO: Find a way to comfortably get a song
-	transitionToScene(fadeOut, "songselect", { index: 0 } as paramsSongSelect)
+	transitionToScene(fadeOut, "songselect", { index: 0 } as paramsSongSelect);
 }
 
 /** Function to exit to the song select menu from the gamescene */
-export function exitToChartEditor(GameState:StateGame) {
-	stopPlay(GameState)
-	GameState.menuInputEnabled = false
-	transitionToScene(fadeOut, "charteditor", { song: GameState.song, seekTime: GameState.conductor.timeInSeconds, dancer: GameState.params.dancer } as paramsChartEditor)
+export function exitToChartEditor(GameState: StateGame) {
+	stopPlay(GameState);
+	GameState.menuInputEnabled = false;
+	transitionToScene(
+		fadeOut,
+		"charteditor",
+		{
+			song: GameState.song,
+			seekTime: GameState.conductor.timeInSeconds,
+			dancer: GameState.params.dancer,
+		} as paramsChartEditor,
+	);
 }
 
 export function introGo() {
-	playSound("introGo", { volume: 1 })
+	playSound("introGo", { volume: 1 });
 	const goText = add([
 		pos(center()),
 		text("GO!", { size: height() / 4 }),
@@ -236,54 +246,52 @@ export function introGo() {
 		opacity(),
 		z(1),
 		timer(),
-	])
+	]);
 
 	// goText.tween(goText.pos.y, height() + goText.height, TIME_FOR_STRUM / 2, (p) => goText.pos.y = p).onEnd(() => goText.destroy())
 	goText.fadeIn(TIME_FOR_STRUM / 4).onEnd(() => {
-		goText.fadeOut()
-	})
+		goText.fadeOut();
+	});
 }
 
 /** Returns the user key for a given move */
 export function getKeyForMove(move: Move) {
-	return Object.values(GameSave.gameControls).find((gameKey) => gameKey.move == move).kbKey
+	return Object.values(GameSave.gameControls).find((gameKey) => gameKey.move == move).kbKey;
 }
 
 /** The function that manages input functions inside the game, must be called onUpdate */
 export function manageInput(GameState: StateGame) {
 	Object.values(GameSave.gameControls).forEach((gameKey, index) => {
-		if (GameState.paused) return
+		if (GameState.paused) return;
 
-		const kbKey = gameKey.kbKey
-		const defaultKey = Object.keys(GameSave.gameControls)[index]
+		const kbKey = gameKey.kbKey;
+		const defaultKey = Object.keys(GameSave.gameControls)[index];
 
 		if (isKeyPressed(kbKey) || isKeyPressed(defaultKey)) {
 			// bust a move
-			GameState.strumline.press(gameKey.move)
+			GameState.strumline.press(gameKey.move);
 		}
-
 		else if (isKeyReleased(kbKey) || isKeyReleased(defaultKey)) {
-			GameState.strumline.release()
+			GameState.strumline.release();
 		}
 	});
 
-	if (!GameState.menuInputEnabled) return
+	if (!GameState.menuInputEnabled) return;
 
 	if (isKeyPressed("escape")) {
 		GameState.setPause();
 	}
-
 	else if (isKeyDown("shift") && isKeyDown("r")) {
-		restartSong(GameState)
+		restartSong(GameState);
 	}
 
 	// if no game key is 7 then it will exit to the chart editor
 	if (!Object.values(GameSave.gameControls).some((gameKey) => gameKey.kbKey == "7")) {
 		if (isKeyPressed("7")) {
-			exitToChartEditor(GameState)
+			exitToChartEditor(GameState);
 		}
 	}
 }
 
 // TIMINGS
-export const INPUT_THRESHOLD = 0.16
+export const INPUT_THRESHOLD = 0.16;

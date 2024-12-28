@@ -1,34 +1,34 @@
-import { Comp } from "kaplay"
-import { GameDialog } from "../../../ui/dialogs/gameDialog"
+import { Comp } from "kaplay";
+import { GameDialog } from "../../../ui/dialogs/gameDialog";
 
-export let gameCursor:cursorObjectType = null
-export type cursorDoing = "default" | "up" | "down" | "x" | "text" | "load"
+export let gameCursor: cursorObjectType = null;
+export type cursorDoing = "default" | "up" | "down" | "x" | "text" | "load";
 
 interface customCursorComp extends Comp {
-	do(doing:cursorDoing): void
+	do(doing: cursorDoing): void;
 }
 
-function cursorComponent() : customCursorComp {
+function cursorComponent(): customCursorComp {
 	return {
 		id: "cursorComponent",
-		
+
 		do(doing) {
 			if (doing != "load") {
 				if (this.angle != 0) this.angle = 0;
 			}
-			
-			this.sprite = "cursor_" + doing
+
+			this.sprite = "cursor_" + doing;
 		},
-	}
+	};
 }
 
 /** Adds a cool mouse */
 export function addCursorObject() {
-	setCursor("none")
-	
-	let theMousePos = mousePos()
-	
-	let customBehaviours: (() => void)[] = []
+	setCursor("none");
+
+	let theMousePos = mousePos();
+
+	let customBehaviours: (() => void)[] = [];
 
 	let blinkTimer = 0;
 	const mouse = add([
@@ -53,115 +53,111 @@ export function addCursorObject() {
 			isHoveringAnObject: false,
 
 			hide() {
-				this.intendedOpa = 0
+				this.intendedOpa = 0;
 			},
 
 			show() {
-				this.intendedOpa = 1
+				this.intendedOpa = 1;
 			},
 
 			addAnimCondition(action: () => void) {
-				customBehaviours.push(action)
+				customBehaviours.push(action);
 			},
-		}
-	])
+		},
+	]);
 
 	mouse.onUpdate(() => {
 		if (mouse.typeMode) {
-			mouse.canMove = false
-			
-			blinkTimer += dt()
+			mouse.canMove = false;
+
+			blinkTimer += dt();
 			if (blinkTimer >= 1) {
-				blinkTimer = 0
-				mouse.opacity = 0
+				blinkTimer = 0;
+				mouse.opacity = 0;
 				wait(0.25, () => {
-					mouse.opacity = 1
-				})
+					mouse.opacity = 1;
+				});
 			}
 
 			return;
 		}
-
 		else {
-			blinkTimer = 0
-			mouse.canMove = true
+			blinkTimer = 0;
+			mouse.canMove = true;
 		}
-		
+
 		// shown
-		theMousePos = lerp(theMousePos, mousePos(), 0.8)
+		theMousePos = lerp(theMousePos, mousePos(), 0.8);
 		if (mouse.intendedOpa == 1) {
 			if (mouse.canMove) {
-				if (isMouseMoved()) mouse.pos = theMousePos
+				if (isMouseMoved()) mouse.pos = theMousePos;
+			}
+		}
+		else {
+			mouse.pos = vec2();
+		}
+
+		if (mouse.sprite == "cursor_load") {
+			if (Math.floor(time() * 15) % 2 == 0) {
+				mouse.angle += 90 / 3;
+				mouse.angle = mouse.angle % 360;
 			}
 		}
 
-		else {
-			mouse.pos = vec2()
-		}
-		
-		if (mouse.sprite == "cursor_load") {
-			if (Math.floor(time()*15)%2==0) {
-				mouse.angle += 90 / 3
-				mouse.angle = mouse.angle % 360
-			}
-		}
-		
-		mouse.opacity = lerp(mouse.opacity, mouse.intendedOpa, 0.5)
-	
+		mouse.opacity = lerp(mouse.opacity, mouse.intendedOpa, 0.5);
+
 		// higher priority type mode
 		if (mouse.typeMode) {
-			if (mouse.sprite != "cursor_text") mouse.do("text")
+			if (mouse.sprite != "cursor_text") mouse.do("text");
 			return;
 		}
 
 		// then the animations for game dialog
-		const hoveredObjects = get("hover", { recursive: true })
+		const hoveredObjects = get("hover", { recursive: true });
 		hoveredObjects.forEach((obj) => {
 			if (!obj.isHovering()) {
-				if (obj.dragging) mouse.do("down")
+				if (obj.dragging) mouse.do("down");
 				else {
-					if (hoveredObjects.some((otherObj) => otherObj.isHovering())) return
+					if (hoveredObjects.some((otherObj) => otherObj.isHovering())) return;
 					else {
-						mouse.isHoveringAnObject = false
-						mouse.do("default")
+						mouse.isHoveringAnObject = false;
+						mouse.do("default");
 					}
-					
 				}
 			}
-
 			else {
-				if (obj.dragging || isMouseDown("left")) mouse.do("down")
+				if (obj.dragging || isMouseDown("left")) mouse.do("down");
 				else {
-					mouse.do("up")
-					mouse.isHoveringAnObject = true
+					mouse.do("up");
+					mouse.isHoveringAnObject = true;
 				}
 			}
-		})
+		});
 
 		if (GameDialog.isOpen || hoveredObjects.some((obj) => obj.isHovering())) return;
-		
-		customBehaviours.forEach((behav) => {
-			behav()
-		})
-	})
 
-	mouse.do("default")
+		customBehaviours.forEach((behav) => {
+			behav();
+		});
+	});
+
+	mouse.do("default");
 
 	return mouse;
 }
 
-export type cursorObjectType = ReturnType<typeof addCursorObject>
+export type cursorObjectType = ReturnType<typeof addCursorObject>;
 
 /** Actually sets the gameCursor object */
 export function setupCursor() {
-	gameCursor = addCursorObject()
-	gameCursor.layer = "cursor"
+	gameCursor = addCursorObject();
+	gameCursor.layer = "cursor";
 }
 
 export function loadCursor() {
-	const doings = ["default", "up", "down", "x", "text", "load"]
+	const doings = ["default", "up", "down", "x", "text", "load"];
 
 	doings.forEach((dongo) => {
-		loadSprite(`cursor_${dongo}`, "sprites/cursor/cursor_" + dongo + ".png")
-	})
+		loadSprite(`cursor_${dongo}`, "sprites/cursor/cursor_" + dongo + ".png");
+	});
 }
