@@ -1,7 +1,7 @@
 import { GameSave } from "../../core/gamesave"
 import { transitionToScene } from "../../core/scenes"
 import { fadeOut } from "../../core/transitions/fadeOutTransition"
-import { paramsGameScene, StateGame } from "../playstate"
+import { paramsGameScene, StateGame } from "../PlayState"
 
 export type paramsDeathScene = {
 	GameState: StateGame

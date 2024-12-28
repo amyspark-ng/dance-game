@@ -6,7 +6,7 @@ import { goScene, transitionToScene } from "../core/scenes";
 import { enterSongTrans } from "../core/transitions/enterSongTransition";
 import { handleZipInput } from "../fileManaging";
 import { Scoring } from "../play/objects/scoring";
-import { paramsGameScene } from "../play/playstate";
+import { paramsGameScene } from "../play/PlayState";
 import { SaveScore, SongContent } from "../play/song"
 import { utils } from "../utils";
 

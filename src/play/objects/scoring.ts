@@ -1,6 +1,6 @@
 // # This file will manage the ranking system
 import { utils } from "../../utils";
-import { StateGame, INPUT_THRESHOLD } from "../playstate";
+import { StateGame, INPUT_THRESHOLD } from "../PlayState";
 import { DANCER_POS, Move } from "./dancer";
 import { ChartNote } from "./note";
 

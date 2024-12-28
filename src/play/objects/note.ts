@@ -2,7 +2,7 @@ import { Color, Comp, KEventController } from "kaplay";
 import { Move } from "./dancer";
 import { utils } from "../../utils";
 import { onReset, triggerEvent } from "../../core/events";
-import { StateGame, INPUT_THRESHOLD } from "../playstate";
+import { StateGame, INPUT_THRESHOLD } from "../PlayState";
 import { GameSave } from "../../core/gamesave";
 
 /** How much pixels per second does the note move at */

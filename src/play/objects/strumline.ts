@@ -4,7 +4,7 @@ import { getDancer, Move } from "../objects/dancer"
 import { ChartNote, getNotesOnScreen, moveToColor, NoteGameObj } from "./note";
 import { checkForNoteHit } from "./scoring";
 import { triggerEvent } from "../../core/events";
-import { INPUT_THRESHOLD, StateGame } from "../playstate";
+import { INPUT_THRESHOLD, StateGame } from "../PlayState";
 import { utils } from "../../utils";
 
 /** Scale of the strumline when pressed */

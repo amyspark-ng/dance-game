@@ -1,9 +1,8 @@
-import { GameObj, KEventController, OpacityComp } from "kaplay"
+import { GameObj, OpacityComp } from "kaplay"
 import { playSound } from "../../core/plugins/features/sound"
 import { DANCER_POS } from "../objects/dancer"
-import { exitToChartEditor, exitToMenu, restartSong, StateGame } from "../playstate"
+import { exitToChartEditor, exitToMenu, restartSong, StateGame } from "../PlayState"
 import { utils } from "../../utils"
-import { GAME } from "../../core/initGame"
 
 /** Runs when the game is paused */
 export function managePauseUI(pause:boolean, GameState:StateGame) {

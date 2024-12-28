@@ -9,7 +9,7 @@ import { setupWatch } from "./plugins/features/watcher"
 import { utils } from "../utils"
 import { paramsChartEditor } from "../play/chartEditor/chartEditorBackend"
 import { getCurrent, WebviewWindow } from "@tauri-apps/api/window"
-import { paramsGameScene } from "../play/playstate"
+import { paramsGameScene } from "../play/PlayState"
 
 /** Class that handles some variables related to the game as a product */
 export class GAME {

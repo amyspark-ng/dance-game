@@ -6,7 +6,7 @@ import { goScene } from "../../core/scenes"
 import { paramsSongSelect } from "../../ui/songselectscene"
 import { utils } from "../../utils"
 import { Ranking, Scoring } from "../objects/scoring"
-import { StateGame } from "../playstate"
+import { StateGame } from "../PlayState"
 import { loadedSongs } from "../../core/loader"
 
 /** Parameters for the result scene */

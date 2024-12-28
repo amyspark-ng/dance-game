@@ -5,20 +5,20 @@ import { fadeOut } from "../../core/transitions/fadeOutTransition"
 import { paramsSongSelect } from "../../ui/songselectscene"
 import { utils } from "../../utils"
 
-function addDancerChar(dancerName: string) {
-	const curDancer = add([
-		sprite("dancer_" + dancerName, { anim: "idle" }),
-		pos(center().x, center().y),
-		anchor("center"),
-		scale(),
-		"dancerChar",
-		dancerName,
-	])
-
-	return curDancer;
-}
-
 export function CharSelectScene() { scene("charselect", (params: paramsSongSelect) => {
+	function addDancerChar(dancerName: string) {
+		const curDancer = add([
+			sprite("dancer_" + dancerName, { anim: "idle" }),
+			pos(center().x, center().y),
+			anchor("center"),
+			scale(),
+			"dancerChar",
+			dancerName,
+		])
+	
+		return curDancer;
+	}
+	
 	/** The index in dancers of the currently selected dancer */
 	let curIndex = dancers.map(dancer => dancer.dancerName).indexOf(GameSave.dancer)
 	const dancerNames = dancers.map(dancer => dancer.dancerName)

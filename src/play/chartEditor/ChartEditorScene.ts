@@ -3,19 +3,17 @@ import { Conductor } from "../../conductor";
 import { onBeatHit, onNoteHit, onStepHit, triggerEvent } from "../../core/events";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { playSound } from "../../core/plugins/features/sound";
-import { goScene, transitionToScene } from "../../core/scenes";
+import { transitionToScene } from "../../core/scenes";
 import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { utils } from "../../utils";
-import { ChartNote, moveToColor } from "../objects/note";
-import { paramsGameScene } from "../playstate";
-import { addDummyDancer, addFloatingText, cameraHandler, ChartStamp, clipboardMessage, concatStamps, moveHandler, isStampNote, setMouseAnimConditions, moveToDetune, paramsChartEditor, selectionBoxHandler, StateChart, findNoteAtStep, trailAtStep } from "./chartEditorBackend";
+import { moveToColor } from "../objects/note";
+import { paramsGameScene } from "../PlayState";
+import { addDummyDancer, addFloatingText, cameraHandler, ChartStamp, clipboardMessage, concatStamps, moveHandler, isStampNote, setMouseAnimConditions, moveToDetune, paramsChartEditor, selectionBoxHandler, StateChart, findNoteAtStep } from "./chartEditorBackend";
 import { addLeftInfo, addDialogButtons, stampRenderer, drawCameraController, checkerboardRenderer, drawNoteCursor, drawPlayBar, drawSelectSquares, drawSelectionBox, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE, addEventsPanel } from "./chartEditorElements";
 import { GameSave } from "../../core/gamesave";
 import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { openChartAboutDialog, openChartInfoDialog, openEventDialog, openExitDialog } from "./chartEditorDialogs";
-import { ChartEvent, SongContent } from "../song";
-import { loadedSongs } from "../../core/loader";
-import { paramsSongSelect } from "../../ui/songselectscene";
+import { SongContent } from "../song";
 import { KEventController } from "kaplay";
 
 export function ChartEditorScene() { scene("charteditor", (params: paramsChartEditor) => {
