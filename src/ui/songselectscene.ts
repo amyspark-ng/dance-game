@@ -1,7 +1,7 @@
 import { GameSave } from "../core/gamesave";
 import { defaultSongs, loadedSongs } from "../core/loader";
 import { gameCursor } from "../core/plugins/features/gameCursor";
-import { customAudioPlay, playSound } from "../core/plugins/features/sound";
+import { customAudioPlay, playMusic, playSound } from "../core/plugins/features/sound";
 import { goScene, transitionToScene } from "../core/scenes";
 import { enterSongTrans } from "../core/transitions/enterSongTransition";
 import { handleZipInput } from "../fileManaging";
@@ -239,11 +239,8 @@ export function SongSelectScene() {
 			highscoreText.solidValue = Math.floor(tallyScore);
 
 			songSelectState.songPreview?.stop();
-			songSelectState.songPreview = playSound(
+			songSelectState.songPreview = playMusic(
 				allCapsules[songSelectState.index].song.manifest.uuid_DONT_CHANGE + "-audio",
-				{
-					channel: GameSave.sound.music,
-				},
 			);
 			songSelectState.songPreview.loop = true;
 			tween(0, GameSave.sound.music.volume, 0.25, (p) => songSelectState.songPreview.volume = p);

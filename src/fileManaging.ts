@@ -4,7 +4,7 @@ import { Conductor } from "./conductor";
 import { GameSave } from "./core/gamesave";
 import { loadedSongs, loadSongFromZIP } from "./core/loader";
 import { gameCursor } from "./core/plugins/features/gameCursor";
-import { playSound } from "./core/plugins/features/sound";
+import { playMusic, playSound } from "./core/plugins/features/sound";
 import { StateChart } from "./play/chartEditor/chartEditorBackend";
 import { Chart } from "./play/song";
 import { GameDialog } from "./ui/dialogs/gameDialog";
@@ -83,8 +83,7 @@ export async function handleAudioInput(ChartState: StateChart) {
 
 		ChartState.audioBuffer = audioBuffer;
 		// change the audio play for the conductor
-		ChartState.conductor.audioPlay = playSound(ChartState.song.manifest.uuid_DONT_CHANGE + "-audio", {
-			channel: GameSave.sound.music,
+		ChartState.conductor.audioPlay = playMusic(ChartState.song.manifest.uuid_DONT_CHANGE + "-audio", {
 			speed: 1,
 		});
 

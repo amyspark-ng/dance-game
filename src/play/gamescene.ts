@@ -14,7 +14,7 @@ import { addComboText, addJudgement, getClosestNote, Scoring } from "./objects/s
 import { getKeyForMove, introGo, manageInput, paramsGameScene, StateGame } from "./PlayState";
 import { SaveScore } from "./song";
 import { paramsDeathScene } from "./ui/DeathScene";
-import { managePauseUI } from "./ui/pauseScreen";
+import { addPauseUI } from "./ui/pauseScreen";
 import { paramsResultsScene } from "./ui/ResultsScene";
 
 export function GameScene() {
@@ -27,8 +27,6 @@ export function GameScene() {
 
 		GameState.gameInputEnabled = true;
 		gameCursor.hide();
-
-		managePauseUI(GameState);
 
 		// ==== DANCER + UI =====
 		GameState.dancer.onUpdate(() => {
@@ -141,10 +139,12 @@ export function GameScene() {
 			});
 
 			manageInput(GameState);
-			GameState.ui.missesText.misses = GameState.tally.misses;
-			GameState.ui.timeText.time = GameState.conductor.timeInSeconds < 0 ? 0 : GameState.conductor.timeInSeconds;
-			GameState.ui.healthText.health = lerp(GameState.ui.healthText.health, GameState.health, 0.5);
-			GameState.ui.scoreText.score = lerp(GameState.ui.scoreText.score, GameState.tally.score, 0.5);
+			GameState.gameUI.missesText.misses = GameState.tally.misses;
+			GameState.gameUI.timeText.time = GameState.conductor.timeInSeconds < 0
+				? 0
+				: GameState.conductor.timeInSeconds;
+			GameState.gameUI.healthText.health = lerp(GameState.gameUI.healthText.health, GameState.health, 0.5);
+			GameState.gameUI.scoreText.score = lerp(GameState.gameUI.scoreText.score, GameState.tally.score, 0.5);
 		});
 
 		onHide(() => {
@@ -237,11 +237,11 @@ export function GameScene() {
 			if (GameState.tally.score > 0) GameState.tally.score -= scoreDiff;
 
 			if (GameState.tally.score > 0) {
-				GameState.ui.scoreDiffText.value = -scoreDiff;
-				GameState.ui.scoreDiffText.opacity = 1;
-				GameState.ui.scoreDiffText.bop({ startScale: vec2(1.1), endScale: vec2(1) });
+				GameState.gameUI.scoreDiffText.value = -scoreDiff;
+				GameState.gameUI.scoreDiffText.opacity = 1;
+				GameState.gameUI.scoreDiffText.bop({ startScale: vec2(1.1), endScale: vec2(1) });
 			}
-			else GameState.ui.scoreDiffText.value = 0;
+			else GameState.gameUI.scoreDiffText.value = 0;
 
 			GameState.tally.misses += 1;
 			GameState.combo = 0;

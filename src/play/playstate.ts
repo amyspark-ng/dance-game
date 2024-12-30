@@ -15,7 +15,7 @@ import { Tally } from "./objects/scoring";
 import { createStrumline, StrumlineGameObj } from "./objects/strumline";
 import { ChartEvent, SongContent } from "./song";
 import { addUI } from "./ui/gameUi";
-import { managePauseUI } from "./ui/pauseScreen";
+import { addPauseUI } from "./ui/pauseScreen";
 
 /** Class that holds and manages some important variables in the game scene */
 export class StateGame {
@@ -55,7 +55,10 @@ export class StateGame {
 	menuInputEnabled: boolean = true;
 
 	/** The ui for the gameplay */
-	ui: ReturnType<typeof addUI> = null;
+	gameUI: ReturnType<typeof addUI> = null;
+
+	/** The ui for the pause screen */
+	pauseUI: ReturnType<typeof addPauseUI> = null;
 
 	/** The dancer in the gameplay */
 	dancer: DancerGameObj = null;
@@ -85,13 +88,13 @@ export class StateGame {
 	 */
 	addScore(amount: number) {
 		this.tally.score += amount;
-		this.ui.scoreDiffText.value = amount;
-		this.ui.scoreDiffText.opacity = 1;
-		this.ui.scoreDiffText.bop({ startScale: vec2(1.1), endScale: vec2(1) });
+		this.gameUI.scoreDiffText.value = amount;
+		this.gameUI.scoreDiffText.opacity = 1;
+		this.gameUI.scoreDiffText.bop({ startScale: vec2(1.1), endScale: vec2(1) });
 	}
 
 	/** Runs when the pause has changed */
-	onPauseChange(action: (newPause: boolean) => void) {
+	onPauseChange(action: () => void) {
 		return getTreeRoot().on("pauseChange", action);
 	}
 
@@ -121,7 +124,8 @@ export class StateGame {
 		});
 
 		// adds the ui to the game
-		this.ui = addUI();
+		this.gameUI = addUI();
+		this.pauseUI = addPauseUI(this);
 		this.dancer = createDancer(this.params.dancer);
 		this.strumline = createStrumline(this);
 

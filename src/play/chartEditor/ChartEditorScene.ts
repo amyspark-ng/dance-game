@@ -2,9 +2,8 @@
 import { KEventController } from "kaplay";
 import { Conductor } from "../../conductor";
 import { onBeatHit, onNoteHit, onStepHit, triggerEvent } from "../../core/events";
-import { GameSave } from "../../core/gamesave";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
-import { playSound } from "../../core/plugins/features/sound";
+import { playMusic, playSound } from "../../core/plugins/features/sound";
 import { transitionToScene } from "../../core/scenes";
 import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { GameDialog } from "../../ui/dialogs/gameDialog";
@@ -27,6 +26,7 @@ import {
 	selectionBoxHandler,
 	setMouseAnimConditions,
 	StateChart,
+	trailAtStep,
 } from "./chartEditorBackend";
 import { openChartAboutDialog, openChartInfoDialog, openEventDialog, openExitDialog } from "./chartEditorDialogs";
 import {
@@ -84,8 +84,7 @@ export function ChartEditorScene() {
 			ChartState.song = JSON.parse(JSON.stringify(params.song)) as SongContent;
 
 			ChartState.conductor = new Conductor({
-				audioPlay: playSound(`${ChartState.song.manifest.uuid_DONT_CHANGE}-audio`, {
-					channel: GameSave.sound.music,
+				audioPlay: playMusic(`${ChartState.song.manifest.uuid_DONT_CHANGE}-audio`, {
 					speed: params.playbackSpeed,
 				}),
 				BPM: ChartState.song.manifest.initial_bpm * params.playbackSpeed,
@@ -423,8 +422,6 @@ export function ChartEditorScene() {
 		onMousePress("left", () => {
 			if (GameDialog.isOpen) return;
 
-			// debug.log(trailAtStep(ChartState.hoveredStep, ChartState))
-
 			/** The current hovered time */
 			const hoveredTime = ChartState.conductor.stepToTime(
 				ChartState.hoveredStep,
@@ -457,11 +454,15 @@ export function ChartEditorScene() {
 					stretchingNoteEV?.cancel();
 					stretchingNoteEV = onMouseMove(() => {
 						let oldLength = hoveredNote.length;
-						hoveredNote.length = (ChartState.hoveredStep - 1)
-							- ChartState.conductor.timeToStep(hoveredNote.time);
+						const noteLength = Math.floor(
+							(ChartState.hoveredStep)
+								- ChartState.conductor.timeToStep(hoveredNote.time),
+						);
+						hoveredNote.length = noteLength > 0 ? noteLength : undefined;
 						let newLength = hoveredNote.length;
 						if (oldLength != newLength) {
-							playSound("noteStretch", { detune: 50 * newLength + (newLength % 2 == 0 ? 100 : 0) });
+							const detune = newLength % 2 == 0 ? 0 : 50;
+							playSound("noteStretch", { detune: detune });
 						}
 					});
 
@@ -469,7 +470,9 @@ export function ChartEditorScene() {
 						releaseEV.cancel();
 						stretchingNoteEV.cancel();
 						stretchingNoteEV = null;
-						playSound("noteStretch", { detune: 300, speed: 2 });
+						if (hoveredNote.length > 0) {
+							playSound("noteStretch", { detune: 300, speed: 2 });
+						}
 					});
 				}
 
@@ -723,10 +726,6 @@ export function ChartEditorScene() {
 				triggerEvent("onNoteHit", someNote);
 			}
 		});
-
-		// ChartState.song.chart.notes.forEach((note) => {
-		// 	note.length = 2
-		// })
 
 		// animate the dancer
 		onNoteHit((note) => {

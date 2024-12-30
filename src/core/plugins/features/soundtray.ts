@@ -2,7 +2,7 @@ import { GameObj, KEventController, Key, StayComp, TimerController, TweenControl
 import { utils } from "../../../utils";
 import { GameSave } from "../../gamesave";
 import { juice } from "../graphics/juiceComponent";
-import { changeAllSoundsVolume, playSound } from "./sound";
+import { allSoundHandlers, playSound, updateMasterVolume } from "./sound";
 
 export interface SoundTray {
 	show: (keepAround?: boolean) => void;
@@ -111,7 +111,7 @@ export function addSoundTray(opts: addSoundTrayOpt): SoundTray {
 					if (GameSave.sound.masterVolume > 0) {
 						GameSave.sound.masterVolume = utils.fixDecimal(GameSave.sound.masterVolume - 0.1);
 						GameSave.sound.masterVolume = clamp(GameSave.sound.masterVolume, 0, 1);
-						volume(GameSave.sound.masterVolume);
+						updateMasterVolume();
 					}
 
 					soundTrayEvents.trigger("show", -1, false);
@@ -120,7 +120,7 @@ export function addSoundTray(opts: addSoundTrayOpt): SoundTray {
 					if (GameSave.sound.masterVolume <= 0.9) {
 						GameSave.sound.masterVolume = utils.fixDecimal(GameSave.sound.masterVolume + 0.1);
 						GameSave.sound.masterVolume = clamp(GameSave.sound.masterVolume, 0, 1);
-						volume(GameSave.sound.masterVolume);
+						updateMasterVolume();
 					}
 
 					soundTrayEvents.trigger("show", 1, false);

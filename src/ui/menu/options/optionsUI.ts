@@ -1,6 +1,10 @@
+import { Comp } from "kaplay";
 import { utils } from "../../../utils";
 
-function optionItem() {
+export interface optionitemComp extends Comp {
+	index: number;
+}
+function optionItem(): optionitemComp {
 	return {
 		/** The position they have on the list */
 		id: "optionItem",

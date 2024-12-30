@@ -7,6 +7,7 @@ import { getSong, loadAssets, loadingScreen } from "./loader";
 import { setupCamera } from "./plugins/features/camera";
 import { drag } from "./plugins/features/drag";
 import { gameCursor, setupCursor } from "./plugins/features/gameCursor";
+import { updateMasterVolume } from "./plugins/features/sound";
 import { setupSoundtray } from "./plugins/features/soundtray";
 import { setupWatch } from "./plugins/features/watcher";
 import { goScene, setupScenes } from "./scenes";
@@ -49,7 +50,7 @@ setupScenes();
 setupCursor();
 setupCamera();
 setupSoundtray();
-volume(GameSave.sound.masterVolume);
+updateMasterVolume();
 
 console.log(`${GAME.AUTHOR}.${GAME.NAME} v: ${GAME.VERSION}`);
 

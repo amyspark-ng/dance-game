@@ -2,7 +2,7 @@ import { appWindow } from "@tauri-apps/api/window";
 import { GameObj, KEventController, Key, Vec2 } from "kaplay";
 import { GameSave, GameSaveClass } from "../../../core/gamesave";
 import { noteskins } from "../../../core/loader";
-import { playSound } from "../../../core/plugins/features/sound";
+import { playSound, updateMasterVolume } from "../../../core/plugins/features/sound";
 import { juice } from "../../../core/plugins/graphics/juiceComponent";
 import { goScene } from "../../../core/scenes";
 import { utils } from "../../../utils";
@@ -427,10 +427,12 @@ function manageOptionsState(page: number, OptionsState: StateOptions, workThem: 
 
 			if (hoveredObj.is(tagForSlider)) {
 				function updateVolumeSave() {
-					if (hoveredObj.is("Master")) GameSave.sound.masterVolume = hoveredObj.value;
+					if (hoveredObj.is("Master")) {
+						updateMasterVolume();
+						GameSave.sound.masterVolume = hoveredObj.value;
+					}
 					else if (hoveredObj.is("Music")) GameSave.sound.music.volume = hoveredObj.value;
 					else if (hoveredObj.is("Sfx")) GameSave.sound.sfx.volume = hoveredObj.value;
-					volume(GameSave.sound.masterVolume);
 				}
 
 				if (hoveredObj.is("Master")) hoveredObj.value = GameSave.sound.masterVolume;

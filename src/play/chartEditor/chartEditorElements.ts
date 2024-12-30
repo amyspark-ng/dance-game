@@ -7,11 +7,11 @@ import { playSound } from "../../core/plugins/features/sound";
 import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { utils } from "../../utils";
 import { moveToColor, notesSpawner } from "../objects/note";
-import { ChartStamp, concatStamps, downloadChart, isStampNote, StateChart } from "./chartEditorBackend";
+import { ChartStamp, concatStamps, downloadChart, findNoteAtStep, isStampNote, StateChart, trailAtStep } from "./chartEditorBackend";
 import { openChartAboutDialog, openChartInfoDialog } from "./chartEditorDialogs";
 
 /** Returns if a certain Y position mets the conditions to be drawn on the screen */
-function conditionsForDrawing(YPos: number, square_size: Vec2) {
+function conditionsForDrawing(YPos: number, square_size: Vec2 = vec2(52)) {
 	return utils.isInRange(YPos, -square_size.y, height() + square_size.y);
 }
 
@@ -140,18 +140,42 @@ export function stampRenderer(ChartState: StateChart) {
 
 		if (!ChartState.stampProps[isNote ? "notes" : "events"][index]) return;
 
-		if (conditionsForDrawing(stampPos.y, ChartState.SQUARE_SIZE)) {
+		const stepOfStamp = ChartState.conductor.timeToStep(stamp.time);
+		const lengthOfStamp = isNote ? stamp.length : 0;
+		const stampLengthIsInRange = isNote && utils.isInRange(ChartState.scrollStep, stepOfStamp, stepOfStamp + lengthOfStamp);
+
+		const canDraw = conditionsForDrawing(stampPos.y) || stampLengthIsInRange;
+
+		if (canDraw) {
 			// i do this before so it's below the note in case it is
 			if (isNote) {
-				for (let i = 0; i < stamp.length + 1; i++) {
-					if (i == 0) {
+				if (stamp.length) {
+					// this draws the thing below the note
+					drawSprite({
+						width: ChartState.SQUARE_SIZE.x / 2,
+						height: ChartState.SQUARE_SIZE.y,
+						scale: ChartState.stampProps.notes[index].scale,
+						angle: 90 + ChartState.stampProps.notes[index].angle,
+						sprite: GameSave.noteskin + "_" + "trail",
+						pos: vec2(notePosLerped.x, notePosLerped.y + ChartState.SQUARE_SIZE.y / 4),
+						opacity: ChartState.scrollTime >= stamp.time ? 1 : 0.5,
+						anchor: "center",
+						shader: "replacecolor",
+						uniform: {
+							"u_targetcolor": moveToColor(stamp.move),
+						},
+					});
+
+					// this runs note.length + 1 because the first one is the one below the actual note
+					for (let i = 0; i < stamp.length; i++) {
+						// this draws the trail || tail
 						drawSprite({
-							width: ChartState.SQUARE_SIZE.x / 2,
+							width: ChartState.SQUARE_SIZE.x,
 							height: ChartState.SQUARE_SIZE.y,
 							scale: ChartState.stampProps.notes[index].scale,
-							angle: 90 + ChartState.stampProps.notes[index].angle,
-							sprite: GameSave.noteskin + "_" + "trail",
-							pos: vec2(notePosLerped.x, notePosLerped.y + ChartState.SQUARE_SIZE.y / 4),
+							angle: 90,
+							sprite: GameSave.noteskin + "_" + (i == stamp.length - 1 ? "tail" : "trail"),
+							pos: vec2(notePosLerped.x, notePosLerped.y + ((i + 1) * ChartState.SQUARE_SIZE.y)),
 							opacity: ChartState.scrollTime >= stamp.time ? 1 : 0.5,
 							anchor: "center",
 							shader: "replacecolor",
@@ -160,25 +184,10 @@ export function stampRenderer(ChartState: StateChart) {
 							},
 						});
 					}
-
-					drawSprite({
-						width: ChartState.SQUARE_SIZE.x,
-						height: ChartState.SQUARE_SIZE.y,
-						scale: ChartState.stampProps.notes[index].scale,
-						angle: 90,
-						sprite: GameSave.noteskin + "_" + (i == stamp.length ? "tail" : "trail"),
-						// sprite: GameSave.noteskin + "_" + "trail",
-						pos: vec2(notePosLerped.x, notePosLerped.y + ((i + 1) * ChartState.SQUARE_SIZE.y)),
-						opacity: ChartState.scrollTime >= stamp.time ? 1 : 0.5,
-						anchor: "center",
-						shader: "replacecolor",
-						uniform: {
-							"u_targetcolor": moveToColor(stamp.move),
-						},
-					});
 				}
 			}
 
+			// this draws the actual stamp (event or note)
 			drawSprite({
 				width: ChartState.SQUARE_SIZE.x,
 				height: ChartState.SQUARE_SIZE.y,
@@ -274,17 +283,10 @@ export function drawNoteCursor(ChartState: StateChart) {
 			fixed: true,
 		});
 
-		// if there's already a note or event in that space dont' draw the sprite
-		if (
-			ChartState.isInNoteGrid && ChartState.song.chart.notes.some((note) =>
-				ChartState.conductor.timeToStep(note.time) == ChartState.hoveredStep
-			)
-		) return;
-		else if (
-			ChartState.isInEventGrid && ChartState.song.chart.events.some((ev) =>
-				ChartState.conductor.timeToStep(ev.time) == ChartState.hoveredStep
-			)
-		) return;
+		// if there's already a note or trail or event in that space don't draw the sprite
+		const noteAtStep = ChartState.isInNoteGrid && (findNoteAtStep(ChartState.hoveredStep, ChartState) != undefined || trailAtStep(ChartState.hoveredStep, ChartState));
+		const eventAtStep = ChartState.isInEventGrid && ChartState.song.chart.events.some((ev) => ChartState.conductor.timeToStep(ev.time) == ChartState.hoveredStep);
+		if (noteAtStep || eventAtStep) return;
 
 		drawSprite({
 			sprite: theSprite,
@@ -351,6 +353,19 @@ export function drawCameraController(ChartState: StateChart) {
 		}
 
 		drawRect(noteOpts);
+
+		if (note.length) {
+			for (let i = 0; i < note.length; i++) {
+				drawRect({
+					width: noteOpts.width / 2,
+					height: ChartState.SQUARE_SIZE.y / 20,
+					color: theColor,
+					anchor: "center",
+					pos: vec2(xPos, yPos + (i + 1) * noteOpts.height),
+					opacity: 0.5,
+				});
+			}
+		}
 	});
 
 	ChartState.song.chart.events.forEach((ev) => {
@@ -394,7 +409,7 @@ export function drawSelectSquares(ChartState: StateChart) {
 		const celesteColor = BLUE.lighten(150);
 		const isNote = isStampNote(stamp);
 		let height = ChartState.SQUARE_SIZE.y;
-		if (isNote) height = ChartState.SQUARE_SIZE.y * (stamp.length ? stamp.length + 2 : 1);
+		if (isNote) height = ChartState.SQUARE_SIZE.y * (stamp.length ? stamp.length + 1 : 1);
 
 		drawRect({
 			width: ChartState.SQUARE_SIZE.x,
@@ -653,9 +668,7 @@ export function addLeftInfo(ChartState: StateChart) {
 					{
 						ev: ev,
 						update() {
-							this.text = `Step: ${ChartState.conductor.timeToStep(ev.time)} ${
-								ChartState.conductor.timeInSeconds >= ev.time ? "✓" : "X"
-							}`;
+							this.text = `Step: ${ChartState.conductor.timeToStep(ev.time)} ${ChartState.conductor.timeInSeconds >= ev.time ? "✓" : "X"}`;
 						},
 					},
 				]);

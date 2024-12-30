@@ -1,3 +1,4 @@
+import { openSync } from "fs";
 import { AudioPlay, AudioPlayOpt, Key, TweenController } from "kaplay";
 import { GameSave } from "../../gamesave";
 
@@ -36,35 +37,17 @@ export interface customAudioPlay extends AudioPlay {
 	windDown: () => void;
 }
 
-/**
- * Custom type that extends {@link AudioPlayOpt `AudioPlayOpt`}
- */
-type customAudioPlayOpt = AudioPlayOpt & {
-	channel?: volumeChannel;
-};
-
 /** Set of all the sound handlers in the game */
 export const allSoundHandlers = new Set<customAudioPlay>();
 
 /**
  * Custom function for playing sound
  */
-export function playSound(soundName: string, opts?: customAudioPlayOpt): customAudioPlay {
-	// don't remove this
-	if (!opts) {
-		opts = {
-			channel: GameSave.sound.sfx,
-		};
-	}
-
-	// cases where opts.channel might be undefined
-	// the chhanel will be set to default (sfx)
-	if ((opts && !opts.channel) || (!opts.channel)) {
-		opts.channel = GameSave.sound.sfx;
-	}
+export function playSound(soundName: string, opts?: AudioPlayOpt): customAudioPlay {
+	opts = opts ?? {};
 
 	const audioPlayer = play(soundName, {
-		volume: opts.channel?.volume ?? 1,
+		volume: opts.volume ?? GameSave.sound.sfx.volume,
 		...opts,
 	}) as customAudioPlay;
 
@@ -120,8 +103,14 @@ export function playSound(soundName: string, opts?: customAudioPlayOpt): customA
 	return audioPlayer;
 }
 
-export function changeAllSoundsVolume(set: Set<customAudioPlay>, volume: number) {
-	set.forEach((handler) => {
-		handler.volume = volume;
+export function playMusic(soundName: string, opts?: AudioPlayOpt) {
+	opts = opts ?? {};
+	return playSound(soundName, {
+		volume: opts.volume ?? GameSave.sound.music.volume,
+		...opts,
 	});
+}
+
+export function updateMasterVolume() {
+	volume(GameSave.sound.masterVolume);
 }

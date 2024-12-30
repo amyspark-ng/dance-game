@@ -6,7 +6,7 @@ import { DANCER_POS } from "../objects/dancer";
 import { exitToChartEditor, exitToMenu, restartSong, StateGame } from "../PlayState";
 
 /** Runs when the game is paused */
-export function managePauseUI(GameState: StateGame) {
+export function addPauseUI(GameState: StateGame) {
 	const baseZ = 100;
 	const baseLerp = 0.5;
 	let scrollindex = 0;
@@ -151,4 +151,6 @@ export function managePauseUI(GameState: StateGame) {
 	get("*").filter((obj) => obj.tags.some((tag) => tagsToPause.includes(tag))).forEach((obj) => {
 		obj.paused = GameState.paused;
 	});
+
+	return { blackScreen, title, pausedText, buttons, fakeDancer };
 }

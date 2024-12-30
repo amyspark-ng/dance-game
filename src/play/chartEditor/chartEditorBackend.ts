@@ -45,25 +45,30 @@ export function concatStamps(notes: ChartNote[], events: ChartEvent[]): ChartSta
 	return [...notes, ...events];
 }
 
-/** Gets the closest note at a certain step (accounts for length of step)
+/** Gets the closest note at a certain step (accounts for trails of note [length])
  * @param step The step to find the note at
  */
 export function findNoteAtStep(step: number, ChartState: StateChart): ChartNote {
-	const note = ChartState.song.chart.notes.find((note) => ChartState.conductor.timeToStep(note.time) == step);
+	const note = ChartState.song.chart.notes.find((note) => Math.round(ChartState.conductor.timeToStep(note.time)) == step);
 
-	// if there is no note at the step, check if there's a trail to a note, if there is, return the note
-	if (!note) {
-		const stepToTime = ChartState.conductor.stepToTime(step);
-		const closestNote = ChartState.song.chart.notes.reduce((prev, curr) =>
-			Math.abs(curr.time - stepToTime) < Math.abs(prev.time - stepToTime) ? curr : prev
-		);
-		// now find if the step is in the trail of the closest note
+	if (note) return note;
+	else {
+		if (ChartState.song.chart.notes.length == 0) return undefined;
+		const longNotes = ChartState.song.chart.notes.filter((note) => note.length != undefined && note.length > 1);
+		if (longNotes.length == 0) {
+			return undefined;
+		}
+		// i have to find the closest note to the step that also has a length that is not undefined or 0
+		const closestNote = ChartState.song.chart.notes.filter((note) => note.length != undefined).reduce((prev, curr) => {
+			const prevStep = ChartState.conductor.timeToStep(prev.time);
+			const currStep = ChartState.conductor.timeToStep(curr.time);
+			if (Math.abs(step - prevStep) < Math.abs(step - currStep)) return prev;
+			else return curr;
+		});
+
 		const stepOfNote = ChartState.conductor.timeToStep(closestNote.time);
 		if (utils.isInRange(step, stepOfNote, stepOfNote + closestNote.length)) return closestNote;
 		else return undefined;
-	}
-	else {
-		return note;
 	}
 }
 
@@ -71,22 +76,9 @@ export function findNoteAtStep(step: number, ChartState: StateChart): ChartNote 
  * @param step The step to find the trail at
  */
 export function trailAtStep(step: number, ChartState: StateChart): boolean {
-	const note = ChartState.song.chart.notes.find((note) => ChartState.conductor.timeToStep(note.time) == step);
-
-	// if there is no note at the step, check if there's a trail to a note, if there is, return the note
-	if (!note) {
-		const stepToTime = ChartState.conductor.stepToTime(step);
-		const closestNote = ChartState.song.chart.notes.reduce((prev, curr) =>
-			Math.abs(curr.time - stepToTime) < Math.abs(prev.time - stepToTime) ? curr : prev
-		);
-		// now find if the step is in the trail of the closest note
-		const stepOfNote = ChartState.conductor.timeToStep(closestNote.time);
-		if (utils.isInRange(step, stepOfNote, stepOfNote + closestNote.length)) return true;
-		else return false;
-	}
-	else {
-		return false;
-	}
+	const note = findNoteAtStep(step, ChartState);
+	if (!note || !note?.length) return false;
+	else return true;
 }
 
 /** Get the message for the clipboard */
@@ -107,9 +99,7 @@ export function clipboardMessage(action: "copy" | "cut" | "paste", clipboard: Ch
 		message = `${actionStr} ${eventsLength} ${moreThanOneEvent ? "events" : "event"}!`;
 	}
 	else if (notesLength > 0 && eventsLength > 0) {
-		message = `${actionStr} ${notesLength} ${moreThanOneNote ? "notes" : "note"} and ${eventsLength} ${
-			moreThanOneEvent ? "events" : "event"
-		}!`;
+		message = `${actionStr} ${notesLength} ${moreThanOneNote ? "notes" : "note"} and ${eventsLength} ${moreThanOneEvent ? "events" : "event"}!`;
 	}
 	else if (notesLength == 0 && eventsLength == 0) message = `${actionStr} nothing!`;
 
@@ -271,9 +261,7 @@ export class StateChart {
 	 * @returns The added note
 	 */
 	placeNote(time: number, move: Move) {
-		const noteWithSameTimeButDifferentMove = this.song.chart.notes.find(note =>
-			note.time == time && note.move != move || note.time == time && note.move == move
-		);
+		const noteWithSameTimeButDifferentMove = this.song.chart.notes.find(note => note.time == time && note.move != move || note.time == time && note.move == move);
 		// if there's a note already at that time but a different move, remove it
 		if (noteWithSameTimeButDifferentMove) {
 			this.deleteNote(noteWithSameTimeButDifferentMove);
@@ -374,9 +362,7 @@ export class StateChart {
 		const dancersInEvents = dancerChangeEvents.map((ev) => ev.value.dancer);
 		const allDancerNames = dancers.map((dancerFiles) => dancerFiles.dancerName);
 		if (dancersInEvents.some((dancerInEvent) => allDancerNames.includes(dancerInEvent)) == false) {
-			const indexOfFaultyDancer = dancerChangeEvents.findIndex((ev) =>
-				dancersInEvents.some((dancerInEvent) => ev.value.dancer == dancerInEvent)
-			);
+			const indexOfFaultyDancer = dancerChangeEvents.findIndex((ev) => dancersInEvents.some((dancerInEvent) => ev.value.dancer == dancerInEvent));
 			dancerChangeEvents = utils.removeFromArr(dancersInEvents[indexOfFaultyDancer], dancerChangeEvents);
 		}
 
@@ -502,6 +488,13 @@ export function selectionBoxHandler(ChartState: StateChart) {
 				stampPos.y - ChartState.SQUARE_SIZE.y / 2,
 			);
 
+			// this is for long notes
+			let otherPossiblePos = posInScreen;
+
+			if (isStampNote(stamp) && stamp.length) {
+				otherPossiblePos.y += ChartState.SQUARE_SIZE.y * stamp.length;
+			}
+
 			// these are the positions in all 4 corners
 			const possiblePos = [
 				posInScreen, // topleft
@@ -512,7 +505,7 @@ export function selectionBoxHandler(ChartState: StateChart) {
 
 			// goes through each one and seeis if they're in the selection box
 			for (const posy in possiblePos) {
-				if (theRect.contains(possiblePos[posy])) {
+				if (theRect.contains(possiblePos[posy]) || theRect.contains(otherPossiblePos)) {
 					ChartState.selectedStamps.push(stamp);
 					break;
 				}
