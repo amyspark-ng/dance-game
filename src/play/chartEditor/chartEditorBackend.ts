@@ -1,8 +1,7 @@
 // File that stores some of the chart editor behaviour backend
 import JSZip from "jszip";
-import { GameObj, Key, Vec2 } from "kaplay";
+import { Key, Vec2 } from "kaplay";
 import TOML from "smol-toml";
-import { finished } from "stream";
 import { v4 as uuidv4 } from "uuid";
 import { Conductor } from "../../conductor";
 import { GameSave } from "../../core/gamesave";
@@ -13,9 +12,10 @@ import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { utils } from "../../utils";
 import { Move } from "../objects/dancer";
-import { ChartNote, moveToColor } from "../objects/note";
+import { ChartNote } from "../objects/note";
 import { ChartEvent, SongContent } from "../song";
 import { openChartInfoDialog } from "./chartEditorDialogs";
+import { NOTE_BIG_SCALE } from "./chartEditorElements";
 
 /** Is either a note or an event */
 export type ChartStamp = ChartNote | ChartEvent;
@@ -35,7 +35,7 @@ export class ChartSnapshot {
 }
 
 /** Type for handling props of stuff drawing */
-type stampPropThing = {
+export type stampPropThing = {
 	angle: number;
 	scale: Vec2;
 };
@@ -43,6 +43,29 @@ type stampPropThing = {
 /** Concatenates the stamps */
 export function concatStamps(notes: ChartNote[], events: ChartEvent[]): ChartStamp[] {
 	return [...notes, ...events];
+}
+
+export function fixStamps(stamps: ChartStamp[], ChartState: StateChart) {
+	stamps.forEach((stamp) => {
+		const isNote = isStampNote(stamp);
+		const songDuration = ChartState.conductor.audioPlay.duration();
+		// clamps from 0 to time
+		stamp.time = clamp(stamp.time, 0, songDuration);
+
+		function snapToClosestTime(t: number) {
+			const stampStep = ChartState.conductor.timeToStep(t);
+			const closestStep = Math.round(stampStep);
+			return parseFloat(ChartState.conductor.stepToTime(closestStep).toFixed(2));
+		}
+
+		// clamps to closest step
+		stamp.time = snapToClosestTime(stamp.time);
+
+		if (isNote) {
+			stamp.length = Math.round(stamp.length);
+			if (isNaN(stamp.length)) stamp.length = undefined;
+		}
+	});
 }
 
 /** Gets the closest note at a certain step (accounts for trails of note [length])
@@ -152,9 +175,6 @@ export class StateChart {
 
 	/** How lerped the scroll value is */
 	SCROLL_LERP_VALUE = 0.5;
-
-	/** How big will notes be when big */
-	NOTE_BIG_SCALE = 1.4;
 
 	/** Width and height of every square */
 	SQUARE_SIZE = vec2(52, 52);
@@ -273,7 +293,7 @@ export class StateChart {
 
 		const indexInNotes = this.song.chart.notes.indexOf(newNote);
 		this.stampProps.notes[indexInNotes] = { scale: vec2(1), angle: 0 };
-		tween(vec2(this.NOTE_BIG_SCALE), vec2(1), 0.1, (p) => this.stampProps.notes[indexInNotes].scale = p);
+		tween(NOTE_BIG_SCALE, vec2(1), 0.1, (p) => this.stampProps.notes[indexInNotes].scale = p);
 		this.selectedStamps.push(newNote);
 
 		return newNote;
@@ -301,7 +321,7 @@ export class StateChart {
 
 		const indexInEvents = this.song.chart.events.indexOf(newEvent);
 		this.stampProps.events[indexInEvents] = { scale: vec2(1), angle: 0 };
-		tween(vec2(this.NOTE_BIG_SCALE), vec2(1), 0.1, (p) => this.stampProps.events[indexInEvents].scale = p);
+		tween(NOTE_BIG_SCALE, vec2(1), 0.1, (p) => this.stampProps.events[indexInEvents].scale = p);
 		this.selectedStamps.push(newEvent);
 
 		return newEvent;

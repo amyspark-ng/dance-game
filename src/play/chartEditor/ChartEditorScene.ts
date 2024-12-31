@@ -1,5 +1,6 @@
 // The actual scene for the chart editor
 import { KEventController } from "kaplay";
+import { v4 as uuidv4 } from "uuid";
 import { Conductor } from "../../conductor";
 import { onBeatHit, onNoteHit, onStepHit, triggerEvent } from "../../core/events";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
@@ -8,7 +9,8 @@ import { transitionToScene } from "../../core/scenes";
 import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { utils } from "../../utils";
-import { moveToColor } from "../objects/note";
+import { moveToColor, notesSpawner } from "../objects/note";
+import { getClosestNote } from "../objects/scoring";
 import { paramsGameScene } from "../PlayState";
 import { SongContent } from "../song";
 import {
@@ -19,12 +21,14 @@ import {
 	clipboardMessage,
 	concatStamps,
 	findNoteAtStep,
+	fixStamps,
 	isStampNote,
 	moveHandler,
 	moveToDetune,
 	paramsChartEditor,
 	selectionBoxHandler,
 	setMouseAnimConditions,
+	stampPropThing,
 	StateChart,
 	trailAtStep,
 } from "./chartEditorBackend";
@@ -57,8 +61,6 @@ export function ChartEditorScene() {
 		const ChartState = new StateChart();
 		setBackground(Color.fromArray(ChartState.bgColor));
 
-		const isNewSong = params.song == null;
-
 		setMouseAnimConditions(ChartState);
 
 		/** Gets the current note that is being hovered */
@@ -76,24 +78,19 @@ export function ChartEditorScene() {
 
 		// this sets the chartstate.song prop to new songcontent()
 		// also sets the conductor
-		if (isNewSong) {
-			ChartState.createNewSong();
-		}
-		else {
-			// IMPORTANT
-			ChartState.song = JSON.parse(JSON.stringify(params.song)) as SongContent;
+		// Creates a deep copy of the song so it doesn't overwrite the current song
+		ChartState.song = JSON.parse(JSON.stringify(params.song)) as SongContent;
+		// TODO: I have to do the thing where it actually overwrites the uuid to a new one fuck
+		ChartState.conductor = new Conductor({
+			audioPlay: playMusic(`${ChartState.song.manifest.uuid_DONT_CHANGE}-audio`, {
+				speed: params.playbackSpeed,
+			}),
+			BPM: ChartState.song.manifest.initial_bpm * params.playbackSpeed,
+			timeSignature: ChartState.song.manifest.time_signature,
+			offset: 0,
+		});
 
-			ChartState.conductor = new Conductor({
-				audioPlay: playMusic(`${ChartState.song.manifest.uuid_DONT_CHANGE}-audio`, {
-					speed: params.playbackSpeed,
-				}),
-				BPM: ChartState.song.manifest.initial_bpm * params.playbackSpeed,
-				timeSignature: ChartState.song.manifest.time_signature,
-				offset: 0,
-			});
-
-			ChartState.conductor.audioPlay.seek(params.seekTime);
-		}
+		ChartState.conductor.audioPlay.seek(params.seekTime);
 
 		ChartState.params = params;
 		ChartState.paused = true;
@@ -112,27 +109,16 @@ export function ChartEditorScene() {
 
 		onUpdate(() => {
 			const allStamps = concatStamps(ChartState.song.chart.notes, ChartState.song.chart.events);
+			fixStamps(allStamps, ChartState);
+
 			allStamps.forEach((stamp, index) => {
-				// clamps from 0 to time
-				stamp.time = clamp(stamp.time, 0, songDuration);
-
-				function snapToClosestStep(t: number) {
-					const stampStep = ChartState.conductor.timeToStep(t);
-					const closestStep = Math.round(stampStep);
-					return ChartState.conductor.stepToTime(closestStep);
-				}
-
-				// clamps to closest step
-				stamp.time = snapToClosestStep(stamp.time);
-
-				if (!ChartState.stampProps[isStampNote(stamp) ? "notes" : "events"][index]) {
-					ChartState.stampProps[isStampNote(stamp) ? "notes" : "events"][index] = {
+				const isNote = isStampNote(stamp);
+				if (!ChartState.stampProps[isNote ? "notes" : "events"][index]) {
+					ChartState.stampProps[isNote ? "notes" : "events"][index] = {
 						scale: vec2(1),
 						angle: 0,
 					};
 				}
-
-				// TODO: Account for double notes or events
 			});
 
 			// TODO: Do stuff for properly animating dancer
@@ -440,7 +426,11 @@ export function ChartEditorScene() {
 						ChartState.selectedStamps.push(hoveredNote);
 						ChartState.takeSnapshot();
 					}
-					setLeading(hoveredNote);
+
+					if (hoveredNote.length) {
+						if (ChartState.hoveredStep == ChartState.conductor.timeToStep(hoveredNote.time)) setLeading(hoveredNote);
+					}
+					else setLeading(hoveredNote);
 				}
 				// there's no note in that place
 				else {
@@ -560,61 +550,58 @@ export function ChartEditorScene() {
 
 			let oldStepOfLeading = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time);
 
-			// ChartState.selectedStamps.forEach((selectedStamp, index) => {
-			// 	// is the leading stamp
-			// 	if (selectedStamp == ChartState.selectionBox.leadingStamp) {
-			// 		let newStep = ChartState.hoveredStep
-			// 		newStep = clamp(newStep, 0, ChartState.conductor.totalSteps - 1)
+			ChartState.selectedStamps.forEach((selectedStamp, index) => {
+				// is the leading stamp
+				if (selectedStamp == ChartState.selectionBox.leadingStamp) {
+					let newStep = ChartState.hoveredStep;
+					newStep = clamp(newStep, 0, ChartState.conductor.totalSteps - 1);
 
-			// 		selectedStamp.time = ChartState.conductor.stepToTime(newStep)
-			// 		ChartState.selectionBox.leadingStamp = selectedStamp
-			// 	}
+					selectedStamp.time = ChartState.conductor.stepToTime(newStep);
+					ChartState.selectionBox.leadingStamp = selectedStamp;
+				}
+				else {
+					const isNote = isStampNote(selectedStamp);
 
-			// 	else {
-			// 		const isNote = isStampNote(selectedStamp)
+					const leadingStampStep = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time);
 
-			// 		const leadingStampStep = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time)
+					if (isNote) {
+						const indexInNotes = ChartState.song.chart.notes.indexOf(selectedStamp);
 
-			// 		if (isNote) {
-			// 			const indexInNotes = ChartState.song.chart.notes.indexOf(selectedStamp)
+						// this is some big brain code i swear
+						const stepDiff = differencesToLeading.notes[indexInNotes];
+						let newStep = leadingStampStep + stepDiff;
+						newStep = clamp(newStep, 0, ChartState.conductor.totalSteps - 1);
+						selectedStamp.time = ChartState.conductor.stepToTime(newStep);
+					}
+					else {
+						const indexInEvents = ChartState.song.chart.events.indexOf(selectedStamp);
 
-			// 			// this is some big brain code i swear
-			// 			const stepDiff = differencesToLeading.notes[indexInNotes]
-			// 			let newStep = leadingStampStep + stepDiff
-			// 			newStep = clamp(newStep, 0, ChartState.conductor.totalSteps - 1)
-			// 			selectedStamp.time = ChartState.conductor.stepToTime(newStep)
-			// 		}
+						// this is some big brain code i swear
+						const stepDiff = differencesToLeading.events[indexInEvents];
+						let newStep = leadingStampStep + stepDiff;
+						newStep = clamp(newStep, 0, ChartState.conductor.totalSteps - 1);
+						selectedStamp.time = ChartState.conductor.stepToTime(newStep);
+					}
+				}
+			});
 
-			// 		else {
-			// 			const indexInEvents = ChartState.song.chart.events.indexOf(selectedStamp)
+			let newStepOfLeading = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time);
 
-			// 			// this is some big brain code i swear
-			// 			const stepDiff = differencesToLeading.events[indexInEvents]
-			// 			let newStep = leadingStampStep + stepDiff
-			// 			newStep = clamp(newStep, 0, ChartState.conductor.totalSteps - 1)
-			// 			selectedStamp.time = ChartState.conductor.stepToTime(newStep)
-			// 		}
-			// 	}
-			// })
+			if (newStepOfLeading != oldStepOfLeading) {
+				// thinking WAY too hard for a simple sound effect lol!
+				const diff = newStepOfLeading - ChartState.stepForDetune;
+				let baseDetune = 0;
 
-			// let newStepOfLeading = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time)
+				if (isStampNote(ChartState.selectionBox.leadingStamp)) {
+					baseDetune = Math.abs(moveToDetune(ChartState.selectionBox.leadingStamp.move)) * 0.5;
+				}
+				else {
+					baseDetune = Object.keys(ChartState.events).indexOf(ChartState.selectionBox.leadingStamp.id) * 10;
+				}
 
-			// if (newStepOfLeading != oldStepOfLeading) {
-			// 	// thinking WAY too hard for a simple sound effect lol!
-			// 	const diff = newStepOfLeading - ChartState.stepForDetune
-			// 	let baseDetune = 0
-
-			// 	if (isStampNote(ChartState.selectionBox.leadingStamp)) {
-			// 		baseDetune = Math.abs(moveToDetune(ChartState.selectionBox.leadingStamp.move)) * 0.5
-			// 	}
-
-			// 	else {
-			// 		baseDetune = Object.keys(ChartState.events).indexOf(ChartState.selectionBox.leadingStamp.id) * 10
-			// 	}
-
-			// 	playSound("noteMove", { detune: baseDetune * diff })
-			// 	ChartState.takeSnapshot();
-			// }
+				playSound("noteMove", { detune: baseDetune * diff });
+				ChartState.takeSnapshot();
+			}
 		});
 
 		// Copies the color of a note
@@ -714,17 +701,40 @@ export function ChartEditorScene() {
 
 		// Scrolls the checkerboard
 		onStepHit(() => {
-			const someNote = ChartState.song.chart.notes.find((note) => {
-				return Math.round(ChartState.conductor.timeToStep(note.time))
+			const stampsAtStep = concatStamps(ChartState.song.chart.notes, ChartState.song.chart.events).filter((stamp) => {
+				return Math.round(ChartState.conductor.timeToStep(stamp.time))
 					== Math.round(ChartState.conductor.timeToStep(ChartState.conductor.timeInSeconds));
 			});
 
-			if (someNote) {
-				const indexOfNote = ChartState.song.chart.notes.indexOf(someNote);
-				tween(vec2(NOTE_BIG_SCALE), vec2(1), 0.1, (p) => ChartState.stampProps.notes[indexOfNote].scale = p);
-				playSound("noteHit", { detune: moveToDetune(someNote.move) });
-				triggerEvent("onNoteHit", someNote);
-			}
+			stampsAtStep.forEach((stamp) => {
+				const isNote = isStampNote(stamp);
+				if (isNote) {
+					const indexOfNote = ChartState.song.chart.notes.indexOf(stamp);
+
+					if (stamp.length) {
+						const ogScale = ChartState.stampProps.notes[indexOfNote].scale;
+						tween(ogScale, NOTE_BIG_SCALE, 0.05, (p) => ChartState.stampProps.notes[indexOfNote].scale = p);
+					}
+					else {
+						tween(NOTE_BIG_SCALE, vec2(1), 0.1, (p) => ChartState.stampProps.notes[indexOfNote].scale = p);
+					}
+					playSound("noteHit", { detune: moveToDetune(stamp.move) });
+					triggerEvent("onNoteHit", stamp);
+				}
+				else {
+					const indexOfEv = ChartState.song.chart.events.indexOf(stamp);
+					tween(NOTE_BIG_SCALE, vec2(1), 0.1, (p) => ChartState.stampProps.events[indexOfEv].scale = p);
+				}
+			});
+
+			// find the ones that are long and are big so they can be un-bigged
+			ChartState.stampProps.notes.filter((prop) => prop.scale.x > 1).forEach((prop) => {
+				const note = ChartState.song.chart.notes[ChartState.stampProps.notes.indexOf(prop)];
+				const stepOfNote = ChartState.conductor.timeToStep(note.time);
+				if (ChartState.scrollStep > stepOfNote + note.length) {
+					tween(prop.scale, vec2(1), 0.1, (p) => prop.scale = p);
+				}
+			});
 		});
 
 		// animate the dancer

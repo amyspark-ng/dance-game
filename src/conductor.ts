@@ -176,6 +176,7 @@ export class Conductor {
 		}
 	}
 
+	/** Runs when the conductor starts playing (time in seconds is greater than 0) */
 	onStart(action: () => void) {
 		return getTreeRoot().on("conductorStart", action);
 	}

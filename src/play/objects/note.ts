@@ -20,10 +20,12 @@ export class ChartNote {
 	time: number = 0;
 	/** The move (the color) the dancer will do upon hitting this note */
 	move: Move = "up";
-	/** the time the note must be spawned at */
-	spawnTime?: number;
 	/** How long the note is in steps */
 	length?: number;
+}
+
+function getNoteSpawnTime(note: ChartNote) {
+	return note.time - TIME_FOR_STRUM;
 }
 
 /** Converts a move to a color (based on fnf lol) */
@@ -110,7 +112,7 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 		if (GameState.paused) return;
 
 		if (!noteObj.holding) {
-			let mapValue = (GameState.conductor.timeInSeconds - chartNote.spawnTime) / TIME_FOR_STRUM;
+			let mapValue = (GameState.conductor.timeInSeconds - getNoteSpawnTime(noteObj.chartNote)) / TIME_FOR_STRUM;
 			const xPos = map(mapValue, 0, 1, NOTE_SPAWNPOINT, GameState.strumline.pos.x - NOTE_WIDTH / 2);
 			noteObj.pos.x = xPos;
 		}
@@ -141,16 +143,11 @@ export type NoteGameObj = ReturnType<typeof addNote>;
 
 /** Crucial function that handles the spawning of notes in the game */
 export function notesSpawner(GameState: StateGame) {
-	// sets the spawnTime
-	GameState.song.chart.notes.forEach((note) => {
-		note.spawnTime = note.time - TIME_FOR_STRUM;
-	});
-
 	/** holds all the chart.notes that have not been spawned */
 	let waiting: ChartNote[] = [];
 
 	function resetWaiting() {
-		waiting = GameState.song.chart.notes.toSorted((a, b) => b.spawnTime - a.spawnTime);
+		waiting = GameState.song.chart.notes.toSorted((a, b) => getNoteSpawnTime(b) - getNoteSpawnTime(a));
 	}
 
 	resetWaiting();
@@ -165,7 +162,7 @@ export function notesSpawner(GameState: StateGame) {
 		while (index >= 0) {
 			const note = waiting[index];
 			// If next note is in the future, stop
-			if (note.spawnTime > t) {
+			if (getNoteSpawnTime(note) > t) {
 				break;
 			}
 			addNote(note, GameState);

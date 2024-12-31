@@ -19,7 +19,7 @@ function conditionsForDrawing(YPos: number, square_size: Vec2 = vec2(52)) {
 export const SCROLL_LERP_VALUE = 0.5;
 
 /** How big will notes be when big */
-export const NOTE_BIG_SCALE = 1.4;
+export const NOTE_BIG_SCALE = vec2(1.4);
 
 /** Draws the playbar and the text with the time */
 export function drawPlayBar(ChartState: StateChart) {
