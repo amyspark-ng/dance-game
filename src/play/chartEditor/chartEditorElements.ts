@@ -142,7 +142,7 @@ export function stampRenderer(ChartState: StateChart) {
 
 		const stepOfStamp = ChartState.conductor.timeToStep(stamp.time);
 		const lengthOfStamp = isNote ? stamp.length : 0;
-		const stampLengthIsInRange = isNote && utils.isInRange(ChartState.scrollStep, stepOfStamp, stepOfStamp + lengthOfStamp);
+		const stampLengthIsInRange = isNote && trailAtStep(ChartState.scrollStep, ChartState);
 
 		const canDraw = conditionsForDrawing(stampPos.y) || stampLengthIsInRange;
 

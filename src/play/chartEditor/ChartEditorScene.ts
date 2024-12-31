@@ -428,7 +428,7 @@ export function ChartEditorScene() {
 					}
 
 					if (hoveredNote.length) {
-						if (ChartState.hoveredStep == ChartState.conductor.timeToStep(hoveredNote.time)) setLeading(hoveredNote);
+						if (ChartState.hoveredStep == Math.round(ChartState.conductor.timeToStep(hoveredNote.time))) setLeading(hoveredNote);
 					}
 					else setLeading(hoveredNote);
 				}
@@ -457,12 +457,10 @@ export function ChartEditorScene() {
 					});
 
 					const releaseEV = onMouseRelease(() => {
+						playSound("noteSnap");
 						releaseEV.cancel();
-						stretchingNoteEV.cancel();
+						stretchingNoteEV?.cancel();
 						stretchingNoteEV = null;
-						if (hoveredNote.length > 0) {
-							playSound("noteStretch", { detune: 300, speed: 2 });
-						}
 					});
 				}
 
@@ -513,26 +511,31 @@ export function ChartEditorScene() {
 			ChartState.selectionBox.leadingStamp = undefined;
 		});
 
-		let stepClicked = 0;
-
 		// Removing notes
 		onMousePress("right", () => {
 			if (GameDialog.isOpen) return;
 			if (!ChartState.isCursorInGrid) return;
-			stepClicked = ChartState.hoveredStep;
 
 			function noteBehaviour() {
 				const note = getCurrentHoveredNote();
-				if (!note) return;
-				ChartState.deleteNote(note);
-				playSound("noteRemove", { detune: moveToDetune(note.move) });
-				ChartState.takeSnapshot();
+
+				if (trailAtStep(ChartState.hoveredStep, ChartState)) {
+					// if you click the trail instead of the note it will only remove the trail rather than the note
+					note.length = undefined;
+					playSound("noteSnap", { detune: -50 });
+					ChartState.takeSnapshot();
+				}
+				else {
+					ChartState.deleteNote(note);
+					playSound("noteRemove", { detune: moveToDetune(note.move) });
+					ChartState.takeSnapshot();
+				}
 			}
 
 			function eventBehaviour() {
 				const hoveredEvent = getCurrentHoveredEvent();
 				if (!hoveredEvent) return;
-				const ev = ChartState.deleteEvent(hoveredEvent);
+				ChartState.deleteEvent(hoveredEvent);
 				playSound("noteRemove");
 				playSound("eventCog", { detune: rand(-50, 50) });
 				ChartState.takeSnapshot();
@@ -549,6 +552,7 @@ export function ChartEditorScene() {
 			if (!ChartState.selectionBox.leadingStamp) return;
 
 			let oldStepOfLeading = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time);
+			oldStepOfLeading = Math.round(oldStepOfLeading);
 
 			ChartState.selectedStamps.forEach((selectedStamp, index) => {
 				// is the leading stamp
@@ -586,6 +590,7 @@ export function ChartEditorScene() {
 			});
 
 			let newStepOfLeading = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time);
+			newStepOfLeading = Math.round(newStepOfLeading);
 
 			if (newStepOfLeading != oldStepOfLeading) {
 				// thinking WAY too hard for a simple sound effect lol!

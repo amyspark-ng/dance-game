@@ -90,9 +90,7 @@ function loadSongFromFolder(folderPath: string): Promise<SongContent> {
 	// this was wholely written by github copilot madly impressive
 	return new Promise(async (resolve, reject) => {
 		try {
-			const manifest = await fetch(`${folderPath}/manifest.toml`).then((thing) => thing.text()).then((text) =>
-				TOML.parse(text)
-			);
+			const manifest = await fetch(`${folderPath}/manifest.toml`).then((thing) => thing.text()).then((text) => TOML.parse(text));
 			const chart = await fetch(`${folderPath}/${manifest.chart_file}`).then((thing) => thing.json());
 			const audio = await fetch(`${folderPath}/${manifest.audio_file}`).then((thing) => thing.blob()).then((
 				blob,
@@ -328,6 +326,7 @@ export async function loadAssets() {
 	loadSound("noteUndo", "sounds/chart-editor/noteUndo.wav");
 	loadSound("noteCopy", "sounds/chart-editor/noteCopy.wav");
 	loadSound("noteStretch", "sounds/chart-editor/noteStretch.ogg");
+	loadSound("noteSnap", "sounds/chart-editor/noteSnap.ogg");
 	loadSound("dialogOpen", "sounds/chart-editor/dialogOpen.ogg");
 	loadSound("eventCog", "sounds/chart-editor/eventCog.wav");
 	loadSound("mouseClick", "sounds/chart-editor/mouseClick.ogg");

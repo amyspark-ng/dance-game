@@ -73,25 +73,17 @@ export function fixStamps(stamps: ChartStamp[], ChartState: StateChart) {
  */
 export function findNoteAtStep(step: number, ChartState: StateChart): ChartNote {
 	const note = ChartState.song.chart.notes.find((note) => Math.round(ChartState.conductor.timeToStep(note.time)) == step);
-
 	if (note) return note;
 	else {
-		if (ChartState.song.chart.notes.length == 0) return undefined;
-		const longNotes = ChartState.song.chart.notes.filter((note) => note.length != undefined && note.length > 1);
-		if (longNotes.length == 0) {
-			return undefined;
-		}
-		// i have to find the closest note to the step that also has a length that is not undefined or 0
-		const closestNote = ChartState.song.chart.notes.filter((note) => note.length != undefined).reduce((prev, curr) => {
-			const prevStep = ChartState.conductor.timeToStep(prev.time);
-			const currStep = ChartState.conductor.timeToStep(curr.time);
-			if (Math.abs(step - prevStep) < Math.abs(step - currStep)) return prev;
-			else return curr;
+		const longNotes = ChartState.song.chart.notes.filter((note) => note.length != undefined);
+		const noteWithTrailAtStep = longNotes.find((note) => {
+			const noteStep = Math.round(ChartState.conductor.timeToStep(note.time));
+			if (utils.isInRange(step, noteStep, noteStep + note.length)) {
+				return note;
+			}
+			else return undefined;
 		});
-
-		const stepOfNote = ChartState.conductor.timeToStep(closestNote.time);
-		if (utils.isInRange(step, stepOfNote, stepOfNote + closestNote.length)) return closestNote;
-		else return undefined;
+		return noteWithTrailAtStep;
 	}
 }
 
@@ -100,8 +92,14 @@ export function findNoteAtStep(step: number, ChartState: StateChart): ChartNote 
  */
 export function trailAtStep(step: number, ChartState: StateChart): boolean {
 	const note = findNoteAtStep(step, ChartState);
-	if (!note || !note?.length) return false;
-	else return true;
+	if (note) {
+		const noteStep = Math.round(ChartState.conductor.timeToStep(note.time));
+		if (note.length) {
+			return utils.isInRange(step, noteStep + 1, noteStep + 1 + note.length);
+		}
+		else return false;
+	}
+	else return false;
 }
 
 /** Get the message for the clipboard */

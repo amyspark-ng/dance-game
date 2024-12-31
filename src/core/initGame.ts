@@ -44,23 +44,29 @@ setGravity(1000);
 GameSave.load();
 globalThis.GameSave = GameSave;
 onLoading((progress: number) => loadingScreen(progress));
-await loadAssets();
+loadAssets();
 
-setupScenes();
-setupCursor();
-setupCamera();
-setupSoundtray();
-updateMasterVolume();
+onLoad(() => {
+	setupScenes();
+	setupCursor();
+	setupCamera();
+	setupSoundtray();
+	updateMasterVolume();
 
-console.log(`${GAME.AUTHOR}.${GAME.NAME} v: ${GAME.VERSION}`);
+	console.log(`${GAME.AUTHOR}.${GAME.NAME} v: ${GAME.VERSION}`);
 
-if (GAME.FEATURE_FOCUS) {
-	if (isFocused()) INITIAL_SCENE();
-	else goScene("focus");
-}
-else {
-	INITIAL_SCENE();
-}
+	if (GAME.FEATURE_FOCUS) {
+		if (isFocused()) INITIAL_SCENE();
+		else goScene("focus");
+	}
+	else {
+		INITIAL_SCENE();
+	}
+});
+
+utils.runInDesktop(() => {
+	if (GameSave.fullscreen) appWindow.setFullscreen(GameSave.fullscreen);
+});
 
 // for drag
 document.getElementById("kanva").addEventListener("mouseout", () => {
@@ -89,12 +95,8 @@ document.addEventListener("fullscreenchange", (event) => {
 	else GameSave.fullscreen = false;
 });
 
-utils.runInDesktop(() => {
-	if (GameSave.fullscreen) appWindow.setFullscreen(GameSave.fullscreen);
-});
-
 export function INITIAL_SCENE() {
-	goScene("charteditor", { song: getSong("bopeebo") } as paramsChartEditor);
+	goScene("charteditor", { song: getSong("unholy-blight") } as paramsChartEditor);
 	// goScene("game", { songZip: getSong("bopeebo") } as paramsGameScene)
-	// goScene("menu", { index: 0 })
+	// goScene("menu", { index: 0 });
 }
