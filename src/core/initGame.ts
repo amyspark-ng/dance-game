@@ -1,6 +1,8 @@
 import { getCurrent, WebviewWindow } from "@tauri-apps/api/window";
+import { FileManager } from "../fileManaging";
 import { paramsChartEditor } from "../play/chartEditor/chartEditorBackend";
 import { paramsGameScene } from "../play/PlayState";
+import { paramsSongSelect } from "../ui/SongSelectScene";
 import { utils } from "../utils";
 import { GameSave } from "./gamesave";
 import { getSong, loadAssets, loadingScreen } from "./loader";
@@ -96,7 +98,8 @@ document.addEventListener("fullscreenchange", (event) => {
 });
 
 export function INITIAL_SCENE() {
-	goScene("game", { song: getSong("unholy-blight") } as paramsChartEditor);
+	// goScene("game", { song: getSong("unholy-blight") } as paramsChartEditor);
 	// goScene("game", { song: getSong("bopeebo") } as paramsGameScene);
+	goScene("songselect", { index: 0 } as paramsSongSelect);
 	// goScene("menu", { index: 0 });
 }

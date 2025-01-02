@@ -127,33 +127,29 @@ function loadSongFromFolder(folderPath: string): Promise<SongContent> {
 }
 
 /** Loads a song from a zip file
- * @param zipThing It will be either the url of the zip inside the game folder
+ * @param zipFile It will be either the url of the zip inside the game folder
  *
  * Or the File object to load the zip
  * @param Wheter it's a default song to put it in order or just put it in wharever order
  */
-export async function loadSongFromZIP(zipThing: string | File, defaultSong: boolean = false): Promise<SongContent> {
+export async function loadSongFromZIP(zipFile: File, defaultSong: boolean = false): Promise<SongContent> {
 	const jsZip = new JSZip();
 
-	let zipFile: JSZip = null;
-	if (typeof zipThing == "string") {
-		const blobOfZip = await fetch(`songs/${zipThing}.zip`).then((thing) => thing.blob());
-		zipFile = await jsZip.loadAsync(blobOfZip);
-	}
-	else zipFile = await jsZip.loadAsync(zipThing);
+	let jsZipFile: JSZip = null;
+	jsZipFile = await jsZip.loadAsync(zipFile);
 
-	const manifestTOML = await zipFile.file("manifest.toml").async("string");
+	const manifestTOML = await jsZipFile.file("manifest.toml").async("string");
 	const manifest = TOML.parse(manifestTOML);
 
 	const uuid = manifest.uuid_DONT_CHANGE.toString();
-	const audioPath = manifest["audio_file"].toString();
+	const audioPath = manifest.audio_file.toString();
 	const coverPath = manifest.cover_file.toString();
 	const chartPath = manifest.chart_file.toString();
 
 	// loads audio
 	if (isUrl(audioPath)) await loadSound(uuid + "-audio", audioPath);
 	else {
-		const arrBuffer = await zipFile.file(audioPath).async("arraybuffer");
+		const arrBuffer = await jsZipFile.file(audioPath).async("arraybuffer");
 		await loadSound(uuid + "-audio", arrBuffer);
 	}
 
@@ -378,10 +374,10 @@ export async function loadAssets() {
 	await load(
 		new Promise(async (resolve, reject) => {
 			try {
-				defaultSongs.forEach(async (songzippath, index) => {
-					songzippath = `songs/${songzippath}`;
+				defaultSongs.forEach(async (folderPath, index) => {
+					folderPath = `songs/${folderPath}`;
 					try {
-						const songZip = await loadSongFromFolder(songzippath);
+						await loadSongFromFolder(folderPath);
 					}
 					catch (err) {
 						throw new Error("There was an error loading the default songs");

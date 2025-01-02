@@ -4,7 +4,7 @@ import { gameCursor } from "../core/plugins/features/gameCursor";
 import { customAudioPlay, playMusic, playSound } from "../core/plugins/features/sound";
 import { goScene, transitionToScene } from "../core/scenes";
 import { enterSongTrans } from "../core/transitions/enterSongTransition";
-import { handleZipInput } from "../fileManaging";
+import { FileManager, handleZipInput, inputElement } from "../fileManaging";
 import { Scoring } from "../play/objects/scoring";
 import { paramsGameScene } from "../play/PlayState";
 import { SaveScore, SongContent } from "../play/song";
@@ -245,23 +245,31 @@ export function SongSelectScene() {
 			tween(0, GameSave.sound.music.volume, 0.25, (p) => songSelectState.songPreview.volume = p);
 		});
 
-		onKeyPress("enter", () => {
+		onKeyPress("enter", async () => {
 			if (!songSelectState.menuInputEnabled) return;
 			const hoveredCapsule = allCapsules[songSelectState.index];
-			if (hoveredCapsule) {
-				if (hoveredCapsule.song == null) {
-					handleZipInput(songSelectState);
+			if (!hoveredCapsule) return;
+
+			if (hoveredCapsule.song == null) {
+				const loadingScreen = FileManager.loadingScreen();
+				const gottenFile = await FileManager.receiveFile("mod");
+				if (gottenFile) {
+					const songContent = await FileManager.SongContentFromZIP(gottenFile);
+					loadingScreen.cancel();
 				}
 				else {
-					songSelectState.menuInputEnabled = false;
-					songSelectState.songPreview.stop();
-					const currentSongZip = hoveredCapsule.song;
-					transitionToScene(
-						enterSongTrans,
-						"game",
-						{ song: currentSongZip, dancer: GameSave.dancer } as paramsGameScene,
-					);
+					throw new Error("Never received file");
 				}
+			}
+			else {
+				songSelectState.menuInputEnabled = false;
+				songSelectState.songPreview.stop();
+				const currentSongZip = hoveredCapsule.song;
+				transitionToScene(
+					enterSongTrans,
+					"game",
+					{ song: currentSongZip, dancer: GameSave.dancer } as paramsGameScene,
+				);
 			}
 		});
 

@@ -7,7 +7,11 @@ export class SaveScore {
 	/** The uuid of the song */
 	uuid: string;
 	/** The tally of the score */
-	tally: Tally = new Tally();
+	tally: Tally;
+	constructor() {
+		this.uuid = undefined;
+		this.tally = new Tally();
+	}
 }
 
 /** The content of the manifest in the song zip */
@@ -32,6 +36,22 @@ export class SongManifest {
 	audio_file: string;
 	/** The path/url of the cover file */
 	cover_file: string;
+	constructor(param?: SongManifest) {
+		Object.assign(this, {
+			name: "New song",
+			artist: "Someone",
+			charter: "Someone else",
+			audio_file: "pathToAudio",
+			chart_file: "pathToChart",
+			cover_file: "pathToCover",
+			initial_bpm: 100,
+			initial_scrollspeed: 1,
+			time_signature: [4, 4],
+			uuid_DONT_CHANGE: "",
+		});
+
+		if (param) Object.assign(this, param);
+	}
 }
 
 /** An event in the chart */
@@ -45,40 +65,34 @@ export class ChartEvent {
 }
 
 /** The content of the chart file */
-export class Chart {
+export class SongChart {
 	/** Array of chart notes */
 	notes: ChartNote[];
 	/** Array of chart events */
 	events: ChartEvent[];
+
+	constructor(param?: SongChart) {
+		Object.assign(this, {
+			notes: [
+				{ time: 1, move: "up" },
+			],
+			events: [],
+		});
+
+		if (param) {
+			Object.assign(this, param);
+		}
+	}
 }
 
 /** The content of a song zip */
 export class SongContent {
 	/** The content of the manifest.toml in the zip */
-	manifest: SongManifest;
+	manifest: SongManifest = new SongManifest();
 	/** The content of the chart.json in the zip */
-	chart: Chart;
+	chart: SongChart = new SongChart();
+
 	constructor(param?: SongContent) {
-		this.manifest = {
-			name: "New song",
-			artist: "Someone",
-			charter: "Someone else",
-			audio_file: "pathToAudio",
-			chart_file: "pathToChart",
-			cover_file: "pathToCover",
-			initial_bpm: 100,
-			initial_scrollspeed: 1,
-			time_signature: [4, 4],
-			uuid_DONT_CHANGE: "",
-		};
-
-		this.chart = {
-			notes: [
-				{ time: 1, move: "up" },
-			],
-			events: [],
-		};
-
 		if (param) {
 			Object.assign(this, param);
 		}

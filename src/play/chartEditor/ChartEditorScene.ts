@@ -107,17 +107,19 @@ export function ChartEditorScene() {
 
 		onUpdate(() => {
 			const allStamps = concatStamps(ChartState.song.chart.notes, ChartState.song.chart.events);
-			fixStamps(allStamps, ChartState);
+			if (allStamps.length > 0) {
+				fixStamps(allStamps, ChartState);
 
-			allStamps.forEach((stamp, index) => {
-				const isNote = isStampNote(stamp);
-				if (!ChartState.stampProps[isNote ? "notes" : "events"][index]) {
-					ChartState.stampProps[isNote ? "notes" : "events"][index] = {
-						scale: vec2(1),
-						angle: 0,
-					};
-				}
-			});
+				allStamps.forEach((stamp, index) => {
+					const isNote = isStampNote(stamp);
+					if (!ChartState.stampProps[isNote ? "notes" : "events"][index]) {
+						ChartState.stampProps[isNote ? "notes" : "events"][index] = {
+							scale: vec2(1),
+							angle: 0,
+						};
+					}
+				});
+			}
 
 			// TODO: Do stuff for properly animating dancer
 			ChartState.song.chart.events.forEach((ev) => {
