@@ -96,7 +96,7 @@ document.addEventListener("fullscreenchange", (event) => {
 });
 
 export function INITIAL_SCENE() {
-	goScene("charteditor", { song: getSong("unholy-blight") } as paramsChartEditor);
-	// goScene("game", { songZip: getSong("bopeebo") } as paramsGameScene)
+	// goScene("charteditor", { song: getSong("unholy-blight") } as paramsChartEditor);
+	goScene("game", { songZip: getSong("bopeebo") } as paramsGameScene);
 	// goScene("menu", { index: 0 });
 }

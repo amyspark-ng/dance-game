@@ -11,7 +11,7 @@ import { goScene } from "../core/scenes";
 import { utils } from "../utils";
 import { ChartNote, NoteGameObj, notesSpawner, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
 import { addComboText, addJudgement, getClosestNote, Scoring } from "./objects/scoring";
-import { getKeyForMove, introGo, manageInput, paramsGameScene, StateGame } from "./PlayState";
+import { getKeyForMove, inputHandler, introGo, paramsGameScene, StateGame } from "./PlayState";
 import { SaveScore } from "./song";
 import { paramsDeathScene } from "./ui/DeathScene";
 import { addPauseUI } from "./ui/pauseScreen";
@@ -51,6 +51,8 @@ export function GameScene() {
 		let hasPlayedGo = false;
 
 		const camTweens: TweenController[] = [];
+
+		if (!isFocused()) GameState.setPause(true);
 
 		onUpdate(() => {
 			if (GameState.conductor.timeInSeconds >= -(TIME_FOR_STRUM / 2) && !hasPlayedGo) {
@@ -138,7 +140,7 @@ export function GameScene() {
 				tweenT.paused = GameState.paused;
 			});
 
-			manageInput(GameState);
+			inputHandler(GameState);
 			GameState.gameUI.missesText.misses = GameState.tally.misses;
 			GameState.gameUI.timeText.time = GameState.conductor.timeInSeconds < 0
 				? 0
@@ -194,9 +196,7 @@ export function GameScene() {
 			if (chartNote.length) {
 				let keyRelease: KEventController = null;
 
-				const noteObj = get("noteObj", { recursive: true }).find((obj: NoteGameObj) =>
-					obj.chartNote == chartNote
-				) as NoteGameObj;
+				const noteObj = get("noteObj", { recursive: true }).find((obj: NoteGameObj) => obj.chartNote == chartNote) as NoteGameObj;
 				noteObj.opacity = 0;
 				const stepHit = onStepHit(() => {
 					noteObj.visualLength -= 1;
@@ -207,7 +207,6 @@ export function GameScene() {
 					else {
 						keyRelease?.cancel();
 						stepHit.cancel();
-						noteObj.holding = false;
 						noteObj.destroy();
 					}
 				});
@@ -216,7 +215,6 @@ export function GameScene() {
 					keyRelease.cancel();
 					stepHit.cancel();
 
-					noteObj.holding = false;
 					noteObj.destroy();
 				});
 			}

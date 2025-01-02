@@ -142,9 +142,20 @@ export function addPauseUI(GameState: StateGame) {
 		}
 	});
 
+	GameState.dancer.onUpdate(() => {
+		if (GameState.paused) {
+			GameState.dancer.pos = lerp(GameState.dancer.pos, center().scale(1, 2), 0.9);
+			GameState.dancer.scale.x = lerp(GameState.dancer.scale.x, 0, 0.8);
+		}
+		else {
+			GameState.dancer.pos = lerp(GameState.dancer.pos, DANCER_POS, 0.9);
+			GameState.dancer.scale.x = lerp(GameState.dancer.scale.x, 1, 0.8);
+		}
+	});
+
 	const tagsToPause = ["judgementObj", "strumlineObj"];
 	GameState.onPauseChange(() => {
-		GameState.dancer.hidden = GameState.paused;
+		// playSound("pauseScratch", { detune: rand(-50, 50) });
 	});
 
 	// get all the objects and filter the ones that have any tag that is included in tagsToPause

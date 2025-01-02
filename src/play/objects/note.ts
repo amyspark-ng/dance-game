@@ -1,8 +1,8 @@
-import { Color, Comp, KEventController } from "kaplay";
-import { onReset, triggerEvent } from "../../core/events";
+import { Color, Comp, KEvent, KEventController, Vec2 } from "kaplay";
+import { onNoteHit, onReset, onStepHit, triggerEvent } from "../../core/events";
 import { GameSave } from "../../core/gamesave";
 import { utils } from "../../utils";
-import { INPUT_THRESHOLD, StateGame } from "../PlayState";
+import { getKeyForMove, INPUT_THRESHOLD, StateGame } from "../PlayState";
 import { Move } from "./dancer";
 
 /** How much pixels per second does the note move at */
@@ -61,7 +61,6 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 		"noteObj",
 		{
 			visualLength: 0,
-			holding: chartNote.length ? false : null,
 			chartNote: { time: 0, move: "left" } as ChartNote,
 		},
 	]);
@@ -75,49 +74,27 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 			&& !hasMissedNote && GameState.spawnedNotes.includes(note) && !GameState.hitNotes.includes(note);
 	}
 
-	lengthDraw = onDraw(() => {
-		for (let i = 0; i < noteObj.visualLength + 1; i++) {
-			if (i == 0) {
-				drawSprite({
-					width: noteObj.width / 2,
-					height: noteObj.height,
-					sprite: GameSave.noteskin + "_" + "trail",
-					pos: vec2(noteObj.pos.x + noteObj.width / 4, noteObj.pos.y),
-					anchor: "center",
-					shader: "replacecolor",
-					// opacity: noteObj.opacity,
-					uniform: {
-						"u_targetcolor": moveToColor(noteObj.chartNote.move),
-					},
-				});
-			}
+	let stepHitEv: KEventController = null;
+	const noteHitEv = onNoteHit((noteHit) => {
+		if (noteHit != noteObj.chartNote) return;
 
-			drawSprite({
-				width: noteObj.width,
-				height: noteObj.height,
-				sprite: GameSave.noteskin + "_" + (i == noteObj.chartNote.length ? "tail" : "trail"),
-				pos: vec2(noteObj.pos.x + ((i + 1) * noteObj.height), noteObj.pos.y),
-				anchor: "center",
-				shader: "replacecolor",
-				// opacity: noteObj.opacity,
-				uniform: {
-					"u_targetcolor": moveToColor(noteObj.chartNote.move),
-				},
-			});
-		}
+		// this will only run when the note is hit
+		noteObj.destroy();
+		if (noteObj.chartNote.length) addTrail();
 	});
 
 	let hasMissedNote = false;
 	noteObj.onUpdate(() => {
 		if (GameState.paused) return;
 
-		if (!noteObj.holding) {
+		if (GameState.strumline.currentNote != noteObj.chartNote) {
 			let mapValue = (GameState.conductor.timeInSeconds - getNoteSpawnTime(noteObj.chartNote)) / TIME_FOR_STRUM;
 			const xPos = map(mapValue, 0, 1, NOTE_SPAWNPOINT, GameState.strumline.pos.x - NOTE_WIDTH / 2);
 			noteObj.pos.x = xPos;
 		}
 
 		if (conditionsForPassedNote(chartNote)) {
+			noteObj.visualLength = 0;
 			hasMissedNote = true;
 			triggerEvent("onMiss");
 		}
@@ -130,7 +107,101 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 		}
 	});
 
+	// this is just a fake trail for when the real one comes
+	if (noteObj.chartNote.length) {
+		lengthDraw = onDraw(() => {
+			for (let i = 0; i < noteObj.chartNote.length + 1; i++) {
+				if (i == 0) {
+					drawSprite({
+						width: noteObj.width / 2,
+						height: noteObj.height,
+						sprite: GameSave.noteskin + "_" + "trail",
+						pos: vec2(noteObj.pos.x + noteObj.width / 4, noteObj.pos.y),
+						anchor: "center",
+						shader: "replacecolor",
+						// opacity: noteObj.opacity,
+						uniform: {
+							"u_targetcolor": moveToColor(noteObj.chartNote.move),
+						},
+					});
+				}
+
+				drawSprite({
+					width: noteObj.width,
+					height: noteObj.height,
+					sprite: GameSave.noteskin + "_" + (i == noteObj.chartNote.length ? "tail" : "trail"),
+					pos: vec2(noteObj.pos.x + ((i + 1) * noteObj.height), noteObj.pos.y),
+					anchor: "center",
+					shader: "replacecolor",
+					// opacity: noteObj.opacity,
+					uniform: {
+						"u_targetcolor": moveToColor(noteObj.chartNote.move),
+					},
+				});
+			}
+		});
+	}
+
+	// i should try having the one that comes with the note
+	// and when the note is hit remove the note and add a trail sepparately and move it blah blah
+	function addTrail() {
+		const trailObj = add([
+			sprite(GameSave.noteskin + "_trail", {
+				tiled: true,
+				height: noteObj.height,
+				width: NOTE_WIDTH * noteObj.chartNote.length,
+			}),
+			pos(noteObj.pos),
+			anchor("left"),
+			opacity(),
+			z(noteObj.z + 1),
+			shader("replacecolor", () => ({
+				"u_targetcolor": moveToColor(noteObj.chartNote.move),
+			})),
+			"trailObj",
+			{
+				visualLength: noteObj.chartNote.length,
+			},
+		]);
+
+		// draws the tail
+		trailObj.onDraw(() => {
+			drawSprite({
+				sprite: GameSave.noteskin + "_tail",
+				pos: vec2(trailObj.width, 0),
+				anchor: "left",
+				opacity: trailObj.opacity,
+				shader: "replacecolor",
+				uniform: {
+					"u_targetcolor": moveToColor(noteObj.chartNote.move),
+				},
+			});
+		});
+
+		trailObj.onUpdate(() => {
+			trailObj.width = lerp(trailObj.width, NOTE_WIDTH * trailObj.visualLength, 0.25);
+			trailObj.opacity = noteObj.opacity;
+			if (!noteObj.exists()) noteObj.destroy();
+
+			if (hasMissedNote) trailObj.visualLength = 0;
+		});
+
+		const stepHitEv = onStepHit(() => {
+			if (hasMissedNote) return;
+			if (!isKeyDown(getKeyForMove(noteObj.chartNote.move))) return;
+
+			if (trailObj.visualLength == 0) trailObj.destroy();
+			else trailObj.visualLength -= 1;
+		});
+
+		trailObj.onDestroy(() => {
+			stepHitEv.cancel();
+		});
+	}
+
 	noteObj.onDestroy(() => {
+		noteHitEv.cancel();
+		stepHitEv?.cancel();
 		lengthDraw?.cancel();
 	});
 

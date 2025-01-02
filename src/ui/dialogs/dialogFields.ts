@@ -45,8 +45,8 @@ export function dialog_addTextbox(opts: textboxOpt) {
 	const textboxBg = opts.dialog.add([
 		pos((title.pos.x + title.width) + padding, title.pos.y),
 		rect(widthOfBox, textSize + padding, { radius: 2.5 }),
-		color(opts.dialog.outline.color.lighten(5)),
-		outline(1, opts.dialog.outline.color.lighten(20)),
+		color(GameDialog.HEADER_COLOR.lighten(5)),
+		outline(1, GameDialog.HEADER_COLOR.lighten(20)),
 		anchor("left"),
 		area(),
 	]);
@@ -100,7 +100,7 @@ export function dialog_addTextbox(opts: textboxOpt) {
 			}
 		}
 		else {
-			textboxBg.outline.color = lerp(textboxBg.outline.color, opts.dialog.outline.color.lighten(20), 0.5);
+			textboxBg.outline.color = lerp(textboxBg.outline.color, GameDialog.HEADER_COLOR.lighten(20), 0.5);
 		}
 	});
 
@@ -172,7 +172,7 @@ export function dialog_addSlider(opts: sliderOpt) {
 		pos(title.pos.x + title.width, (title.pos.y + title.height / 2) + 2),
 		rect((opts.dialog.width - title.width - padding * 14) + 2, title.height / 2, { radius: 2.5 }),
 		anchor("left"),
-		color(opts.dialog.outline.color.lighten(5)),
+		color(GameDialog.HEADER_COLOR.lighten(5)),
 	]);
 
 	// TODO: Add the slider thing where the part on the left is colored blue so you know how much you've slided
@@ -273,8 +273,8 @@ export function dialog_changeCover(opts: changeThingOpt) {
 	const textboxBg = opts.dialog.add([
 		pos((title.pos.x + title.width) + padding, title.pos.y),
 		rect((opts.dialog.width - title.width - padding * 14) - 50, textSize + padding, { radius: 2.5 }),
-		color(opts.dialog.outline.color.lighten(5)),
-		outline(1, opts.dialog.outline.color.lighten(20)),
+		color(GameDialog.HEADER_COLOR.lighten(5)),
+		outline(1, GameDialog.HEADER_COLOR.lighten(20)),
 		anchor("left"),
 		area(),
 	]);
@@ -328,8 +328,8 @@ export function dialog_changeSong(opts: changeThingOpt) {
 	const textboxBg = opts.dialog.add([
 		pos((title.pos.x + title.width) + padding, title.pos.y),
 		rect(opts.dialog.width - title.width - padding * 14, textSize + padding, { radius: 2.5 }),
-		color(opts.dialog.outline.color.lighten(5)),
-		outline(1, opts.dialog.outline.color.lighten(20)),
+		color(GameDialog.HEADER_COLOR.lighten(5)),
+		outline(1, GameDialog.HEADER_COLOR.lighten(20)),
 		anchor("left"),
 		area(),
 	]);
@@ -380,8 +380,8 @@ export function dialog_addCheckbox(opts: checkboxOpt) {
 	const checkbox = opts.dialog.add([
 		pos(title.pos.x + title.width, title.pos.y),
 		rect(textSize + padding, textSize + padding, { radius: 2.5 }),
-		color(opts.dialog.outline.color.lighten(5)),
-		outline(1, opts.dialog.outline.color.lighten(20)),
+		color(GameDialog.HEADER_COLOR.lighten(5)),
+		outline(1, GameDialog.HEADER_COLOR.lighten(20)),
 		anchor("left"),
 		area(),
 		"checkbox",

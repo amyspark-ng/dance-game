@@ -67,7 +67,7 @@ export class StateGame {
 	strumline: StrumlineGameObj = null;
 
 	/** Dictates wheter the game is paused or not, please do not touch if not through the manage pause function */
-	private _paused: boolean;
+	private _paused: boolean = false;
 
 	/** Wheter the game is currently paused or not */
 	get paused() {
@@ -124,10 +124,10 @@ export class StateGame {
 		});
 
 		// adds the ui to the game
+		this.strumline = createStrumline(this);
+		this.dancer = createDancer(this.params.dancer);
 		this.gameUI = addUI();
 		this.pauseUI = addPauseUI(this);
-		this.dancer = createDancer(this.params.dancer);
-		this.strumline = createStrumline(this);
 
 		// there are the notes that have been spawned yet
 		this.song.chart.notes.filter((note) => note.time <= this.params.seekTime).forEach((passedNote) => {
@@ -211,6 +211,10 @@ export function restartSong(GameState: StateGame) {
 		newdumbnote.jump(rand(250, 500));
 	});
 
+	get("trailObj").forEach((obj) => {
+		obj.destroy();
+	});
+
 	triggerEvent("onReset");
 }
 
@@ -268,7 +272,7 @@ export function getKeyForMove(move: Move) {
 }
 
 /** The function that manages input functions inside the game, must be called onUpdate */
-export function manageInput(GameState: StateGame) {
+export function inputHandler(GameState: StateGame) {
 	Object.values(GameSave.gameControls).forEach((gameKey, index) => {
 		if (GameState.paused) return;
 

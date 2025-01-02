@@ -1,27 +1,16 @@
-import { dialog } from "@tauri-apps/api";
-import { Color, Comp, GameObj, KEventController, KEventHandler, RectComp } from "kaplay";
-import { format } from "path";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { playSound } from "../../core/plugins/features/sound";
-import { StateChart } from "../../play/chartEditor/chartEditorBackend";
-import { ChartEvent, SongContent } from "../../play/song";
-import { utils } from "../../utils";
-import { dialog_addSlider, dialog_addTextbox, dialog_changeCover, dialog_changeSong } from "./dialogFields";
 
 /** Adds the dialog square object */
 function addDialogueThing(opts: openDialogOpts) {
-	const FILL_COLOR = BLACK.lighten(50);
-	const BORDER_COLOR = BLACK.lighten(70);
-
 	const dialogObj = add([
 		rect(opts.width, opts.height, { radius: 5 }),
 		pos(center()),
-		color(FILL_COLOR),
+		color(GameDialog.BODY_COLOR),
 		anchor("center"),
 		opacity(),
 		z(100),
 		scale(),
-		outline(5, BORDER_COLOR),
 		{
 			close() {
 				this.destroy();
@@ -38,7 +27,7 @@ function addDialogueThing(opts: openDialogOpts) {
 	const spaceForX = dialogObj.add([
 		rect(xSize, xSize, { radius: 5 }),
 		pos((dialogObj.width / 2) - xSize, -dialogObj.height / 2),
-		color(BORDER_COLOR),
+		color(GameDialog.HEADER_COLOR),
 	]);
 
 	const xButton = spaceForX.add([
@@ -75,6 +64,10 @@ export class GameDialog {
 
 	/** The gameobject of the current dialogue */
 	static currentDialogue: gameDialogObj = null;
+
+	static BODY_COLOR = rgb(32, 32, 32);
+
+	static HEADER_COLOR = rgb(27, 27, 27);
 
 	/** Open a dialog */
 	static openDialog(opts: openDialogOpts) {

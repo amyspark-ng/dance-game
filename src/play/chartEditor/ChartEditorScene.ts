@@ -69,11 +69,9 @@ export function ChartEditorScene() {
 		}
 
 		function getCurrentHoveredEvent() {
-			const time = ChartState.conductor.stepToTime(ChartState.hoveredStep, ChartState.conductor.stepInterval);
-			return ChartState.song.chart.events.find((ev) =>
-				ChartState.conductor.timeToStep(ev.time, ChartState.conductor.stepInterval)
-					== ChartState.conductor.timeToStep(time, ChartState.conductor.stepInterval)
-			);
+			return ChartState.song.chart.events.find((ev) => {
+				return Math.round(ChartState.conductor.timeToStep(ev.time)) == ChartState.hoveredStep;
+			});
 		}
 
 		// this sets the chartstate.song prop to new songcontent()
