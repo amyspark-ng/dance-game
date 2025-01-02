@@ -158,11 +158,11 @@ export function stampRenderer(ChartState: StateChart) {
 						angle: 90 + ChartState.stampProps.notes[index].angle,
 						sprite: GameSave.noteskin + "_" + "trail",
 						pos: vec2(notePosLerped.x, notePosLerped.y + ChartState.SQUARE_SIZE.y / 4),
-						opacity: ChartState.scrollTime >= stamp.time ? 1 : 0.5,
 						anchor: "center",
 						shader: "replacecolor",
 						uniform: {
 							"u_targetcolor": moveToColor(stamp.move),
+							"u_alpha": ChartState.scrollTime >= stamp.time ? 1 : 0.5,
 						},
 					});
 
@@ -181,6 +181,7 @@ export function stampRenderer(ChartState: StateChart) {
 							shader: "replacecolor",
 							uniform: {
 								"u_targetcolor": moveToColor(stamp.move),
+								"u_alpha": ChartState.scrollTime >= stamp.time ? 1 : 0.5,
 							},
 						});
 					}

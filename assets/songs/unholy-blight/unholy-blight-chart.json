@@ -1,1 +1,14 @@
-{"notes":[{"time":3.56,"move":"down","length":5}],"events":[]}
+{
+    "notes": [
+        {
+            "time": 0.75,
+            "move": "up"
+        },
+        {
+            "time": 1.5,
+            "move": "down",
+            "length": 3
+        }
+    ],
+    "events": []
+}

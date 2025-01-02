@@ -29,7 +29,7 @@ export function DeathScene() {
 			transitionToScene(
 				fadeOut,
 				"game",
-				{ songZip: params.GameState.song, dancer: params.GameState.params.dancer } as paramsGameScene,
+				{ song: params.GameState.song, dancer: params.GameState.params.dancer } as paramsGameScene,
 			);
 		});
 	});

@@ -234,8 +234,7 @@ export function SongSelectScene() {
 				return;
 			}
 
-			const tallyScore =
-				getHighscore(allCapsules[songSelectState.index].song.manifest.uuid_DONT_CHANGE).tally.score;
+			const tallyScore = getHighscore(allCapsules[songSelectState.index].song.manifest.uuid_DONT_CHANGE).tally.score;
 			highscoreText.solidValue = Math.floor(tallyScore);
 
 			songSelectState.songPreview?.stop();
@@ -260,7 +259,7 @@ export function SongSelectScene() {
 					transitionToScene(
 						enterSongTrans,
 						"game",
-						{ songZip: currentSongZip, dancer: GameSave.dancer } as paramsGameScene,
+						{ song: currentSongZip, dancer: GameSave.dancer } as paramsGameScene,
 					);
 				}
 			}

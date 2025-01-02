@@ -253,8 +253,8 @@ export class StateChart {
 
 	/** Sets scrollStep to a clamped and rounded value */
 	scrollToStep(newStep: number) {
-		newStep = Math.abs(Math.round(newStep));
 		newStep = clamp(newStep, 0, this.conductor.totalSteps);
+		newStep = Math.abs(Math.round(newStep));
 		this.scrollStep = newStep;
 	}
 

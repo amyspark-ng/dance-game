@@ -256,7 +256,7 @@ export function GameScene() {
 		// END SONG
 		GameState.conductor.audioPlay.onEnd(() => {
 			const songSaveScore = new SaveScore();
-			songSaveScore.uuid = params.songZip.manifest.uuid_DONT_CHANGE;
+			songSaveScore.uuid = params.song.manifest.uuid_DONT_CHANGE;
 			songSaveScore.tally = GameState.tally;
 			GameSave.songsPlayed.push(songSaveScore);
 			GameSave.save();
@@ -264,7 +264,7 @@ export function GameScene() {
 		});
 
 		utils.runInDesktop(() => {
-			appWindow.setTitle(GAME.NAME + " - " + params.songZip.manifest.name);
+			appWindow.setTitle(GAME.NAME + " - " + params.song.manifest.name);
 		});
 	});
 }

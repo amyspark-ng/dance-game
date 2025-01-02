@@ -102,10 +102,10 @@ export class StateGame {
 		params.playbackSpeed = params.playbackSpeed ?? 1;
 		params.seekTime = params.seekTime ?? 0;
 		params.dancer = params.dancer ?? "astri";
-		params.songZip = params.songZip ?? null;
+		params.song = params.song ?? null;
 
 		this.params = params;
-		this.song = this.params.songZip;
+		this.song = this.params.song;
 
 		// now that we have the song we can get the scroll speed multiplier and set the playback speed for funzies
 		const speed = this.song.manifest.initial_scrollspeed * GameSave.scrollSpeed;
@@ -114,11 +114,11 @@ export class StateGame {
 
 		// then we actually setup the conductor and play the song
 		this.conductor = new Conductor({
-			audioPlay: playSound(`${this.params.songZip.manifest.uuid_DONT_CHANGE}-audio`, {
+			audioPlay: playSound(`${this.params.song.manifest.uuid_DONT_CHANGE}-audio`, {
 				volume: GameSave.sound.music.volume,
 				speed: this.params.playbackSpeed,
 			}),
-			BPM: this.params.songZip.manifest.initial_bpm * this.params.playbackSpeed,
+			BPM: this.params.song.manifest.initial_bpm * this.params.playbackSpeed,
 			timeSignature: this.song.manifest.time_signature,
 			offset: TIME_FOR_STRUM,
 		});
@@ -141,7 +141,8 @@ export class StateGame {
 }
 
 export type paramsGameScene = {
-	songZip: SongContent;
+	/** The song passed for gameplay */
+	song: SongContent;
 	/** The name of the dancer */
 	dancer: string;
 	/** How fast to make the song :smiling_imp: */
@@ -284,7 +285,7 @@ export function inputHandler(GameState: StateGame) {
 			GameState.strumline.press(gameKey.move);
 		}
 		else if (isKeyReleased(kbKey) || isKeyReleased(defaultKey)) {
-			GameState.strumline.release();
+			GameState.strumline.pressed = false;
 		}
 	});
 

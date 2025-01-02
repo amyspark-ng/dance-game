@@ -199,14 +199,24 @@ export function ChartEditorScene() {
 				if (!ChartState.paused) ChartState.paused = true;
 				if (isKeyDown("shift")) stepsToScroll = -10;
 				else stepsToScroll = -1;
-				ChartState.scrollStep += stepsToScroll;
+				ChartState.scrollToStep(ChartState.scrollStep + stepsToScroll);
 			}
 			// scroll down
 			else if (isKeyPressedRepeat("s") && ChartState.scrollStep < ChartState.conductor.totalSteps - 1) {
 				if (!ChartState.paused) ChartState.paused = true;
 				if (isKeyDown("shift")) stepsToScroll = 10;
 				else stepsToScroll = 1;
-				ChartState.scrollStep += stepsToScroll;
+				ChartState.scrollToStep(ChartState.scrollStep + stepsToScroll);
+			}
+			// scroll left nah just messing with you closest beat
+			if (isKeyPressedRepeat("a") && ChartState.scrollStep > 0) {
+				if (!ChartState.paused) ChartState.paused = true;
+				// TODO: do this lol
+			}
+			// ceil to closest beat
+			if (isKeyPressedRepeat("right") && ChartState.scrollStep > 0) {
+				if (!ChartState.paused) ChartState.paused = true;
+				// TODO: do this lol
 			}
 			// remove all selected notes
 			else if (isKeyPressed("backspace")) {
@@ -455,7 +465,7 @@ export function ChartEditorScene() {
 					});
 
 					const releaseEV = onMouseRelease(() => {
-						playSound("noteSnap");
+						if (hoveredNote.length) playSound("noteSnap", { detune: rand(-25, 25) });
 						releaseEV.cancel();
 						stretchingNoteEV?.cancel();
 						stretchingNoteEV = null;
@@ -516,6 +526,7 @@ export function ChartEditorScene() {
 
 			function noteBehaviour() {
 				const note = getCurrentHoveredNote();
+				if (!note) return;
 
 				if (trailAtStep(ChartState.hoveredStep, ChartState)) {
 					// if you click the trail instead of the note it will only remove the trail rather than the note
@@ -642,7 +653,7 @@ export function ChartEditorScene() {
 				ChartState.scrollStep == ChartState.conductor.totalSteps && scrollPlus > 0
 				|| ChartState.scrollStep - 1 < 0 && scrollPlus < 0
 			) return;
-			ChartState.scrollStep += scrollPlus;
+			ChartState.scrollToStep(ChartState.scrollStep + scrollPlus);
 		});
 
 		// Send you to the game
@@ -666,7 +677,7 @@ export function ChartEditorScene() {
 				fadeOut,
 				"game",
 				{
-					songZip: ChartState.song,
+					song: ChartState.song,
 					seekTime: ChartState.scrollTime,
 					dancer: params.dancer,
 					fromChartEditor: true,

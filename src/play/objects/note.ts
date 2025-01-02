@@ -60,13 +60,11 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 		z(2),
 		"noteObj",
 		{
-			visualLength: 0,
 			chartNote: { time: 0, move: "left" } as ChartNote,
 		},
 	]);
 
 	noteObj.chartNote = chartNote;
-	noteObj.visualLength = noteObj.chartNote.length;
 
 	/** if the time has already passed to hit a note and the note is not on spawned notes */
 	function conditionsForPassedNote(note: ChartNote) {
@@ -83,6 +81,7 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 		if (noteObj.chartNote.length) addTrail();
 	});
 
+	let noteLength = noteObj.chartNote.length;
 	let hasMissedNote = false;
 	noteObj.onUpdate(() => {
 		if (GameState.paused) return;
@@ -94,24 +93,28 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 		}
 
 		if (conditionsForPassedNote(chartNote)) {
-			noteObj.visualLength = 0;
+			noteLength = 0;
 			hasMissedNote = true;
 			triggerEvent("onMiss");
 		}
 
 		if (hasMissedNote) {
 			noteObj.opacity -= 0.085;
+			noteLength -= 1;
 			if (noteObj.pos.x < -noteObj.width) {
 				noteObj.destroy();
 			}
 		}
 	});
 
+	// have to do the thing where if you release int he middle of the trail you can't pick it up again
+
 	// this is just a fake trail for when the real one comes
 	if (noteObj.chartNote.length) {
 		lengthDraw = onDraw(() => {
-			for (let i = 0; i < noteObj.chartNote.length + 1; i++) {
+			for (let i = 0; i < noteLength; i++) {
 				if (i == 0) {
+					// this is the one that connects the note with the trail
 					drawSprite({
 						width: noteObj.width / 2,
 						height: noteObj.height,
@@ -119,9 +122,9 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 						pos: vec2(noteObj.pos.x + noteObj.width / 4, noteObj.pos.y),
 						anchor: "center",
 						shader: "replacecolor",
-						// opacity: noteObj.opacity,
 						uniform: {
 							"u_targetcolor": moveToColor(noteObj.chartNote.move),
+							"u_alpha": noteObj.opacity,
 						},
 					});
 				}
@@ -129,58 +132,70 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 				drawSprite({
 					width: noteObj.width,
 					height: noteObj.height,
-					sprite: GameSave.noteskin + "_" + (i == noteObj.chartNote.length ? "tail" : "trail"),
+					sprite: GameSave.noteskin + "_" + (i == noteObj.chartNote.length - 1 ? "tail" : "trail"),
 					pos: vec2(noteObj.pos.x + ((i + 1) * noteObj.height), noteObj.pos.y),
 					anchor: "center",
 					shader: "replacecolor",
-					// opacity: noteObj.opacity,
 					uniform: {
 						"u_targetcolor": moveToColor(noteObj.chartNote.move),
+						"u_alpha": noteObj.opacity,
 					},
 				});
 			}
 		});
 	}
 
-	// i should try having the one that comes with the note
-	// and when the note is hit remove the note and add a trail sepparately and move it blah blah
 	function addTrail() {
+		let trailOpacity = noteObj.opacity;
 		const trailObj = add([
 			sprite(GameSave.noteskin + "_trail", {
 				tiled: true,
 				height: noteObj.height,
-				width: NOTE_WIDTH * noteObj.chartNote.length,
 			}),
-			pos(noteObj.pos),
+			pos(),
 			anchor("left"),
-			opacity(),
 			z(noteObj.z + 1),
 			shader("replacecolor", () => ({
 				"u_targetcolor": moveToColor(noteObj.chartNote.move),
+				"u_alpha": trailOpacity,
 			})),
 			"trailObj",
 			{
+				// let's say a note has a visualLength of 3, the third one is the tail
 				visualLength: noteObj.chartNote.length,
 			},
 		]);
 
+		trailObj.width = NOTE_WIDTH * (trailObj.visualLength - 1);
+		trailObj.pos.y = noteObj.pos.y;
+		// accounts for half the note width because of the little thingy that connects the note and the trail
+		trailObj.pos.x = noteObj.pos.x + NOTE_WIDTH / 2;
+
+		let tailWidth = NOTE_WIDTH;
+
 		// draws the tail
 		trailObj.onDraw(() => {
 			drawSprite({
+				width: tailWidth,
 				sprite: GameSave.noteskin + "_tail",
 				pos: vec2(trailObj.width, 0),
 				anchor: "left",
-				opacity: trailObj.opacity,
 				shader: "replacecolor",
 				uniform: {
 					"u_targetcolor": moveToColor(noteObj.chartNote.move),
+					"u_alpha": trailOpacity,
 				},
 			});
 		});
 
 		trailObj.onUpdate(() => {
-			trailObj.width = lerp(trailObj.width, NOTE_WIDTH * trailObj.visualLength, 0.25);
-			trailObj.opacity = noteObj.opacity;
+			if (trailObj.visualLength <= 1) {
+				tailWidth = lerp(tailWidth, 0, 0.15);
+			}
+			const clampVisualLength = clamp(trailObj.visualLength - 1, 0, Infinity);
+			trailObj.width = lerp(trailObj.width, NOTE_WIDTH * clampVisualLength, 0.15);
+
+			trailOpacity = noteObj.exists() ? noteObj.opacity : 1;
 			if (!noteObj.exists()) noteObj.destroy();
 
 			if (hasMissedNote) trailObj.visualLength = 0;
@@ -188,9 +203,17 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 
 		const stepHitEv = onStepHit(() => {
 			if (hasMissedNote) return;
-			if (!isKeyDown(getKeyForMove(noteObj.chartNote.move))) return;
+			if (!isKeyDown(getKeyForMove(noteObj.chartNote.move))) {
+				// released the key for the note
+				trailObj.destroy();
+				return;
+			}
 
-			if (trailObj.visualLength == 0) trailObj.destroy();
+			if (trailObj.visualLength <= 0 || trailObj.visualLength - 1 <= 0) {
+				// note released properly, congrats!
+				GameState.strumline.currentNote = null;
+				trailObj.destroy();
+			}
 			else trailObj.visualLength -= 1;
 		});
 
