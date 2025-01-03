@@ -545,7 +545,14 @@ export function addDialogButtons(ChartState: StateChart) {
 	const initialYPos = height() - 50;
 	// the ones more on top will appear more on the bottom of the screen
 	const things = [
-		{ texting: "Create new chart", icon: "new", action: () => ChartState.createNewSong() },
+		{
+			texting: "Create new chart",
+			icon: "new",
+			action: () => {
+				ChartState.createNewSong();
+				openChartInfoDialog(ChartState);
+			},
+		},
 		{ texting: "Download chart", icon: "download", action: () => downloadChart(ChartState) },
 		{ texting: "Song fields", icon: "fields", action: () => openChartInfoDialog(ChartState) },
 		{ texting: "About", icon: "about", action: () => openChartAboutDialog() },
@@ -570,8 +577,8 @@ export function addLeftInfo(ChartState: StateChart) {
 			update() {
 				const info = {
 					"You're charting": ChartState.song.manifest.name,
-					"Produced by": ChartState.song.manifest.artist,
 					"Charted by": ChartState.song.manifest.charter,
+					"UUID": ChartState.song.manifest.uuid_DONT_CHANGE,
 					"": null,
 					// these things are wrong btw, except bpm at given time
 					"Current step": utils.formatNumber(ChartState.scrollStep, { type: "simple" }),

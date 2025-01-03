@@ -1,20 +1,18 @@
 // File that stores some of the chart editor behaviour backend
-import JSZip from "jszip";
 import { Key, Vec2 } from "kaplay";
-import TOML from "smol-toml";
-import { v4 as uuidv4 } from "uuid";
+import { v4 } from "uuid";
 import { Conductor } from "../../conductor";
 import { GameSave } from "../../core/gamesave";
-import { dancers } from "../../core/loader";
+import { dancers, loadedSongs } from "../../core/loader";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
-import { playSound } from "../../core/plugins/features/sound";
+import { playMusic } from "../../core/plugins/features/sound";
 import { juice } from "../../core/plugins/graphics/juiceComponent";
+import { FileManager } from "../../fileManaging";
 import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { utils } from "../../utils";
 import { Move } from "../objects/dancer";
 import { ChartNote } from "../objects/note";
 import { ChartEvent, SongContent } from "../song";
-import { openChartInfoDialog } from "./chartEditorDialogs";
 import { NOTE_BIG_SCALE } from "./chartEditorElements";
 
 /** Is either a note or an event */
@@ -248,8 +246,11 @@ export class StateChart {
 	/** Current index of the current snapshot blah */
 	curSnapshotIndex = 0;
 
-	/** Buffer of the audio play in the conductor */
-	audioBuffer: AudioBuffer = null;
+	/** Runs when the sound for the soundPlay has changed */
+	updateAudio() {
+		this.conductor.audioPlay.stop();
+		this.conductor.audioPlay = playMusic(this.song.manifest.uuid_DONT_CHANGE + "-audio");
+	}
 
 	/** Sets scrollStep to a clamped and rounded value */
 	scrollToStep(newStep: number) {
@@ -395,26 +396,48 @@ export class StateChart {
 		}
 	}
 
-	/** Changes the song of the instance */
-	createNewSong() {
-		this.scrollToStep(0);
-		this.snapshots = [];
-		this.curSnapshotIndex = 0;
-		this.selectedStamps = [];
+	constructor(params: paramsChartEditor) {
+		GameDialog.isOpen = false;
+		params.dancer = params.dancer ?? "astri";
+		params.playbackSpeed = params.playbackSpeed ?? 1;
+		params.playbackSpeed = Math.abs(clamp(params.playbackSpeed, 0, Infinity));
+		params.seekTime = params.seekTime ?? 0;
+		params.seekTime = Math.abs(clamp(params.seekTime, 0, Infinity));
+		params.song = params.song ?? new SongContent();
+		this.params = params;
 
-		this.song = new SongContent();
-		this.song.manifest.uuid_DONT_CHANGE = uuidv4();
+		const oldUUID = params.song.manifest.uuid_DONT_CHANGE;
 
-		loadSprite(this.song.manifest.uuid_DONT_CHANGE + "-cover", "sprites/defaultCover.png");
-		loadSound(this.song.manifest.uuid_DONT_CHANGE + "-audio", "new-song-audio.ogg");
+		// Creates a deep copy of the song so it doesn't overwrite the current song
+		this.song = JSON.parse(JSON.stringify(this.params.song));
+		this.song.manifest.name = this.song.manifest.name + " (copy)";
+		// the uuid alreaddy exists
+		if (loadedSongs.map((song) => song.manifest.uuid_DONT_CHANGE).includes(this.song.manifest.uuid_DONT_CHANGE)) {
+			this.song.manifest.uuid_DONT_CHANGE = v4();
+			// have to reload the audio i don't know how much this would work since this loading takes time so
+			const soundBuffer = getSound(`${oldUUID}-audio`).data.buf;
+			loadSound(`${this.song.manifest.uuid_DONT_CHANGE}-audio`, soundBuffer);
+
+			// also have to reload the cover this sucks
+			FileManager.spriteToDataURL(`${oldUUID}-cover`).then((dataurl) => {
+				loadSprite(`${this.song.manifest.uuid_DONT_CHANGE}-cover`, dataurl);
+			});
+		}
 
 		this.conductor = new Conductor({
-			audioPlay: playSound(this.song.manifest.uuid_DONT_CHANGE + "-audio"),
-			BPM: this.song.manifest.initial_bpm,
+			audioPlay: playMusic(`${this.song.manifest.uuid_DONT_CHANGE}-audio`, {
+				speed: this.params.playbackSpeed,
+			}),
+			BPM: this.song.manifest.initial_bpm * this.params.playbackSpeed,
 			timeSignature: this.song.manifest.time_signature,
+			offset: 0,
 		});
+		this.conductor.audioPlay.seek(this.params.seekTime);
+		this.paused = true;
+		this.scrollToStep(this.conductor.timeToStep(this.params.seekTime));
 
-		openChartInfoDialog(this);
+		this.curSnapshotIndex = 0;
+		this.snapshots = [JSON.parse(JSON.stringify(this))];
 	}
 }
 
@@ -700,50 +723,10 @@ export function addFloatingText(texting: string) {
 export async function downloadChart(ChartState: StateChart) {
 	getTreeRoot().trigger("download");
 
-	const jsZip = new JSZip();
-
-	// the blob for the song
-	const oggBlob = utils.audioBufferToOGG(ChartState.audioBuffer);
-
-	async function spriteToDataURL(sprName: string) {
-		const canvas = makeCanvas(396, 396);
-		canvas.draw(() => {
-			drawSprite({
-				sprite: sprName,
-				width: width(),
-				height: height(),
-				pos: center(),
-				anchor: "center",
-			});
-		});
-
-		const dataURL = canvas.toDataURL();
-		return dataURL;
-	}
-
-	// stuff related to cover
-	const defaultCover = "sprites/defaultCover.png";
-	let pathToCover: string = undefined;
-	const coverAvailable = await getSprite(ChartState.song.manifest.uuid_DONT_CHANGE + "-cover");
-	if (!coverAvailable) pathToCover = defaultCover;
-	else pathToCover = await spriteToDataURL(ChartState.song.manifest.uuid_DONT_CHANGE + "-cover");
-	const imgBlob = await fetch(pathToCover).then((res) => res.blob());
-
-	spriteToDataURL(ChartState.song.manifest.uuid_DONT_CHANGE + "-cover");
-
-	const manifestString = TOML.stringify(ChartState.song.manifest);
-
-	// creates the files
+	const SongFolder = await FileManager.writeSongFolder(ChartState.song);
 	const kebabCaseName = utils.kebabCase(ChartState.song.manifest.name);
-	jsZip.file(`${kebabCaseName}-chart.json`, JSON.stringify(ChartState.song.chart));
-	jsZip.file(ChartState.song.manifest.audio_file, oggBlob);
-	jsZip.file(ChartState.song.manifest.cover_file, imgBlob);
-	jsZip.file(`manifest.toml`, manifestString);
 
 	// downloads the zip
-	await jsZip.generateAsync({ type: "blob" }).then((content) => {
-		downloadBlob(`${kebabCaseName}-chart.zip`, content);
-	});
-
+	downloadBlob(`${ChartState.song.manifest.name}.zip`, SongFolder);
 	debug.log(`${kebabCaseName}-chart.zip, DOWNLOADED! :)`);
 }

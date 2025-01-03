@@ -1,4 +1,5 @@
 import { EaseFunc } from "kaplay";
+import { utils } from "../utils";
 import { ChartNote } from "./objects/note";
 import { Tally } from "./objects/scoring";
 

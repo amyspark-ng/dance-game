@@ -2,6 +2,7 @@ import isUrl from "is-url";
 import JSZip from "jszip";
 import { LoadSpriteOpt } from "kaplay";
 import TOML from "smol-toml";
+import { FileManager } from "../fileManaging";
 import { DancerFile } from "../play/objects/dancer";
 import { rankings } from "../play/objects/scoring";
 import { SongContent, SongManifest } from "../play/song";
@@ -10,6 +11,11 @@ import { loadCursor } from "./plugins/features/gameCursor";
 
 /** Array of zip names to load songs */
 export const defaultSongs = ["bopeebo", "unholy-blight"];
+/** Array of the uuids for the default songs */
+export const defaultUUIDS = [
+	"1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed",
+	"14e1c3e9-b24f-4aaa-8401-d772d8725f51",
+];
 
 /** Array of contents of song zip for the songs loaded */
 export const loadedSongs: SongContent[] = [];
@@ -84,113 +90,6 @@ function loadDancer(dancerName: string, spriteData: LoadSpriteOpt) {
 	loadSprite(`bg_${dancerName}`, `sprites/dancers/${dancerName}/bg_${dancerName}.png`);
 
 	// load the background and other stuff here
-}
-
-function loadSongFromFolder(folderPath: string): Promise<SongContent> {
-	// this was wholely written by github copilot madly impressive
-	return new Promise(async (resolve, reject) => {
-		try {
-			const manifest = await fetch(`${folderPath}/manifest.toml`).then((thing) => thing.text()).then((text) => TOML.parse(text));
-			const chart = await fetch(`${folderPath}/${manifest.chart_file}`).then((thing) => thing.json());
-			const audio = await fetch(`${folderPath}/${manifest.audio_file}`).then((thing) => thing.blob()).then((
-				blob,
-			) => blob.arrayBuffer());
-			loadSound(manifest.uuid_DONT_CHANGE + "-audio", audio);
-			const cover = await fetch(`${folderPath}/${manifest.cover_file}`).then((thing) => thing.blob()).then((
-				blob,
-			) => URL.createObjectURL(blob));
-			loadSprite(manifest.uuid_DONT_CHANGE + "-cover", cover);
-
-			const songContent: SongContent = {
-				manifest: {
-					name: manifest["name"].toString(),
-					artist: manifest["artist"].toString(),
-					charter: manifest["charter"].toString(),
-					initial_bpm: Number(manifest["initial_bpm"]),
-					initial_scrollspeed: Number(manifest["initial_scrollspeed"]),
-					time_signature: manifest["time_signature"] as [number, number],
-					uuid_DONT_CHANGE: manifest.uuid_DONT_CHANGE.toString(),
-					chart_file: manifest.chart_file.toString(),
-					audio_file: manifest.audio_file.toString(),
-					cover_file: manifest.cover_file.toString(),
-				},
-				chart: chart,
-			};
-
-			loadedSongs.push(songContent);
-			resolve(songContent);
-		}
-		catch (e) {
-			reject(e);
-		}
-	});
-}
-
-/** Loads a song from a zip file
- * @param zipFile It will be either the url of the zip inside the game folder
- *
- * Or the File object to load the zip
- * @param Wheter it's a default song to put it in order or just put it in wharever order
- */
-export async function loadSongFromZIP(zipFile: File, defaultSong: boolean = false): Promise<SongContent> {
-	const jsZip = new JSZip();
-
-	let jsZipFile: JSZip = null;
-	jsZipFile = await jsZip.loadAsync(zipFile);
-
-	const manifestTOML = await jsZipFile.file("manifest.toml").async("string");
-	const manifest = TOML.parse(manifestTOML);
-
-	const uuid = manifest.uuid_DONT_CHANGE.toString();
-	const audioPath = manifest.audio_file.toString();
-	const coverPath = manifest.cover_file.toString();
-	const chartPath = manifest.chart_file.toString();
-
-	// loads audio
-	if (isUrl(audioPath)) await loadSound(uuid + "-audio", audioPath);
-	else {
-		const arrBuffer = await jsZipFile.file(audioPath).async("arraybuffer");
-		await loadSound(uuid + "-audio", arrBuffer);
-	}
-
-	// loads cover
-	if (isUrl(coverPath)) await loadSprite(uuid + "-cover", coverPath);
-	else {
-		const blobOfCover = await jsZip.file(coverPath).async("blob");
-		await loadSprite(uuid + "-cover", URL.createObjectURL(blobOfCover));
-	}
-
-	// loads chart
-	const chart = JSON.parse(await jsZip.file(chartPath).async("string"));
-
-	// gets everything
-	const zipContent: SongContent = {
-		manifest: {
-			name: manifest["name"].toString(),
-			artist: manifest["artist"].toString(),
-			charter: manifest["charter"].toString(),
-			initial_bpm: Number(manifest["initial_bpm"]),
-			initial_scrollspeed: Number(manifest["initial_scrollspeed"]),
-			time_signature: manifest["time_signature"] as [number, number],
-			uuid_DONT_CHANGE: uuid,
-			chart_file: chartPath,
-			audio_file: audioPath,
-			cover_file: coverPath,
-		},
-		chart: chart,
-	};
-
-	if (defaultSong) {
-		const kebab = utils.kebabCase(zipContent.manifest.name);
-		const indexInDefaultSongs = defaultSongs.indexOf(kebab);
-		if (indexInDefaultSongs != -1) loadedSongs[indexInDefaultSongs] = zipContent;
-		else throw new Error("The song " + zipContent.manifest.name + " is not a default song");
-	}
-	else {
-		loadedSongs.push(zipContent);
-	}
-
-	return zipContent;
 }
 
 /** Loads songs, dancers and noteskins */
@@ -377,7 +276,8 @@ export async function loadAssets() {
 				defaultSongs.forEach(async (folderPath, index) => {
 					folderPath = `songs/${folderPath}`;
 					try {
-						await loadSongFromFolder(folderPath);
+						const songFolder = await FileManager.fetchSongFolder(folderPath);
+						await FileManager.loadSongAssets(songFolder);
 					}
 					catch (err) {
 						throw new Error("There was an error loading the default songs");

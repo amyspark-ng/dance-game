@@ -1,10 +1,10 @@
 import { GameSave } from "../core/gamesave";
-import { defaultSongs, loadedSongs } from "../core/loader";
+import { defaultSongs, defaultUUIDS, loadedSongs } from "../core/loader";
 import { gameCursor } from "../core/plugins/features/gameCursor";
 import { customAudioPlay, playMusic, playSound } from "../core/plugins/features/sound";
 import { goScene, transitionToScene } from "../core/scenes";
 import { enterSongTrans } from "../core/transitions/enterSongTransition";
-import { FileManager, handleZipInput, inputElement } from "../fileManaging";
+import { FileManager, inputElement } from "../fileManaging";
 import { Scoring } from "../play/objects/scoring";
 import { paramsGameScene } from "../play/PlayState";
 import { SaveScore, SongContent } from "../play/song";
@@ -36,7 +36,17 @@ export class StateSongSelect {
 	}
 
 	updateState() {
-		getTreeRoot().trigger("updateState");
+		return getTreeRoot().trigger("updateState");
+	}
+
+	/** Runs when the {@link updateState} function is called */
+	onUpdateState(action: () => void) {
+		return getTreeRoot().on("updateState", action);
+	}
+
+	/** Runs when a capsule is added */
+	onAddSongCapsule(action: () => void) {
+		return getTreeRoot().on("addedCapsule", action);
 	}
 }
 
@@ -138,6 +148,8 @@ export function addSongCapsule(curSong: SongContent) {
 		]);
 	}
 
+	getTreeRoot().trigger("addedCapsule");
+
 	return capsuleContainer;
 }
 
@@ -227,7 +239,7 @@ export function SongSelectScene() {
 			songSelectState.updateState();
 		});
 
-		getTreeRoot().on("updateState", () => {
+		songSelectState.onUpdateState(() => {
 			if (!allCapsules[songSelectState.index]) return;
 			if (!allCapsules[songSelectState.index].song) {
 				songSelectState.songPreview?.stop();
@@ -254,11 +266,36 @@ export function SongSelectScene() {
 				const loadingScreen = FileManager.loadingScreen();
 				const gottenFile = await FileManager.receiveFile("mod");
 				if (gottenFile) {
-					const songContent = await FileManager.SongContentFromZIP(gottenFile);
+					const zipContent = await FileManager.getSongFolderContent(gottenFile);
+					const ooldUUIDS = loadedSongs.map((song) => song.manifest.uuid_DONT_CHANGE);
+					const result = await FileManager.loadSongAssets(zipContent);
+					const newUUIDS = loadedSongs.map((song) => song.manifest.uuid_DONT_CHANGE);
+					const overwritesDefault = defaultUUIDS.includes(result.manifest.uuid_DONT_CHANGE);
+
+					if (ooldUUIDS.includes(result.manifest.uuid_DONT_CHANGE)) {
+						if (!overwritesDefault) {
+							const index = ooldUUIDS.indexOf(result.manifest.uuid_DONT_CHANGE);
+							loadedSongs[index] = result;
+							allCapsules[index].song = result;
+							songSelectState.index = index;
+						}
+						else {
+							const index = newUUIDS.indexOf(result.manifest.uuid_DONT_CHANGE);
+							songSelectState.index = index;
+						}
+					}
+					// is trying to add a new song
+					else {
+						addSongCapsule(result);
+						songSelectState.index = newUUIDS.indexOf(result.manifest.uuid_DONT_CHANGE);
+					}
+
+					songSelectState.updateState();
 					loadingScreen.cancel();
 				}
 				else {
-					throw new Error("Never received file");
+					console.error("Never received the mod zip");
+					loadingScreen.cancel();
 				}
 			}
 			else {
@@ -293,7 +330,7 @@ export function SongSelectScene() {
 			stopPreview();
 		});
 
-		getTreeRoot().on("addedCapsule", () => {
+		songSelectState.onAddSongCapsule(() => {
 			const addSongCapsule = allCapsules.find((capsule) => capsule.song == null);
 			// have to sort them so the add song capsule is at the end of the array
 			allCapsules.sort((a, b) => a.song == null ? 1 : -1);

@@ -1,5 +1,4 @@
-import { Color, Rect, Vec2 } from "kaplay";
-import { arrayBuffer } from "stream/consumers";
+import { Color, Vec2 } from "kaplay";
 
 type coolFormatNumberOpt = {
 	/**
@@ -60,11 +59,6 @@ export class utils {
 		target[parts[parts.length - 1]] = value;
 	}
 
-	// 3 columns means 3 objects laid horizontally, 3 rows is 3 objects laid vertically
-	// from top to bottom
-	//   ccc
-	//  r...
-	//  r...
 	/**
 	 * Function to get the position of an object in a grid
 	 * @param initialpos It's the initial pos the objects will be at, column 0 and row 0 means this exact position
@@ -72,6 +66,20 @@ export class utils {
 	 * @param column These are objects displayed horizontally, the greater it is the more to the right they'll be
 	 * @param spacing It's the spacing objects will have, if you set Y spacing to 0, the objects won't be more apart when changing the row
 	 * @returns A Vec2 with the position of the object
+	 *
+	 * 3 Columns means 3 ojects laid horizontally, 3 rows is 3 objects laid vertically from
+	 *
+	 * From top to bottom it will look like this
+	 *
+	 *  ccc
+	 *
+	 * r...
+	 *
+	 * r...
+	 *
+	 * Being the ccc 3 colums and the r...r... 2 rows
+	 *
+	 * Confusing right
 	 */
 	static getPosInGrid(initialpos: Vec2, row: number, column: number, spacing: Vec2) {
 		return vec2(initialpos.x + spacing.x * column, initialpos.y + spacing.y * row);
@@ -138,63 +146,8 @@ export class utils {
 		return index;
 	}
 
-	static arrayBufferToBase64(buffer: ArrayBuffer) {
-		return JSON.stringify(buffer);
-	}
-
-	static base64ToArrayBuffer(base64: string) {
-		return new ArrayBuffer(JSON.parse(base64));
-	}
-
-	/** Careful with this, it actually converts to wav but it somehows works when sending as .ogg LOL */
-	static audioBufferToOGG(audioBuffer: AudioBuffer): Blob {
-		// Helper function to write a string to the DataView
-		function writeString(view: DataView<ArrayBuffer>, offset: number, string: string) {
-			for (let i = 0; i < string.length; i++) {
-				view.setUint8(offset + i, string.charCodeAt(i));
-			}
-		}
-
-		const numOfChannels = audioBuffer.numberOfChannels;
-		const sampleRate = audioBuffer.sampleRate;
-		const format = 1; // PCM format
-		const bitDepth = 16;
-
-		// Calculate the size of the output buffer
-		const samples = audioBuffer.length;
-		const blockAlign = numOfChannels * (bitDepth / 8);
-		const byteRate = sampleRate * blockAlign;
-		const bufferLength = 44 + samples * blockAlign;
-
-		// Create an ArrayBuffer for the WAV file
-		const arrayBuffer = new ArrayBuffer(bufferLength);
-		const view = new DataView(arrayBuffer);
-
-		// Write WAV header
-		writeString(view, 0, "RIFF"); // ChunkID
-		view.setUint32(4, 36 + samples * blockAlign, true); // ChunkSize
-		writeString(view, 8, "WAVE"); // Format
-		writeString(view, 12, "fmt "); // Subchunk1ID
-		view.setUint32(16, 16, true); // Subchunk1Size
-		view.setUint16(20, format, true); // AudioFormat
-		view.setUint16(22, numOfChannels, true); // NumChannels
-		view.setUint32(24, sampleRate, true); // SampleRate
-		view.setUint32(28, byteRate, true); // ByteRate
-		view.setUint16(32, blockAlign, true); // BlockAlign
-		view.setUint16(34, bitDepth, true); // BitsPerSample
-		writeString(view, 36, "data"); // Subchunk2ID
-		view.setUint32(40, samples * blockAlign, true); // Subchunk2Size
-
-		// Write interleaved PCM samples
-		let offset = 44;
-		for (let i = 0; i < samples; i++) {
-			for (let channel = 0; channel < numOfChannels; channel++) {
-				const sample = Math.max(-1, Math.min(1, audioBuffer.getChannelData(channel)[i]));
-				view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
-				offset += 2;
-			}
-		}
-
-		return new Blob([view], { type: "audio/ogg" });
+	/** Get the extension of a filename given the filename */
+	static getExtensionFromFilename(filename: string) {
+		return filename.split(".").pop();
 	}
 }

@@ -2,7 +2,7 @@ import { openSync } from "fs";
 import { KEventController, Vec2 } from "kaplay";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { playSound } from "../../core/plugins/features/sound";
-import { handleAudioInput, handleCoverInput } from "../../fileManaging";
+import { FileManager } from "../../fileManaging";
 import { StateChart } from "../../play/chartEditor/chartEditorBackend";
 import { utils } from "../../utils";
 import { GameDialog, gameDialogObj } from "./gameDialog";
@@ -300,8 +300,15 @@ export function dialog_changeCover(opts: changeThingOpt) {
 		},
 	]);
 
-	textboxBg.onClick(() => {
-		handleCoverInput(opts.ChartState);
+	textboxBg.onClick(async () => {
+		const loading = FileManager.loadingScreen();
+		const coverImage = await FileManager.receiveFile("cover");
+		if (coverImage) {
+			opts.ChartState.song.manifest.cover_file = coverImage.name;
+			const base64 = FileManager.ImageToBase64(coverImage);
+			await loadSprite(opts.ChartState.song.manifest.uuid_DONT_CHANGE + "-cover", base64);
+		}
+		loading.cancel();
 	});
 
 	const coverSize = 100;
@@ -354,10 +361,15 @@ export function dialog_changeSong(opts: changeThingOpt) {
 		},
 	]);
 
-	textbox.text;
-
-	textboxBg.onClick(() => {
-		handleAudioInput(opts.ChartState);
+	textboxBg.onClick(async () => {
+		const loading = FileManager.loadingScreen();
+		const audio = await FileManager.receiveFile("audio");
+		if (audio) {
+			opts.ChartState.song.manifest.audio_file = audio.name;
+			await loadSound(opts.ChartState.song.manifest.uuid_DONT_CHANGE + "-audio", await audio.arrayBuffer());
+			opts.ChartState.updateAudio();
+		}
+		loading.cancel();
 	});
 
 	return textbox;

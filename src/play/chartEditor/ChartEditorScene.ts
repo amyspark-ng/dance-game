@@ -1,6 +1,5 @@
 // The actual scene for the chart editor
 import { KEventController } from "kaplay";
-import { v4 as uuidv4 } from "uuid";
 import { Conductor } from "../../conductor";
 import { onBeatHit, onNoteHit, onStepHit, triggerEvent } from "../../core/events";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
@@ -9,8 +8,7 @@ import { transitionToScene } from "../../core/scenes";
 import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { utils } from "../../utils";
-import { moveToColor, notesSpawner } from "../objects/note";
-import { getClosestNote } from "../objects/scoring";
+import { moveToColor } from "../objects/note";
 import { paramsGameScene } from "../PlayState";
 import { SongContent } from "../song";
 import {
@@ -51,16 +49,10 @@ import {
 
 export function ChartEditorScene() {
 	scene("charteditor", (params: paramsChartEditor) => {
-		// had an issue with BPM being NaN but it was because since this wasn't defined then it was NaN
-		params.playbackSpeed = params.playbackSpeed ?? 1;
-		params.seekTime = params.seekTime ?? 0;
-		params.seekTime = Math.abs(params.seekTime);
-		params.dancer = params.dancer ?? "astri";
-		GameDialog.isOpen = false;
-
-		const ChartState = new StateChart();
+		const ChartState = new StateChart(params);
 		setBackground(Color.fromArray(ChartState.bgColor));
 
+		gameCursor.show();
 		setMouseAnimConditions(ChartState);
 
 		/** Gets the current note that is being hovered */
@@ -73,37 +65,6 @@ export function ChartEditorScene() {
 				return Math.round(ChartState.conductor.timeToStep(ev.time)) == ChartState.hoveredStep;
 			});
 		}
-
-		// this sets the chartstate.song prop to new songcontent()
-		// also sets the conductor
-		// Creates a deep copy of the song so it doesn't overwrite the current song
-		ChartState.song = JSON.parse(JSON.stringify(params.song)) as SongContent;
-		// TODO: I have to do the thing where it actually overwrites the uuid to a new one fuck
-		ChartState.conductor = new Conductor({
-			audioPlay: playMusic(`${ChartState.song.manifest.uuid_DONT_CHANGE}-audio`, {
-				speed: params.playbackSpeed,
-			}),
-			BPM: ChartState.song.manifest.initial_bpm * params.playbackSpeed,
-			timeSignature: ChartState.song.manifest.time_signature,
-			offset: 0,
-		});
-
-		ChartState.conductor.audioPlay.seek(params.seekTime);
-
-		ChartState.params = params;
-		ChartState.paused = true;
-		ChartState.scrollToStep(ChartState.conductor.timeToStep(params.seekTime));
-
-		ChartState.curSnapshotIndex = 0;
-
-		ChartState.snapshots = [JSON.parse(JSON.stringify(ChartState))];
-		let songDuration = 0;
-		getSound(`${ChartState.song.manifest.uuid_DONT_CHANGE}-audio`).onLoad((data) => {
-			songDuration = data.buf.duration;
-			ChartState.audioBuffer = data.buf;
-		});
-
-		gameCursor.show();
 
 		onUpdate(() => {
 			const allStamps = concatStamps(ChartState.song.chart.notes, ChartState.song.chart.events);
@@ -664,15 +625,6 @@ export function ChartEditorScene() {
 			if (ChartState.inputDisabled) return;
 			ChartState.inputDisabled = true;
 			ChartState.paused = true;
-
-			const loadedNormally = await getSound(ChartState.song.manifest.uuid_DONT_CHANGE + "-audio");
-
-			// the song is not loaded with the id format name
-			// or the buffer of the sound isn't the same as the buffer of the current song
-			if (!loadedNormally || loadedNormally.buf != ChartState.audioBuffer) {
-				// then gets the new title and loads it now with the good name
-				await loadSound(ChartState.song.manifest.uuid_DONT_CHANGE + "-audio", ChartState.audioBuffer);
-			}
 
 			// transition to scene normally
 			transitionToScene(

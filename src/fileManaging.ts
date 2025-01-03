@@ -1,31 +1,30 @@
+import audioBufferToBlob from "audiobuffer-to-blob";
 import JSZip from "jszip";
 import TOML from "smol-toml";
-import { Conductor } from "./conductor";
-import { GameSave } from "./core/gamesave";
-import { loadedSongs, loadSongFromZIP } from "./core/loader";
+import { defaultUUIDS, loadedSongs } from "./core/loader";
 import { gameCursor } from "./core/plugins/features/gameCursor";
-import { playMusic } from "./core/plugins/features/sound";
-import { StateChart } from "./play/chartEditor/chartEditorBackend";
-import { DancerFile } from "./play/objects/dancer";
 import { SongChart, SongContent, SongManifest } from "./play/song";
-import { GameDialog } from "./ui/dialogs/gameDialog";
-import { addSongCapsule, StateSongSelect } from "./ui/SongSelectScene";
-import { utils } from "./utils";
 
-type returnFromZIP = {
-	content: SongContent;
-	zipFile: JSZip;
+/** Holds the content to a song folder */
+type songFolder = {
+	manifest: SongManifest;
+	audio: Blob;
+	cover: Blob;
+	chart: SongChart;
 };
 
-/** Class to handle some of the file managing functions
+/** This class is a series of "utils" and important functions to manage some of the files that might be related to the content of the game
  *
- * The process of loading a song goes like this
- * 1. First we call the {@link receiveFile} function to get a file from the user
- * this will return an object of type {@link SongContent} with only the manifest set
+ * The process of loading a real song of the game goes like this
+ * 1. We call the {@link fetchSongFolder `fetchSongFolder()`} function which will return an object of type {@link songFolder}
+ * 2. Then we have to call the {@link loadSongAssets `loadSongAssets()`} function to load the assets of the song
  *
- * 2. Then we have to call the {@link loadSongAssets} function to load the assets of the song
- * this function takes as a parameter a {@link returnFromZIP} type, which contains the zip content so it can access the actual files
- * and the song content so it can assign the manifest and the assets
+ * The process of loading a (custom) song has 2 steps
+ * 1. First we call the {@link receiveFile `receiveFile()`} function to get a file from the user
+ * this will return an object of type {@link songFolder}
+ *
+ * 2. Then we have to call the {@link loadSongAssets `loadSongAssets()`} function to load the assets of the song
+ * this function will take as a parameter a {@link songFolder}, this way it can access the files and load it
  */
 export class FileManager {
 	/** Is called for a cool little loading screen when receiving files
@@ -81,6 +80,11 @@ export class FileManager {
 		};
 	}
 
+	/** Convers an image file to a base 64 */
+	static ImageToBase64(file: File): string {
+		return URL.createObjectURL(file);
+	}
+
 	/** Asks for a file from the user
 	 * @param type Will either be **mod** to receive a full mod, **audio** to receive only an audio file, or **cover** to only receive an image
 	 * @returns The file that the user selected
@@ -91,56 +95,70 @@ export class FileManager {
 		else if (type == "cover") inputElement.accept = ".png,.jpg";
 		inputElement.click();
 
-		return new Promise((resolve, reject) => {
+		return new Promise((resolve) => {
 			inputElement.onchange = () => {
 				resolve(inputElement.files[0]);
 			};
 			inputElement.oncancel = () => {
-				reject("User cancelled file input");
+				resolve(null);
 			};
 		});
 	}
 
-	/** Load the assets of a song to make it playable
-	 * @param manifest The manifest of the song to receive the uuid and some asset paths
-	 * @param assets An object containing the cover, audio, and chart of the song
+	/** Fetch a song folder given a path
+	 * @param folderPath The path to the folder
+	 *
+	 * Used mostly for default songs
 	 */
-	static async loadSongAssets(returnFromZIP: returnFromZIP) {
-		const songContent = returnFromZIP.content;
-		const zipFile = returnFromZIP.zipFile;
-		const uuid = songContent.manifest.uuid_DONT_CHANGE;
+	static async fetchSongFolder(folderPath: string): Promise<songFolder> {
+		const manifest = await fetch(`${folderPath}/manifest.toml`).then((thing) => thing.text()).then((text) => TOML.parse(text)) as SongManifest;
+		const chart = await fetch(`${folderPath}/${manifest.chart_file}`).then((thing) => thing.json()) as SongChart;
+		const audio = await fetch(`${folderPath}/${manifest.audio_file}`).then((thing) => thing.blob()) as Blob;
+		const cover = await fetch(`${folderPath}/${manifest.cover_file}`).then((thing) => thing.blob()) as Blob;
+		return { audio: audio, cover: cover, manifest: manifest, chart: chart } as songFolder;
+	}
 
+	/** Load the assets of a song to make it playable
+	 * @param songFolder Receives the contents of a song folder
+	 */
+	static async loadSongAssets(songFolder: songFolder): Promise<SongContent> {
 		// cover
-		const cover = zipFile.file(songContent.manifest.cover_file);
-		await loadSprite(uuid + "-cover", URL.createObjectURL(await cover.async("blob")));
+		const cover64 = URL.createObjectURL(songFolder.cover);
+		await loadSprite(songFolder.manifest.uuid_DONT_CHANGE + "-cover", cover64);
 
 		// audio
-		const audio = zipFile.file(songContent.manifest.audio_file);
-		await loadSound(uuid + "-audio", await audio.async("arraybuffer"));
+		const arrayBuffer = await songFolder.audio.arrayBuffer();
+		await loadSound(songFolder.manifest.uuid_DONT_CHANGE + "-audio", arrayBuffer);
 
-		// chart
-		const chart = await zipFile.file(songContent.manifest.chart_file).async("string");
-		const chartContent = JSON.parse(chart) as SongChart;
-		songContent.chart = chartContent;
+		const songContent: SongContent = {
+			manifest: songFolder.manifest,
+			chart: songFolder.chart,
+		};
 
-		const foundSongWithUUID = loadedSongs.find((song) => song.manifest.uuid_DONT_CHANGE == uuid);
-		if (foundSongWithUUID) {
-			// replace that spot in the loadedSongs array with the new one
-			loadedSongs[loadedSongs.indexOf(foundSongWithUUID)] = songContent;
+		// songContent
+		const songIsAlreadyLoaded = loadedSongs.find((song) => song.manifest.uuid_DONT_CHANGE == songContent.manifest.uuid_DONT_CHANGE);
+		const isDefaultSong = defaultUUIDS.includes(songContent.manifest.uuid_DONT_CHANGE);
+
+		if (songIsAlreadyLoaded) {
+			if (isDefaultSong) console.error("You're trying to overwrite a default song, don't do that!");
+			else {
+				console.log("The song you were trying to load is already loaded, will overwrite");
+				loadedSongs[loadedSongs.indexOf(songIsAlreadyLoaded)] = songContent;
+			}
 		}
 		else {
 			loadedSongs.push(songContent);
 		}
+
+		return new Promise((resolve) => resolve(songContent));
 	}
 
-	/** Gets the song content from a ZIP file and assigns the manifest, then it can be passed to @link { loadSongAssets }
-	 * @param zipFile Will be contents of {@link inputElement `fileManager`}
-	 */
-	static async SongContentFromZIP(zipFile: File): Promise<returnFromZIP> {
+	/** Get the content of a song folder */
+	static async getSongFolderContent(zipFile: File): Promise<songFolder> {
+		const songFolder: songFolder = {} as songFolder;
+
 		const jsZip = new JSZip();
 		const zipContent = await jsZip.loadAsync(zipFile);
-
-		const songContent = new SongContent();
 
 		const manifestFile = zipContent.file("manifest.toml");
 		if (!manifestFile) return new Promise((_, reject) => reject("No manifest file found in zip"));
@@ -152,192 +170,77 @@ export class FileManager {
 				return new Promise((_, reject) => reject("Manifest file has wrong keys"));
 			}
 
-			// manifest set
-			songContent.manifest = manifestContent as any;
+			songFolder.manifest = manifestContent as any;
 		}
 
+		const audio_file = zipContent.file(songFolder.manifest.audio_file);
+		if (!audio_file) return new Promise((_, reject) => reject("No audio file found in zip or wrong name in manifest"));
+		else songFolder.audio = await audio_file.async("blob");
+
+		const cover_file = zipContent.file(songFolder.manifest.cover_file);
+		if (!cover_file) return new Promise((_, reject) => reject("No cover file found in zip or wrong name in manifest"));
+		else songFolder.cover = await cover_file.async("blob");
+
+		const chart_file = zipContent.file(songFolder.manifest.chart_file);
+		if (!chart_file) return new Promise((_, reject) => reject("No chart file found in zip or wrong name in manifest"));
+		else songFolder.chart = JSON.parse(await chart_file.async("string")) as SongChart;
+
 		// this will run at the end because all the foolproof returns have been returned
-		return new Promise((resolve) => resolve({ content: songContent, zipFile: zipContent }));
+		return new Promise((resolve) => resolve(songFolder));
 	}
 
-	/** Will write a blob zip file that has the songs, dancers, and noteskins folder */
-	static writeZIP(songs: SongContent[], dancers: DancerFile[], noteskins: string[]) {
+	/** Convers a sprite to a data url */
+	static async spriteToDataURL(sprName: string) {
+		const canvas = makeCanvas(396, 396);
+		canvas.draw(() => {
+			drawSprite({
+				sprite: sprName,
+				width: width(),
+				height: height(),
+				pos: center(),
+				anchor: "center",
+			});
+		});
+
+		const dataURL = canvas.toDataURL();
+		return dataURL;
+	}
+
+	/** Will return a blob to download a zip with the song */
+	static async writeSongFolder(songContent: SongContent): Promise<Blob> {
+		/** This is the folder where everything will be stored */
+		const zipFolder = new JSZip();
+
+		// chart
+		zipFolder.file(songContent.manifest.chart_file, JSON.stringify(songContent.chart));
+
+		// manifest
+		zipFolder.file("manifest.toml", TOML.stringify(songContent.manifest));
+
+		// cover
+		const defaultCover = "sprites/defaultCover.png";
+		let pathToCover: string = undefined;
+		const cover = await getSprite(songContent.manifest.uuid_DONT_CHANGE + "-cover");
+		if (!cover) pathToCover = defaultCover;
+		else pathToCover = await FileManager.spriteToDataURL(songContent.manifest.uuid_DONT_CHANGE + "-cover");
+		const imageBlob = await fetch(pathToCover).then((r) => r.blob());
+		zipFolder.file(songContent.manifest.cover_file, imageBlob);
+
+		// audio
+		const defaultAudio = "audio/new-song-audio.ogg";
+		const audio = await getSound(songContent.manifest.uuid_DONT_CHANGE + "-audio");
+		let audioBlob = await fetch(defaultAudio).then((r) => r.blob());
+		if (!audio) audioBlob = await fetch(defaultAudio).then((r) => r.blob());
+		else {
+			const blob = audioBufferToBlob(audio.buf);
+			audioBlob = blob;
+		}
+		zipFolder.file(songContent.manifest.audio_file, audioBlob);
+
+		return zipFolder.generateAsync({ type: "blob" });
 	}
 }
 
 /** File manager for some stuff of the game */
 export let inputElement = document.createElement("input");
 inputElement.type = "file";
-
-/** Runs when user accepts to input a new song for the song select */
-export async function handleZipInput(SongSelectState: StateSongSelect) {
-	inputElement.click();
-	SongSelectState.menuInputEnabled = false;
-	inputElement.accept = ".zip";
-
-	// TODO: RE DO THIS
-
-	inputElement.onchange = async () => {
-		const drawLoadingScreen = inputLoadingScreen();
-
-		const gottenFile = inputElement.files[0];
-		const jsZip = new JSZip();
-
-		const zipFile = await jsZip.loadAsync(gottenFile);
-
-		const manifestFile = zipFile.file("manifest.toml");
-		const manifestContent = TOML.parse(await manifestFile.async("string"));
-		const uuid = manifestContent["uuid_DONT_CHANGE"];
-
-		// if some song has an uuid equal to the one i just got, throw an error
-		if (loadedSongs.some((song) => song.manifest.uuid_DONT_CHANGE == uuid)) {
-			throw new Error("ALREADY LOADED A SONG WITH THAT UNIQUE UNIVERSAL IDENTIFIER");
-		}
-
-		const songInfo = await loadSongFromZIP(gottenFile);
-
-		loadedSongs.push(songInfo);
-		GameSave.save();
-		SongSelectState.menuInputEnabled = true;
-
-		drawLoadingScreen.cancel();
-
-		addSongCapsule(songInfo);
-		getTreeRoot().trigger("addedCapsule");
-		wait(0.1, () => {
-			SongSelectState.updateState();
-		});
-	};
-
-	inputElement.oncancel = async () => {
-		SongSelectState.menuInputEnabled = true;
-		debug.log("user cancelled song input");
-	};
-}
-
-/** Runs when user accepts to input a song to change the one in the chart editor */
-export async function handleAudioInput(ChartState: StateChart) {
-	inputElement.click();
-	ChartState.paused = true;
-	inputElement.accept = ".ogg,.wav,.mp3";
-
-	ChartState.inputDisabled = true;
-	gameCursor.canMove = false;
-	gameCursor.do("load");
-
-	inputElement.onchange = async () => {
-		const loadScreen = inputLoadingScreen();
-
-		// TODO: Why use array buffer and audio buffer?????
-		const gottenFile = inputElement.files[0];
-		const arrayBuffer = await gottenFile.arrayBuffer();
-		await loadSound(ChartState.song.manifest.uuid_DONT_CHANGE + "-audio", arrayBuffer);
-		const soundData = await getSound(ChartState.song.manifest.uuid_DONT_CHANGE + "-audio");
-		const audioBuffer = soundData.buf;
-
-		ChartState.audioBuffer = audioBuffer;
-		// change the audio play for the conductor
-		ChartState.conductor.audioPlay = playMusic(ChartState.song.manifest.uuid_DONT_CHANGE + "-audio", {
-			speed: 1,
-		});
-
-		ChartState.song.chart.notes.forEach((note) => {
-			if (note.time >= ChartState.conductor.audioPlay.duration()) {
-				ChartState.song.chart.notes = utils.removeFromArr(note, ChartState.song.chart.notes);
-			}
-		});
-
-		ChartState.song.manifest.audio_file = gottenFile.name;
-
-		ChartState.inputDisabled = false;
-		gameCursor.canMove = true;
-		gameCursor.do("default");
-		loadScreen.cancel();
-	};
-
-	inputElement.oncancel = async () => {
-		ChartState.inputDisabled = false;
-		gameCursor.canMove = true;
-		debug.log("user cancelled song input");
-	};
-}
-
-/** Handles the input for a new cover */
-export function handleCoverInput(ChartState: StateChart) {
-	inputElement.click();
-	inputElement.accept = ".png,.jpg";
-
-	gameCursor.canMove = false;
-	GameDialog.canClose = false;
-	gameCursor.do("load");
-
-	inputElement.onchange = async () => {
-		const gottenFile = inputElement.files[0];
-		const arrBuffer = await gottenFile.arrayBuffer();
-		const blob = new Blob([arrBuffer]);
-		const base64 = URL.createObjectURL(blob);
-
-		await loadSprite(ChartState.song.manifest.uuid_DONT_CHANGE + "-cover", base64);
-
-		ChartState.song.manifest.cover_file = gottenFile.name;
-
-		GameDialog.canClose = true;
-		ChartState.inputDisabled = false;
-		gameCursor.canMove = true;
-	};
-
-	inputElement.oncancel = async () => {
-		ChartState.inputDisabled = false;
-		gameCursor.canMove = true;
-		GameDialog.canClose = true;
-		debug.log("user cancelled cover input");
-	};
-}
-
-/** Small loading screen to display while stuff loads */
-export function inputLoadingScreen() {
-	let op = 0;
-	let ang = 0;
-
-	const obj = add([
-		layer("cursor"),
-		z(gameCursor.z - 1),
-		timer(),
-	]);
-
-	obj.tween(op, 1, 0.1, (p) => op = p);
-	const drawEv = obj.onDraw(() => {
-		drawRect({
-			width: width(),
-			height: height(),
-			anchor: "center",
-			pos: center(),
-			color: BLACK,
-			opacity: 0.5 * op,
-		});
-
-		drawText({
-			text: "LOADING",
-			font: "lambda",
-			pos: center(),
-			color: WHITE,
-			anchor: "center",
-			opacity: op,
-		});
-
-		ang += 1;
-		drawSprite({
-			sprite: "bean",
-			angle: ang,
-			anchor: "center",
-			pos: vec2(center().x, wave(center().y + 70, center().y + 80, time() + 1)),
-			opacity: op,
-		});
-	});
-
-	return {
-		cancel() {
-			tween(op, 0, 0.1, (p) => op = p);
-		},
-	};
-}
