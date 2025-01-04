@@ -5,6 +5,11 @@ import { defaultUUIDS, loadedSongs } from "./core/loader";
 import { gameCursor } from "./core/plugins/features/gameCursor";
 import { SongChart, SongContent, SongManifest } from "./play/song";
 
+/** File manager for some stuff of the game */
+export const inputElement = document.createElement("input");
+inputElement.type = "file";
+inputElement.style.display = "none";
+
 /** Holds the content to a song folder */
 type songFolder = {
 	manifest: SongManifest;
@@ -240,7 +245,3 @@ export class FileManager {
 		return zipFolder.generateAsync({ type: "blob" });
 	}
 }
-
-/** File manager for some stuff of the game */
-export let inputElement = document.createElement("input");
-inputElement.type = "file";

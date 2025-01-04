@@ -26,6 +26,8 @@ export class GameSaveClass {
 		right: { kbKey: "right", move: "right" } as gameKey,
 	};
 
+	editorColor = { r: 0, g: 0, b: 0 };
+
 	noteskin: string = "A";
 
 	/** The songs that have been played, check {@link songSaveScore} type for more info */

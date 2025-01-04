@@ -7,8 +7,8 @@ import { playSound } from "../../core/plugins/features/sound";
 import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { utils } from "../../utils";
 import { moveToColor, notesSpawner } from "../objects/note";
-import { openChartAboutDialog, openChartInfoDialog } from "./editorDialogs";
 import { ChartStamp, concatStamps, downloadChart, findNoteAtStep, isStampNote, StateChart, trailAtStep } from "./EditorState";
+import { openChartAboutDialog, openChartInfoDialog } from "./editorUI";
 
 /** Returns if a certain Y position mets the conditions to be drawn on the screen */
 function conditionsForDrawing(YPos: number, square_size: Vec2 = vec2(52)) {

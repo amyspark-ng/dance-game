@@ -198,23 +198,9 @@ export function GameScene() {
 
 				const noteObj = get("noteObj", { recursive: true }).find((obj: NoteGameObj) => obj.chartNote == chartNote) as NoteGameObj;
 				noteObj.opacity = 0;
-				const stepHit = onStepHit(() => {
-					noteObj.visualLength -= 1;
-
-					if (noteObj.visualLength >= 0) {
-						GameState.addScore(scorePerDiff);
-					}
-					else {
-						keyRelease?.cancel();
-						stepHit.cancel();
-						noteObj.destroy();
-					}
-				});
 
 				keyRelease = onKeyRelease(getKeyForMove(chartNote.move), () => {
 					keyRelease.cancel();
-					stepHit.cancel();
-
 					noteObj.destroy();
 				});
 			}

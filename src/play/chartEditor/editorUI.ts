@@ -6,6 +6,134 @@ import { utils } from "../../utils";
 import { ChartEvent, SongContent } from "../song";
 import { StateChart } from "./EditorState";
 
+class TopButton {
+	text: string;
+	commands: { [key: string]: string; };
+	constructor(text: string, commands: { [key: string]: string; }) {
+		this.text = text;
+		this.commands = commands;
+	}
+}
+
+const topButtons = [
+	new TopButton("file", {
+		"newchart": "New chart (Ctrl + N)",
+		"openchart": "Open chart (Ctrl + O)",
+		"savechartas": "Download chart (Ctrl + Shift + S)",
+		"exit": "Exit (Ctrl + Q)",
+	}),
+	new TopButton("edit", {
+		"selectall": "Select all (Ctrl + A)",
+		"deselect": "Deselect (Ctrl + D)",
+		"delete": "Delete (Backspace)",
+		"invertselection": "Invert selection (Ctrl + I)",
+		"copy": "Copy (Ctrl + C)",
+		"paste": "Paste (Ctrl + V)",
+		"cut": "Cut (Ctrl + X)",
+		"undo": "Undo (Ctrl + Z)",
+		"redo": "Redo (Ctrl + Y)",
+	}),
+];
+
+export function addEditorUI(ChartState: StateChart) {
+	const TOP_HEIGHT = 35;
+	const LEFT_PADDING = 10;
+	const HEIGHT_OF_CHARACTER = 25;
+	const WIDTH_OF_CHARACTER = formatText({ text: "A", size: HEIGHT_OF_CHARACTER / 2, font: "lambda" }).width;
+
+	function addTopButton(classInstance: TopButton) {
+		const button = add([
+			text(classInstance.text, { size: HEIGHT_OF_CHARACTER, align: "left", font: "lambda" }),
+			color(WHITE),
+			anchor("topleft"),
+			area(),
+			pos(),
+			z(1),
+			"topbotton",
+			"hover",
+			{
+				topButton: classInstance,
+			},
+		]);
+
+		button.onClick(() => {
+			contextMenu.updateState(button);
+		});
+		return button;
+	}
+
+	const contextMenu = add([
+		rect(0, 0),
+		pos(100, LEFT_PADDING),
+		color(GameDialog.HEADER_COLOR),
+		anchor("topleft"),
+		{
+			intendedHeight: 0,
+			/** Runs when a top button has been clicked */
+			updateState: null as (buttonObj: ReturnType<typeof addTopButton>) => void,
+		},
+	]);
+
+	contextMenu.updateState = (buttonObj: ReturnType<typeof addTopButton>) => {
+		contextMenu.intendedHeight = 0;
+		contextMenu.removeAll();
+
+		if (buttonObj == null) return;
+		contextMenu.pos.x = buttonObj.pos.x;
+		contextMenu.pos.y = TOP_HEIGHT;
+		const topButton = buttonObj?.topButton;
+		Object.keys(topButton.commands).forEach((commandKey, index) => {
+			const textInCommand = topButton.commands[commandKey];
+			const contextButton = contextMenu.add([
+				text(textInCommand, { size: HEIGHT_OF_CHARACTER * 0.75, font: "lambda", align: "left" }),
+				color(WHITE),
+				anchor("left"),
+				pos(),
+				area(),
+				"contextbutton",
+				"hover",
+			]);
+
+			contextButton.pos.x = 5;
+			contextButton.pos.y = 11 + index * 25;
+
+			contextButton.onClick(() => {
+				ChartState.actions[commandKey]();
+				contextMenu.updateState(null);
+			});
+		});
+
+		const longestCommand = Object.values(topButton.commands).reduce((a, b) => a.length > b.length ? a : b);
+		contextMenu.width = WIDTH_OF_CHARACTER * longestCommand.length;
+		contextMenu.intendedHeight = HEIGHT_OF_CHARACTER * Object.keys(topButton.commands).length;
+	};
+
+	contextMenu.onUpdate(() => {
+		contextMenu.height = lerp(contextMenu.height, contextMenu.intendedHeight, 0.5);
+		if (isMousePressed("left")) {
+			if (!get("hover").some((obj) => obj.isHovering())) contextMenu.updateState(null);
+		}
+	});
+
+	topButtons.forEach((topbutton, index) => {
+		topbutton.text = topbutton.text.charAt(0).toUpperCase() + topbutton.text.slice(1);
+		const button = addTopButton(topbutton);
+
+		button.pos.y = 5;
+		button.pos.x = LEFT_PADDING + 60 * index;
+	});
+
+	onDraw(() => {
+		drawRect({
+			pos: vec2(0, -1),
+			width: width() * 1.1,
+			height: TOP_HEIGHT,
+			color: GameDialog.HEADER_COLOR,
+			outline: { color: GameDialog.HEADER_COLOR.lighten(50), width: 1 },
+		});
+	});
+}
+
 /** Opens the dialog for the fields of the song in the chart editor */
 export function openChartInfoDialog(ChartState: StateChart) {
 	const newSong = new SongContent();
@@ -283,10 +411,6 @@ export function openExitDialog() {
 		pos(vec2(-50, 0)),
 		"hover",
 	]);
-
-	yesButton.onClick(() => {
-		transitionToScene(fadeOut, "menu", { index: 0 });
-	});
 
 	const noButton = dialog.add([
 		text("No"),

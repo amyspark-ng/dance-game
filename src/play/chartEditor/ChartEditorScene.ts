@@ -1,5 +1,5 @@
 // The actual scene for the chart editor
-import { KEventController } from "kaplay";
+import { AreaComp, GameObj, KEventController } from "kaplay";
 import { Conductor } from "../../conductor";
 import { onBeatHit, onNoteHit, onStepHit, triggerEvent } from "../../core/events";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
@@ -11,7 +11,6 @@ import { utils } from "../../utils";
 import { moveToColor } from "../objects/note";
 import { paramsGameScene } from "../PlayState";
 import { SongContent } from "../song";
-import { openChartAboutDialog, openChartInfoDialog, openEventDialog, openExitDialog } from "./editorDialogs";
 import {
 	addDialogButtons,
 	addEventsPanel,
@@ -46,6 +45,7 @@ import {
 	StateChart,
 	trailAtStep,
 } from "./EditorState";
+import { addEditorUI, openChartAboutDialog, openChartInfoDialog, openEventDialog, openExitDialog } from "./editorUI";
 
 export function ChartEditorScene() {
 	scene("charteditor", (params: paramsChartEditor) => {
@@ -54,6 +54,8 @@ export function ChartEditorScene() {
 
 		gameCursor.show();
 		setMouseAnimConditions(ChartState);
+
+		addEditorUI(ChartState);
 
 		/** Gets the current note that is being hovered */
 		function getCurrentHoveredNote() {
@@ -176,154 +178,43 @@ export function ChartEditorScene() {
 				if (!ChartState.paused) ChartState.paused = true;
 				// TODO: do this lol
 			}
+
 			// ceil to closest beat
 			if (isKeyPressedRepeat("right") && ChartState.scrollStep > 0) {
 				if (!ChartState.paused) ChartState.paused = true;
-				// TODO: do this lol
 			}
+			// it owuld be cool if i wrote a function that parsed the actions from the keys
+			// Object.keys(ChartState.actions).forEach((action) => {
+			// 	if (isKeyPressed(action)) {
+			// 		ChartState.actions[action]();
+			// 	}
+			// })
 			// remove all selected notes
 			else if (isKeyPressed("backspace")) {
-				if (ChartState.selectedStamps.length == 0) return;
-				ChartState.takeSnapshot();
-
-				ChartState.selectedStamps.forEach((stamp) => {
-					if (isStampNote(stamp)) ChartState.deleteNote(stamp);
-					else ChartState.deleteEvent(stamp);
-				});
-
-				playSound("noteRemove", { detune: rand(-50, 50) });
-				// there was an event in there
-				if (ChartState.selectedStamps.some((stamp) => !isStampNote(stamp))) {
-					playSound("eventCog", { detune: rand(-50, 50) });
-				}
-
-				ChartState.selectedStamps = [];
+				ChartState.actions.delete();
 			}
 			// undo
 			else if (isKeyDown("control") && isKeyPressedRepeat("z")) {
-				let oldSongState = ChartState.song;
-				ChartState.undo();
-
-				if (oldSongState != ChartState.song) {
-					playSound("noteUndo", { detune: rand(-50, -25) });
-				}
+				ChartState.actions.undo();
 			}
 			// redo
 			else if (isKeyDown("control") && isKeyPressedRepeat("y")) {
-				let oldSongState = ChartState.song;
-				ChartState.redo();
-
-				if (oldSongState != ChartState.song) {
-					playSound("noteUndo", { detune: rand(25, 50) });
-				}
 			}
 			// copy
 			else if (isKeyDown("control") && isKeyPressed("c")) {
-				if (ChartState.selectedStamps.length == 0) return;
-
-				ChartState.clipboard = ChartState.selectedStamps;
-				addFloatingText(clipboardMessage("copy", ChartState.clipboard));
-				playSound("noteCopy", { detune: rand(25, 50) });
-
-				ChartState.selectedStamps.forEach((stamp) => {
-					if (isStampNote(stamp)) {
-						const indexInNotes = ChartState.song.chart.notes.indexOf(stamp);
-						tween(
-							choose([-1, 1]) * 20,
-							0,
-							0.5,
-							(p) => ChartState.stampProps.notes[indexInNotes].angle = p,
-							easings.easeOutExpo,
-						);
-						tween(
-							vec2(1.2),
-							vec2(1),
-							0.5,
-							(p) => ChartState.stampProps.notes[indexInNotes].scale = p,
-							easings.easeOutExpo,
-						);
-					}
-					else {
-						const indexInEvents = ChartState.song.chart.events.indexOf(stamp);
-						tween(
-							choose([-1, 1]) * 20,
-							0,
-							0.5,
-							(p) => ChartState.stampProps.events[indexInEvents].angle = p,
-							easings.easeOutExpo,
-						);
-						tween(
-							vec2(1.2),
-							vec2(1),
-							0.5,
-							(p) => ChartState.stampProps.events[indexInEvents].scale = p,
-							easings.easeOutExpo,
-						);
-					}
-				});
+				ChartState.actions.copy();
 			}
 			// cut
 			else if (isKeyDown("control") && isKeyPressed("x")) {
-				if (ChartState.selectedStamps.length == 0) return;
-
-				// some code from the copy action
-				ChartState.clipboard = ChartState.selectedStamps;
-				addFloatingText(clipboardMessage("cut", ChartState.clipboard));
-				playSound("noteCopy", { detune: rand(0, 25) });
-
-				ChartState.selectedStamps.forEach((stamp) => {
-					if (isStampNote(stamp)) {
-						ChartState.deleteNote(stamp);
-					}
-					else {
-						ChartState.deleteEvent(stamp);
-					}
-				});
+				ChartState.actions.cut();
 			}
 			// paste
 			else if (isKeyDown("control") && isKeyPressed("v")) {
-				if (ChartState.clipboard.length == 0) return;
-				playSound("noteCopy", { detune: rand(-50, -25) });
-				addFloatingText(clipboardMessage("paste", ChartState.clipboard));
-
-				ChartState.clipboard.forEach((stamp) => {
-					const newTime = stamp.time + ChartState.conductor.stepToTime(ChartState.hoveredStep - 3.5);
-
-					if (isStampNote(stamp)) {
-						const newNote = ChartState.placeNote(newTime, stamp.move);
-						const indexInNotes = ChartState.song.chart.notes.indexOf(newNote);
-						if (indexInNotes == -1) return;
-						tween(
-							choose([-1, 1]) * 20,
-							0,
-							0.5,
-							(p) => ChartState.stampProps.notes[indexInNotes].angle = p,
-							easings.easeOutExpo,
-						);
-					}
-					else {
-						const newEvent = ChartState.placeEvent(newTime, stamp.id);
-						const indexInEvents = ChartState.song.chart.events.indexOf(newEvent);
-						if (indexInEvents == -1) return;
-						tween(
-							choose([-1, 1]) * 20,
-							0,
-							0.5,
-							(p) => ChartState.stampProps.events[indexInEvents].angle = p,
-							easings.easeOutExpo,
-						);
-					}
-				});
-
-				// shickiiii
-				ChartState.takeSnapshot();
+				ChartState.actions.paste();
 			}
 			// select all!
 			else if (isKeyDown("control") && isKeyPressed("a")) {
-				concatStamps(ChartState.song.chart.notes, ChartState.song.chart.events).forEach((stamp) => {
-					if (ChartState.selectedStamps.includes(stamp)) return;
-					ChartState.selectedStamps.push(stamp);
-				});
+				ChartState.actions.selectall();
 			}
 			else if (isKeyPressed("e")) {
 				openChartInfoDialog(ChartState);
@@ -454,7 +345,7 @@ export function ChartEditorScene() {
 					}
 				}
 				else {
-					ChartState.selectedStamps = [];
+					ChartState.resetSelectedStamps();
 					hoveredEvent = ChartState.placeEvent(hoveredTime, ChartState.currentEvent);
 					playSound("noteAdd", { detune: rand(-50, 50) });
 					playSound("eventCog", { detune: rand(-50, 50) });
@@ -467,7 +358,8 @@ export function ChartEditorScene() {
 
 			// if it's not on the grid at all simply reset selected notes
 			if (!ChartState.isCursorInGrid) {
-				ChartState.resetSelectedStamps();
+				const someHoverObjectHovered = get("hover").some((obj: GameObj<AreaComp>) => obj.isHovering());
+				if (!someHoverObjectHovered) ChartState.resetSelectedStamps();
 				return;
 			}
 			else {
@@ -714,9 +606,9 @@ export function ChartEditorScene() {
 			gameCursor.color = WHITE;
 		});
 
-		addDialogButtons(ChartState);
-		addLeftInfo(ChartState);
-		addEventsPanel(ChartState);
+		// addDialogButtons(ChartState);
+		// addLeftInfo(ChartState);
+		// addEventsPanel(ChartState);
 
 		getTreeRoot().on("dialogOpen", () => ChartState.paused = true);
 	});

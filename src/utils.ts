@@ -150,4 +150,8 @@ export class utils {
 	static getExtensionFromFilename(filename: string) {
 		return filename.split(".").pop();
 	}
+
+	static caseWord(word: string, theCase: "upper" | "lower") {
+		return theCase == "lower" ? word.charAt(0) + word.substring(1).toUpperCase() : word.charAt(0) + word.substring(1).toLowerCase();
+	}
 }

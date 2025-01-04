@@ -5,16 +5,18 @@ import { Conductor } from "../../conductor";
 import { GameSave } from "../../core/gamesave";
 import { dancers, loadedSongs } from "../../core/loader";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
-import { playMusic } from "../../core/plugins/features/sound";
+import { playMusic, playSound } from "../../core/plugins/features/sound";
 import { juice } from "../../core/plugins/graphics/juiceComponent";
+import { transitionToScene } from "../../core/scenes";
+import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { FileManager } from "../../fileManaging";
 import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { utils } from "../../utils";
 import { Move } from "../objects/dancer";
 import { ChartNote } from "../objects/note";
 import { ChartEvent, SongContent } from "../song";
-import { openChartInfoDialog } from "./editorDialogs";
 import { NOTE_BIG_SCALE } from "./editorRenderer";
+import { openChartInfoDialog } from "./editorUI";
 
 /** Is either a note or an event */
 export type ChartStamp = ChartNote | ChartEvent;
@@ -247,6 +249,173 @@ export class StateChart {
 	/** Current index of the current snapshot blah */
 	curSnapshotIndex = 0;
 
+	/** Is an object that holds all the possible actions in the chart editor */
+	actions = {
+		"newchart": () => {
+			this.createNewSong();
+		},
+		"openchart": async () => {
+			const loading = FileManager.loadingScreen();
+			const file = await FileManager.receiveFile("mod");
+			if (file) {
+				const songFolder = await FileManager.getSongFolderContent(file);
+				const song = await FileManager.loadSongAssets(songFolder);
+				this.song = song;
+				loading.cancel();
+			}
+			else {
+				loading.cancel();
+			}
+		},
+		"savechartas": () => {
+			downloadChart(this);
+		},
+		"exit": () => {
+			transitionToScene(fadeOut, "menu", { index: 0 });
+		},
+		"selectall": () => {
+			this.selectedStamps = concatStamps(this.song.chart.notes, this.song.chart.events);
+		},
+		"deselect": () => {
+			this.resetSelectedStamps();
+		},
+		"delete": () => {
+			if (this.selectedStamps.length == 0) return;
+			this.takeSnapshot();
+
+			this.selectedStamps.forEach((stamp) => {
+				if (isStampNote(stamp)) this.deleteNote(stamp);
+				else this.deleteEvent(stamp);
+			});
+
+			playSound("noteRemove", { detune: rand(-50, 50) });
+			// there was an event in there
+			if (this.selectedStamps.some((stamp) => !isStampNote(stamp))) {
+				playSound("eventCog", { detune: rand(-50, 50) });
+			}
+
+			this.selectedStamps = [];
+		},
+		"invertselection": () => {
+			const allStamps = concatStamps(this.song.chart.notes, this.song.chart.events);
+			this.selectedStamps = allStamps.filter((stamp) => !this.selectedStamps.includes(stamp));
+		},
+		"copy": () => {
+			if (this.selectedStamps.length == 0) return;
+
+			this.clipboard = this.selectedStamps;
+			addFloatingText(clipboardMessage("copy", this.clipboard));
+			playSound("noteCopy", { detune: rand(25, 50) });
+
+			this.selectedStamps.forEach((stamp) => {
+				if (isStampNote(stamp)) {
+					const indexInNotes = this.song.chart.notes.indexOf(stamp);
+					tween(
+						choose([-1, 1]) * 20,
+						0,
+						0.5,
+						(p) => this.stampProps.notes[indexInNotes].angle = p,
+						easings.easeOutExpo,
+					);
+					tween(
+						vec2(1.2),
+						vec2(1),
+						0.5,
+						(p) => this.stampProps.notes[indexInNotes].scale = p,
+						easings.easeOutExpo,
+					);
+				}
+				else {
+					const indexInEvents = this.song.chart.events.indexOf(stamp);
+					tween(
+						choose([-1, 1]) * 20,
+						0,
+						0.5,
+						(p) => this.stampProps.events[indexInEvents].angle = p,
+						easings.easeOutExpo,
+					);
+					tween(
+						vec2(1.2),
+						vec2(1),
+						0.5,
+						(p) => this.stampProps.events[indexInEvents].scale = p,
+						easings.easeOutExpo,
+					);
+				}
+			});
+		},
+		"paste": () => {
+			if (this.clipboard.length == 0) return;
+			playSound("noteCopy", { detune: rand(-50, -25) });
+			addFloatingText(clipboardMessage("paste", this.clipboard));
+
+			this.clipboard.forEach((stamp) => {
+				const newTime = stamp.time + this.conductor.stepToTime(this.hoveredStep - 3.5);
+
+				if (isStampNote(stamp)) {
+					const newNote = this.placeNote(newTime, stamp.move);
+					const indexInNotes = this.song.chart.notes.indexOf(newNote);
+					if (indexInNotes == -1) return;
+					tween(
+						choose([-1, 1]) * 20,
+						0,
+						0.5,
+						(p) => this.stampProps.notes[indexInNotes].angle = p,
+						easings.easeOutExpo,
+					);
+				}
+				else {
+					const newEvent = this.placeEvent(newTime, stamp.id);
+					const indexInEvents = this.song.chart.events.indexOf(newEvent);
+					if (indexInEvents == -1) return;
+					tween(
+						choose([-1, 1]) * 20,
+						0,
+						0.5,
+						(p) => this.stampProps.events[indexInEvents].angle = p,
+						easings.easeOutExpo,
+					);
+				}
+			});
+
+			// shickiiii
+			this.takeSnapshot();
+		},
+		"cut": () => {
+			if (this.selectedStamps.length == 0) return;
+
+			// some code from the copy action
+			this.clipboard = this.selectedStamps;
+			addFloatingText(clipboardMessage("cut", this.clipboard));
+			playSound("noteCopy", { detune: rand(0, 25) });
+
+			this.selectedStamps.forEach((stamp) => {
+				if (isStampNote(stamp)) {
+					this.deleteNote(stamp);
+				}
+				else {
+					this.deleteEvent(stamp);
+				}
+			});
+		},
+		"undo": () => {
+			let oldSongState = this.song;
+			this.undo();
+
+			if (oldSongState != this.song) {
+				playSound("noteUndo", { detune: rand(-50, -25) });
+			}
+		},
+		"redo": () => {
+			let oldSongState = this.song;
+			this.redo();
+
+			if (oldSongState != this.song) {
+				playSound("noteUndo", { detune: rand(25, 50) });
+			}
+		},
+	};
+
 	/** Runs when the sound for the soundPlay has changed */
 	updateAudio() {
 		this.conductor.audioPlay.stop();
@@ -267,8 +436,8 @@ export class StateChart {
 
 	/** Unselects any stamp and the detune */
 	resetSelectedStamps() {
-		this.selectedStamps = [];
-		this.stepForDetune = 0;
+		// this.selectedStamps = [];
+		// this.stepForDetune = 0;
 	}
 
 	/** Changes the current move */
@@ -419,13 +588,14 @@ export class StateChart {
 
 		// Creates a deep copy of the song so it doesn't overwrite the current song
 		this.song = JSON.parse(JSON.stringify(this.params.song));
+		this.song.manifest.uuid_DONT_CHANGE = v4();
+
 		// the uuid alreaddy exists
 		if (loadedSongs.map((song) => song.manifest.uuid_DONT_CHANGE).includes(this.song.manifest.uuid_DONT_CHANGE)) {
 			this.song.manifest.name = this.song.manifest.name + " (copy)";
-			this.song.manifest.uuid_DONT_CHANGE = v4();
 			// have to reload the audio i don't know how much this would work since this loading takes time so
 			const soundBuffer = getSound(`${oldUUID}-audio`).data.buf;
-			loadSound(`${this.song.manifest.uuid_DONT_CHANGE}-audio`, soundBuffer);
+			loadSound(`${this.song.manifest.uuid_DONT_CHANGE}-audio`, soundBuffer as any);
 
 			// also have to reload the cover this sucks
 			FileManager.spriteToDataURL(`${oldUUID}-cover`).then((dataurl) => {
@@ -435,7 +605,7 @@ export class StateChart {
 		else {
 			// load default sound
 			const newSoundBuffer = getSound("new-song-audio").data.buf;
-			loadSound(`${this.song.manifest.uuid_DONT_CHANGE}-audio`, newSoundBuffer);
+			loadSound(`${this.song.manifest.uuid_DONT_CHANGE}-audio`, newSoundBuffer as any);
 
 			// load default cover
 			FileManager.spriteToDataURL("defaultCover").then((dataurl) => {
@@ -533,7 +703,7 @@ export function selectionBoxHandler(ChartState: StateChart) {
 		);
 
 		const oldSelectStamps = ChartState.selectedStamps;
-		ChartState.selectedStamps = [];
+		// ChartState.selectedStamps = [];
 
 		const combined = concatStamps(ChartState.song.chart.notes, ChartState.song.chart.events);
 
@@ -743,9 +913,8 @@ export async function downloadChart(ChartState: StateChart) {
 	getTreeRoot().trigger("download");
 
 	const SongFolder = await FileManager.writeSongFolder(ChartState.song);
-	const kebabCaseName = utils.kebabCase(ChartState.song.manifest.name);
 
 	// downloads the zip
 	downloadBlob(`${ChartState.song.manifest.name}.zip`, SongFolder);
-	debug.log(`${kebabCaseName}-chart.zip, DOWNLOADED! :)`);
+	debug.log(`${ChartState.song.manifest.name}.zip, DOWNLOADED! :)`);
 }
