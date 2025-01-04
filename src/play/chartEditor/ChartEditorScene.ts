@@ -11,6 +11,22 @@ import { utils } from "../../utils";
 import { moveToColor } from "../objects/note";
 import { paramsGameScene } from "../PlayState";
 import { SongContent } from "../song";
+import { openChartAboutDialog, openChartInfoDialog, openEventDialog, openExitDialog } from "./editorDialogs";
+import {
+	addDialogButtons,
+	addEventsPanel,
+	addLeftInfo,
+	checkerboardRenderer,
+	drawCameraController,
+	drawNoteCursor,
+	drawPlayBar,
+	drawSelectionBox,
+	drawSelectSquares,
+	drawStrumline,
+	NOTE_BIG_SCALE,
+	SCROLL_LERP_VALUE,
+	stampRenderer,
+} from "./editorRenderer";
 import {
 	addDummyDancer,
 	addFloatingText,
@@ -29,23 +45,7 @@ import {
 	stampPropThing,
 	StateChart,
 	trailAtStep,
-} from "./chartEditorBackend";
-import { openChartAboutDialog, openChartInfoDialog, openEventDialog, openExitDialog } from "./chartEditorDialogs";
-import {
-	addDialogButtons,
-	addEventsPanel,
-	addLeftInfo,
-	checkerboardRenderer,
-	drawCameraController,
-	drawNoteCursor,
-	drawPlayBar,
-	drawSelectionBox,
-	drawSelectSquares,
-	drawStrumline,
-	NOTE_BIG_SCALE,
-	SCROLL_LERP_VALUE,
-	stampRenderer,
-} from "./chartEditorElements";
+} from "./EditorState";
 
 export function ChartEditorScene() {
 	scene("charteditor", (params: paramsChartEditor) => {

@@ -138,7 +138,7 @@ export function addSongCapsule(curSong: SongContent) {
 	}
 
 	// if song isn't on default songs then it means it's imported from elsewhere
-	if (!defaultSongs.includes(utils.kebabCase(curSong.manifest.name))) {
+	if (!defaultUUIDS.includes(curSong.manifest.uuid_DONT_CHANGE)) {
 		const importedSticker = capsuleContainer.add([
 			sprite("importedSong"),
 			pos(),

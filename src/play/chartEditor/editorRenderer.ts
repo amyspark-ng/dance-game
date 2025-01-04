@@ -7,8 +7,8 @@ import { playSound } from "../../core/plugins/features/sound";
 import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { utils } from "../../utils";
 import { moveToColor, notesSpawner } from "../objects/note";
-import { ChartStamp, concatStamps, downloadChart, findNoteAtStep, isStampNote, StateChart, trailAtStep } from "./chartEditorBackend";
-import { openChartAboutDialog, openChartInfoDialog } from "./chartEditorDialogs";
+import { openChartAboutDialog, openChartInfoDialog } from "./editorDialogs";
+import { ChartStamp, concatStamps, downloadChart, findNoteAtStep, isStampNote, StateChart, trailAtStep } from "./EditorState";
 
 /** Returns if a certain Y position mets the conditions to be drawn on the screen */
 function conditionsForDrawing(YPos: number, square_size: Vec2 = vec2(52)) {
@@ -545,14 +545,7 @@ export function addDialogButtons(ChartState: StateChart) {
 	const initialYPos = height() - 50;
 	// the ones more on top will appear more on the bottom of the screen
 	const things = [
-		{
-			texting: "Create new chart",
-			icon: "new",
-			action: () => {
-				ChartState.createNewSong();
-				openChartInfoDialog(ChartState);
-			},
-		},
+		{ texting: "Create new chart", icon: "new", action: () => ChartState.createNewSong() },
 		{ texting: "Download chart", icon: "download", action: () => downloadChart(ChartState) },
 		{ texting: "Song fields", icon: "fields", action: () => openChartInfoDialog(ChartState) },
 		{ texting: "About", icon: "about", action: () => openChartAboutDialog() },

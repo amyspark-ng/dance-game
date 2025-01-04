@@ -8,7 +8,7 @@ import { playSound } from "../core/plugins/features/sound";
 import { transitionToScene } from "../core/scenes";
 import { fadeOut } from "../core/transitions/fadeOutTransition";
 import { paramsSongSelect } from "../ui/SongSelectScene";
-import { paramsChartEditor } from "./chartEditor/chartEditorBackend";
+import { paramsChartEditor } from "./chartEditor/EditorState";
 import { createDancer, DancerGameObj, Move } from "./objects/dancer";
 import { ChartNote, getNotesOnScreen, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
 import { Tally } from "./objects/scoring";

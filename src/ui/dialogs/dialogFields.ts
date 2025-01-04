@@ -3,7 +3,7 @@ import { KEventController, Vec2 } from "kaplay";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { playSound } from "../../core/plugins/features/sound";
 import { FileManager } from "../../fileManaging";
-import { StateChart } from "../../play/chartEditor/chartEditorBackend";
+import { StateChart } from "../../play/chartEditor/EditorState";
 import { utils } from "../../utils";
 import { GameDialog, gameDialogObj } from "./gameDialog";
 

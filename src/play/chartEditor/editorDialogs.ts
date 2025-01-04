@@ -1,17 +1,10 @@
 import { goScene, transitionToScene } from "../../core/scenes";
 import { fadeOut } from "../../core/transitions/fadeOutTransition";
-import {
-	dialog_addCheckbox,
-	dialog_addSlider,
-	dialog_addTextbox,
-	dialog_changeCover,
-	dialog_changeSong,
-	textboxOpt,
-} from "../../ui/dialogs/dialogFields";
+import { dialog_addCheckbox, dialog_addSlider, dialog_addTextbox, dialog_changeCover, dialog_changeSong, textboxOpt } from "../../ui/dialogs/dialogFields";
 import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { utils } from "../../utils";
 import { ChartEvent, SongContent } from "../song";
-import { StateChart } from "./chartEditorBackend";
+import { StateChart } from "./EditorState";
 
 /** Opens the dialog for the fields of the song in the chart editor */
 export function openChartInfoDialog(ChartState: StateChart) {
@@ -265,9 +258,7 @@ export function openEventDialog(event: ChartEvent, ChartState: StateChart) {
 			// }
 		});
 
-		const eventThing = ChartState.song.chart.events.find((ev) =>
-			ChartState.conductor.timeToStep(ev.time) == ChartState.conductor.timeToStep(event.time)
-		);
+		const eventThing = ChartState.song.chart.events.find((ev) => ChartState.conductor.timeToStep(ev.time) == ChartState.conductor.timeToStep(event.time));
 		if (eventThing) eventThing.value = event.value;
 	});
 

@@ -13,7 +13,8 @@ import { utils } from "../../utils";
 import { Move } from "../objects/dancer";
 import { ChartNote } from "../objects/note";
 import { ChartEvent, SongContent } from "../song";
-import { NOTE_BIG_SCALE } from "./chartEditorElements";
+import { openChartInfoDialog } from "./editorDialogs";
+import { NOTE_BIG_SCALE } from "./editorRenderer";
 
 /** Is either a note or an event */
 export type ChartStamp = ChartNote | ChartEvent;
@@ -396,6 +397,14 @@ export class StateChart {
 		}
 	}
 
+	/** Creates a new song */
+	createNewSong() {
+		const params: paramsChartEditor = { playbackSpeed: 1, seekTime: 0, dancer: GameSave.dancer ?? "astri", song: new SongContent() };
+		params.song.manifest.uuid_DONT_CHANGE = v4();
+		Object.assign(this, new StateChart(params));
+		openChartInfoDialog(this);
+	}
+
 	constructor(params: paramsChartEditor) {
 		GameDialog.isOpen = false;
 		params.dancer = params.dancer ?? "astri";
@@ -410,9 +419,9 @@ export class StateChart {
 
 		// Creates a deep copy of the song so it doesn't overwrite the current song
 		this.song = JSON.parse(JSON.stringify(this.params.song));
-		this.song.manifest.name = this.song.manifest.name + " (copy)";
 		// the uuid alreaddy exists
 		if (loadedSongs.map((song) => song.manifest.uuid_DONT_CHANGE).includes(this.song.manifest.uuid_DONT_CHANGE)) {
+			this.song.manifest.name = this.song.manifest.name + " (copy)";
 			this.song.manifest.uuid_DONT_CHANGE = v4();
 			// have to reload the audio i don't know how much this would work since this loading takes time so
 			const soundBuffer = getSound(`${oldUUID}-audio`).data.buf;
@@ -420,6 +429,16 @@ export class StateChart {
 
 			// also have to reload the cover this sucks
 			FileManager.spriteToDataURL(`${oldUUID}-cover`).then((dataurl) => {
+				loadSprite(`${this.song.manifest.uuid_DONT_CHANGE}-cover`, dataurl);
+			});
+		}
+		else {
+			// load default sound
+			const newSoundBuffer = getSound("new-song-audio").data.buf;
+			loadSound(`${this.song.manifest.uuid_DONT_CHANGE}-audio`, newSoundBuffer);
+
+			// load default cover
+			FileManager.spriteToDataURL("defaultCover").then((dataurl) => {
 				loadSprite(`${this.song.manifest.uuid_DONT_CHANGE}-cover`, dataurl);
 			});
 		}
