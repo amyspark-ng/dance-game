@@ -1,28 +1,41 @@
+import { AreaComp, GameObj } from "kaplay";
+import { drag, dragger } from "../../core/plugins/features/drag";
 import { goScene, transitionToScene } from "../../core/scenes";
 import { fadeOut } from "../../core/transitions/fadeOutTransition";
-import { dialog_addCheckbox, dialog_addSlider, dialog_addTextbox, dialog_changeCover, dialog_changeSong, textboxOpt } from "../../ui/dialogs/dialogFields";
+import {
+	dialog_addCheckbox,
+	dialog_addSlider,
+	dialog_addTextbox,
+	dialog_changeCover,
+	dialog_changeSong,
+	textboxOpt,
+} from "../../ui/dialogs/dialogFields";
 import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { utils } from "../../utils";
 import { ChartEvent, SongContent } from "../song";
 import { StateChart } from "./EditorState";
 
-class TopButton {
+class MenuBarButton {
 	text: string;
 	commands: { [key: string]: string; };
 	constructor(text: string, commands: { [key: string]: string; }) {
 		this.text = text;
 		this.commands = commands;
 	}
+	static getShortcut(text: string) {
+		return "(" + text.split("(")[1].split(")")[0] + ")";
+	}
 }
 
-const topButtons = [
-	new TopButton("file", {
+const MenuBarButtons = [
+	new MenuBarButton("File", {
+		// "test": "tetero teta palabra bien largota",
 		"newchart": "New chart (Ctrl + N)",
 		"openchart": "Open chart (Ctrl + O)",
 		"savechartas": "Download chart (Ctrl + Shift + S)",
 		"exit": "Exit (Ctrl + Q)",
 	}),
-	new TopButton("edit", {
+	new MenuBarButton("Edit", {
 		"selectall": "Select all (Ctrl + A)",
 		"deselect": "Deselect (Ctrl + D)",
 		"delete": "Delete (Backspace)",
@@ -33,103 +46,166 @@ const topButtons = [
 		"undo": "Undo (Ctrl + Z)",
 		"redo": "Redo (Ctrl + Y)",
 	}),
+	new MenuBarButton("Help", {
+		"about": "About (F1)",
+		"settings": "Settings (F2)",
+	}),
 ];
 
-export function addEditorUI(ChartState: StateChart) {
-	const TOP_HEIGHT = 35;
-	const LEFT_PADDING = 10;
-	const HEIGHT_OF_CHARACTER = 25;
-	const WIDTH_OF_CHARACTER = formatText({ text: "A", size: HEIGHT_OF_CHARACTER / 2, font: "lambda" }).width;
-
-	function addTopButton(classInstance: TopButton) {
-		const button = add([
-			text(classInstance.text, { size: HEIGHT_OF_CHARACTER, align: "left", font: "lambda" }),
-			color(WHITE),
-			anchor("topleft"),
-			area(),
-			pos(),
-			z(1),
-			"topbotton",
-			"hover",
-			{
-				topButton: classInstance,
-			},
-		]);
-
-		button.onClick(() => {
-			contextMenu.updateState(button);
+export class EditorDialogs {
+	static settings(ChartState: StateChart) {
+		const dialog = GameDialog.openDialog({ width: 600, height: 400 });
+		const suSlider = dialog_addSlider({
+			dialog,
+			title: "Background color",
+			position: vec2(-dialog.width, 0),
+			initialValue: 10,
+			range: [0, 300],
 		});
-		return button;
 	}
+}
+
+export function addEditorUI(ChartState: StateChart) {
+	const topbar = onDraw(() => {
+		drawRect({
+			width: width(),
+			height: 30,
+			color: GameDialog.HEADER_COLOR,
+			pos: vec2(0, 0),
+			opacity: 1,
+		});
+	});
+
+	const WIDTH_OF_CHARACTER = formatText({ text: "A", size: 20 }).width;
 
 	const contextMenu = add([
 		rect(0, 0),
-		pos(100, LEFT_PADDING),
 		color(GameDialog.HEADER_COLOR),
-		anchor("topleft"),
+		pos(),
 		{
-			intendedHeight: 0,
-			/** Runs when a top button has been clicked */
-			updateState: null as (buttonObj: ReturnType<typeof addTopButton>) => void,
+			currentButton: null as MenuBarButton,
 		},
 	]);
 
-	contextMenu.updateState = (buttonObj: ReturnType<typeof addTopButton>) => {
-		contextMenu.intendedHeight = 0;
-		contextMenu.removeAll();
-
-		if (buttonObj == null) return;
-		contextMenu.pos.x = buttonObj.pos.x;
-		contextMenu.pos.y = TOP_HEIGHT;
-		const topButton = buttonObj?.topButton;
-		Object.keys(topButton.commands).forEach((commandKey, index) => {
-			const textInCommand = topButton.commands[commandKey];
-			const contextButton = contextMenu.add([
-				text(textInCommand, { size: HEIGHT_OF_CHARACTER * 0.75, font: "lambda", align: "left" }),
-				color(WHITE),
-				anchor("left"),
-				pos(),
-				area(),
-				"contextbutton",
-				"hover",
-			]);
-
-			contextButton.pos.x = 5;
-			contextButton.pos.y = 11 + index * 25;
-
-			contextButton.onClick(() => {
-				ChartState.actions[commandKey]();
-				contextMenu.updateState(null);
+	let heightOfMenu = 0;
+	contextMenu.onUpdate(() => {
+		if (contextMenu.currentButton != null && contextMenu.children.length == 0) {
+			const longestCommand = Object.values(contextMenu.currentButton.commands).reduce((a, b) => {
+				return a.length > b.length ? a : b;
 			});
+
+			const commandsLength = Object.keys(contextMenu.currentButton.commands).length;
+
+			heightOfMenu = commandsLength * 20 + 10;
+			contextMenu.width = longestCommand.length * WIDTH_OF_CHARACTER + 10;
+
+			Object.keys(contextMenu.currentButton.commands).forEach((commandKey, index) => {
+				const action = contextMenu.currentButton.commands[commandKey];
+				const actionWithoutShortcut = action.replace(MenuBarButton.getShortcut(action), "").trim();
+				const contextButton = contextMenu.add([
+					text(actionWithoutShortcut, { size: 20 }),
+					pos(0, index * 20),
+					area(),
+					opacity(),
+					"hover",
+				]);
+
+				contextButton.pos = contextButton.pos.add(5);
+
+				contextButton.area.shape = new Rect(vec2(-5, 0), contextMenu.width, 20);
+
+				contextButton.onUpdate(() => {
+					contextButton.opacity = lerp(contextButton.opacity, contextButton.isHovering() ? 1 : 0.5, 0.5);
+				});
+
+				contextButton.onDraw(() => {
+					drawText({
+						text: MenuBarButton.getShortcut(contextMenu.currentButton.commands[commandKey]),
+						pos: vec2(contextMenu.width - 5, 0),
+						color: WHITE,
+						size: 20,
+						anchor: "topright",
+						align: "right",
+						opacity: contextButton.opacity,
+					});
+				});
+
+				contextButton.onClick(() => {
+					if (ChartState.actions[commandKey]) ChartState.actions[commandKey]();
+					else debug.log("no button for that");
+					contextMenu.currentButton = null;
+				});
+			});
+		}
+		else if (contextMenu.currentButton == null && contextMenu.children) {
+			heightOfMenu = 0;
+			contextMenu.removeAll();
+		}
+
+		contextMenu.height = lerp(contextMenu.height, heightOfMenu, 0.8);
+	});
+
+	contextMenu.onDraw(() => {
+		if (contextMenu.currentButton == null) return;
+		Object.keys(contextMenu.currentButton.commands).forEach((commandKey, index) => {
+			// drawRect({
+			// 	pos: vec2(0, index * 25),
+			// 	width: contextMenu.width,
+			// 	height: 25,
+			// 	fill: false,
+			// 	outline: {
+			// 		width: 1,
+			// 		color: GameDialog.HEADER_COLOR.lighten(50),
+			// 	},
+			// });
+		});
+	});
+
+	function addMenuBarButton(button: MenuBarButton) {
+		const buttonObj = add([
+			text(button.text, { size: 20 }),
+			pos(10, 5),
+			area(),
+			anchor("topleft"),
+			opacity(),
+			"menubutton",
+			"hover",
+			{
+				menuButton: button,
+			},
+		]);
+
+		return buttonObj;
+	}
+
+	let menubuttons: ReturnType<typeof addMenuBarButton>[] = [];
+
+	MenuBarButtons.forEach((button, index) => {
+		const buttonObj = addMenuBarButton(button);
+		menubuttons[index] = buttonObj;
+	});
+
+	menubuttons.forEach((button, index) => {
+		let previousButton = menubuttons[index - 1];
+		if (previousButton == undefined) previousButton = { pos: vec2(0, 0), width: 0 } as any;
+		button.pos.x = 10 + previousButton.pos.x + previousButton.width;
+
+		button.area.shape = new Rect(vec2(0, -5), button.width, 30);
+
+		button.onClick(() => {
+			contextMenu.pos.x = button.pos.x;
+			contextMenu.pos.y = button.pos.y + button.height + 5;
+			contextMenu.removeAll();
+			contextMenu.currentButton = button.menuButton;
 		});
 
-		const longestCommand = Object.values(topButton.commands).reduce((a, b) => a.length > b.length ? a : b);
-		contextMenu.width = WIDTH_OF_CHARACTER * longestCommand.length;
-		contextMenu.intendedHeight = HEIGHT_OF_CHARACTER * Object.keys(topButton.commands).length;
-	};
-
-	contextMenu.onUpdate(() => {
-		contextMenu.height = lerp(contextMenu.height, contextMenu.intendedHeight, 0.5);
-		if (isMousePressed("left")) {
-			if (!get("hover").some((obj) => obj.isHovering())) contextMenu.updateState(null);
-		}
-	});
-
-	topButtons.forEach((topbutton, index) => {
-		topbutton.text = topbutton.text.charAt(0).toUpperCase() + topbutton.text.slice(1);
-		const button = addTopButton(topbutton);
-
-		button.pos.y = 5;
-		button.pos.x = LEFT_PADDING + 60 * index;
-	});
-
-	onDraw(() => {
-		drawRect({
-			pos: vec2(0, -1),
-			width: width() * 1.1,
-			height: TOP_HEIGHT,
-			color: GameDialog.HEADER_COLOR,
-			outline: { color: GameDialog.HEADER_COLOR.lighten(50), width: 1 },
+		button.onUpdate(() => {
+			if (button.isHovering() || contextMenu.currentButton == button.menuButton) {
+				button.opacity = lerp(button.opacity, 1, 0.5);
+			}
+			else {
+				button.opacity = lerp(button.opacity, 0.5, 0.5);
+			}
 		});
 	});
 }
@@ -148,6 +224,7 @@ export function openChartInfoDialog(ChartState: StateChart) {
 		{
 			title: "Name",
 			type: "string",
+
 			length: 25,
 			fallBackValue: newSong.manifest.name,
 			startingValue: ChartState.song.manifest.name,
@@ -386,7 +463,9 @@ export function openEventDialog(event: ChartEvent, ChartState: StateChart) {
 			// }
 		});
 
-		const eventThing = ChartState.song.chart.events.find((ev) => ChartState.conductor.timeToStep(ev.time) == ChartState.conductor.timeToStep(event.time));
+		const eventThing = ChartState.song.chart.events.find((ev) =>
+			ChartState.conductor.timeToStep(ev.time) == ChartState.conductor.timeToStep(event.time)
+		);
 		if (eventThing) eventThing.value = event.value;
 	});
 
@@ -409,14 +488,14 @@ export function openExitDialog() {
 		text("Yes"),
 		area(),
 		pos(vec2(-50, 0)),
-		"hover",
+		// "hover",
 	]);
 
 	const noButton = dialog.add([
 		text("No"),
 		area(),
 		pos(vec2(50, 0)),
-		"hover",
+		// "hover",
 	]);
 
 	noButton.onClick(() => {

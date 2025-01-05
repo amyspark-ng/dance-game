@@ -1,5 +1,5 @@
 // File that stores some of the chart editor behaviour backend
-import { Key, Vec2 } from "kaplay";
+import { Color, Key, Vec2 } from "kaplay";
 import { v4 } from "uuid";
 import { Conductor } from "../../conductor";
 import { GameSave } from "../../core/gamesave";
@@ -16,7 +16,7 @@ import { Move } from "../objects/dancer";
 import { ChartNote } from "../objects/note";
 import { ChartEvent, SongContent } from "../song";
 import { NOTE_BIG_SCALE } from "./editorRenderer";
-import { openChartInfoDialog } from "./editorUI";
+import { EditorDialogs, openChartInfoDialog } from "./editorUI";
 
 /** Is either a note or an event */
 export type ChartStamp = ChartNote | ChartEvent;
@@ -130,7 +130,7 @@ export function clipboardMessage(action: "copy" | "cut" | "paste", clipboard: Ch
 
 /** Class that manages every important variable in the chart editor */
 export class StateChart {
-	bgColor: [number, number, number] = [67, 21, 122];
+	bgColor: Color = rgb(67, 21, 122);
 	song: SongContent;
 	paused: boolean;
 	conductor: Conductor;
@@ -255,17 +255,18 @@ export class StateChart {
 			this.createNewSong();
 		},
 		"openchart": async () => {
-			const loading = FileManager.loadingScreen();
-			const file = await FileManager.receiveFile("mod");
-			if (file) {
-				const songFolder = await FileManager.getSongFolderContent(file);
-				const song = await FileManager.loadSongAssets(songFolder);
-				this.song = song;
-				loading.cancel();
-			}
-			else {
-				loading.cancel();
-			}
+			// const loading = FileManager.loadingScreen();
+			// const file = await FileManager.receiveFile("mod");
+			// if (file) {
+			// 	const songFolder = await FileManager.getSongFolderContent(file);
+			// 	const song = await FileManager.loadSongAssets(songFolder);
+			// 	this.song = song;
+			// 	loading.cancel();
+			// }
+			// else {
+			// 	loading.cancel();
+			// }
+			debug.log("wip");
 		},
 		"savechartas": () => {
 			downloadChart(this);
@@ -294,7 +295,7 @@ export class StateChart {
 				playSound("eventCog", { detune: rand(-50, 50) });
 			}
 
-			this.selectedStamps = [];
+			this.actions.deselect();
 		},
 		"invertselection": () => {
 			const allStamps = concatStamps(this.song.chart.notes, this.song.chart.events);
@@ -414,6 +415,9 @@ export class StateChart {
 				playSound("noteUndo", { detune: rand(25, 50) });
 			}
 		},
+		"settings": () => {
+			EditorDialogs.settings(this);
+		},
 	};
 
 	/** Runs when the sound for the soundPlay has changed */
@@ -436,8 +440,8 @@ export class StateChart {
 
 	/** Unselects any stamp and the detune */
 	resetSelectedStamps() {
-		// this.selectedStamps = [];
-		// this.stepForDetune = 0;
+		this.selectedStamps = [];
+		this.stepForDetune = 0;
 	}
 
 	/** Changes the current move */
@@ -874,6 +878,7 @@ export function addDummyDancer(dancerName: string) {
 		area(),
 		scale(DANCER_SCALE),
 		juice(),
+		opacity(),
 		fakeDancerComp(),
 		{
 			forcedAnim: false,
@@ -887,6 +892,11 @@ export function addDummyDancer(dancerName: string) {
 	dancer.doMove("idle");
 
 	return dancer;
+}
+
+export function parseCommands(ChartState: StateChart) {
+	// i should add the top buttons thing to chartstate and make it static somehow i think
+	// ChartState.actions.copy();
 }
 
 /** Adds a cool little floating text */

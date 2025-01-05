@@ -11,51 +11,24 @@ import { utils } from "../../utils";
 import { moveToColor } from "../objects/note";
 import { paramsGameScene } from "../PlayState";
 import { SongContent } from "../song";
-import {
-	addDialogButtons,
-	addEventsPanel,
-	addLeftInfo,
-	checkerboardRenderer,
-	drawCameraController,
-	drawNoteCursor,
-	drawPlayBar,
-	drawSelectionBox,
-	drawSelectSquares,
-	drawStrumline,
-	NOTE_BIG_SCALE,
-	SCROLL_LERP_VALUE,
-	stampRenderer,
-} from "./editorRenderer";
-import {
-	addDummyDancer,
-	addFloatingText,
-	cameraHandler,
-	ChartStamp,
-	clipboardMessage,
-	concatStamps,
-	findNoteAtStep,
-	fixStamps,
-	isStampNote,
-	moveHandler,
-	moveToDetune,
-	paramsChartEditor,
-	selectionBoxHandler,
-	setMouseAnimConditions,
-	stampPropThing,
-	StateChart,
-	trailAtStep,
-} from "./EditorState";
+import { addDialogButtons, addEventsPanel, addLeftInfo, checkerboardRenderer, drawCameraController, drawNoteCursor, drawPlayBar, drawSelectionBox, drawSelectSquares, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE, stampRenderer } from "./editorRenderer";
+import { addDummyDancer, addFloatingText, cameraHandler, ChartStamp, clipboardMessage, concatStamps, findNoteAtStep, fixStamps, isStampNote, moveHandler, moveToDetune, paramsChartEditor, selectionBoxHandler, setMouseAnimConditions, stampPropThing, StateChart, trailAtStep } from "./EditorState";
 import { addEditorUI, openChartAboutDialog, openChartInfoDialog, openEventDialog, openExitDialog } from "./editorUI";
 
 export function ChartEditorScene() {
 	scene("charteditor", (params: paramsChartEditor) => {
 		const ChartState = new StateChart(params);
-		setBackground(Color.fromArray(ChartState.bgColor));
+
+		onDraw(() => {
+			drawRect({
+				width: width(),
+				height: height(),
+				color: ChartState.bgColor,
+			});
+		});
 
 		gameCursor.show();
 		setMouseAnimConditions(ChartState);
-
-		addEditorUI(ChartState);
 
 		/** Gets the current note that is being hovered */
 		function getCurrentHoveredNote() {
@@ -239,8 +212,8 @@ export function ChartEditorScene() {
 			checkerboardRenderer(ChartState);
 			stampRenderer(ChartState);
 			drawStrumline(ChartState);
-			drawCameraController(ChartState);
-			drawPlayBar(ChartState);
+			// drawCameraController(ChartState);
+			// drawPlayBar(ChartState);
 
 			if (GameDialog.isOpen) return;
 			drawNoteCursor(ChartState);
@@ -313,7 +286,7 @@ export function ChartEditorScene() {
 						hoveredNote.length = noteLength > 0 ? noteLength : undefined;
 						let newLength = hoveredNote.length;
 						if (oldLength != newLength) {
-							const detune = newLength % 2 == 0 ? 0 : 50;
+							const detune = newLength % 2 == 0 ? 0 : 100;
 							playSound("noteStretch", { detune: detune });
 						}
 					});
@@ -358,9 +331,10 @@ export function ChartEditorScene() {
 
 			// if it's not on the grid at all simply reset selected notes
 			if (!ChartState.isCursorInGrid) {
-				const someHoverObjectHovered = get("hover").some((obj: GameObj<AreaComp>) => obj.isHovering());
-				if (!someHoverObjectHovered) ChartState.resetSelectedStamps();
-				return;
+				// if it's not hovering anything clickable, deselect
+				if (!get("hover", { recursive: true }).some((obj) => obj.isHovering())) {
+					ChartState.actions.deselect();
+				}
 			}
 			else {
 				if (ChartState.isInNoteGrid) noteBehaviour();
@@ -552,6 +526,7 @@ export function ChartEditorScene() {
 		});
 
 		const dummyDancer = addDummyDancer(ChartState.params.dancer);
+		dummyDancer.opacity = 0;
 
 		// makes the strumline BOP
 		onBeatHit(() => {
@@ -605,6 +580,8 @@ export function ChartEditorScene() {
 		onSceneLeave(() => {
 			gameCursor.color = WHITE;
 		});
+
+		addEditorUI(ChartState);
 
 		// addDialogButtons(ChartState);
 		// addLeftInfo(ChartState);

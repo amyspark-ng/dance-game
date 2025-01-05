@@ -238,7 +238,7 @@ export function dialog_addSlider(opts: sliderOpt) {
 	});
 
 	const valueText = opts.dialog.add([
-		text("", { align: "left", font: "lambda", size: textSize * 0.8 }),
+		text("", { align: "left", size: textSize * 0.8 }),
 		anchor("left"),
 		pos(sliderbg.pos.x + sliderbg.width + padding, sliderbg.pos.y),
 		{

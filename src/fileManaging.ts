@@ -59,7 +59,6 @@ export class FileManager {
 
 			drawText({
 				text: "LOADING",
-				font: "lambda",
 				pos: center(),
 				color: WHITE,
 				anchor: "center",
