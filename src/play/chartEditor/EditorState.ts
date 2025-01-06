@@ -16,7 +16,6 @@ import { Move } from "../objects/dancer";
 import { ChartNote } from "../objects/note";
 import { ChartEvent, SongContent } from "../song";
 import { NOTE_BIG_SCALE } from "./editorRenderer";
-import { EditorDialogs, openChartInfoDialog } from "./editorUI";
 
 /** Is either a note or an event */
 export type ChartStamp = ChartNote | ChartEvent;
@@ -73,7 +72,9 @@ export function fixStamps(stamps: ChartStamp[], ChartState: StateChart) {
  * @param step The step to find the note at
  */
 export function findNoteAtStep(step: number, ChartState: StateChart): ChartNote {
-	const note = ChartState.song.chart.notes.find((note) => Math.round(ChartState.conductor.timeToStep(note.time)) == step);
+	const note = ChartState.song.chart.notes.find((note) =>
+		Math.round(ChartState.conductor.timeToStep(note.time)) == step
+	);
 	if (note) return note;
 	else {
 		const longNotes = ChartState.song.chart.notes.filter((note) => note.length != undefined);
@@ -112,18 +113,20 @@ export function clipboardMessage(action: "copy" | "cut" | "paste", clipboard: Ch
 	const moreThanOneNote = notesLength > 1;
 	const moreThanOneEvent = eventsLength > 1;
 
-	const actionStr = action == "copy" ? "Copied" : action == "cut" ? "Cut" : "Pasted";
+	const stringForAction = action == "copy" ? "Copied" : action == "cut" ? "Cut" : "Pasted";
 
 	if (notesLength > 0 && eventsLength == 0) {
-		message = `${actionStr} ${notesLength} ${moreThanOneNote ? "notes" : "note"}!`;
+		message = `${stringForAction} ${notesLength} ${moreThanOneNote ? "notes" : "note"}!`;
 	}
 	else if (notesLength == 0 && eventsLength > 0) {
-		message = `${actionStr} ${eventsLength} ${moreThanOneEvent ? "events" : "event"}!`;
+		message = `${stringForAction} ${eventsLength} ${moreThanOneEvent ? "events" : "event"}!`;
 	}
 	else if (notesLength > 0 && eventsLength > 0) {
-		message = `${actionStr} ${notesLength} ${moreThanOneNote ? "notes" : "note"} and ${eventsLength} ${moreThanOneEvent ? "events" : "event"}!`;
+		message = `${stringForAction} ${notesLength} ${moreThanOneNote ? "notes" : "note"} and ${eventsLength} ${
+			moreThanOneEvent ? "events" : "event"
+		}!`;
 	}
-	else if (notesLength == 0 && eventsLength == 0) message = `${actionStr} nothing!`;
+	else if (notesLength == 0 && eventsLength == 0) message = `${stringForAction} nothing!`;
 
 	return message;
 }
@@ -416,7 +419,6 @@ export class StateChart {
 			}
 		},
 		"settings": () => {
-			EditorDialogs.settings(this);
 		},
 	};
 
@@ -454,7 +456,9 @@ export class StateChart {
 	 * @returns The added note
 	 */
 	placeNote(time: number, move: Move) {
-		const noteWithSameTimeButDifferentMove = this.song.chart.notes.find(note => note.time == time && note.move != move || note.time == time && note.move == move);
+		const noteWithSameTimeButDifferentMove = this.song.chart.notes.find(note =>
+			note.time == time && note.move != move || note.time == time && note.move == move
+		);
 		// if there's a note already at that time but a different move, remove it
 		if (noteWithSameTimeButDifferentMove) {
 			this.deleteNote(noteWithSameTimeButDifferentMove);
@@ -555,7 +559,9 @@ export class StateChart {
 		const dancersInEvents = dancerChangeEvents.map((ev) => ev.value.dancer);
 		const allDancerNames = dancers.map((dancerFiles) => dancerFiles.dancerName);
 		if (dancersInEvents.some((dancerInEvent) => allDancerNames.includes(dancerInEvent)) == false) {
-			const indexOfFaultyDancer = dancerChangeEvents.findIndex((ev) => dancersInEvents.some((dancerInEvent) => ev.value.dancer == dancerInEvent));
+			const indexOfFaultyDancer = dancerChangeEvents.findIndex((ev) =>
+				dancersInEvents.some((dancerInEvent) => ev.value.dancer == dancerInEvent)
+			);
 			dancerChangeEvents = utils.removeFromArr(dancersInEvents[indexOfFaultyDancer], dancerChangeEvents);
 		}
 
@@ -572,10 +578,14 @@ export class StateChart {
 
 	/** Creates a new song */
 	createNewSong() {
-		const params: paramsChartEditor = { playbackSpeed: 1, seekTime: 0, dancer: GameSave.dancer ?? "astri", song: new SongContent() };
+		const params: paramsChartEditor = {
+			playbackSpeed: 1,
+			seekTime: 0,
+			dancer: GameSave.dancer ?? "astri",
+			song: new SongContent(),
+		};
 		params.song.manifest.uuid_DONT_CHANGE = v4();
 		Object.assign(this, new StateChart(params));
-		openChartInfoDialog(this);
 	}
 
 	constructor(params: paramsChartEditor) {

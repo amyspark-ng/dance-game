@@ -11,9 +11,38 @@ import { utils } from "../../utils";
 import { moveToColor } from "../objects/note";
 import { paramsGameScene } from "../PlayState";
 import { SongContent } from "../song";
-import { addDialogButtons, addEventsPanel, addLeftInfo, checkerboardRenderer, drawCameraController, drawNoteCursor, drawPlayBar, drawSelectionBox, drawSelectSquares, drawStrumline, NOTE_BIG_SCALE, SCROLL_LERP_VALUE, stampRenderer } from "./editorRenderer";
-import { addDummyDancer, addFloatingText, cameraHandler, ChartStamp, clipboardMessage, concatStamps, findNoteAtStep, fixStamps, isStampNote, moveHandler, moveToDetune, paramsChartEditor, selectionBoxHandler, setMouseAnimConditions, stampPropThing, StateChart, trailAtStep } from "./EditorState";
-import { addEditorUI, openChartAboutDialog, openChartInfoDialog, openEventDialog, openExitDialog } from "./editorUI";
+import {
+	checkerboardRenderer,
+	drawCameraController,
+	drawNoteCursor,
+	drawPlayBar,
+	drawSelectionBox,
+	drawSelectSquares,
+	drawStrumline,
+	NOTE_BIG_SCALE,
+	SCROLL_LERP_VALUE,
+	stampRenderer,
+} from "./editorRenderer";
+import {
+	addDummyDancer,
+	addFloatingText,
+	cameraHandler,
+	ChartStamp,
+	clipboardMessage,
+	concatStamps,
+	findNoteAtStep,
+	fixStamps,
+	isStampNote,
+	moveHandler,
+	moveToDetune,
+	paramsChartEditor,
+	selectionBoxHandler,
+	setMouseAnimConditions,
+	stampPropThing,
+	StateChart,
+	trailAtStep,
+} from "./EditorState";
+import { addTopMenuButtons } from "./editorUI";
 
 export function ChartEditorScene() {
 	scene("charteditor", (params: paramsChartEditor) => {
@@ -189,12 +218,6 @@ export function ChartEditorScene() {
 			else if (isKeyDown("control") && isKeyPressed("a")) {
 				ChartState.actions.selectall();
 			}
-			else if (isKeyPressed("e")) {
-				openChartInfoDialog(ChartState);
-			}
-			else if (isKeyPressed("r")) {
-				openChartAboutDialog();
-			}
 		});
 
 		// this is done like this so it's drawn on top of everything
@@ -263,7 +286,9 @@ export function ChartEditorScene() {
 					}
 
 					if (hoveredNote.length) {
-						if (ChartState.hoveredStep == Math.round(ChartState.conductor.timeToStep(hoveredNote.time))) setLeading(hoveredNote);
+						if (ChartState.hoveredStep == Math.round(ChartState.conductor.timeToStep(hoveredNote.time))) {
+							setLeading(hoveredNote);
+						}
 					}
 					else setLeading(hoveredNote);
 				}
@@ -308,7 +333,7 @@ export function ChartEditorScene() {
 				// there's already an event in that place
 				if (hoveredEvent) {
 					if (isKeyDown("shift")) {
-						openEventDialog(hoveredEvent, ChartState);
+						// openEventDialog(hoveredEvent, ChartState);
 					}
 
 					if (!ChartState.selectedStamps.includes(hoveredEvent)) {
@@ -522,7 +547,7 @@ export function ChartEditorScene() {
 
 		onKeyPress("escape", () => {
 			if (GameDialog.isOpen) return;
-			openExitDialog();
+			// openExitDialog();
 		});
 
 		const dummyDancer = addDummyDancer(ChartState.params.dancer);
@@ -536,10 +561,12 @@ export function ChartEditorScene() {
 
 		// Scrolls the checkerboard
 		onStepHit(() => {
-			const stampsAtStep = concatStamps(ChartState.song.chart.notes, ChartState.song.chart.events).filter((stamp) => {
-				return Math.round(ChartState.conductor.timeToStep(stamp.time))
-					== Math.round(ChartState.conductor.timeToStep(ChartState.conductor.timeInSeconds));
-			});
+			const stampsAtStep = concatStamps(ChartState.song.chart.notes, ChartState.song.chart.events).filter(
+				(stamp) => {
+					return Math.round(ChartState.conductor.timeToStep(stamp.time))
+						== Math.round(ChartState.conductor.timeToStep(ChartState.conductor.timeInSeconds));
+				},
+			);
 
 			stampsAtStep.forEach((stamp) => {
 				const isNote = isStampNote(stamp);
@@ -581,8 +608,7 @@ export function ChartEditorScene() {
 			gameCursor.color = WHITE;
 		});
 
-		addEditorUI(ChartState);
-
+		addTopMenuButtons(ChartState);
 		// addDialogButtons(ChartState);
 		// addLeftInfo(ChartState);
 		// addEventsPanel(ChartState);

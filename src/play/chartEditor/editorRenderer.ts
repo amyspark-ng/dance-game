@@ -7,8 +7,15 @@ import { playSound } from "../../core/plugins/features/sound";
 import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { utils } from "../../utils";
 import { moveToColor, notesSpawner } from "../objects/note";
-import { ChartStamp, concatStamps, downloadChart, findNoteAtStep, isStampNote, StateChart, trailAtStep } from "./EditorState";
-import { openChartAboutDialog, openChartInfoDialog } from "./editorUI";
+import {
+	ChartStamp,
+	concatStamps,
+	downloadChart,
+	findNoteAtStep,
+	isStampNote,
+	StateChart,
+	trailAtStep,
+} from "./EditorState";
 
 /** Returns if a certain Y position mets the conditions to be drawn on the screen */
 function conditionsForDrawing(YPos: number, square_size: Vec2 = vec2(52)) {
@@ -285,8 +292,13 @@ export function drawNoteCursor(ChartState: StateChart) {
 		});
 
 		// if there's already a note or trail or event in that space don't draw the sprite
-		const noteAtStep = ChartState.isInNoteGrid && (findNoteAtStep(ChartState.hoveredStep, ChartState) != undefined || trailAtStep(ChartState.hoveredStep, ChartState));
-		const eventAtStep = ChartState.isInEventGrid && ChartState.song.chart.events.some((ev) => ChartState.conductor.timeToStep(ev.time) == ChartState.hoveredStep);
+		const noteAtStep = ChartState.isInNoteGrid
+			&& (findNoteAtStep(ChartState.hoveredStep, ChartState) != undefined
+				|| trailAtStep(ChartState.hoveredStep, ChartState));
+		const eventAtStep = ChartState.isInEventGrid
+			&& ChartState.song.chart.events.some((ev) =>
+				ChartState.conductor.timeToStep(ev.time) == ChartState.hoveredStep
+			);
 		if (noteAtStep || eventAtStep) return;
 
 		drawSprite({
@@ -547,8 +559,8 @@ export function addDialogButtons(ChartState: StateChart) {
 	const things = [
 		{ texting: "Create new chart", icon: "new", action: () => ChartState.createNewSong() },
 		{ texting: "Download chart", icon: "download", action: () => downloadChart(ChartState) },
-		{ texting: "Song fields", icon: "fields", action: () => openChartInfoDialog(ChartState) },
-		{ texting: "About", icon: "about", action: () => openChartAboutDialog() },
+		// { texting: "Song fields", icon: "fields", action: () => openChartInfoDialog(ChartState) },
+		// { texting: "About", icon: "about", action: () => openChartAboutDialog() },
 	];
 
 	things.forEach((thing, index) => {
@@ -669,7 +681,9 @@ export function addLeftInfo(ChartState: StateChart) {
 					{
 						ev: ev,
 						update() {
-							this.text = `Step: ${ChartState.conductor.timeToStep(ev.time)} ${ChartState.conductor.timeInSeconds >= ev.time ? "✓" : "X"}`;
+							this.text = `Step: ${ChartState.conductor.timeToStep(ev.time)} ${
+								ChartState.conductor.timeInSeconds >= ev.time ? "✓" : "X"
+							}`;
 						},
 					},
 				]);
