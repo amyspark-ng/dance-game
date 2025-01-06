@@ -42,7 +42,7 @@ import {
 	StateChart,
 	trailAtStep,
 } from "./EditorState";
-import { addTopMenuButtons } from "./editorUI";
+import { addEditorTabs, addTopMenuButtons } from "./editorUI";
 
 export function ChartEditorScene() {
 	scene("charteditor", (params: paramsChartEditor) => {
@@ -609,6 +609,7 @@ export function ChartEditorScene() {
 		});
 
 		addTopMenuButtons(ChartState);
+		addEditorTabs(ChartState);
 		// addDialogButtons(ChartState);
 		// addLeftInfo(ChartState);
 		// addEventsPanel(ChartState);

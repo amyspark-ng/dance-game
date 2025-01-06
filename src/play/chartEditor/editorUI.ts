@@ -1,3 +1,7 @@
+import { Vec2 } from "kaplay";
+import { GameSave } from "../../core/gamesave";
+import { utils } from "../../utils";
+import { Move } from "../objects/dancer";
 import { downloadChart, StateChart } from "./EditorState";
 
 const SIZE_OF_TOPMENU = vec2(125, 25);
@@ -5,7 +9,11 @@ const STARTING_POS = vec2(25, 25);
 const TEXT_SIZE = SIZE_OF_TOPMENU.y / 2;
 const TEXT_WIDTH = formatText({ text: "A", size: TEXT_SIZE }).width;
 
-type TopMenuMinibutton = { text: string; action: (ChartState?: StateChart) => void; };
+type TopMenuMinibutton = {
+	text: string;
+	action: (ChartState?: StateChart) => void;
+	extraCode?: (minibuttonObj: ReturnType<typeof TopMenuButton.makeTopMenuMinibutton>) => void;
+};
 
 class TopMenuButton {
 	title: string;
@@ -128,6 +136,19 @@ class TopMenuButton {
 
 		return topButton;
 	}
+
+	static makeTopMenuMinibutton() {
+		const minibutton = make([
+			rect(3, 3),
+			pos(0, SIZE_OF_TOPMENU.y),
+			area(),
+			color(),
+			"tabbutton",
+			"hover",
+		]);
+
+		return minibutton;
+	}
 }
 
 export function addTopMenuButtons(ChartState: StateChart) {
@@ -160,19 +181,14 @@ export function addTopMenuButtons(ChartState: StateChart) {
 						return prev;
 					}, "");
 
-					const topMinibutton = topButton.add([
-						rect(3, topButton.height),
-						pos(0, SIZE_OF_TOPMENU.y),
-						area(),
-						color(),
-						"tabbutton",
-						"hover",
-					]);
+					const topMinibutton = TopMenuButton.makeTopMenuMinibutton();
+					topButton.add(topMinibutton);
 
 					const intendedY = SIZE_OF_TOPMENU.y + index * SIZE_OF_TOPMENU.y;
 
 					const theWidth = TEXT_WIDTH * longest.length;
 					topMinibutton.width = topButton.width;
+					topMinibutton.height = topButton.height;
 
 					if (theWidth < topButton.width) {
 						topMinibutton.width = topButton.width;
@@ -232,6 +248,10 @@ export function addTopMenuButtons(ChartState: StateChart) {
 							});
 						}
 					});
+
+					if (minibutton.extraCode) {
+						minibutton.extraCode(topMinibutton);
+					}
 				});
 			}
 		});
@@ -257,6 +277,165 @@ export function addTopMenuButtons(ChartState: StateChart) {
 	});
 }
 
+type EditorTabElementsAction = (editorTabObj: ReturnType<typeof EditorTab.addEditorTab>) => void;
+
 export class EditorTab {
 	title: string;
+	visible: boolean = true;
+	pos: Vec2 = vec2(center());
+	private elementsAction: EditorTabElementsAction = () => {};
+	static tabs = {
+		"Notes": new EditorTab("Notes"),
+		// "Events": new EditorTab("Events"),
+	};
+
+	static HEADER_COLOR = rgb(30, 29, 36);
+
+	static BODY_COLOR = rgb(43, 42, 51);
+
+	/** Find a tab game object by its instance */
+	static findTabByInstance(instance: EditorTab) {
+		return get("editorTab").find((editorTabObj: ReturnType<typeof EditorTab.addEditorTab>) =>
+			editorTabObj.tab == instance
+		);
+	}
+
+	addElements(action: EditorTabElementsAction) {
+		this.elementsAction = action;
+	}
+
+	static addEditorTab(tab: EditorTab) {
+		const tabObj = add([
+			rect(100, 100, { radius: [0, 0, 10, 10] }),
+			pos(),
+			anchor("center"),
+			color(this.BODY_COLOR),
+			"editorTab",
+			{
+				tab: tab,
+			},
+		]);
+
+		tabObj.pos = tab.pos;
+
+		tabObj.onDraw(() => {
+			drawRect({
+				width: tabObj.width,
+				height: 30,
+				anchor: "botleft",
+				color: this.HEADER_COLOR,
+				pos: vec2(-tabObj.width / 2, -tabObj.height / 2),
+				radius: [10, 10, 0, 0],
+			});
+
+			drawText({
+				text: tab.title,
+				size: 20,
+				anchor: "botleft",
+				pos: vec2(-tabObj.width / 2 + 10, -tabObj.height / 2 - 2.5),
+			});
+		});
+
+		tab.elementsAction(tabObj);
+
+		return tabObj;
+	}
+
+	constructor(title: string) {
+		this.title = title;
+	}
+}
+
+export function addEditorTabs(ChartState: StateChart) {
+	// this goes through each tab and adds a minibutton for it in the view top menu
+	const arrayOfMinibuttonsAccordingToTab: TopMenuMinibutton[] = [];
+	Object.values(EditorTab.tabs).forEach((tab) => {
+		arrayOfMinibuttonsAccordingToTab.push({
+			text: tab.title,
+			action: () => {
+				tab.visible = !tab.visible;
+			},
+			// this runs some extra code which is an ondraw that serves as a checkbox
+			extraCode(minibuttonObj) {
+				const posOfSquare = vec2(minibuttonObj.width - 5, 12.5);
+				minibuttonObj.onDraw(() => {
+					if (tab.visible) {
+						drawRect({
+							width: 20,
+							height: 20,
+							color: BLACK,
+							pos: posOfSquare,
+							anchor: "right",
+						});
+					}
+					else {
+						drawRect({
+							width: 20,
+							height: 20,
+							fill: false,
+							pos: posOfSquare,
+							anchor: "right",
+							outline: {
+								color: BLACK,
+								width: 2,
+							},
+						});
+					}
+				});
+			},
+		});
+	});
+
+	// then this sets up the top menu button
+	TopMenuButton.buttons[2].buttons = arrayOfMinibuttonsAccordingToTab;
+
+	// and this goes each frame and checks if a tab should be or should not be
+	onUpdate(() => {
+		Object.values(EditorTab.tabs).forEach((tabInstance) => {
+			const tabObjWithTab = EditorTab.findTabByInstance(tabInstance);
+
+			if (tabInstance.visible == true && !tabObjWithTab) EditorTab.addEditorTab(tabInstance);
+			else if (tabInstance.visible == false && tabObjWithTab) tabObjWithTab.destroy();
+		});
+	});
+
+	EditorTab.tabs.Notes.pos = vec2(180, 500);
+	EditorTab.tabs.Notes.addElements((editorTabObj) => {
+		editorTabObj.width = 240;
+		editorTabObj.height = 65;
+
+		const moves: Move[] = ["left", "down", "up", "right"];
+		moves.forEach((move, index) => {
+			const noteObj = editorTabObj.add([
+				sprite(GameSave.noteskin + "_" + move),
+				pos(),
+				area(),
+				opacity(),
+				scale(),
+				anchor("center"),
+				"hover",
+			]);
+
+			noteObj.width = 60;
+			noteObj.height = 60;
+			noteObj.pos.x = (-editorTabObj.width / 2 + index * 60) + noteObj.width / 2;
+			noteObj.pos.y = (-editorTabObj.height / 2) + noteObj.height / 2;
+
+			noteObj.onClick(() => {
+				ChartState.currentMove = move;
+			});
+
+			noteObj.onUpdate(() => {
+				noteObj.scale = lerp(noteObj.scale, ChartState.currentMove == move ? vec2(1.2) : vec2(1), 0.8);
+				noteObj.opacity = lerp(noteObj.opacity, noteObj.isHovering() ? 0.8 : 0.5, 0.5);
+			});
+		});
+	});
+
+	// EditorTab.tabs.Events.pos = vec2(180, 200);
+	// EditorTab.tabs.Events.addElements((editorTabObj) => {
+	// 	Object.keys(ChartState.events).forEach((eventKey) => {
+	// 		eventKey
+	// 	});
+	// });
 }
