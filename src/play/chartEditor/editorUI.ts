@@ -293,7 +293,7 @@ export class EditorTab {
 		"Sync": new EditorTab("Sync", vec2(800, 300), false),
 		"Notes": new EditorTab("Notes", vec2(180, 400), false),
 		"Events": new EditorTab("All events", vec2(180, 200), true),
-		"Edit Event": new EditorTab("Edit event", vec2(800, 300), true),
+		"EditEvent": new EditorTab("Edit event", vec2(800, 300), true),
 	};
 
 	static HEADER_COLOR = rgb(30, 29, 36);
@@ -304,7 +304,15 @@ export class EditorTab {
 		BODY_OUTLINE: EditorTab.HEADER_COLOR.darken(20),
 		BODY: EditorTab.HEADER_COLOR.darken(10),
 
-		addTextbox: (editorTabObj: ReturnType<typeof EditorTab.addEditorTab>, defaultValue: string) => {
+		addTextbox: (
+			editorTabObj: ReturnType<typeof EditorTab.addEditorTab>,
+			defaultValue: string,
+			textCondition?: (ch: string) => boolean,
+		) => {
+			if (!textCondition) {
+				textCondition = (ch: string) => true;
+			}
+
 			const maxWidth = formatText({ text: "Hello world!!", size: 20 }).width + 5;
 			const textbox = editorTabObj.add([
 				rect(maxWidth, 30, { radius: 2 }),
@@ -315,16 +323,22 @@ export class EditorTab {
 				"textbox",
 				{
 					focused: false,
-					value: "",
+					value: defaultValue,
 				},
 			]);
 
+			let seeValue = defaultValue;
 			let onCharInputEV: KEventController = null;
 			let onBackspace: KEventController = null;
 
 			textbox.onUpdate(() => {
-				if (textbox.value.length == 0) {
+				if (seeValue.length == 0) {
+					seeValue = "";
 					textbox.value = defaultValue;
+				}
+				else {
+					textbox.value = seeValue;
+					seeValue = textbox.value;
 				}
 				if (textbox.focused) textbox.outline.color = EditorTab.ui.ACCENT;
 				else textbox.outline.color = EditorTab.ui.BODY_OUTLINE;
@@ -334,15 +348,19 @@ export class EditorTab {
 				if (textbox.isHovering()) {
 					textbox.focused = true;
 					onCharInputEV = textbox.onCharInput((ch) => {
-						textbox.value += ch;
+						if (textCondition(ch)) {
+							seeValue += ch;
+						}
 					});
 
 					onBackspace = textbox.onKeyPressRepeat("backspace", () => {
-						textbox.value = textbox.value.slice(0, -1);
+						seeValue = textbox.value.toString().slice(0, -1);
 					});
 
 					const onEnter = textbox.onKeyPress("enter", () => {
 						textbox.focused = false;
+						onCharInputEV?.cancel();
+						onBackspace?.cancel();
 						onEnter.cancel();
 					});
 				}
@@ -361,12 +379,12 @@ export class EditorTab {
 						height: 18,
 						color: WHITE,
 						opacity: Math.round(time()) % 2 == 0 ? 1 : 0,
-						pos: vec2(formatText({ text: textbox.value, size: 20 }).width + 7, 7),
+						pos: vec2(formatText({ text: seeValue, size: 20 }).width + 7, 7),
 					});
 				}
 
 				drawText({
-					text: textbox.value,
+					text: seeValue,
 					align: "left",
 					size: 20,
 					pos: vec2(5, 5),
@@ -419,6 +437,151 @@ export class EditorTab {
 			});
 
 			return checkbox;
+		},
+
+		addScrollable: (
+			editorTabObj: ReturnType<typeof EditorTab.addEditorTab>,
+			defaultValue: any,
+			/** The options if it's a string scrollable */
+			options?: string[],
+			/** How much to increase or decrease on click */
+			increaseValue?: number,
+		) => {
+			increaseValue = increaseValue ?? 1;
+
+			let theWidth = formatText({ text: "AAAAA", size: 20 }).width;
+
+			if (options) {
+				const longestOption = options.reduce((a, b) => (a.length > b.length ? a : b));
+				theWidth = formatText({ text: longestOption, size: 20 }).width;
+			}
+
+			if (typeof defaultValue != "number" && !options) {
+				throw new Error(`No options for given '${typeof defaultValue}' scrollable`);
+			}
+
+			let index = 0;
+			if (Array.isArray(defaultValue)) {
+				index = options.indexOf(defaultValue[0]);
+				if (index == -1) throw new Error("Default value is not found on options array");
+			}
+
+			const obj = editorTabObj.add([
+				rect(0, 0),
+				"textbox",
+				{
+					focused: false,
+					value: defaultValue,
+				},
+			]);
+
+			function addArrow(direction: "left" | "right") {
+				const arrow = obj.add([
+					rect(15, 30, { radius: 2 }),
+					color(EditorTab.ui.BODY.lighten(30)),
+					pos(),
+					outline(2, EditorTab.ui.BODY_OUTLINE),
+					area(),
+					z(1),
+					"hover",
+				]);
+				let counter = 0;
+
+				const regularColor = EditorTab.ui.BODY.lighten(30);
+				const brighterColor = EditorTab.ui.BODY.lighten(50);
+
+				function updateValue() {
+					counter = 0;
+					if (typeof obj.value == "number") {
+						if (direction == "left") obj.value -= increaseValue;
+						else obj.value += increaseValue;
+						// has decimal place
+						if (Math.round(obj.value) != obj.value) obj.value = parseFloat(obj.value.toFixed(1));
+					}
+					else if (Array.isArray(obj.value)) {
+						if (direction == "left") index = utils.scrollIndex(index, increaseValue, options.length);
+						else index = utils.scrollIndex(index, -increaseValue, options.length);
+						obj.value = [options[index].toString()];
+					}
+				}
+
+				arrow.onUpdate(() => {
+					if (isMouseDown("left") && arrow.isHovering()) {
+						counter += dt();
+
+						if (counter >= 0.1) {
+							updateValue();
+						}
+
+						arrow.color = brighterColor;
+					}
+					else if (isMouseReleased("left") && counter > 0) {
+						updateValue();
+					}
+					else {
+						counter = 0;
+						arrow.color = regularColor;
+					}
+				});
+
+				arrow.onDraw(() => {
+					drawSprite({
+						sprite: "arrow",
+						pos: vec2(arrow.width / 4, arrow.height / 4),
+						flipX: direction == "right" ? true : false,
+					});
+				});
+				return arrow;
+			}
+
+			const leftArrow = addArrow("left");
+			const textbox = obj.add([
+				rect(theWidth, 30, { radius: 2 }),
+				color(EditorTab.ui.BODY),
+				outline(2, EditorTab.ui.BODY_OUTLINE),
+				area(),
+				pos(leftArrow.width, 0),
+				z(0),
+				"hover",
+			]);
+			const rightArrow = addArrow("right");
+			rightArrow.pos.x = textbox.pos.x + textbox.width;
+
+			textbox.onMousePress("left", () => {
+				if (textbox.isHovering()) {
+					obj.focused = true;
+				}
+				else {
+					obj.focused = false;
+				}
+			});
+
+			obj.onUpdate(() => {
+				if (obj.focused) {
+					leftArrow.outline.color = EditorTab.ui.ACCENT;
+					textbox.outline.color = EditorTab.ui.ACCENT;
+					rightArrow.outline.color = EditorTab.ui.ACCENT;
+				}
+				else {
+					leftArrow.outline.color = EditorTab.ui.BODY_OUTLINE;
+					textbox.outline.color = EditorTab.ui.BODY_OUTLINE;
+					rightArrow.outline.color = EditorTab.ui.BODY_OUTLINE;
+				}
+			});
+
+			textbox.onDraw(() => {
+				drawText({
+					text: Array.isArray(obj.value) ? obj.value[0] : obj.value.toString(),
+					anchor: "center",
+					align: "center",
+					pos: vec2(textbox.width / 2, textbox.height / 2),
+					size: 20,
+				});
+			});
+
+			obj.width = leftArrow.width + textbox.width + rightArrow.width;
+
+			return obj;
 		},
 	};
 
@@ -815,7 +978,7 @@ export function addEditorTabs(ChartState: StateChart) {
 		});
 	});
 
-	EditorTab.tabs["Edit Event"].addElements((editorTabObj) => {
+	EditorTab.tabs.EditEvent.addElements((editorTabObj) => {
 		let currentEvent: ChartEvent = null;
 
 		function positionObject(obj: GameObj<PosComp | any>, index: number) {
@@ -844,17 +1007,36 @@ export function addEditorTabs(ChartState: StateChart) {
 			editorTabObj.get("eventobj").forEach((obj) => obj.destroy());
 			if (!event) return;
 
-			Object.keys(event.value).forEach((evKey: string, index: number) => {
-				const typeOfValue = typeof event.value[evKey];
-				const defaultValue = ChartState.events[event.id][evKey];
+			/** All the properties an an event's value has */
+			const eventProps = Object.keys(event.value);
+			eventProps.forEach((valueKey: string, index: number) => {
+				const value = event.value[valueKey];
+				const typeOfValue = typeof value;
+				const defaultValue = ChartState.events[event.id][valueKey];
 
 				if (typeOfValue == "string") {
 					const textbox = EditorTab.ui.addTextbox(editorTabObj, defaultValue);
-					objAfterwork(textbox, event, evKey, index);
+					objAfterwork(textbox, event, valueKey, index);
 				}
 				else if (typeOfValue == "boolean") {
 					const checkbox = EditorTab.ui.addCheckbox(editorTabObj, defaultValue);
-					objAfterwork(checkbox, event, evKey, index);
+					objAfterwork(checkbox, event, valueKey, index);
+				}
+				else if (typeOfValue == "number") {
+					let increment = 0;
+					if (valueKey == "speed" || valueKey == "zoom") increment = 0.1;
+					else if (valueKey == "x" || valueKey == "y" || valueKey == "angle") increment = 10;
+					else increment = 1;
+
+					const scrollable = EditorTab.ui.addScrollable(editorTabObj, defaultValue, null, increment);
+					objAfterwork(scrollable, event, valueKey, index);
+				}
+				else if (typeOfValue == "object") {
+					if (Array.isArray(value)) {
+						const easingKeys = Object.keys(easings);
+						const scrollable = EditorTab.ui.addScrollable(editorTabObj, defaultValue, easingKeys);
+						objAfterwork(scrollable, event, valueKey, index);
+					}
 				}
 			});
 		}
@@ -869,9 +1051,15 @@ export function addEditorTabs(ChartState: StateChart) {
 			}
 
 			editorTabObj.width = 300;
+			let theHeight = 0;
 			if (currentEvent) {
-				editorTabObj.height = (Object.keys(currentEvent.value).length + 1) * 30;
+				theHeight = (Object.keys(currentEvent.value).length + 1) * 30;
 			}
+			else {
+				theHeight = 60;
+			}
+
+			editorTabObj.height = lerp(editorTabObj.height, theHeight, 0.8);
 		});
 
 		editorTabObj.onDraw(() => {
@@ -879,8 +1067,44 @@ export function addEditorTabs(ChartState: StateChart) {
 				drawText({
 					text: "No valid event",
 					size: 25,
+					anchor: "center",
+					align: "center",
 				});
 			}
+			else {
+				drawSprite({
+					sprite: currentEvent.id,
+					pos: vec2(
+						-editorTabObj.width / 2 + formatText({
+							text: "Edit event: ",
+							align: "left",
+							size: 20,
+						}).width,
+						-editorTabObj.height / 2 - 30,
+					),
+					height: 25,
+					width: 25,
+				});
+			}
+		});
+
+		const pointer = onDraw(() => {
+			if (currentEvent) {
+				const eventStep = ChartState.conductor.timeToStep(currentEvent.time);
+				const stepPos = ChartState.stepToPos(eventStep);
+				stepPos.y -= ChartState.SQUARE_SIZE.y * ChartState.lerpScrollStep;
+
+				drawLine({
+					p1: vec2(stepPos.x + ChartState.SQUARE_SIZE.x, stepPos.y),
+					p2: vec2(editorTabObj.pos.x - editorTabObj.width / 2, editorTabObj.pos.y - editorTabObj.height / 2),
+					width: 2,
+					opacity: 0.5,
+				});
+			}
+		});
+
+		editorTabObj.onDestroy(() => {
+			pointer.cancel();
 		});
 	});
 }

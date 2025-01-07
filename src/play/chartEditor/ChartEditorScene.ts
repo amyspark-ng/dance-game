@@ -123,7 +123,7 @@ export function ChartEditorScene() {
 			moveHandler(ChartState);
 
 			selectionBoxHandler(ChartState);
-			cameraHandler(ChartState);
+			// cameraHandler(ChartState);
 
 			if (GameDialog.isOpen) return;
 
@@ -263,7 +263,7 @@ export function ChartEditorScene() {
 				}
 				// there's no note in that place
 				else {
-					ChartState.resetSelectedStamps();
+					ChartState.actions.deselect();
 					hoveredNote = ChartState.placeNote(hoveredTime, ChartState.currentMove);
 					playSound("noteAdd", { detune: moveToDetune(hoveredNote.move) });
 					ChartState.takeSnapshot();
@@ -301,10 +301,6 @@ export function ChartEditorScene() {
 
 				// there's already an event in that place
 				if (hoveredEvent) {
-					if (isKeyDown("shift")) {
-						// openEventDialog(hoveredEvent, ChartState);
-					}
-
 					if (!ChartState.selectedStamps.includes(hoveredEvent)) {
 						if (!isKeyDown("control")) ChartState.resetSelectedStamps();
 						ChartState.selectedStamps.push(hoveredEvent);

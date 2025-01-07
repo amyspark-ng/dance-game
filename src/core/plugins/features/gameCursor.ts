@@ -33,7 +33,7 @@ export function addCursorObject() {
 	let blinkTimer = 0;
 	const mouse = add([
 		sprite("cursor_default"),
-		anchor("topleft"),
+		anchor("bot"),
 		pos(),
 		cursorComponent(),
 		stay(),
@@ -65,6 +65,8 @@ export function addCursorObject() {
 			},
 		},
 	]);
+
+	mouse.anchor = vec2(-0.5, -1);
 
 	mouse.onUpdate(() => {
 		if (mouse.typeMode) {

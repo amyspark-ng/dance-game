@@ -191,8 +191,8 @@ export class StateChart {
 
 	/** All the ids for the events */
 	events = {
-		"change-scroll": { duration: 0, speed: 1, easing: "linear" },
-		"cam-move": { duration: 0, x: 0, y: 0, zoom: 1, angle: 0, easing: "linear" },
+		"change-scroll": { duration: 0, speed: 1.0, easing: ["linear"] },
+		"cam-move": { duration: 0, x: 0, y: 0, zoom: 1, angle: 0, easing: ["linear"] },
 		"play-anim": { anim: "victory", speed: 1, force: false, looped: false, ping_pong: false },
 		"change-dancer": { dancer: "astri" },
 	};
@@ -353,7 +353,7 @@ export class StateChart {
 			addFloatingText(clipboardMessage("paste", this.clipboard));
 
 			this.clipboard.forEach((stamp) => {
-				const newTime = stamp.time + this.conductor.stepToTime(this.hoveredStep - 3.5);
+				const newTime = stamp.time + this.conductor.stepToTime(this.hoveredStep);
 
 				if (isStampNote(stamp)) {
 					const newNote = this.placeNote(newTime, stamp.move);
@@ -551,7 +551,7 @@ export class StateChart {
 	}
 
 	/** Gets the dancer at a current time in the song */
-	getDancerAtTime() {
+	getDancerAtTime(time: number = this.scrollTime) {
 		let dancerChangeEvents = this.song.chart.events.filter((event) => event.id == "change-dancer");
 
 		// some stuff to remove faulty names from dancer list
@@ -564,12 +564,12 @@ export class StateChart {
 			dancerChangeEvents = utils.removeFromArr(dancersInEvents[indexOfFaultyDancer], dancerChangeEvents);
 		}
 
-		if (dancerChangeEvents.length == 0 || this.conductor.timeInSeconds < dancerChangeEvents[0].time) {
+		if (dancerChangeEvents.length == 0 || time < dancerChangeEvents[0].time) {
 			return GameSave.dancer;
 		}
 
 		for (const event in dancerChangeEvents) {
-			if (dancerChangeEvents[event].time <= this.conductor.timeInSeconds) {
+			if (dancerChangeEvents[event].time <= time) {
 				return dancerChangeEvents[event].value.dancer;
 			}
 		}
