@@ -34,7 +34,8 @@ import {
 	StateChart,
 	trailAtStep,
 } from "./EditorState";
-import { addEditorTabs, addTopMenuButtons } from "./editorUI";
+import { addEditorTabs } from "./editorTabs";
+import { addTopMenuButtons } from "./editorTopmenu";
 
 export function ChartEditorScene() {
 	scene("charteditor", (params: paramsChartEditor) => {
