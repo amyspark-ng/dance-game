@@ -126,7 +126,7 @@ export function addCursorObject() {
 				}
 			}
 			else {
-				if (obj.dragging || isMouseDown("left")) mouse.do("down");
+				if (obj.dragging || isMouseDown("left") || get("drag").some((obj) => obj.dragging)) mouse.do("down");
 				else {
 					mouse.do("up");
 					mouse.isHoveringAnObject = true;

@@ -783,7 +783,7 @@ export function addEventsPanel(ChartState: StateChart) {
 
 		idButton.onClick(() => {
 			playSound("mouseClick", { detune: rand(-50, 50) });
-			ChartState.currentEvent = id;
+			ChartState.currentEvent = id as keyof typeof ChartState.events;
 		});
 	});
 }

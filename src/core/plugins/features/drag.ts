@@ -1,119 +1,82 @@
 import { Comp, GameObj, KEventController } from "kaplay";
-import { gameCursor } from "./gameCursor";
 
-const TILT_TOWARDS_MOUSE_LERP = 0.8;
+/** Current object being dragged right now */
+export let curDraggin: GameObj<DragComp> = null;
 
-export interface dragComp extends Comp {
-	/**
-	 * Will set the new dragged object to this
-	 */
-	pick: () => void;
-	/**
-	 * Will set the new dragged object too NULL
-	 */
-	drop: () => void;
-	/**
-	 * Runs when the object starts being dragged
-	 * @param action The function you want to run
-	 */
-	onPick(action: () => void): () => KEventController;
-	/**
-	 * Runs every frame the object is being dragged
-	 * @param action The function you want to run
-	 */
-	onDragUpdate(action: () => void): () => KEventController;
-	/**
-	 * Runs when the object is dropped
-	 * @param action The function you want to run
-	 */
-	onDrop(action: () => void): () => KEventController;
-	/**
-	 * Is true if the object is being dragged
-	 */
-	dragging: boolean;
+export function setCurDraggin(value = null) {
+	curDraggin = value;
 }
 
-// Keep track of the current draggin item
-let curDraggin: GameObj | null = null;
-
-export const drag = {
-	/**
-	 * Gets the object that is currently being dragged
-	 * @returns Either the object, or null, which would mean that there's no object being dragged
-	 */
-	getCurDragging: () => curDraggin,
-	/**
-	 * Sets the new object that is being dragged, will override if one is already being dragged
-	 * @warning Will override the current dragged object
-	 * @param newValue The new object that is being dragged
-	 */
-	setCurDragging: (newValue: any) => {
-		curDraggin = newValue;
-	},
-};
+/**
+ * The {@link drag `drag()`} component.
+ *
+ * @group Component Types
+ */
+export interface DragComp extends Comp {
+	/** Wheter the object is being dragged or not */
+	dragging: boolean;
+	/** Pick the object (set {@link curDraggin `curDraggin`} to it) */
+	pick(): void;
+	/** Drop the object */
+	drop(): void;
+	/** Runs whenever the object is picked */
+	onPick(action: () => void): KEventController;
+	/** Runs every frame while the object is being dragged */
+	onDragUpdate(action: () => void): KEventController;
+	/** Runs when the object is dropped */
+	onDrop(action: () => void): KEventController;
+}
 
 /**
- * Custom component for handling drag and drop behaviour
- * @param onlyX Wheter to only move the object on the X axis
- * @param onlyY Wheter to only move the object on the Y axis
- * @param tiltTowardsMouse You can set this to true so the object tilts towards the mouse (will require rotateComp)
+ * Drag objects
+ * @param onlyX - only drag it on the X axis
+ * @param onlyY - only drag it on the Y axis
  */
-export function dragger(tiltTowardsMouse?: boolean, onlyX?: boolean, onlyY?: boolean): dragComp {
+export function drag(onlyX: boolean = false, onlyY: boolean = false): DragComp {
 	// The displacement between object pos and mouse pos
 	let offset = vec2(0);
 
-	onlyX = onlyX ?? false;
-	onlyY = onlyY ?? false;
-	tiltTowardsMouse = tiltTowardsMouse ?? false;
-
 	return {
-		id: "dragger",
-		require: ["pos", "area"],
+		id: "drag",
+		require: ["pos"],
 		dragging: false,
-
-		// pick stuff
 		pick() {
-			drag.setCurDragging(this);
-			offset = gameCursor.pos.sub(this.pos);
+			// Set the current global dragged to this
+			curDraggin = this;
+			offset = mousePos().sub(this.pos);
+			this.trigger("pick");
 			this.dragging = true;
-
-			this.trigger("drag");
 		},
 
-		onPick(action: () => void) {
-			return this.on("drag", action);
-		},
-
-		// drop stuff
 		drop() {
-			drag.setCurDragging(null);
+			curDraggin = null;
 			this.dragging = false;
-			if (this.angle !== 0 && tiltTowardsMouse == true && mouseDeltaPos().x > 0) this.angle = 0;
-
-			this.trigger("dragEnd");
+			this.trigger("drop");
 		},
 
-		onDrop(action: () => void) {
-			return this.on("dragEnd", action);
-		},
-
-		// update stuff
 		update() {
 			if (curDraggin === this) {
-				if (onlyX == true) this.pos.x = gameCursor.pos.x - (offset.x);
-				else if (onlyY == true) this.pos.y = gameCursor.pos.y - (offset.y);
-				else this.pos = gameCursor.pos.sub(offset);
+				if (this.dragging == false) this.dragging = true;
+				if (onlyX == true) this.pos.x = mousePos().x - (offset.x);
+				else if (onlyY == true) this.pos.y = mousePos().y - (offset.y);
+				else this.pos = this.pos = mousePos().sub(offset);
 				this.trigger("dragUpdate");
-
-				if (tiltTowardsMouse) {
-					if (!this.is("rotate")) throw new Error("Tilt towards mouse requires RotateComp");
-					this.angle = lerp(this.angle, mouseDeltaPos().x, TILT_TOWARDS_MOUSE_LERP);
-				}
+			}
+			else {
+				this.dragging = false;
 			}
 		},
-
+		onPick(action: () => void): KEventController {
+			return this.on("pick", action) as KEventController;
+		},
 		onDragUpdate(action: () => void) {
 			return this.on("dragUpdate", action);
+		},
+		onDrop(action: () => void) {
+			return this.on("drop", action);
+		},
+		inspect() {
+			return `dragging: ${this.dragging}`;
 		},
 	};
 }

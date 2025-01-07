@@ -16,6 +16,7 @@ import { Move } from "../objects/dancer";
 import { ChartNote } from "../objects/note";
 import { ChartEvent, SongContent } from "../song";
 import { NOTE_BIG_SCALE } from "./editorRenderer";
+import { EditorTab } from "./editorUI";
 
 /** Is either a note or an event */
 export type ChartStamp = ChartNote | ChartEvent;
@@ -199,7 +200,7 @@ export class StateChart {
 	};
 
 	/** The current selected event */
-	currentEvent: string = "change-scroll";
+	currentEvent: keyof typeof this.events = "change-scroll";
 
 	/** The pos of the cursor (is the pos of the step you're currently hovering) */
 	cursorPos = vec2(1);
@@ -669,14 +670,14 @@ export function moveToDetune(move: Move) {
 /** RUns on update */
 export function selectionBoxHandler(ChartState: StateChart) {
 	if (isMousePressed("left")) {
-		if (
-			ChartState.cameraController.canMoveCamera || ChartState.isCursorInGrid
-			|| get("hover", { recursive: true }).some((obj) => obj.isHovering())
-		) {
-			ChartState.selectionBox.canSelect = false;
+		const canSelect = !get("hover", { recursive: true }).some((obj) => obj.isHovering())
+			&& !ChartState.isCursorInGrid
+			&& !get("editorTab").some((obj) => obj.isHovering);
+
+		ChartState.selectionBox.canSelect = canSelect;
+		if (ChartState.selectionBox.canSelect) {
+			ChartState.selectionBox.clickPos = gameCursor.pos;
 		}
-		else ChartState.selectionBox.canSelect = true;
-		ChartState.selectionBox.clickPos = gameCursor.pos;
 	}
 
 	if (isMouseDown("left") && ChartState.selectionBox.canSelect) {
@@ -842,66 +843,6 @@ export function moveHandler(ChartState: StateChart) {
 			ChartState.changeMove(keysAndMoves[key]);
 		}
 	});
-}
-
-/** Adds a dummy dancer for moving to the fake notes in the chart */
-export function addDummyDancer(dancerName: string) {
-	const DANCER_POS = vec2(921, 519);
-	const DANCER_SCALE = vec2(0.5);
-	let waitEvent = wait(0);
-
-	function fakeDancerComp() {
-		return {
-			moveBop() {
-				return this.stretch({
-					XorY: "y",
-					startScale: DANCER_SCALE.y * 0.9,
-					endScale: DANCER_SCALE.y,
-					theTime: 0.25,
-				});
-			},
-
-			doMove(move: Move) {
-				this.moveBop();
-				this.play(move);
-
-				if (waitEvent) {
-					waitEvent.cancel();
-					waitEvent = null;
-				}
-				waitEvent = wait(1, () => {
-					// can't do doMove because then it'll turn into a loop
-					this.play("idle");
-				});
-			},
-
-			get currentMove() {
-				return this.getCurAnim().name;
-			},
-		};
-	}
-
-	const dancer = add([
-		sprite("dancer_" + dancerName),
-		anchor("bot"),
-		pos(DANCER_POS),
-		area(),
-		scale(DANCER_SCALE),
-		juice(),
-		opacity(),
-		fakeDancerComp(),
-		{
-			forcedAnim: false,
-		},
-	]);
-
-	dancer.onClick(() => {
-		dancer.moveBop();
-	});
-
-	dancer.doMove("idle");
-
-	return dancer;
 }
 
 export function parseCommands(ChartState: StateChart) {

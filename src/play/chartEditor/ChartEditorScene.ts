@@ -1,21 +1,17 @@
 // The actual scene for the chart editor
-import { AreaComp, GameObj, KEventController } from "kaplay";
-import { Conductor } from "../../conductor";
+import { GameObj, KEventController } from "kaplay";
 import { onBeatHit, onNoteHit, onStepHit, triggerEvent } from "../../core/events";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
-import { playMusic, playSound } from "../../core/plugins/features/sound";
+import { playSound } from "../../core/plugins/features/sound";
 import { transitionToScene } from "../../core/scenes";
 import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { utils } from "../../utils";
 import { moveToColor } from "../objects/note";
 import { paramsGameScene } from "../PlayState";
-import { SongContent } from "../song";
 import {
 	checkerboardRenderer,
-	drawCameraController,
 	drawNoteCursor,
-	drawPlayBar,
 	drawSelectionBox,
 	drawSelectSquares,
 	drawStrumline,
@@ -24,11 +20,8 @@ import {
 	stampRenderer,
 } from "./editorRenderer";
 import {
-	addDummyDancer,
-	addFloatingText,
 	cameraHandler,
 	ChartStamp,
-	clipboardMessage,
 	concatStamps,
 	findNoteAtStep,
 	fixStamps,
@@ -38,7 +31,6 @@ import {
 	paramsChartEditor,
 	selectionBoxHandler,
 	setMouseAnimConditions,
-	stampPropThing,
 	StateChart,
 	trailAtStep,
 } from "./EditorState";
@@ -70,7 +62,10 @@ export function ChartEditorScene() {
 			});
 		}
 
+		let dummyDancer = get("dummyDancer", { recursive: true })[0] as GameObj;
+
 		onUpdate(() => {
+			dummyDancer = get("dummyDancer", { recursive: true })[0] as GameObj;
 			const allStamps = concatStamps(ChartState.song.chart.notes, ChartState.song.chart.events);
 			if (allStamps.length > 0) {
 				fixStamps(allStamps, ChartState);
@@ -94,6 +89,7 @@ export function ChartEditorScene() {
 
 					// do stuff here
 					if (ev.id == "play-anim") {
+						if (!dummyDancer) return;
 						if (dummyDancer.getAnim(ev.value.anim) == null) {
 							console.warn("Animation not found for dancer: " + ev.value.anim);
 							return;
@@ -120,7 +116,9 @@ export function ChartEditorScene() {
 				}
 			});
 
-			dummyDancer.sprite = "dancer_" + ChartState.getDancerAtTime();
+			if (dummyDancer) {
+				dummyDancer.sprite = "dancer_" + ChartState.getDancerAtTime();
+			}
 			ChartState.conductor.paused = ChartState.paused;
 
 			// SCROLL STEP
@@ -485,7 +483,7 @@ export function ChartEditorScene() {
 			else {
 				const currentHoveredEvent = getCurrentHoveredEvent();
 				if (currentHoveredEvent && ChartState.currentEvent != currentHoveredEvent.id) {
-					ChartState.currentEvent = currentHoveredEvent.id;
+					ChartState.currentEvent = currentHoveredEvent.id as keyof typeof ChartState.events;
 				}
 			}
 		});
@@ -550,13 +548,9 @@ export function ChartEditorScene() {
 			// openExitDialog();
 		});
 
-		const dummyDancer = addDummyDancer(ChartState.params.dancer);
-		dummyDancer.opacity = 0;
-
 		// makes the strumline BOP
 		onBeatHit(() => {
 			tween(vec2(1.2), vec2(1), 0.1, (p) => ChartState.strumlineScale = p);
-			if (dummyDancer.currentMove == "idle") dummyDancer.moveBop();
 		});
 
 		// Scrolls the checkerboard
@@ -574,8 +568,15 @@ export function ChartEditorScene() {
 					const indexOfNote = ChartState.song.chart.notes.indexOf(stamp);
 
 					if (stamp.length) {
-						const ogScale = ChartState.stampProps.notes[indexOfNote].scale;
-						tween(ogScale, NOTE_BIG_SCALE, 0.05, (p) => ChartState.stampProps.notes[indexOfNote].scale = p);
+						if (ChartState.stampProps.notes[indexOfNote]) {
+							const ogScale = ChartState.stampProps.notes[indexOfNote].scale;
+							tween(
+								ogScale,
+								NOTE_BIG_SCALE,
+								0.05,
+								(p) => ChartState.stampProps.notes[indexOfNote].scale = p,
+							);
+						}
 					}
 					else {
 						tween(NOTE_BIG_SCALE, vec2(1), 0.1, (p) => ChartState.stampProps.notes[indexOfNote].scale = p);
@@ -597,11 +598,6 @@ export function ChartEditorScene() {
 					tween(prop.scale, vec2(1), 0.1, (p) => prop.scale = p);
 				}
 			});
-		});
-
-		// animate the dancer
-		onNoteHit((note) => {
-			dummyDancer.doMove(note.move);
 		});
 
 		onSceneLeave(() => {

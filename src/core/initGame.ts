@@ -7,7 +7,7 @@ import { utils } from "../utils";
 import { GameSave } from "./gamesave";
 import { getSong, loadAssets, loadingScreen } from "./loader";
 import { setupCamera } from "./plugins/features/camera";
-import { drag } from "./plugins/features/drag";
+import { curDraggin, drag } from "./plugins/features/drag";
 import { gameCursor, setupCursor } from "./plugins/features/gameCursor";
 import { updateMasterVolume } from "./plugins/features/sound";
 import { setupSoundtray } from "./plugins/features/soundtray";
@@ -73,7 +73,7 @@ utils.runInDesktop(() => {
 // for drag
 document.getElementById("kanva").addEventListener("mouseout", () => {
 	// all of the objects that are draggable have this function
-	if (drag.getCurDragging()) drag.getCurDragging().drop();
+	if (curDraggin) curDraggin.drop();
 }, false);
 
 // for middle click

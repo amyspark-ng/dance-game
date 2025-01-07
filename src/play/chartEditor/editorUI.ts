@@ -1,5 +1,9 @@
 import { Vec2 } from "kaplay";
+import { onBeatHit, onNoteHit } from "../../core/events";
 import { GameSave } from "../../core/gamesave";
+import { drag } from "../../core/plugins/features/drag";
+import { playSound } from "../../core/plugins/features/sound";
+import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { utils } from "../../utils";
 import { Move } from "../objects/dancer";
 import { downloadChart, StateChart } from "./EditorState";
@@ -285,8 +289,10 @@ export class EditorTab {
 	pos: Vec2 = vec2(center());
 	private elementsAction: EditorTabElementsAction = () => {};
 	static tabs = {
-		"Notes": new EditorTab("Notes"),
-		// "Events": new EditorTab("Events"),
+		"Sync": new EditorTab("Sync", vec2(800, 300)),
+		"Notes": new EditorTab("Notes", vec2(180, 400)),
+		"Events": new EditorTab("All events", vec2(180, 200)),
+		// "Edit Event": new EditorTab("Edit event"),
 	};
 
 	static HEADER_COLOR = rgb(30, 29, 36);
@@ -304,17 +310,35 @@ export class EditorTab {
 		this.elementsAction = action;
 	}
 
-	static addEditorTab(tab: EditorTab) {
+	static addEditorTab(tab: EditorTab, ChartState: StateChart) {
 		const tabObj = add([
 			rect(100, 100, { radius: [0, 0, 10, 10] }),
 			pos(),
 			anchor("center"),
 			color(this.BODY_COLOR),
+			drag(),
+			opacity(0),
+			scale(0.95),
 			"editorTab",
 			{
+				isHovering: false,
 				tab: tab,
 			},
 		]);
+
+		tabObj.onUpdate(() => {
+			const topLeft = vec2(tabObj.pos.x - tabObj.width / 2, tabObj.pos.y - tabObj.height / 2 - 30);
+			const isHovered = new Rect(topLeft, tabObj.width, 30).contains(mousePos())
+				|| tabObj.dragging;
+			tabObj.isHovering = isHovered;
+			if (isMousePressed("left") && isHovered && !tabObj.dragging) tabObj.pick();
+			else if (isMouseReleased("left") && tabObj.dragging) tabObj.drop();
+
+			if (tabObj.dragging) tab.pos = tabObj.pos;
+
+			tabObj.scale = lerp(tabObj.scale, vec2(1), 0.45);
+			tabObj.opacity = lerp(tabObj.opacity, 1, 0.45);
+		});
 
 		tabObj.pos = tab.pos;
 
@@ -341,8 +365,9 @@ export class EditorTab {
 		return tabObj;
 	}
 
-	constructor(title: string) {
+	constructor(title: string, pos: Vec2 = vec2()) {
 		this.title = title;
+		this.pos = pos;
 	}
 }
 
@@ -354,6 +379,10 @@ export function addEditorTabs(ChartState: StateChart) {
 			text: tab.title,
 			action: () => {
 				tab.visible = !tab.visible;
+				if (tab.visible == true) {
+					const index = Object.values(EditorTab.tabs).indexOf(tab);
+					playSound("dialogOpen", { detune: rand(-25, 25) * (index + 1) * 2 });
+				}
 			},
 			// this runs some extra code which is an ondraw that serves as a checkbox
 			extraCode(minibuttonObj) {
@@ -394,12 +423,11 @@ export function addEditorTabs(ChartState: StateChart) {
 		Object.values(EditorTab.tabs).forEach((tabInstance) => {
 			const tabObjWithTab = EditorTab.findTabByInstance(tabInstance);
 
-			if (tabInstance.visible == true && !tabObjWithTab) EditorTab.addEditorTab(tabInstance);
+			if (tabInstance.visible == true && !tabObjWithTab) EditorTab.addEditorTab(tabInstance, ChartState);
 			else if (tabInstance.visible == false && tabObjWithTab) tabObjWithTab.destroy();
 		});
 	});
 
-	EditorTab.tabs.Notes.pos = vec2(180, 500);
 	EditorTab.tabs.Notes.addElements((editorTabObj) => {
 		editorTabObj.width = 240;
 		editorTabObj.height = 65;
@@ -423,19 +451,216 @@ export function addEditorTabs(ChartState: StateChart) {
 
 			noteObj.onClick(() => {
 				ChartState.currentMove = move;
+				noteObj.scale = vec2(1.6);
 			});
 
 			noteObj.onUpdate(() => {
-				noteObj.scale = lerp(noteObj.scale, ChartState.currentMove == move ? vec2(1.2) : vec2(1), 0.8);
+				noteObj.scale = lerp(noteObj.scale, ChartState.currentMove == move ? vec2(1.2) : vec2(1), 0.6);
 				noteObj.opacity = lerp(noteObj.opacity, noteObj.isHovering() ? 0.8 : 0.5, 0.5);
 			});
 		});
 	});
 
-	// EditorTab.tabs.Events.pos = vec2(180, 200);
-	// EditorTab.tabs.Events.addElements((editorTabObj) => {
-	// 	Object.keys(ChartState.events).forEach((eventKey) => {
-	// 		eventKey
-	// 	});
-	// });
+	EditorTab.tabs.Events.addElements((editorTabObj) => {
+		const allEvents = Object.keys(ChartState.events) as (keyof typeof ChartState.events)[];
+		editorTabObj.width = 240;
+		editorTabObj.height = 65 + 65 * allEvents.length % 4;
+
+		allEvents.forEach((eventKey, index) => {
+			const eventObj = editorTabObj.add([
+				sprite(eventKey),
+				pos(),
+				area(),
+				opacity(),
+				scale(),
+				anchor("center"),
+				"hover",
+			]);
+
+			eventObj.width = 60;
+			eventObj.height = 60;
+			eventObj.pos.x = (-editorTabObj.width / 2 + index * 60) + eventObj.width / 2;
+			eventObj.pos.y = (-editorTabObj.height / 2) + eventObj.height / 2;
+
+			eventObj.onClick(() => {
+				ChartState.currentEvent = eventKey;
+			});
+		});
+	});
+
+	EditorTab.tabs.Sync.addElements((editorTabObj) => {
+		editorTabObj.width = 240;
+		editorTabObj.height = 300;
+
+		function makeDummyDancer() {
+			let waitEvent = wait(0);
+			const DANCER_SCALE = vec2(0.5);
+
+			function fakeDancerComp() {
+				return {
+					moveBop() {
+						return this.stretch({
+							XorY: "y",
+							startScale: DANCER_SCALE.y * 0.9,
+							endScale: DANCER_SCALE.y,
+							theTime: 0.25,
+						});
+					},
+
+					doMove(move: Move) {
+						this.moveBop();
+						this.play(move);
+
+						if (waitEvent) {
+							waitEvent.cancel();
+							waitEvent = null;
+						}
+						waitEvent = wait(1, () => {
+							// can't do doMove because then it'll turn into a loop
+							this.play("idle");
+						});
+					},
+
+					get currentMove() {
+						return this.getCurAnim().name;
+					},
+				};
+			}
+
+			const dancer = make([
+				sprite("dancer_" + GameSave.dancer),
+				anchor("bot"),
+				pos(),
+				area(),
+				scale(DANCER_SCALE),
+				juice(),
+				opacity(),
+				fakeDancerComp(),
+				"dummyDancer",
+				{
+					forcedAnim: false,
+				},
+			]);
+
+			dancer.onClick(() => {
+				dancer.moveBop();
+			});
+
+			dancer.doMove("idle");
+
+			return dancer;
+		}
+
+		function addCounterObj(index: number) {
+			const counter = editorTabObj.add([
+				text((index + 1).toString(), { align: "left", size: 25 }),
+				pos(),
+				anchor("center"),
+				scale(),
+				color(),
+				"beatcounter",
+				{
+					beat: index + 1,
+				},
+			]);
+
+			counter.pos.x = -30 + index * 20;
+			counter.pos.y = 100;
+
+			return counter;
+		}
+
+		const dummyDancer = editorTabObj.add(makeDummyDancer());
+		dummyDancer.pos = vec2(0, editorTabObj.height - dummyDancer.height / 2 - 30);
+
+		for (let i = 0; i < ChartState.conductor.stepsPerBeat; i++) {
+			addCounterObj(i);
+		}
+
+		const onBeatHitEv = onBeatHit(() => {
+			const currentBeatObj = (editorTabObj.get("beatcounter") as ReturnType<typeof addCounterObj>[]).find((obj) =>
+				obj.beat == (ChartState.conductor.currentBeat % ChartState.conductor.stepsPerBeat) + 1
+			);
+
+			tween(vec2(1.3), vec2(1), 0.15, (p) => currentBeatObj.scale = p);
+			if (currentBeatObj.beat == ChartState.conductor.stepsPerBeat) {
+				tween(YELLOW, WHITE, 0.15, (p) => currentBeatObj.color = p);
+			}
+
+			if (dummyDancer.currentMove == "idle") dummyDancer.moveBop();
+		});
+
+		const onNoteHitEv = onNoteHit((note) => {
+			dummyDancer.doMove(note.move);
+		});
+
+		editorTabObj.onDraw(() => {
+			drawText({
+				text: "Current step: " + ChartState.scrollStep,
+				pos: vec2(-editorTabObj.width / 2 + 5, -editorTabObj.height / 2 + 5),
+				size: 20,
+				align: "left",
+			});
+
+			drawText({
+				text: "Current beat: " + ChartState.conductor.currentBeat,
+				pos: vec2(-editorTabObj.width / 2 + 5, -editorTabObj.height / 2 + 25),
+				size: 20,
+				align: "left",
+			});
+
+			// #region playbar
+			const barWidth = map(
+				ChartState.scrollTime,
+				0,
+				ChartState.conductor.audioPlay.duration(),
+				0,
+				editorTabObj.width,
+			);
+			let lerpedWidth = 0;
+			lerpedWidth = lerp(barWidth, barWidth, 0.5);
+
+			drawRect({
+				width: editorTabObj.width,
+				height: 10,
+				radius: [0, 0, 50, 50],
+				anchor: "center",
+				pos: vec2(0, editorTabObj.height / 2 - 5),
+				color: ChartState.bgColor.darken(50),
+			});
+
+			drawRect({
+				width: lerpedWidth,
+				height: 10,
+				radius: [0, 0, 50, 50],
+				anchor: "left",
+				pos: vec2(-editorTabObj.width / 2, editorTabObj.height / 2 - 5),
+				color: ChartState.bgColor.lighten(50),
+			});
+
+			drawText({
+				text: utils.formatTime(ChartState.scrollTime, true),
+				align: "left",
+				size: 20,
+				pos: vec2(-editorTabObj.width / 2 + 5, editorTabObj.height / 2 - 30),
+			});
+
+			drawCircle({
+				radius: 6,
+				pos: vec2(-editorTabObj.width / 2 + lerpedWidth, editorTabObj.height / 2 - 5),
+				color: ChartState.bgColor.lighten(40),
+				anchor: "center",
+				outline: {
+					color: ChartState.bgColor.lighten(70),
+					width: 2,
+				},
+			});
+			// #endregion playbar
+		});
+
+		editorTabObj.onDestroy(() => {
+			onBeatHitEv.cancel();
+			onNoteHitEv.cancel();
+		});
+	});
 }
