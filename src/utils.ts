@@ -87,7 +87,9 @@ export class utils {
 
 	/** Formats time with minutes, seconds and miliseconds */
 	static formatTime(timeInSeconds: number, includeMs: boolean = false): string {
-		return `${Math.floor(timeInSeconds / 60)}:${("0" + Math.floor(timeInSeconds % 60)).slice(-2)}${includeMs ? `:${("0" + Math.floor((timeInSeconds % 1) * 1000)).slice(-3)}` : ""}`;
+		return `${Math.floor(timeInSeconds / 60)}:${("0" + Math.floor(timeInSeconds % 60)).slice(-2)}${
+			includeMs ? `:${("0" + Math.floor((timeInSeconds % 1) * 1000)).slice(-3)}` : ""
+		}`;
 	}
 
 	/** Converts string to kebab case (eg: Hello, World! -> hello-world) */
@@ -152,6 +154,13 @@ export class utils {
 	}
 
 	static caseWord(word: string, theCase: "upper" | "lower") {
-		return theCase == "lower" ? word.charAt(0) + word.substring(1).toUpperCase() : word.charAt(0) + word.substring(1).toLowerCase();
+		return theCase == "lower"
+			? word.charAt(0) + word.substring(1).toUpperCase()
+			: word.charAt(0) + word.substring(1).toLowerCase();
+	}
+
+	/** Like the opposite of kebab??? */
+	static unIdText(text: string) {
+		return utils.caseWord(text.replace("_", " ").replace("-", " "), "upper");
 	}
 }

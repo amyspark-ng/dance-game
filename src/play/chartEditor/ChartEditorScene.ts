@@ -62,10 +62,7 @@ export function ChartEditorScene() {
 			});
 		}
 
-		let dummyDancer = get("dummyDancer", { recursive: true })[0] as GameObj;
-
 		onUpdate(() => {
-			dummyDancer = get("dummyDancer", { recursive: true })[0] as GameObj;
 			const allStamps = concatStamps(ChartState.song.chart.notes, ChartState.song.chart.events);
 			if (allStamps.length > 0) {
 				fixStamps(allStamps, ChartState);
@@ -86,39 +83,12 @@ export function ChartEditorScene() {
 				if (ChartState.conductor.timeInSeconds >= ev.time) {
 					if (ChartState.doneEvents.includes(ev)) return;
 					ChartState.doneEvents.push(ev);
-
-					// do stuff here
-					if (ev.id == "play-anim") {
-						if (!dummyDancer) return;
-						if (dummyDancer.getAnim(ev.value.anim) == null) {
-							console.warn("Animation not found for dancer: " + ev.value.anim);
-							return;
-						}
-
-						dummyDancer.forcedAnim = ev.value.force;
-
-						// @ts-ignore
-						const animSpeed = dummyDancer.getAnim(ev.value.anim)?.speed;
-						dummyDancer.play(ev.value.anim, {
-							speed: animSpeed * ev.value.speed,
-							loop: true,
-							pingpong: ev.value.ping_pong,
-						});
-						dummyDancer.onAnimEnd((animEnded) => {
-							if (animEnded != ev.value.anim) return;
-							dummyDancer.forcedAnim = false;
-							dummyDancer.doMove("idle");
-						});
-					}
 				}
 				else {
 					ChartState.doneEvents = utils.removeFromArr(ev, ChartState.doneEvents);
 				}
 			});
 
-			if (dummyDancer) {
-				dummyDancer.sprite = "dancer_" + ChartState.getDancerAtTime();
-			}
 			ChartState.conductor.paused = ChartState.paused;
 
 			// SCROLL STEP
@@ -191,6 +161,7 @@ export function ChartEditorScene() {
 			// })
 			// remove all selected notes
 			else if (isKeyPressed("backspace")) {
+				if (get("textbox", { recursive: true }).some((textbox) => textbox.focused)) return;
 				ChartState.actions.delete();
 			}
 			// undo
@@ -512,6 +483,8 @@ export function ChartEditorScene() {
 		onKeyPress("enter", async () => {
 			if (GameDialog.isOpen) return;
 			if (ChartState.inputDisabled) return;
+			if (get("textbox", { recursive: true }).some((textbox) => textbox.focused)) return;
+
 			ChartState.inputDisabled = true;
 			ChartState.paused = true;
 
@@ -606,10 +579,5 @@ export function ChartEditorScene() {
 
 		addTopMenuButtons(ChartState);
 		addEditorTabs(ChartState);
-		// addDialogButtons(ChartState);
-		// addLeftInfo(ChartState);
-		// addEventsPanel(ChartState);
-
-		getTreeRoot().on("dialogOpen", () => ChartState.paused = true);
 	});
 }

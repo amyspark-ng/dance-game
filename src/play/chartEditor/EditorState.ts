@@ -6,7 +6,6 @@ import { GameSave } from "../../core/gamesave";
 import { dancers, loadedSongs } from "../../core/loader";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { playMusic, playSound } from "../../core/plugins/features/sound";
-import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { transitionToScene } from "../../core/scenes";
 import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { FileManager } from "../../fileManaging";
@@ -16,7 +15,6 @@ import { Move } from "../objects/dancer";
 import { ChartNote } from "../objects/note";
 import { ChartEvent, SongContent } from "../song";
 import { NOTE_BIG_SCALE } from "./editorRenderer";
-import { EditorTab } from "./editorUI";
 
 /** Is either a note or an event */
 export type ChartStamp = ChartNote | ChartEvent;
@@ -188,7 +186,7 @@ export class StateChart {
 	/** The current time according to scroll step */
 	scrollTime = 0;
 
-	/** When you hold down a key, the cursor will change color to signify the move */
+	/** The current selected move to place a note */
 	currentMove: Move = "up";
 
 	/** All the ids for the events */
@@ -575,6 +573,16 @@ export class StateChart {
 				return dancerChangeEvents[event].value.dancer;
 			}
 		}
+	}
+
+	/** Triggers an event for the game */
+	triggerEvent(event: keyof typeof this.events, args?: any) {
+		getTreeRoot().trigger(event, args);
+	}
+
+	/** Runs when an event is triggered */
+	onEvent(event: keyof typeof this.events, action: (ev: any) => void) {
+		return getTreeRoot().on(event, action);
 	}
 
 	/** Creates a new song */

@@ -297,7 +297,7 @@ export function drawNoteCursor(ChartState: StateChart) {
 				|| trailAtStep(ChartState.hoveredStep, ChartState));
 		const eventAtStep = ChartState.isInEventGrid
 			&& ChartState.song.chart.events.some((ev) =>
-				ChartState.conductor.timeToStep(ev.time) == ChartState.hoveredStep
+				Math.round(ChartState.conductor.timeToStep(ev.time)) == ChartState.hoveredStep
 			);
 		if (noteAtStep || eventAtStep) return;
 

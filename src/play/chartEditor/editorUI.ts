@@ -1,4 +1,4 @@
-import { Vec2 } from "kaplay";
+import { GameObj, KEventController, PosComp, Vec2 } from "kaplay";
 import { onBeatHit, onNoteHit } from "../../core/events";
 import { GameSave } from "../../core/gamesave";
 import { drag } from "../../core/plugins/features/drag";
@@ -6,7 +6,8 @@ import { playSound } from "../../core/plugins/features/sound";
 import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { utils } from "../../utils";
 import { Move } from "../objects/dancer";
-import { downloadChart, StateChart } from "./EditorState";
+import { ChartEvent } from "../song";
+import { downloadChart, isStampNote, StateChart } from "./EditorState";
 
 const SIZE_OF_TOPMENU = vec2(125, 25);
 const STARTING_POS = vec2(25, 25);
@@ -289,15 +290,137 @@ export class EditorTab {
 	pos: Vec2 = vec2(center());
 	private elementsAction: EditorTabElementsAction = () => {};
 	static tabs = {
-		"Sync": new EditorTab("Sync", vec2(800, 300)),
-		"Notes": new EditorTab("Notes", vec2(180, 400)),
-		"Events": new EditorTab("All events", vec2(180, 200)),
-		// "Edit Event": new EditorTab("Edit event"),
+		"Sync": new EditorTab("Sync", vec2(800, 300), false),
+		"Notes": new EditorTab("Notes", vec2(180, 400), false),
+		"Events": new EditorTab("All events", vec2(180, 200), true),
+		"Edit Event": new EditorTab("Edit event", vec2(800, 300), true),
 	};
 
 	static HEADER_COLOR = rgb(30, 29, 36);
-
 	static BODY_COLOR = rgb(43, 42, 51);
+
+	static ui = {
+		ACCENT: BLUE,
+		BODY_OUTLINE: EditorTab.HEADER_COLOR.darken(20),
+		BODY: EditorTab.HEADER_COLOR.darken(10),
+
+		addTextbox: (editorTabObj: ReturnType<typeof EditorTab.addEditorTab>, defaultValue: string) => {
+			const maxWidth = formatText({ text: "Hello world!!", size: 20 }).width + 5;
+			const textbox = editorTabObj.add([
+				rect(maxWidth, 30, { radius: 2 }),
+				color(EditorTab.ui.BODY),
+				outline(2, EditorTab.ui.BODY_OUTLINE),
+				area(),
+				"hover",
+				"textbox",
+				{
+					focused: false,
+					value: "",
+				},
+			]);
+
+			let onCharInputEV: KEventController = null;
+			let onBackspace: KEventController = null;
+
+			textbox.onUpdate(() => {
+				if (textbox.value.length == 0) {
+					textbox.value = defaultValue;
+				}
+				if (textbox.focused) textbox.outline.color = EditorTab.ui.ACCENT;
+				else textbox.outline.color = EditorTab.ui.BODY_OUTLINE;
+			});
+
+			textbox.onMousePress(() => {
+				if (textbox.isHovering()) {
+					textbox.focused = true;
+					onCharInputEV = textbox.onCharInput((ch) => {
+						textbox.value += ch;
+					});
+
+					onBackspace = textbox.onKeyPressRepeat("backspace", () => {
+						textbox.value = textbox.value.slice(0, -1);
+					});
+
+					const onEnter = textbox.onKeyPress("enter", () => {
+						textbox.focused = false;
+						onEnter.cancel();
+					});
+				}
+				else {
+					textbox.focused = false;
+					onCharInputEV?.cancel();
+					onBackspace?.cancel();
+				}
+			});
+
+			textbox.onDraw(() => {
+				// cursor
+				if (textbox.focused) {
+					drawRect({
+						width: 1,
+						height: 18,
+						color: WHITE,
+						opacity: Math.round(time()) % 2 == 0 ? 1 : 0,
+						pos: vec2(formatText({ text: textbox.value, size: 20 }).width + 7, 7),
+					});
+				}
+
+				drawText({
+					text: textbox.value,
+					align: "left",
+					size: 20,
+					pos: vec2(5, 5),
+				});
+			});
+
+			return textbox;
+		},
+
+		addCheckbox: (editorTabObj: ReturnType<typeof EditorTab.addEditorTab>, defaultValue: boolean) => {
+			const checkbox = editorTabObj.add([
+				rect(28, 28, { radius: 3 }),
+				area(),
+				pos(),
+				color(EditorTab.ui.BODY),
+				outline(2, EditorTab.ui.BODY_OUTLINE),
+				"hover",
+				{
+					focused: false,
+					value: defaultValue,
+				},
+			]);
+
+			checkbox.onMousePress(() => {
+				if (checkbox.isHovering()) {
+					checkbox.focused = true;
+					checkbox.value = !checkbox.value;
+				}
+				else {
+					checkbox.focused = false;
+				}
+			});
+
+			checkbox.onUpdate(() => {
+				if (checkbox.focused) checkbox.outline.color = EditorTab.ui.ACCENT;
+				else checkbox.outline.color = EditorTab.ui.BODY_OUTLINE;
+			});
+
+			checkbox.onDraw(() => {
+				if (checkbox.value == true) {
+					drawRect({
+						anchor: "center",
+						pos: vec2(checkbox.width / 2, checkbox.height / 2),
+						width: checkbox.width,
+						height: checkbox.height,
+						radius: 3,
+						scale: vec2(0.65),
+					});
+				}
+			});
+
+			return checkbox;
+		},
+	};
 
 	/** Find a tab game object by its instance */
 	static findTabByInstance(instance: EditorTab) {
@@ -365,9 +488,10 @@ export class EditorTab {
 		return tabObj;
 	}
 
-	constructor(title: string, pos: Vec2 = vec2()) {
+	constructor(title: string, pos: Vec2 = vec2(), visible: boolean = true) {
 		this.title = title;
 		this.pos = pos;
+		this.visible = visible;
 	}
 }
 
@@ -388,26 +512,25 @@ export function addEditorTabs(ChartState: StateChart) {
 			extraCode(minibuttonObj) {
 				const posOfSquare = vec2(minibuttonObj.width - 5, 12.5);
 				minibuttonObj.onDraw(() => {
+					drawRect({
+						width: 20,
+						height: 20,
+						fill: false,
+						pos: posOfSquare,
+						anchor: "right",
+						outline: {
+							color: BLACK,
+							width: 2,
+						},
+					});
+
 					if (tab.visible) {
 						drawRect({
-							width: 20,
-							height: 20,
+							width: 16,
+							height: 16,
 							color: BLACK,
-							pos: posOfSquare,
+							pos: vec2(posOfSquare.x - 2, posOfSquare.y),
 							anchor: "right",
-						});
-					}
-					else {
-						drawRect({
-							width: 20,
-							height: 20,
-							fill: false,
-							pos: posOfSquare,
-							anchor: "right",
-							outline: {
-								color: BLACK,
-								width: 2,
-							},
 						});
 					}
 				});
@@ -573,6 +696,33 @@ export function addEditorTabs(ChartState: StateChart) {
 		const dummyDancer = editorTabObj.add(makeDummyDancer());
 		dummyDancer.pos = vec2(0, editorTabObj.height - dummyDancer.height / 2 - 30);
 
+		dummyDancer.onUpdate(() => {
+			dummyDancer.sprite = "dancer_" + ChartState.getDancerAtTime();
+		});
+
+		const playAnimEV = ChartState.onEvent("play-anim", (ev) => {
+			if (!dummyDancer) return;
+			if (dummyDancer.getAnim(ev.value.anim) == null) {
+				console.warn("Animation not found for dancer: " + ev.value.anim);
+				return;
+			}
+
+			dummyDancer.forcedAnim = ev.value.force;
+
+			// @ts-ignore
+			const animSpeed = dummyDancer.getAnim(ev.value.anim)?.speed;
+			dummyDancer.play(ev.value.anim, {
+				speed: animSpeed * ev.value.speed,
+				loop: true,
+				pingpong: ev.value.ping_pong,
+			});
+			dummyDancer.onAnimEnd((animEnded) => {
+				if (animEnded != ev.value.anim) return;
+				dummyDancer.forcedAnim = false;
+				dummyDancer.doMove("idle");
+			});
+		});
+
 		for (let i = 0; i < ChartState.conductor.stepsPerBeat; i++) {
 			addCounterObj(i);
 		}
@@ -659,8 +809,78 @@ export function addEditorTabs(ChartState: StateChart) {
 		});
 
 		editorTabObj.onDestroy(() => {
+			playAnimEV.cancel();
 			onBeatHitEv.cancel();
 			onNoteHitEv.cancel();
+		});
+	});
+
+	EditorTab.tabs["Edit Event"].addElements((editorTabObj) => {
+		let currentEvent: ChartEvent = null;
+
+		function positionObject(obj: GameObj<PosComp | any>, index: number) {
+			const initialPos = vec2(-editorTabObj.width / 2, -editorTabObj.height / 2);
+			obj.pos = vec2(initialPos.x + 15, initialPos.y + 15 + index * 30);
+		}
+
+		function objAfterwork(obj: GameObj<PosComp | any>, event: ChartEvent, evKey: string, index: number) {
+			obj.use("eventobj");
+			obj.value = event.value[evKey];
+			obj.onUpdate(() => {
+				positionObject(obj, index);
+				event.value[evKey] = obj.value;
+			});
+
+			obj.onDraw(() => {
+				drawText({
+					text: utils.unIdText(evKey),
+					size: 20,
+					pos: vec2(obj.width + 10, 10),
+				});
+			});
+		}
+
+		function refreshEventObjs(event: ChartEvent) {
+			editorTabObj.get("eventobj").forEach((obj) => obj.destroy());
+			if (!event) return;
+
+			Object.keys(event.value).forEach((evKey: string, index: number) => {
+				const typeOfValue = typeof event.value[evKey];
+				const defaultValue = ChartState.events[event.id][evKey];
+
+				if (typeOfValue == "string") {
+					const textbox = EditorTab.ui.addTextbox(editorTabObj, defaultValue);
+					objAfterwork(textbox, event, evKey, index);
+				}
+				else if (typeOfValue == "boolean") {
+					const checkbox = EditorTab.ui.addCheckbox(editorTabObj, defaultValue);
+					objAfterwork(checkbox, event, evKey, index);
+				}
+			});
+		}
+
+		editorTabObj.onUpdate(() => {
+			const oldEvent = currentEvent;
+			currentEvent = ChartState.selectedStamps.find((stamp) => !isStampNote(stamp)) as ChartEvent;
+			const newEvent = currentEvent;
+
+			if (oldEvent != newEvent) {
+				refreshEventObjs(currentEvent);
+			}
+
+			editorTabObj.width = 300;
+			if (currentEvent) {
+				editorTabObj.height = (Object.keys(currentEvent.value).length + 1) * 30;
+			}
+		});
+
+		editorTabObj.onDraw(() => {
+			if (!currentEvent) {
+				drawText({
+					text: "No valid event",
+					size: 25,
+				});
+			}
 		});
 	});
 }
