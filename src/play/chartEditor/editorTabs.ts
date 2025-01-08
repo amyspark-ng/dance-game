@@ -1,15 +1,10 @@
-import { GameObj, KEventController, PosComp, Vec2 } from "kaplay";
-import { onBeatHit, onNoteHit } from "../../core/events";
-import { GameSave } from "../../core/gamesave";
+import { KEventController, Vec2 } from "kaplay";
 import { drag } from "../../core/plugins/features/drag";
 import { playSound } from "../../core/plugins/features/sound";
-import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { utils } from "../../utils";
-import { Move } from "../objects/dancer";
-import { ChartEvent } from "../song";
-import { downloadChart, isStampNote, StateChart } from "./EditorState";
+import { defineTabs } from "./defineEditorTabs";
+import { StateChart } from "./EditorState";
 import { TopMenuButton, TopMenuMinibutton } from "./editorTopmenu";
-import { defineTabs } from "./tabsForEditor";
 
 /** The type for the {@link EditorTab.addElements `addElements()`} function in {@link EditorTab} */
 type EditorTabElementsAction = (editorTabObj: ReturnType<typeof EditorTab.addEditorTab>) => void;
@@ -30,10 +25,11 @@ export class EditorTab {
 
 	/** Is a static object that holds all of the tabs in the view {@link TopMenuButton `TopMenuButton`} */
 	static tabs = {
+		"SongInfo": new EditorTab("Song info", vec2(800, 300), true),
 		"Sync": new EditorTab("Sync", vec2(800, 300), false),
 		"Notes": new EditorTab("Notes", vec2(180, 400), false),
-		"Events": new EditorTab("All events", vec2(180, 200), true),
-		"EditEvent": new EditorTab("Edit event", vec2(800, 300), true),
+		"Events": new EditorTab("All events", vec2(180, 200), false),
+		"EditEvent": new EditorTab("Edit event", vec2(800, 300), false),
 	};
 
 	static HEADER_COLOR = rgb(30, 29, 36);
@@ -56,6 +52,7 @@ export class EditorTab {
 			const maxWidth = formatText({ text: "Hello world!!", size: 20 }).width + 5;
 			const textbox = editorTabObj.add([
 				rect(maxWidth, 30, { radius: 2 }),
+				pos(),
 				color(EditorTab.ui.BODY),
 				outline(2, EditorTab.ui.BODY_OUTLINE),
 				area(),
@@ -208,6 +205,7 @@ export class EditorTab {
 
 			const obj = editorTabObj.add([
 				rect(0, 0),
+				pos(),
 				"textbox",
 				{
 					focused: false,
@@ -323,6 +321,51 @@ export class EditorTab {
 
 			return obj;
 		},
+
+		addButton: (editorTabObj: ReturnType<typeof EditorTab.addEditorTab>, text: string, action: () => void) => {
+			const button = editorTabObj.add([
+				rect(30, 30, { radius: 2 }),
+				pos(),
+				area(),
+				color(EditorTab.BODY_COLOR.lighten(50)),
+				outline(2, EditorTab.ui.BODY_OUTLINE),
+				"hover",
+				{
+					value: text,
+				},
+			]);
+
+			const regularColor = EditorTab.ui.BODY.lighten(30);
+			const brighterColor = EditorTab.ui.BODY.lighten(50);
+
+			button.width = formatText({
+				text: text + "AA",
+				size: 20,
+			}).width;
+
+			const drawEv = onDraw(() => {
+				drawText({
+					pos: vec2(button.screenPos().add(button.width / 2, button.height / 2)),
+					text: button.value,
+					size: 20,
+					anchor: "center",
+					align: "left",
+				});
+			});
+
+			button.onDestroy(() => drawEv.cancel());
+
+			button.onUpdate(() => {
+				if (isMouseReleased("left") && button.isHovering()) {
+					action();
+				}
+
+				if (isMouseDown("left") && button.isHovering()) button.color = brighterColor;
+				else button.color = regularColor;
+			});
+
+			return button;
+		},
 	};
 
 	/** Find a tab game object by its instance */
@@ -336,7 +379,7 @@ export class EditorTab {
 		this.elementsAction = action;
 	}
 
-	static addEditorTab(tab: EditorTab, ChartState: StateChart) {
+	static addEditorTab(tab: EditorTab) {
 		const tabObj = add([
 			rect(100, 100, { radius: [0, 0, 10, 10] }),
 			pos(),
@@ -352,12 +395,16 @@ export class EditorTab {
 			},
 		]);
 
+		tabObj.pos = tab.pos;
+
 		tabObj.onUpdate(() => {
 			const topLeft = vec2(tabObj.pos.x - tabObj.width / 2, tabObj.pos.y - tabObj.height / 2 - 30);
-			const isHovered = new Rect(topLeft, tabObj.width, 30).contains(mousePos())
-				|| tabObj.dragging;
-			tabObj.isHovering = isHovered;
-			if (isMousePressed("left") && isHovered && !tabObj.dragging) tabObj.pick();
+
+			const canDrag = new Rect(topLeft, tabObj.width, 30).contains(mousePos());
+			const isHovering = new Rect(topLeft, tabObj.width, tabObj.height).contains(mousePos()) || tabObj.dragging;
+
+			tabObj.isHovering = isHovering;
+			if (isMousePressed("left") && canDrag && !tabObj.dragging) tabObj.pick();
 			else if (isMouseReleased("left") && tabObj.dragging) tabObj.drop();
 
 			if (tabObj.dragging) tab.pos = tabObj.pos;
@@ -365,8 +412,6 @@ export class EditorTab {
 			tabObj.scale = lerp(tabObj.scale, vec2(1), 0.45);
 			tabObj.opacity = lerp(tabObj.opacity, 1, 0.45);
 		});
-
-		tabObj.pos = tab.pos;
 
 		tabObj.onDraw(() => {
 			drawRect({
@@ -384,6 +429,22 @@ export class EditorTab {
 				anchor: "botleft",
 				pos: vec2(-tabObj.width / 2 + 10, -tabObj.height / 2 - 2.5),
 			});
+		});
+
+		const xButton = tabObj.add([
+			text("x", { size: 20 }),
+			pos(),
+			area(),
+			anchor("center"),
+			"hover",
+		]);
+
+		xButton.onUpdate(() => {
+			xButton.pos = vec2(tabObj.width / 2 - xButton.width, -tabObj.height / 2 - xButton.height / 1.5);
+		});
+
+		xButton.onClick(() => {
+			tab.visible = false;
 		});
 
 		tab.elementsAction(tabObj);
@@ -450,7 +511,7 @@ export function addEditorTabs(ChartState: StateChart) {
 		Object.values(EditorTab.tabs).forEach((tabInstance) => {
 			const tabObjWithTab = EditorTab.findTabByInstance(tabInstance);
 
-			if (tabInstance.visible == true && !tabObjWithTab) EditorTab.addEditorTab(tabInstance, ChartState);
+			if (tabInstance.visible == true && !tabObjWithTab) EditorTab.addEditorTab(tabInstance);
 			else if (tabInstance.visible == false && tabObjWithTab) tabObjWithTab.destroy();
 		});
 	});

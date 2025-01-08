@@ -55,7 +55,7 @@ export class Conductor {
 	/** Is the current time in the song, the same as this.audioPlay.time() i think */
 	timeInSeconds: number = 0;
 
-	/** Beats per measure */
+	/** The time signature, array of 2 numbers */
 	timeSignature: [number, number] = [4, 4];
 
 	/** Interval between steps */
@@ -133,12 +133,16 @@ export class Conductor {
 		return Math.floor(this.timeToStep(this.audioPlay.duration()));
 	}
 
+	/** Changes the time signature */
+	changeTimeSignature(newTm: [number, number]) {
+		this.timeSignature = newTm;
+		this.stepsPerBeat = newTm[0];
+		this.beatsPerMeasure = newTm[1];
+	}
+
 	/** Update function that should run onUpdate so the conductor gets updated */
 	private update() {
 		if (this.timeInSeconds >= 0) this.audioPlay.paused = this.paused;
-
-		this.timeSignature[0] = this.stepsPerBeat;
-		this.timeSignature[1] = this.beatsPerMeasure;
 
 		if (this.timeInSeconds < 0) {
 			if (this.paused) return;
@@ -182,14 +186,11 @@ export class Conductor {
 	}
 
 	constructor(opts: conductorOpts) {
-		this.BPM = opts.BPM;
-		this.audioPlay = opts.audioPlay;
-		this.timeSignature = opts.timeSignature;
-
 		opts.offset = opts.offset ?? 0;
 
-		this.stepsPerBeat = this.timeSignature[0];
-		this.beatsPerMeasure = this.timeSignature[1];
+		this.BPM = opts.BPM;
+		this.audioPlay = opts.audioPlay;
+		this.changeTimeSignature(opts.timeSignature);
 		this.updateIntervals();
 
 		this.currentBeat = 0;

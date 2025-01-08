@@ -2,6 +2,7 @@ import { GameObj, PosComp } from "kaplay";
 import { onBeatHit, onNoteHit } from "../../core/events";
 import { GameSave } from "../../core/gamesave";
 import { juice } from "../../core/plugins/graphics/juiceComponent";
+import { FileManager } from "../../fileManaging";
 import { utils } from "../../utils";
 import { Move } from "../objects/dancer";
 import { ChartEvent } from "../song";
@@ -343,6 +344,7 @@ export function defineTabs(ChartState: StateChart) {
 			const newEvent = currentEvent;
 
 			if (oldEvent != newEvent) {
+				console.log(newEvent);
 				refreshEventObjs(currentEvent);
 			}
 
@@ -401,6 +403,109 @@ export function defineTabs(ChartState: StateChart) {
 
 		editorTabObj.onDestroy(() => {
 			pointer.cancel();
+		});
+	});
+
+	EditorTab.tabs.SongInfo.addElements((editorTabObj) => {
+		type songField = { name: string; type: string; direction: string; };
+
+		const fields: songField[] = [
+			{ name: "Song name", type: "string", direction: "name" },
+			{ name: "Artist name", type: "string", direction: "artist" },
+			{ name: "Charter name", type: "string", direction: "charter" },
+			{ name: "BPM", type: "number", direction: "initial_bpm" },
+			{ name: "Scroll speed", type: "number", direction: "initial_scrollspeed" },
+			{ name: "Steps per beat", type: "number", direction: "time_signature[0]" },
+			{ name: "Beats per measure", type: "number", direction: "time_signature[1]" },
+			{ name: "Cover path", type: "function", direction: "cover_file" },
+			{ name: "Audio path", type: "function", direction: "audio_file" },
+		];
+		editorTabObj.width = 600;
+		editorTabObj.height = 40 * fields.length + 20;
+
+		fields.forEach((field, index) => {
+			const title = editorTabObj.add([
+				text(field.name + ": ", { size: 30, align: "right" }),
+				pos(),
+				anchor("topright"),
+			]);
+
+			let object = null as any;
+
+			let initialValue = ChartState.song.manifest[field.direction];
+			if (!initialValue) {
+				// this means it's the time signature one
+				const direction = field.direction.split("[")[0];
+				const index = parseInt(field.direction.split("[")[1].split("]")[0]);
+				initialValue = ChartState.song.manifest[direction][index];
+			}
+
+			if (field.type == "string") {
+				object = EditorTab.ui.addTextbox(editorTabObj, initialValue);
+			}
+			else if (field.type == "number") {
+				const increase = field.direction.includes("scrollspeed") ? 0.1 : 1;
+				object = EditorTab.ui.addScrollable(editorTabObj, initialValue, null, increase);
+			}
+			else if (field.type == "function") {
+				object = EditorTab.ui.addButton(editorTabObj, initialValue, async () => {
+					const loading = FileManager.loadingScreen();
+					let file: File = null;
+					if (field.direction == "cover_file") file = await FileManager.receiveFile("cover");
+					else if (field.direction == "audio_file") file = await FileManager.receiveFile("audio");
+
+					if (file) {
+						// cover
+						if (field.direction == "cover_file") {
+							const base64 = FileManager.ImageToBase64(file);
+							await loadSprite(ChartState.song.manifest.uuid_DONT_CHANGE + "-cover", base64);
+						}
+						// audio
+						else if (field.direction == "audio_file") {
+							await loadSound(
+								ChartState.song.manifest.uuid_DONT_CHANGE + "-audio",
+								await file.arrayBuffer(),
+							);
+							ChartState.updateAudio();
+						}
+
+						object.value = file.name;
+					}
+
+					loading.cancel();
+				});
+			}
+			else return;
+
+			title.pos.x = 10;
+			title.pos.y = 10 + (-editorTabObj.height / 2) + 40 * index;
+
+			object.pos.y = title.pos.y;
+			object.pos.x = 10;
+
+			title.onUpdate(() => {
+				if (field.direction.includes("[")) {
+					const direction = field.direction.split("[")[0];
+					const index = parseInt(field.direction.split("[")[1].split("]")[0]);
+					const value = ChartState.song.manifest[direction][index];
+
+					ChartState.song.manifest[direction][index] = object.value;
+				}
+				else {
+					ChartState.song.manifest[field.direction] = object.value;
+				}
+			});
+		});
+
+		editorTabObj.onDraw(() => {
+			if (!getSprite(ChartState.song.manifest.uuid_DONT_CHANGE + "-cover")) return;
+			drawSprite({
+				sprite: ChartState.song.manifest.uuid_DONT_CHANGE + "-cover",
+				width: 100,
+				height: 100,
+				anchor: "center",
+				pos: vec2(200, 0),
+			});
 		});
 	});
 }

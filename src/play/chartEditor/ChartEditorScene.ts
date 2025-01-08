@@ -323,7 +323,10 @@ export function ChartEditorScene() {
 			// if it's not on the grid at all simply reset selected notes
 			if (!ChartState.isCursorInGrid) {
 				// if it's not hovering anything clickable, deselect
-				if (!get("hover", { recursive: true }).some((obj) => obj.isHovering())) {
+				if (
+					!get("hover", { recursive: true }).some((obj) => obj.isHovering())
+					&& !get("editorTab").some((obj) => obj.isHovering)
+				) {
 					ChartState.actions.deselect();
 				}
 			}

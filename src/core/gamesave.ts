@@ -26,7 +26,7 @@ export class GameSaveClass {
 		right: { kbKey: "right", move: "right" } as gameKey,
 	};
 
-	editorColor = { r: 0, g: 0, b: 0 };
+	editorHue = 0;
 
 	noteskin: string = "A";
 
