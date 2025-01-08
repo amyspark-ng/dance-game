@@ -1,6 +1,7 @@
 // The actual scene for the chart editor
 import { GameObj, KEventController } from "kaplay";
 import { onBeatHit, onNoteHit, onStepHit, triggerEvent } from "../../core/events";
+import { GameSave } from "../../core/gamesave";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { playSound } from "../../core/plugins/features/sound";
 import { transitionToScene } from "../../core/scenes";
@@ -41,6 +42,8 @@ export function ChartEditorScene() {
 	scene("charteditor", (params: paramsChartEditor) => {
 		const ChartState = new StateChart(params);
 
+		// ChartState.bgColor = rgb(67, 21, 122);
+
 		onDraw(() => {
 			drawRect({
 				width: width(),
@@ -64,6 +67,8 @@ export function ChartEditorScene() {
 		}
 
 		onUpdate(() => {
+			ChartState.bgColor = Color.fromHSL(GameSave.editorHue, 0.45, 0.48);
+
 			const allStamps = concatStamps(ChartState.song.chart.notes, ChartState.song.chart.events);
 			if (allStamps.length > 0) {
 				fixStamps(allStamps, ChartState);

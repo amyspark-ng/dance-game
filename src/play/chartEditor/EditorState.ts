@@ -132,7 +132,7 @@ export function clipboardMessage(action: "copy" | "cut" | "paste", clipboard: Ch
 
 /** Class that manages every important variable in the chart editor */
 export class StateChart {
-	bgColor: Color = rgb(67, 21, 122);
+	bgColor: Color = rgb(92, 50, 172);
 	song: SongContent;
 	paused: boolean;
 	conductor: Conductor;

@@ -1,3 +1,4 @@
+import { GameSave } from "../../core/gamesave";
 import { downloadChart, StateChart } from "./EditorState";
 
 const SIZE_OF_TOPMENU = vec2(125, 25);
@@ -170,6 +171,7 @@ export function addTopMenuButtons(ChartState: StateChart) {
 				0.5,
 			);
 		});
+		GameSave.editorHue = 0.267;
 
 		topButton.onClick(() => {
 			if (topButton.children.length > 0) {
@@ -177,8 +179,6 @@ export function addTopMenuButtons(ChartState: StateChart) {
 			}
 			else {
 				button.minibuttons.forEach((minibutton, index) => {
-					const addLine = minibutton.text.includes("_");
-
 					const longest = button.minibuttons.reduce((prev, curr) => {
 						if (curr.text.length > prev.length) {
 							return curr.text;
@@ -186,8 +186,8 @@ export function addTopMenuButtons(ChartState: StateChart) {
 						return prev;
 					}, "");
 
-					const topMinibutton = TopMenuButton.makeTopMenuMinibutton();
-					topButton.add(topMinibutton);
+					let topMinibutton = TopMenuButton.makeTopMenuMinibutton();
+					topMinibutton = topButton.add(topMinibutton);
 
 					const intendedY = SIZE_OF_TOPMENU.y + index * SIZE_OF_TOPMENU.y;
 
@@ -212,6 +212,41 @@ export function addTopMenuButtons(ChartState: StateChart) {
 							0.8,
 						);
 					});
+
+					if (minibutton.text == "hueslider") {
+						topMinibutton.onDraw(() => {
+							drawSprite({
+								sprite: "editorhue",
+							});
+						});
+
+						let hue = GameSave.editorHue;
+
+						topMinibutton.onUpdate(() => {
+							GameSave.editorHue = lerp(GameSave.editorHue, hue, 0.8);
+						});
+
+						topMinibutton.onClick(() => {
+							hue = mapc(
+								mousePos().x,
+								topMinibutton.screenPos().x,
+								topMinibutton.screenPos().x + topMinibutton.width,
+								0,
+								1,
+							);
+							GameSave.save();
+						});
+
+						topMinibutton.onDraw(() => {
+							drawLine({
+								p1: vec2(map(GameSave.editorHue, 0, 1, 0, topMinibutton.width), 0),
+								p2: vec2(map(GameSave.editorHue, 0, 1, 0, topMinibutton.width), topMinibutton.height),
+								width: 2,
+								color: BLACK,
+							});
+						});
+						return;
+					}
 
 					topMinibutton.onClick(() => {
 						topButton.removeAll();

@@ -226,6 +226,7 @@ export async function loadAssets() {
 	loadSound("eventCog", "sounds/chart-editor/eventCog.wav");
 	loadSound("mouseClick", "sounds/chart-editor/mouseClick.ogg");
 	loadSprite("arrow", "sprites/arrow.png");
+	loadSprite("editorhue", "sprites/hue.png");
 
 	loadFont("robotomono", "robotomono.ttf");
 

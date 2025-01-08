@@ -29,7 +29,7 @@ export class EditorTab {
 		"Sync": new EditorTab("Sync", vec2(800, 300), false),
 		"Notes": new EditorTab("Notes", vec2(180, 400), false),
 		"Events": new EditorTab("All events", vec2(180, 200), false),
-		"EditEvent": new EditorTab("Edit event", vec2(800, 300), false),
+		"EditEvent": new EditorTab("Edit event_", vec2(800, 300), false),
 	};
 
 	static HEADER_COLOR = rgb(30, 29, 36);
@@ -505,6 +505,8 @@ export function addEditorTabs(ChartState: StateChart) {
 
 	// then this sets up the top menu button
 	TopMenuButton.buttons[2].minibuttons = arrayOfMinibuttonsAccordingToTab;
+	// adds the slider (parsing is on that file)
+	TopMenuButton.buttons[2].minibuttons.push({ text: "hueslider", action: () => true });
 
 	// and this goes each frame and checks if a tab should be or should not be
 	onUpdate(() => {
