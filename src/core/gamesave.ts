@@ -36,6 +36,7 @@ export class GameSaveClass {
 	/** Writes current instance to localStorage */
 	save() {
 		setData(GAME.SAVE_NAME, this);
+		return console.log("SAVED");
 	}
 
 	/**

@@ -101,7 +101,7 @@ export class Conductor {
 	 * @returns The time in beats (can be fractional)
 	 */
 	timeToBeat(time: number = this.timeInSeconds, lengthOfBeat: number = this.beatInterval) {
-		return time / lengthOfBeat != 0 ? time / lengthOfBeat : 0;
+		return time / lengthOfBeat;
 	}
 
 	/** Converts a given beat to a time */
@@ -163,19 +163,19 @@ export class Conductor {
 
 			this.updateIntervals();
 
-			const oldBeat = this.currentBeat;
 			const oldStep = this.currentStep;
+			const oldBeat = this.currentBeat;
 
-			this.currentBeat = Math.floor(this.timeToBeat(this.timeInSeconds));
 			this.currentStep = Math.floor(this.timeToStep(this.timeInSeconds));
+			this.currentBeat = Math.floor(this.timeToBeat(this.timeInSeconds));
 
 			if (this.paused) return;
-			if (oldBeat != this.currentBeat) {
-				triggerEvent("onBeatHit");
-			}
-
 			if (oldStep != this.currentStep) {
 				triggerEvent("onStepHit");
+			}
+
+			if (oldBeat != this.currentBeat) {
+				triggerEvent("onBeatHit");
 			}
 		}
 	}

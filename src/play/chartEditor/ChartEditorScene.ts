@@ -12,6 +12,7 @@ import { moveToColor } from "../objects/note";
 import { paramsGameScene } from "../PlayState";
 import {
 	checkerboardRenderer,
+	drawMinimap,
 	drawNoteCursor,
 	drawSelectionBox,
 	drawSelectSquares,
@@ -21,12 +22,12 @@ import {
 	stampRenderer,
 } from "./editorRenderer";
 import {
-	cameraHandler,
 	ChartStamp,
 	concatStamps,
 	findNoteAtStep,
 	fixStamps,
 	isStampNote,
+	minimapHandler,
 	moveHandler,
 	moveToDetune,
 	paramsChartEditor,
@@ -41,8 +42,6 @@ import { addTopMenuButtons } from "./editorTopmenu";
 export function ChartEditorScene() {
 	scene("charteditor", (params: paramsChartEditor) => {
 		const ChartState = new StateChart(params);
-
-		// ChartState.bgColor = rgb(67, 21, 122);
 
 		onDraw(() => {
 			drawRect({
@@ -67,7 +66,8 @@ export function ChartEditorScene() {
 		}
 
 		onUpdate(() => {
-			ChartState.bgColor = Color.fromHSL(GameSave.editorHue, 0.45, 0.48);
+			// ChartState.bgColor = Color.fromHSL(GameSave.editorHue, 0.45, 0.48);
+			ChartState.bgColor = rgb(92, 50, 172);
 
 			const allStamps = concatStamps(ChartState.song.chart.notes, ChartState.song.chart.events);
 			if (allStamps.length > 0) {
@@ -97,15 +97,16 @@ export function ChartEditorScene() {
 
 			ChartState.conductor.paused = ChartState.paused;
 
-			// SCROLL STEP
-			if (ChartState.paused == false) {
-				ChartState.scrollToStep(ChartState.conductor.currentStep);
-				ChartState.scrollTime = ChartState.conductor.timeInSeconds;
+			if (ChartState.paused) {
+				const theTime = ChartState.conductor.stepToTime(ChartState.scrollStep + ChartState.strumlineStep);
+				ChartState.conductor.timeInSeconds = theTime;
 			}
-			// not paused
 			else {
-				ChartState.scrollTime = ChartState.conductor.stepToTime(ChartState.scrollStep);
-				ChartState.conductor.timeInSeconds = ChartState.scrollTime;
+				const stepOffsetTime = ChartState.conductor.stepToTime(ChartState.strumlineStep);
+				const newStep = ChartState.conductor.timeToStep(
+					ChartState.conductor.timeInSeconds - stepOffsetTime,
+				);
+				ChartState.scrollStep = Math.round(newStep);
 			}
 
 			ChartState.lerpScrollStep = lerp(ChartState.lerpScrollStep, ChartState.scrollStep, SCROLL_LERP_VALUE);
@@ -129,7 +130,7 @@ export function ChartEditorScene() {
 			moveHandler(ChartState);
 
 			selectionBoxHandler(ChartState);
-			// cameraHandler(ChartState);
+			minimapHandler(ChartState);
 
 			if (GameDialog.isOpen) return;
 
@@ -159,12 +160,6 @@ export function ChartEditorScene() {
 			if (isKeyPressedRepeat("right") && ChartState.scrollStep > 0) {
 				if (!ChartState.paused) ChartState.paused = true;
 			}
-			// it owuld be cool if i wrote a function that parsed the actions from the keys
-			// Object.keys(ChartState.actions).forEach((action) => {
-			// 	if (isKeyPressed(action)) {
-			// 		ChartState.actions[action]();
-			// 	}
-			// })
 			// remove all selected notes
 			else if (isKeyPressed("backspace")) {
 				if (get("textbox", { recursive: true }).some((textbox) => textbox.focused)) return;
@@ -210,8 +205,7 @@ export function ChartEditorScene() {
 			checkerboardRenderer(ChartState);
 			stampRenderer(ChartState);
 			drawStrumline(ChartState);
-			// drawCameraController(ChartState);
-			// drawPlayBar(ChartState);
+			drawMinimap(ChartState);
 
 			if (GameDialog.isOpen) return;
 			drawNoteCursor(ChartState);
@@ -466,22 +460,25 @@ export function ChartEditorScene() {
 
 		// The scroll event
 		onScroll((delta) => {
-			if (GameDialog.isOpen) return;
 			let scrollPlus = 0;
 			if (!ChartState.paused) ChartState.paused = true;
 
-			if (ChartState.scrollStep == 0 && delta.y < 0) scrollPlus = 0;
-			else if (ChartState.scrollStep == ChartState.conductor.totalSteps && delta.y > 0) scrollPlus = 0;
-			else {
-				if (delta.y >= 1) scrollPlus = 1;
-				else scrollPlus = -1;
-			}
+			if (delta.y >= 1) scrollPlus = 1;
+			else scrollPlus = -1;
 
-			if (
-				ChartState.scrollStep == ChartState.conductor.totalSteps && scrollPlus > 0
-				|| ChartState.scrollStep - 1 < 0 && scrollPlus < 0
-			) return;
-			ChartState.scrollToStep(ChartState.scrollStep + scrollPlus);
+			// strumline step
+			if (isKeyDown("shift")) {
+				if (ChartState.strumlineStep >= 0 && ChartState.strumlineStep < ChartState.conductor.totalSteps) {
+					ChartState.strumlineStep += scrollPlus;
+					ChartState.strumlineStep = clamp(ChartState.strumlineStep, 0, ChartState.conductor.totalSteps);
+				}
+			}
+			else {
+				// scroll step
+				if (ChartState.scrollStep >= 0 && ChartState.scrollStep < ChartState.conductor.totalSteps) {
+					ChartState.scrollToStep(ChartState.scrollStep + scrollPlus);
+				}
+			}
 		});
 
 		// Send you to the game
@@ -499,7 +496,7 @@ export function ChartEditorScene() {
 				"game",
 				{
 					song: ChartState.song,
-					seekTime: ChartState.scrollTime,
+					seekTime: ChartState.conductor.timeInSeconds,
 					dancer: params.dancer,
 					fromChartEditor: true,
 				} as paramsGameScene,
@@ -513,11 +510,7 @@ export function ChartEditorScene() {
 			ChartState.paused = !ChartState.paused;
 
 			if (ChartState.paused == false) {
-				// all of this is kinda like a math.ceil(), fixes the weird stutter
-				const timeToStep = ChartState.conductor.timeToStep(ChartState.conductor.timeInSeconds);
-				ChartState.scrollToStep(timeToStep);
-				const newTime = ChartState.conductor.stepToTime(ChartState.scrollStep);
-				ChartState.conductor.audioPlay.seek(newTime);
+				ChartState.conductor.audioPlay.seek(ChartState.conductor.timeInSeconds);
 			}
 		});
 

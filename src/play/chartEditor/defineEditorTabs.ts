@@ -206,7 +206,7 @@ export function defineTabs(ChartState: StateChart) {
 
 		editorTabObj.onDraw(() => {
 			drawText({
-				text: "Current step: " + ChartState.scrollStep,
+				text: "Current step: " + ChartState.conductor.currentStep,
 				pos: vec2(-editorTabObj.width / 2 + 5, -editorTabObj.height / 2 + 5),
 				size: 20,
 				align: "left",
@@ -221,7 +221,7 @@ export function defineTabs(ChartState: StateChart) {
 
 			// #region playbar
 			const barWidth = map(
-				ChartState.scrollTime,
+				ChartState.conductor.timeInSeconds,
 				0,
 				ChartState.conductor.audioPlay.duration(),
 				0,
@@ -249,7 +249,7 @@ export function defineTabs(ChartState: StateChart) {
 			});
 
 			drawText({
-				text: utils.formatTime(ChartState.scrollTime, true),
+				text: utils.formatTime(ChartState.conductor.timeInSeconds, true),
 				align: "left",
 				size: 20,
 				pos: vec2(-editorTabObj.width / 2 + 5, editorTabObj.height / 2 - 30),

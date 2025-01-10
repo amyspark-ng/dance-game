@@ -6,7 +6,7 @@ import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { playSound } from "../../core/plugins/features/sound";
 import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { utils } from "../../utils";
-import { moveToColor, notesSpawner } from "../objects/note";
+import { moveToColor, NOTE_SPAWNPOINT, notesSpawner } from "../objects/note";
 import {
 	ChartStamp,
 	concatStamps,
@@ -27,53 +27,6 @@ export const SCROLL_LERP_VALUE = 0.5;
 
 /** How big will notes be when big */
 export const NOTE_BIG_SCALE = vec2(1.4);
-
-/** Draws the playbar and the text with the time */
-export function drawPlayBar(ChartState: StateChart) {
-	const bgColor = rgb(ChartState.bgColor[0], ChartState.bgColor[1], ChartState.bgColor[2]);
-
-	// why width * 2?
-	let barWidth = map(ChartState.scrollTime, 0, ChartState.conductor.audioPlay.duration(), 0, width() * 2);
-	let lerpedWidth = 0;
-	lerpedWidth = lerp(lerpedWidth, barWidth, ChartState.SCROLL_LERP_VALUE);
-
-	drawRect({
-		width: width(),
-		height: 10,
-		anchor: "botleft",
-		pos: vec2(0, height()),
-		color: bgColor.darken(50),
-	});
-
-	drawRect({
-		width: lerpedWidth,
-		height: 10,
-		anchor: "botleft",
-		pos: vec2(0, height()),
-		color: bgColor.lighten(50),
-	});
-
-	const circleRad = 8;
-	drawCircle({
-		radius: circleRad,
-		anchor: "center",
-		pos: vec2(lerpedWidth, height() - circleRad / 2),
-		color: bgColor.lighten(80),
-	});
-
-	let textToPut = utils.formatTime(ChartState.scrollTime, true);
-	if (ChartState.paused) textToPut += " (❚❚)";
-	else textToPut += " (▶)";
-	const size = 25;
-
-	drawText({
-		text: textToPut,
-		align: "right",
-		anchor: "topright",
-		size: size,
-		pos: vec2(width() - 5, height() - size * 1.5),
-	});
-}
 
 /** Draws as many steps for the song checkerboard */
 export function checkerboardRenderer(ChartState: StateChart) {
@@ -169,7 +122,7 @@ export function stampRenderer(ChartState: StateChart) {
 						shader: "replacecolor",
 						uniform: {
 							"u_targetcolor": moveToColor(stamp.move),
-							"u_alpha": ChartState.scrollTime >= stamp.time ? 1 : 0.5,
+							"u_alpha": ChartState.conductor.timeInSeconds >= stamp.time ? 1 : 0.5,
 						},
 					});
 
@@ -183,12 +136,12 @@ export function stampRenderer(ChartState: StateChart) {
 							angle: 90,
 							sprite: GameSave.noteskin + "_" + (i == stamp.length - 1 ? "tail" : "trail"),
 							pos: vec2(notePosLerped.x, notePosLerped.y + ((i + 1) * ChartState.SQUARE_SIZE.y)),
-							opacity: ChartState.scrollTime >= stamp.time ? 1 : 0.5,
+							opacity: ChartState.conductor.timeInSeconds >= stamp.time ? 1 : 0.5,
 							anchor: "center",
 							shader: "replacecolor",
 							uniform: {
 								"u_targetcolor": moveToColor(stamp.move),
-								"u_alpha": ChartState.scrollTime >= stamp.time ? 1 : 0.5,
+								"u_alpha": ChartState.conductor.timeInSeconds >= stamp.time ? 1 : 0.5,
 							},
 						});
 					}
@@ -203,7 +156,7 @@ export function stampRenderer(ChartState: StateChart) {
 				angle: ChartState.stampProps[isNote ? "notes" : "events"][index].angle,
 				sprite: isNote ? GameSave.noteskin + "_" + stamp.move : stamp.id,
 				pos: notePosLerped,
-				opacity: ChartState.scrollTime >= stamp.time ? 1 : 0.5,
+				opacity: ChartState.conductor.timeInSeconds >= stamp.time ? 1 : 0.5,
 				anchor: "center",
 			});
 		}
@@ -216,7 +169,7 @@ export function stampRenderer(ChartState: StateChart) {
 /** Draw the strumline line */
 export function drawStrumline(ChartState: StateChart) {
 	// # strumlineline
-	const strumlineYPos = ChartState.SQUARE_SIZE.y * ChartState.strumlineStepOffset;
+	const strumlineYPos = ChartState.strumlineStep * ChartState.SQUARE_SIZE.y;
 	drawRect({
 		pos: vec2(center().x, strumlineYPos),
 		anchor: "center",
@@ -225,13 +178,12 @@ export function drawStrumline(ChartState: StateChart) {
 		color: RED,
 		scale: vec2(ChartState.strumlineScale.x, 1),
 		width: (ChartState.SQUARE_SIZE.x * 3),
-		fixed: true,
 	});
 }
 
 /** Draw the cursor to highlight notes */
 export function drawNoteCursor(ChartState: StateChart) {
-	const strumlineYPos = ChartState.SQUARE_SIZE.y * ChartState.strumlineStepOffset;
+	const strumlineYPos = ChartState.SQUARE_SIZE.y * ChartState.strumlineStep;
 
 	const minLeft = center().x - ChartState.SQUARE_SIZE.x / 2;
 	const maxRight = (minLeft + ChartState.SQUARE_SIZE.x * 2) - 8;
@@ -315,100 +267,94 @@ export function drawNoteCursor(ChartState: StateChart) {
 	}
 }
 
-/** Draw the camera controller and the tiny notess */
-export function drawCameraController(ChartState: StateChart) {
-	let cameraOp = 0;
-
-	if (ChartState.cameraController.isMovingCamera) cameraOp = 0.5;
-	else if (ChartState.cameraController.canMoveCamera) cameraOp = 0.25;
-	else cameraOp = 0.1;
-
-	// draws the camera controller
+/** Draw the minimap and the tiny notes */
+export function drawMinimap(ChartState: StateChart) {
+	// draws the minimap background
 	drawRect({
 		width: ChartState.SQUARE_SIZE.x,
-		height: ChartState.SQUARE_SIZE.y,
-		anchor: "center",
-		pos: ChartState.cameraController.pos,
-		opacity: cameraOp,
+		height: height(),
+		color: BLACK.lerp(WHITE, 0.5),
+		pos: vec2(ChartState.minimap.pos.x, 0),
+		anchor: "top",
+	});
+
+	let minimapOp = 0;
+
+	/** How big a note is depending on the amount of total steps */
+	const SIZE = vec2(ChartState.SQUARE_SIZE.x / 2, height() / ChartState.conductor.totalSteps);
+
+	if (ChartState.minimap.isMoving) minimapOp = 0.5;
+	else if (ChartState.minimap.canMove) minimapOp = 0.25;
+	else minimapOp = 0.1;
+
+	const selectColor = BLUE.lighten(30);
+
+	concatStamps(ChartState.song.chart.notes, ChartState.song.chart.events).forEach((stamp) => {
+		const isNote = isStampNote(stamp);
+
+		const noteStep = ChartState.conductor.timeToStep(stamp.time);
+		let xPos = ChartState.minimap.pos.x;
+		if (isNote) xPos -= SIZE.x;
+		const yPos = map(noteStep, 0, ChartState.conductor.totalSteps, 0, height() - SIZE.y);
+
+		const isSelected = ChartState.selectedStamps.includes(stamp);
+
+		let theColor = isNote ? moveToColor(stamp.move) : BLACK.lerp(WHITE, 0.25);
+		if (isSelected) theColor = theColor.lerp(selectColor, 0.25);
+
+		const drawOpts = {
+			width: SIZE.x,
+			height: SIZE.y,
+			color: theColor,
+			anchor: "topleft",
+			pos: vec2(xPos, yPos),
+			opacity: 0.5,
+		} as DrawRectOpt;
+
+		if (isSelected) {
+			drawOpts.outline = {
+				color: selectColor,
+				width: 2,
+			};
+		}
+
+		drawRect(drawOpts);
+		if (!isNote) return;
+		if (!stamp.length) return;
+
+		drawRect({
+			width: drawOpts.width / 2,
+			height: drawOpts.height * stamp.length,
+			color: theColor,
+			anchor: "top",
+			pos: vec2(xPos + SIZE.x / 2, yPos),
+			opacity: drawOpts.opacity,
+			outline: drawOpts.outline,
+		});
+	});
+
+	// draw the strumline
+	drawRect({
+		width: ChartState.SQUARE_SIZE.x,
+		height: SIZE.y,
+		opacity: 0.5,
+		color: RED,
+		anchor: "top",
+		pos: vec2(ChartState.minimap.pos.x, ChartState.minimap.pos.y + (SIZE.y * ChartState.strumlineStep)),
+	});
+
+	// draws the minimap controller
+	drawRect({
+		width: ChartState.SQUARE_SIZE.x,
+		height: SIZE.y * 11, // 11 is the amount of steps you can see
+		anchor: "top",
+		pos: ChartState.minimap.pos,
+		opacity: minimapOp,
 		color: YELLOW,
 		outline: {
 			width: 5,
 			color: utils.blendColors(RED, YELLOW, 0.5),
 		},
-	});
-
-	// draws the notes on the side of the camera controller
-	ChartState.song.chart.notes.forEach((note) => {
-		const noteStep = ChartState.conductor.timeToStep(note.time);
-		const xPos = ChartState.cameraController.pos.x;
-		const yPos = map(noteStep, 0, ChartState.conductor.totalSteps, 0, height() - ChartState.SQUARE_SIZE.y);
-
-		const isInSelected = ChartState.selectedStamps.includes(note);
-
-		const selectColor = BLUE.lighten(50);
-		let theColor = moveToColor(note.move);
-		if (isInSelected) theColor = utils.blendColors(theColor, selectColor, 0.25);
-
-		const noteOpts = {
-			width: ChartState.SQUARE_SIZE.x / 5,
-			height: ChartState.SQUARE_SIZE.y / 20,
-			color: theColor,
-			anchor: "center",
-			pos: vec2(xPos, yPos),
-			opacity: 0.5,
-		} as DrawRectOpt;
-
-		if (isInSelected) {
-			noteOpts.outline = {
-				color: selectColor,
-				width: 2,
-			};
-		}
-
-		drawRect(noteOpts);
-
-		if (note.length) {
-			for (let i = 0; i < note.length; i++) {
-				drawRect({
-					width: noteOpts.width / 2,
-					height: ChartState.SQUARE_SIZE.y / 20,
-					color: theColor,
-					anchor: "center",
-					pos: vec2(xPos, yPos + (i + 1) * noteOpts.height),
-					opacity: 0.5,
-				});
-			}
-		}
-	});
-
-	ChartState.song.chart.events.forEach((ev) => {
-		const noteStep = ChartState.conductor.timeToStep(ev.time);
-		const xPos = ChartState.cameraController.pos.x;
-		const yPos = map(noteStep, 0, ChartState.conductor.totalSteps, 0, height() - ChartState.SQUARE_SIZE.y);
-
-		const isInSelected = ChartState.selectedStamps.includes(ev);
-
-		const selectColor = BLUE.lighten(50);
-		let theColor = WHITE;
-		if (isInSelected) theColor = utils.blendColors(theColor, selectColor, 0.25);
-
-		const noteOpts = {
-			width: 50 / 5,
-			height: 50 / 20,
-			color: theColor,
-			anchor: "center",
-			pos: vec2(xPos, yPos),
-			opacity: 0.5,
-		} as DrawRectOpt;
-
-		if (isInSelected) {
-			noteOpts.outline = {
-				color: selectColor,
-				width: 2,
-			};
-		}
-
-		drawRect(noteOpts);
 	});
 }
 

@@ -25,8 +25,8 @@ export class EditorTab {
 
 	/** Is a static object that holds all of the tabs in the view {@link TopMenuButton `TopMenuButton`} */
 	static tabs = {
-		"SongInfo": new EditorTab("Song info", vec2(800, 300), true),
-		"Sync": new EditorTab("Sync", vec2(800, 300), false),
+		"SongInfo": new EditorTab("Song info", vec2(800, 300), false),
+		"Sync": new EditorTab("Sync", vec2(800, 300), true),
 		"Notes": new EditorTab("Notes", vec2(180, 400), false),
 		"Events": new EditorTab("All events", vec2(180, 200), false),
 		"EditEvent": new EditorTab("Edit event_", vec2(800, 300), false),

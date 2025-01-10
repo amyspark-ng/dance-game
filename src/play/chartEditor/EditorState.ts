@@ -161,12 +161,12 @@ export class StateChart {
 		points: [vec2(), vec2(), vec2(), vec2()],
 	};
 
-	cameraController = {
-		/** Wheter can move the camera */
-		canMoveCamera: false,
-		/** Wheter the camera is being moved by the camera controller */
-		isMovingCamera: false,
-		/** The position of the camera controller */
+	minimap = {
+		/** Wheter can move the minimap */
+		canMove: false,
+		/** Wheter the minimap is being moved by the minimap controller */
+		isMoving: false,
+		/** The top position of the minimap controller */
 		pos: vec2(width() / 2 + 52 * 2, 25),
 	};
 
@@ -181,10 +181,7 @@ export class StateChart {
 	SQUARE_SIZE = vec2(52, 52);
 
 	/** The initial pos of the first square */
-	INITIAL_POS = vec2(center().x, this.SQUARE_SIZE.y + this.SQUARE_SIZE.y / 2);
-
-	/** The current time according to scroll step */
-	scrollTime = 0;
+	INITIAL_POS = vec2(center().x, this.SQUARE_SIZE.y - this.SQUARE_SIZE.y / 2);
 
 	/** The current selected move to place a note */
 	currentMove: Move = "up";
@@ -245,8 +242,8 @@ export class StateChart {
 	/** The step that selected note started in before it was moved */
 	stepForDetune = 0;
 
-	/** Is by how many steps the strumline is offseted (from top to below, 0 to 12) */
-	strumlineStepOffset = 1;
+	/** Determins the current time in the song */
+	strumlineStep = 0;
 
 	/** Current index of the current snapshot blah */
 	curSnapshotIndex = 0;
@@ -551,7 +548,7 @@ export class StateChart {
 	}
 
 	/** Gets the dancer at a current time in the song */
-	getDancerAtTime(time: number = this.scrollTime) {
+	getDancerAtTime(time: number = this.conductor.timeInSeconds) {
 		let dancerChangeEvents = this.song.chart.events.filter((event) => event.id == "change-dancer");
 
 		// some stuff to remove faulty names from dancer list
@@ -611,11 +608,11 @@ export class StateChart {
 
 		// Creates a deep copy of the song so it doesn't overwrite the current song
 		this.song = JSON.parse(JSON.stringify(this.params.song));
-		this.song.manifest.uuid_DONT_CHANGE = v4();
 
 		// the uuid alreaddy exists
 		if (loadedSongs.map((song) => song.manifest.uuid_DONT_CHANGE).includes(this.song.manifest.uuid_DONT_CHANGE)) {
 			this.song.manifest.name = this.song.manifest.name + " (copy)";
+			this.song.manifest.uuid_DONT_CHANGE = v4();
 			// have to reload the audio i don't know how much this would work since this loading takes time so
 			const soundBuffer = getSound(`${oldUUID}-audio`).data.buf;
 			loadSound(`${this.song.manifest.uuid_DONT_CHANGE}-audio`, soundBuffer as any);
@@ -680,7 +677,8 @@ export function selectionBoxHandler(ChartState: StateChart) {
 	if (isMousePressed("left")) {
 		const canSelect = !get("hover", { recursive: true }).some((obj) => obj.isHovering())
 			&& !ChartState.isCursorInGrid
-			&& !get("editorTab").some((obj) => obj.isHovering);
+			&& !get("editorTab").some((obj) => obj.isHovering)
+			&& !ChartState.minimap.canMove;
 
 		ChartState.selectionBox.canSelect = canSelect;
 		if (ChartState.selectionBox.canSelect) {
@@ -777,41 +775,52 @@ export function selectionBoxHandler(ChartState: StateChart) {
 	}
 }
 
-export function cameraHandler(ChartState: StateChart) {
-	if (GameDialog.isOpen) return;
-	const minLeft = ChartState.cameraController.pos.x - ChartState.SQUARE_SIZE.x / 2;
-	const maxRight = ChartState.cameraController.pos.x + ChartState.SQUARE_SIZE.x / 2;
-	if (gameCursor.pos.x >= minLeft && gameCursor.pos.x <= maxRight) ChartState.cameraController.canMoveCamera = true;
-	else if (
-		(gameCursor.pos.x < ChartState.cameraController.pos.x || gameCursor.pos.x > ChartState.cameraController.pos.x)
-		&& !ChartState.cameraController.isMovingCamera
-	) ChartState.cameraController.canMoveCamera = false;
+export function minimapHandler(ChartState: StateChart) {
+	const minLeft = ChartState.minimap.pos.x - ChartState.SQUARE_SIZE.x / 2;
+	const maxRight = ChartState.minimap.pos.x + ChartState.SQUARE_SIZE.x / 2;
 
-	if (!ChartState.cameraController.isMovingCamera) {
-		ChartState.cameraController.pos.y = mapc(
+	/** How big a note is depending on the amount of total steps */
+	const SIZE = vec2(ChartState.SQUARE_SIZE.x / 3, height() / ChartState.conductor.totalSteps);
+	const heightOfMinimap = SIZE.y * 11;
+
+	if (gameCursor.pos.x >= minLeft && gameCursor.pos.x <= maxRight) ChartState.minimap.canMove = true;
+	else if (
+		(gameCursor.pos.x < ChartState.minimap.pos.x || gameCursor.pos.x > ChartState.minimap.pos.x)
+		&& !ChartState.minimap.isMoving
+	) ChartState.minimap.canMove = false;
+
+	if (!ChartState.minimap.isMoving) {
+		ChartState.minimap.pos.y = mapc(
 			ChartState.scrollStep,
 			0,
 			ChartState.conductor.totalSteps,
-			25,
-			height() - 25,
+			0,
+			height() - heightOfMinimap,
 		);
 	}
 
-	if (ChartState.cameraController.canMoveCamera) {
+	if (ChartState.minimap.canMove) {
 		if (isMousePressed("left")) {
-			ChartState.cameraController.isMovingCamera = true;
+			ChartState.minimap.isMoving = true;
 			if (!ChartState.paused) ChartState.paused = true;
 		}
-		else if (isMouseReleased("left") && ChartState.cameraController.isMovingCamera) {
-			ChartState.cameraController.isMovingCamera = false;
+		else if (isMouseReleased("left") && ChartState.minimap.isMoving) {
+			ChartState.minimap.isMoving = false;
 		}
 
-		if (ChartState.cameraController.isMovingCamera) {
-			ChartState.cameraController.pos.y = gameCursor.pos.y;
-			ChartState.cameraController.pos.y = clamp(ChartState.cameraController.pos.y, 25, height() - 25);
-			ChartState.scrollToStep(
-				mapc(ChartState.cameraController.pos.y, 25, height() - 25, 0, ChartState.conductor.totalSteps),
+		if (ChartState.minimap.isMoving) {
+			ChartState.minimap.pos.y = gameCursor.pos.y;
+			ChartState.minimap.pos.y = clamp(ChartState.minimap.pos.y, 0, height() - heightOfMinimap);
+
+			const newStep = mapc(
+				ChartState.minimap.pos.y,
+				0,
+				height() - heightOfMinimap,
+				0,
+				ChartState.conductor.totalSteps,
 			);
+
+			ChartState.scrollToStep(newStep);
 		}
 	}
 }
@@ -824,7 +833,7 @@ export function setMouseAnimConditions(ChartState: StateChart) {
 		if (!gameCursor.canMove && ChartState.inputDisabled) gameCursor.do("load");
 		else {
 			if (!ChartState.isCursorInGrid) {
-				if (isMouseDown("left") && ChartState.cameraController.isMovingCamera) gameCursor.do("down");
+				if (isMouseDown("left") && ChartState.minimap.isMoving) gameCursor.do("down");
 				else gameCursor.do("default");
 			}
 			else {
