@@ -17,22 +17,24 @@ import {
 	drawSelectionBox,
 	drawSelectSquares,
 	drawStrumline,
-	NOTE_BIG_SCALE,
+	PROP_BIG_SCALE,
 	SCROLL_LERP_VALUE,
 	stampRenderer,
 } from "./editorRenderer";
 import {
 	ChartStamp,
 	concatStamps,
-	findNoteAtStep,
-	fixStamps,
+	findStampAtStep,
+	fixStamp,
 	isStampNote,
 	minimapHandler,
 	moveHandler,
 	moveToDetune,
 	paramsChartEditor,
+	parseActions,
 	selectionBoxHandler,
 	setMouseAnimConditions,
+	stampPropThing,
 	StateChart,
 	trailAtStep,
 } from "./EditorState";
@@ -56,7 +58,7 @@ export function ChartEditorScene() {
 
 		/** Gets the current note that is being hovered */
 		function getCurrentHoveredNote() {
-			return findNoteAtStep(ChartState.hoveredStep, ChartState);
+			return findStampAtStep(ChartState.hoveredStep, ChartState).note();
 		}
 
 		function getCurrentHoveredEvent() {
@@ -66,23 +68,35 @@ export function ChartEditorScene() {
 		}
 
 		onUpdate(() => {
+			parseActions(ChartState);
+
 			// ChartState.bgColor = Color.fromHSL(GameSave.editorHue, 0.45, 0.48);
 			ChartState.bgColor = rgb(92, 50, 172);
 
+			// STAMPS
 			const allStamps = concatStamps(ChartState.song.chart.notes, ChartState.song.chart.events);
-			if (allStamps.length > 0) {
-				fixStamps(allStamps, ChartState);
+			allStamps.forEach((stamp, index) => {
+				fixStamp(stamp, ChartState);
 
-				allStamps.forEach((stamp, index) => {
-					const isNote = isStampNote(stamp);
-					if (!ChartState.stampProps[isNote ? "notes" : "events"][index]) {
-						ChartState.stampProps[isNote ? "notes" : "events"][index] = {
-							scale: vec2(1),
-							angle: 0,
-						};
-					}
-				});
-			}
+				const isNote = isStampNote(stamp);
+				if (!ChartState.stampProps[isNote ? "notes" : "events"][index]) {
+					ChartState.stampProps[isNote ? "notes" : "events"][index] = {
+						scale: vec2(1),
+						angle: 0,
+					};
+				}
+			});
+
+			// STAMP PROP
+			ChartState.stampProps["notes"] = ChartState.stampProps["notes"].slice(
+				0,
+				ChartState.song.chart.notes.length,
+			);
+
+			ChartState.stampProps["events"] = ChartState.stampProps["events"].slice(
+				0,
+				ChartState.song.chart.events.length,
+			);
 
 			// TODO: Do stuff for properly animating dancer
 			ChartState.song.chart.events.forEach((ev) => {
@@ -97,6 +111,7 @@ export function ChartEditorScene() {
 
 			ChartState.conductor.paused = ChartState.paused;
 
+			// SCROLL STEP
 			if (ChartState.paused) {
 				const theTime = ChartState.conductor.stepToTime(ChartState.scrollStep + ChartState.strumlineStep);
 				ChartState.conductor.timeInSeconds = theTime;
@@ -116,15 +131,8 @@ export function ChartEditorScene() {
 			const mouseColor = utils.blendColors(WHITE, currentColor, 0.5);
 			gameCursor.color = lerp(gameCursor.color, mouseColor, SCROLL_LERP_VALUE);
 
-			// MANAGES some stuff for selecting
-			ChartState.cursorPos.y = Math.floor(gameCursor.pos.y / ChartState.SQUARE_SIZE.y) * ChartState.SQUARE_SIZE.y
-				+ ChartState.SQUARE_SIZE.y / 2;
-			ChartState.cursorPos.x = Math.floor(gameCursor.pos.x / ChartState.SQUARE_SIZE.x) * ChartState.SQUARE_SIZE.x
-				+ ChartState.SQUARE_SIZE.x - 8;
-			ChartState.lerpCursorPos = lerp(ChartState.lerpCursorPos, ChartState.cursorPos, SCROLL_LERP_VALUE);
-
-			ChartState.cursorGridRow = Math.floor(ChartState.cursorPos.y / ChartState.SQUARE_SIZE.y) - 0.5;
-			ChartState.hoveredStep = Math.floor(ChartState.scrollStep + ChartState.cursorGridRow);
+			// HOVERED STEP
+			ChartState.hoveredStep = ChartState.scrollStep + Math.floor(gameCursor.pos.y / ChartState.SQUARE_SIZE.y);
 
 			// Handle move change input
 			moveHandler(ChartState);
@@ -160,34 +168,6 @@ export function ChartEditorScene() {
 			if (isKeyPressedRepeat("right") && ChartState.scrollStep > 0) {
 				if (!ChartState.paused) ChartState.paused = true;
 			}
-			// remove all selected notes
-			else if (isKeyPressed("backspace")) {
-				if (get("textbox", { recursive: true }).some((textbox) => textbox.focused)) return;
-				ChartState.actions.delete();
-			}
-			// undo
-			else if (isKeyDown("control") && isKeyPressedRepeat("z")) {
-				ChartState.actions.undo();
-			}
-			// redo
-			else if (isKeyDown("control") && isKeyPressedRepeat("y")) {
-			}
-			// copy
-			else if (isKeyDown("control") && isKeyPressed("c")) {
-				ChartState.actions.copy();
-			}
-			// cut
-			else if (isKeyDown("control") && isKeyPressed("x")) {
-				ChartState.actions.cut();
-			}
-			// paste
-			else if (isKeyDown("control") && isKeyPressed("v")) {
-				ChartState.actions.paste();
-			}
-			// select all!
-			else if (isKeyDown("control") && isKeyPressed("a")) {
-				ChartState.actions.selectall();
-			}
 		});
 
 		// this is done like this so it's drawn on top of everything
@@ -206,8 +186,6 @@ export function ChartEditorScene() {
 			stampRenderer(ChartState);
 			drawStrumline(ChartState);
 			drawMinimap(ChartState);
-
-			if (GameDialog.isOpen) return;
 			drawNoteCursor(ChartState);
 			drawSelectSquares(ChartState);
 		});
@@ -263,7 +241,7 @@ export function ChartEditorScene() {
 				}
 				// there's no note in that place
 				else {
-					ChartState.actions.deselect();
+					ChartState.commands.Deselect.action();
 					hoveredNote = ChartState.placeNote(hoveredTime, ChartState.currentMove);
 					playSound("noteAdd", { detune: moveToDetune(hoveredNote.move) });
 					ChartState.takeSnapshot();
@@ -326,7 +304,7 @@ export function ChartEditorScene() {
 					!get("hover", { recursive: true }).some((obj) => obj.isHovering())
 					&& !get("editorTab").some((obj) => obj.isHovering)
 				) {
-					ChartState.actions.deselect();
+					ChartState.commands.Deselect.action();
 				}
 			}
 			else {
@@ -526,48 +504,9 @@ export function ChartEditorScene() {
 
 		// Scrolls the checkerboard
 		onStepHit(() => {
-			const stampsAtStep = concatStamps(ChartState.song.chart.notes, ChartState.song.chart.events).filter(
-				(stamp) => {
-					return Math.round(ChartState.conductor.timeToStep(stamp.time))
-						== Math.round(ChartState.conductor.timeToStep(ChartState.conductor.timeInSeconds));
-				},
-			);
-
-			stampsAtStep.forEach((stamp) => {
+			const allStamps = concatStamps(ChartState.song.chart.notes, ChartState.song.chart.events);
+			allStamps.forEach((stamp) => {
 				const isNote = isStampNote(stamp);
-				if (isNote) {
-					const indexOfNote = ChartState.song.chart.notes.indexOf(stamp);
-
-					if (stamp.length) {
-						if (ChartState.stampProps.notes[indexOfNote]) {
-							const ogScale = ChartState.stampProps.notes[indexOfNote].scale;
-							tween(
-								ogScale,
-								NOTE_BIG_SCALE,
-								0.05,
-								(p) => ChartState.stampProps.notes[indexOfNote].scale = p,
-							);
-						}
-					}
-					else {
-						tween(NOTE_BIG_SCALE, vec2(1), 0.1, (p) => ChartState.stampProps.notes[indexOfNote].scale = p);
-					}
-					playSound("noteHit", { detune: moveToDetune(stamp.move) });
-					triggerEvent("onNoteHit", stamp);
-				}
-				else {
-					const indexOfEv = ChartState.song.chart.events.indexOf(stamp);
-					tween(NOTE_BIG_SCALE, vec2(1), 0.1, (p) => ChartState.stampProps.events[indexOfEv].scale = p);
-				}
-			});
-
-			// find the ones that are long and are big so they can be un-bigged
-			ChartState.stampProps.notes.filter((prop) => prop.scale.x > 1).forEach((prop) => {
-				const note = ChartState.song.chart.notes[ChartState.stampProps.notes.indexOf(prop)];
-				const stepOfNote = ChartState.conductor.timeToStep(note.time);
-				if (ChartState.scrollStep > stepOfNote + note.length) {
-					tween(prop.scale, vec2(1), 0.1, (p) => prop.scale = p);
-				}
 			});
 		});
 

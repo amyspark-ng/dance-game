@@ -11,7 +11,7 @@ import {
 	ChartStamp,
 	concatStamps,
 	downloadChart,
-	findNoteAtStep,
+	findStampAtStep,
 	isStampNote,
 	StateChart,
 	trailAtStep,
@@ -25,8 +25,8 @@ function conditionsForDrawing(YPos: number, square_size: Vec2 = vec2(52)) {
 /** How lerped the scroll value is */
 export const SCROLL_LERP_VALUE = 0.5;
 
-/** How big will notes be when big */
-export const NOTE_BIG_SCALE = vec2(1.4);
+/** How big will a prop be when big */
+export const PROP_BIG_SCALE = vec2(1.4);
 
 /** Draws as many steps for the song checkerboard */
 export function checkerboardRenderer(ChartState: StateChart) {
@@ -96,7 +96,7 @@ export function stampRenderer(ChartState: StateChart) {
 		stampPos.y -= ChartState.SQUARE_SIZE.y * ChartState.lerpScrollStep;
 		if (!isNote) stampPos.x = ChartState.INITIAL_POS.x + ChartState.SQUARE_SIZE.x;
 
-		const notePosLerped = lerp(stampPos, stampPos, ChartState.SCROLL_LERP_VALUE);
+		const notePosLerped = lerp(stampPos, stampPos, ChartState.LERP);
 
 		if (!ChartState.stampProps[isNote ? "notes" : "events"][index]) return;
 
@@ -181,31 +181,39 @@ export function drawStrumline(ChartState: StateChart) {
 	});
 }
 
+let cursorPos = vec2();
+let lerpCursorPos = vec2();
 /** Draw the cursor to highlight notes */
 export function drawNoteCursor(ChartState: StateChart) {
 	const strumlineYPos = ChartState.SQUARE_SIZE.y * ChartState.strumlineStep;
 
 	const minLeft = center().x - ChartState.SQUARE_SIZE.x / 2;
-	const maxRight = (minLeft + ChartState.SQUARE_SIZE.x * 2) - 8;
-
-	/** It's a weird offseted version so it lines more with the actual mouse graphic */
-	const weirdX = gameCursor.pos.x + 11;
+	const maxRight = minLeft + ChartState.SQUARE_SIZE.x * 2;
 
 	// if the distance between the cursor and the square is small enough then highlight it
-	if (utils.isInRange(weirdX, minLeft, maxRight)) {
-		if (ChartState.scrollStep == 0 && gameCursor.pos.y <= strumlineYPos) {
+	if (utils.isInRange(gameCursor.pos.x, minLeft, maxRight)) {
+		// above the grid
+		if (ChartState.scrollStep == 0 && gameCursor.pos.y < ChartState.INITIAL_POS.y) {
 			ChartState.isInEventGrid = false;
 			ChartState.isInNoteGrid = false;
 		}
+		// below the grid
 		else if (ChartState.scrollStep == ChartState.conductor.totalSteps && gameCursor.pos.y >= strumlineYPos) {
 			ChartState.isInEventGrid = false;
 			ChartState.isInNoteGrid = false;
 		}
+		// actually inside the grid
 		else {
-			if (weirdX >= minLeft && weirdX <= maxRight - ChartState.SQUARE_SIZE.x) ChartState.isInNoteGrid = true;
+			// note grid
+			if (gameCursor.pos.x >= minLeft && gameCursor.pos.x < maxRight - ChartState.SQUARE_SIZE.x) {
+				ChartState.isInNoteGrid = true;
+			}
 			else ChartState.isInNoteGrid = false;
 
-			if (weirdX >= minLeft + ChartState.SQUARE_SIZE.x && weirdX <= maxRight) ChartState.isInEventGrid = true;
+			// event grid
+			if (gameCursor.pos.x >= minLeft + ChartState.SQUARE_SIZE.x && gameCursor.pos.x < maxRight) {
+				ChartState.isInEventGrid = true;
+			}
 			else ChartState.isInEventGrid = false;
 		}
 	}
@@ -217,54 +225,58 @@ export function drawNoteCursor(ChartState: StateChart) {
 	// if it's on either of them then it's in the grid
 	ChartState.isCursorInGrid = ChartState.isInNoteGrid || ChartState.isInEventGrid;
 
-	if (ChartState.isCursorInGrid) {
-		// cursor = the square you're hovering over
-		// draws the cursor
-		let theSprite = "";
-		if (ChartState.isInNoteGrid) theSprite = GameSave.noteskin + "_" + ChartState.currentMove;
-		else theSprite = ChartState.currentEvent;
+	if (!ChartState.isCursorInGrid) return;
 
-		const curColor = ChartState.isInNoteGrid ? moveToColor(ChartState.currentMove) : WHITE;
+	// cursor = the square you're hovering over
+	// draws the cursor
+	let theSprite = "";
+	if (ChartState.isInNoteGrid) theSprite = GameSave.noteskin + "_" + ChartState.currentMove;
+	else theSprite = ChartState.currentEvent;
 
-		drawRect({
-			width: ChartState.SQUARE_SIZE.x - 5,
-			height: ChartState.SQUARE_SIZE.y - 5,
-			fill: false,
-			outline: {
-				width: 5,
-				color: curColor,
-				opacity: 1,
-				cap: "round",
-				join: "round",
-			},
-			radius: 3,
-			pos: ChartState.lerpCursorPos,
-			anchor: "center",
-			fixed: true,
-		});
+	const curColor = ChartState.isInNoteGrid ? moveToColor(ChartState.currentMove) : WHITE;
 
-		// if there's already a note or trail or event in that space don't draw the sprite
-		const noteAtStep = ChartState.isInNoteGrid
-			&& (findNoteAtStep(ChartState.hoveredStep, ChartState) != undefined
-				|| trailAtStep(ChartState.hoveredStep, ChartState));
-		const eventAtStep = ChartState.isInEventGrid
-			&& ChartState.song.chart.events.some((ev) =>
-				Math.round(ChartState.conductor.timeToStep(ev.time)) == ChartState.hoveredStep
-			);
-		if (noteAtStep || eventAtStep) return;
+	cursorPos = ChartState.stepToPos(ChartState.hoveredStep - ChartState.scrollStep);
+	if (ChartState.isInEventGrid) cursorPos = vec2(cursorPos.x + ChartState.SQUARE_SIZE.x, cursorPos.y);
+	lerpCursorPos = lerp(lerpCursorPos, cursorPos, ChartState.LERP);
 
-		drawSprite({
-			sprite: theSprite,
-			width: ChartState.SQUARE_SIZE.x - 5,
-			height: ChartState.SQUARE_SIZE.y - 5,
-			color: WHITE,
-			opacity: wave(0.25, 0.75, time() * 6),
-			scale: vec2(0.9),
-			pos: ChartState.lerpCursorPos,
-			anchor: "center",
-			fixed: true,
-		});
-	}
+	drawRect({
+		width: ChartState.SQUARE_SIZE.x - 5,
+		height: ChartState.SQUARE_SIZE.y - 5,
+		fill: false,
+		outline: {
+			width: 5,
+			color: curColor,
+			opacity: 1,
+			cap: "round",
+			join: "round",
+		},
+		radius: 3,
+		pos: lerpCursorPos,
+		anchor: "center",
+		fixed: true,
+	});
+
+	// if there's already a note or trail or event in that space don't draw the sprite
+	const noteAtStep = ChartState.isInNoteGrid
+		&& (findStampAtStep(ChartState.hoveredStep, ChartState).note() != undefined
+			|| trailAtStep(ChartState.hoveredStep, ChartState));
+	const eventAtStep = ChartState.isInEventGrid
+		&& ChartState.song.chart.events.some((ev) =>
+			Math.round(ChartState.conductor.timeToStep(ev.time)) == ChartState.hoveredStep
+		);
+	if (noteAtStep || eventAtStep) return;
+
+	drawSprite({
+		sprite: theSprite,
+		width: ChartState.SQUARE_SIZE.x - 5,
+		height: ChartState.SQUARE_SIZE.y - 5,
+		color: WHITE,
+		opacity: wave(0.25, 0.75, time() * 6),
+		scale: vec2(0.9),
+		pos: lerpCursorPos,
+		anchor: "center",
+		fixed: true,
+	});
 }
 
 /** Draw the minimap and the tiny notes */

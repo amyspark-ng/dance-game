@@ -1,5 +1,5 @@
 import { GameSave } from "../../core/gamesave";
-import { downloadChart, StateChart } from "./EditorState";
+import { downloadChart, EditorAction, StateChart } from "./EditorState";
 
 const SIZE_OF_TOPMENU = vec2(125, 25);
 const STARTING_POS = vec2(25, 25);
@@ -17,103 +17,17 @@ export class TopMenuButton {
 	title: string;
 
 	/** The minibuttons in a top menu button
-	 * @example The top menu button would be file, the minibuttons array could hold something like (new, save, etc)
+	 *
+	 * The top menu button would be file, the minibuttons array could hold something like (new, save, etc)
 	 */
 	minibuttons: TopMenuMinibutton[] = [];
 
-	/** Is an static array that holds the current buttons */
-	static buttons = [
-		new TopMenuButton("File", [
-			{
-				text: "New (Ctrl + N)",
-				action: (ChartState: StateChart) => {
-					ChartState.createNewSong();
-				},
-			},
-			{
-				text: "Open (Ctrl + O)_",
-				action: (ChartState: StateChart) => {
-					debug.log("WIP");
-				},
-			},
-			{
-				text: "Save as... (Ctrl + Shift + S)_",
-				action: (ChartState: StateChart) => {
-					downloadChart(ChartState);
-				},
-			},
-			{
-				text: "Exit (Ctrl + Q)",
-				action: () => {
-					debug.log("WIP");
-				},
-			},
-		]),
-		new TopMenuButton("Edit", [
-			{
-				text: "Select all (Ctrl + A)",
-				action: (ChartState: StateChart) => {
-					ChartState.actions.selectall();
-				},
-			},
-			{
-				text: "Deselect (Ctrl + D)",
-				action: (ChartState: StateChart) => {
-					ChartState.actions.deselect();
-				},
-			},
-			{
-				text: "Invert selection (Ctrl + I)_",
-				action: (ChartState: StateChart) => {
-					ChartState.actions.invertselection();
-				},
-			},
-			{
-				text: "Delete (Backspace)",
-				action: (ChartState: StateChart) => {
-					ChartState.actions.delete();
-				},
-			},
-			{
-				text: "Copy (Ctrl + C)",
-				action: (ChartState: StateChart) => {
-					ChartState.actions.copy();
-				},
-			},
-			{
-				text: "Cut (Ctrl + X)",
-				action: (ChartState: StateChart) => {
-					ChartState.actions.cut();
-				},
-			},
-			{
-				text: "Paste (Ctrl + V)_",
-				action: (ChartState: StateChart) => {
-					ChartState.actions.paste();
-				},
-			},
-			{
-				text: "Undo (Ctrl + Z)",
-				action: (ChartState: StateChart) => {
-					ChartState.actions.undo();
-				},
-			},
-			{
-				text: "Redo (Ctrl + Y)",
-				action: (ChartState: StateChart) => {
-					ChartState.actions.redo();
-				},
-			},
-		]),
-		new TopMenuButton("View", [
-			{
-				text: "Info",
-				action: () => {
-					debug.log("hide info window");
-				},
-			},
-		]),
-	];
+	/** Is an static object that holds the current buttons */
+	static buttons = {
+		"File": new TopMenuButton("File", []),
+		"Edit": new TopMenuButton("Edit", []),
+		"View": new TopMenuButton("View", []),
+	};
 
 	static getShortcut(str: string) {
 		if (!str.includes("(")) return null;
@@ -158,7 +72,31 @@ export class TopMenuButton {
 
 /** Manages and adds all of the top menu minibuttons for the chart editor */
 export function addTopMenuButtons(ChartState: StateChart) {
-	TopMenuButton.buttons.forEach((button, index) => {
+	const allActions = ChartState.commands;
+	const fileActions = Object.keys(allActions).filter((key) => allActions[key].type == "File");
+	const editActions = Object.keys(allActions).filter((key) => allActions[key].type == "Edit");
+
+	function addToTopmenu(key: string, menuname: keyof typeof TopMenuButton.buttons) {
+		const editorAction = allActions[key] as EditorAction;
+		const hasLine = key.includes("\n");
+		const text = key.replace("\n", "") + " (" + editorAction.shortcut + ")" + (hasLine ? "_" : "");
+		TopMenuButton.buttons[menuname].minibuttons.push({
+			text,
+			action: editorAction.action,
+		});
+	}
+
+	// FILE ACTIONS
+	fileActions.forEach((key) => {
+		addToTopmenu(key, "File");
+	});
+
+	// EDIT ACTIONS
+	editActions.forEach((key) => {
+		addToTopmenu(key, "Edit");
+	});
+
+	Object.values(TopMenuButton.buttons).forEach((button, index) => {
 		const topButton = TopMenuButton.addTopMenuButton();
 		topButton.pos.x = STARTING_POS.x + index * SIZE_OF_TOPMENU.x;
 		topButton.pos.y = STARTING_POS.y;
@@ -240,7 +178,10 @@ export function addTopMenuButtons(ChartState: StateChart) {
 						topMinibutton.onDraw(() => {
 							drawLine({
 								p1: vec2(map(GameSave.editorHue, 0, 1, 0, topMinibutton.width), 0),
-								p2: vec2(map(GameSave.editorHue, 0, 1, 0, topMinibutton.width), topMinibutton.height),
+								p2: vec2(
+									map(GameSave.editorHue, 0, 1, 0, topMinibutton.width),
+									topMinibutton.height,
+								),
 								width: 2,
 								color: BLACK,
 							});

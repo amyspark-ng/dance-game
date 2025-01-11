@@ -169,7 +169,7 @@ export class Conductor {
 			this.currentStep = Math.floor(this.timeToStep(this.timeInSeconds));
 			this.currentBeat = Math.floor(this.timeToBeat(this.timeInSeconds));
 
-			if (this.paused) return;
+			// if (this.paused) return;
 			if (oldStep != this.currentStep) {
 				triggerEvent("onStepHit");
 			}

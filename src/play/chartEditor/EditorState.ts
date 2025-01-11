@@ -14,7 +14,7 @@ import { utils } from "../../utils";
 import { Move } from "../objects/dancer";
 import { ChartNote } from "../objects/note";
 import { ChartEvent, SongContent } from "../song";
-import { NOTE_BIG_SCALE } from "./editorRenderer";
+import { PROP_BIG_SCALE } from "./editorRenderer";
 
 /** Is either a note or an event */
 export type ChartStamp = ChartNote | ChartEvent;
@@ -22,6 +22,12 @@ export type ChartStamp = ChartNote | ChartEvent;
 export function isStampNote(stamp: ChartStamp) {
 	return "move" in stamp;
 }
+
+export type EditorAction = {
+	shortcut: string;
+	type: "File" | "Edit";
+	action: (ChartState?: StateChart) => void;
+};
 
 /** Class that manages the snapshots of the chart */
 export class ChartSnapshot {
@@ -44,47 +50,57 @@ export function concatStamps(notes: ChartNote[], events: ChartEvent[]): ChartSta
 	return [...notes, ...events];
 }
 
-export function fixStamps(stamps: ChartStamp[], ChartState: StateChart) {
-	stamps.forEach((stamp) => {
-		const isNote = isStampNote(stamp);
-		const songDuration = ChartState.conductor.audioPlay.duration();
-		// clamps from 0 to time
-		stamp.time = clamp(stamp.time, 0, songDuration);
-
-		function snapToClosestTime(t: number) {
-			const stampStep = ChartState.conductor.timeToStep(t);
-			const closestStep = Math.round(stampStep);
-			return parseFloat(ChartState.conductor.stepToTime(closestStep).toFixed(2));
-		}
-
-		// clamps to closest step
-		stamp.time = snapToClosestTime(stamp.time);
-
-		if (isNote) {
-			stamp.length = Math.round(stamp.length);
-			if (isNaN(stamp.length)) stamp.length = undefined;
-		}
-	});
-}
-
-/** Gets the closest note at a certain step (accounts for trails of note [length])
+/** Gets the closest stamp at a certain step
+ *
+ * If it's note it will account for trails of note [length]
  * @param step The step to find the note at
  */
-export function findNoteAtStep(step: number, ChartState: StateChart): ChartNote {
-	const note = ChartState.song.chart.notes.find((note) =>
-		Math.round(ChartState.conductor.timeToStep(note.time)) == step
-	);
-	if (note) return note;
-	else {
-		const longNotes = ChartState.song.chart.notes.filter((note) => note.length != undefined);
-		const noteWithTrailAtStep = longNotes.find((note) => {
-			const noteStep = Math.round(ChartState.conductor.timeToStep(note.time));
-			if (utils.isInRange(step, noteStep, noteStep + note.length)) {
-				return note;
+export function findStampAtStep(step: number, ChartState: StateChart) {
+	return {
+		note() {
+			const note = ChartState.song.chart.notes.find((note) =>
+				Math.round(ChartState.conductor.timeToStep(note.time)) == step
+			);
+			if (note) return note;
+			else {
+				const longNotes = ChartState.song.chart.notes.filter((note) => note.length != undefined);
+				const noteWithTrailAtStep = longNotes.find((note) => {
+					const noteStep = Math.round(ChartState.conductor.timeToStep(note.time));
+					if (utils.isInRange(step, noteStep, noteStep + note.length)) {
+						return note;
+					}
+					else return undefined;
+				});
+				return noteWithTrailAtStep;
 			}
-			else return undefined;
-		});
-		return noteWithTrailAtStep;
+		},
+		event() {
+			const event = ChartState.song.chart.events.find((event) => {
+				Math.round(ChartState.conductor.timeToStep(event.time)) == step;
+			});
+			return event;
+		},
+	};
+}
+
+export function fixStamp(stamp: ChartStamp, ChartState: StateChart) {
+	const isNote = isStampNote(stamp);
+	const songDuration = ChartState.conductor.audioPlay.duration();
+	// clamps from 0 to time
+	stamp.time = clamp(stamp.time, 0, songDuration);
+
+	function snapToClosestTime(t: number) {
+		const stampStep = ChartState.conductor.timeToStep(t);
+		const closestStep = Math.round(stampStep);
+		return parseFloat(ChartState.conductor.stepToTime(closestStep).toFixed(2));
+	}
+
+	// clamps to closest step
+	stamp.time = snapToClosestTime(stamp.time);
+
+	if (isNote) {
+		stamp.length = Math.round(stamp.length);
+		if (isNaN(stamp.length)) stamp.length = undefined;
 	}
 }
 
@@ -92,7 +108,7 @@ export function findNoteAtStep(step: number, ChartState: StateChart): ChartNote 
  * @param step The step to find the trail at
  */
 export function trailAtStep(step: number, ChartState: StateChart): boolean {
-	const note = findNoteAtStep(step, ChartState);
+	const note = findStampAtStep(step, ChartState).note();
 	if (note) {
 		const noteStep = Math.round(ChartState.conductor.timeToStep(note.time));
 		if (note.length) {
@@ -172,10 +188,8 @@ export class StateChart {
 
 	doneEvents: ChartEvent[] = [];
 
-	// SOME STUPID VARS
-
-	/** How lerped the scroll value is */
-	SCROLL_LERP_VALUE = 0.5;
+	/** How much lerp to generally use */
+	LERP = 0.5;
 
 	/** Width and height of every square */
 	SQUARE_SIZE = vec2(52, 52);
@@ -196,15 +210,6 @@ export class StateChart {
 
 	/** The current selected event */
 	currentEvent: keyof typeof this.events = "change-scroll";
-
-	/** The pos of the cursor (is the pos of the step you're currently hovering) */
-	cursorPos = vec2(1);
-
-	/** is the cursor pos but lerped */
-	lerpCursorPos = vec2();
-
-	/** What row the cursor is in (ranges from -0.5 to 9.5) */
-	cursorGridRow = 0;
 
 	/** The step that is currently being hovered */
 	hoveredStep = 0;
@@ -242,179 +247,230 @@ export class StateChart {
 	/** The step that selected note started in before it was moved */
 	stepForDetune = 0;
 
-	/** Determins the current time in the song */
+	/** Determines the current time in the song */
 	strumlineStep = 0;
 
 	/** Current index of the current snapshot blah */
 	curSnapshotIndex = 0;
 
-	/** Is an object that holds all the possible actions in the chart editor */
-	actions = {
-		"newchart": () => {
-			this.createNewSong();
+	/** Is an object that holds all the possible commands in the chart editor */
+	commands = {
+		"New": {
+			shortcut: "Ctrl + N",
+			type: "File",
+			action: () => {
+				this.createNewSong();
+			},
 		},
-		"openchart": async () => {
-			// const loading = FileManager.loadingScreen();
-			// const file = await FileManager.receiveFile("mod");
-			// if (file) {
-			// 	const songFolder = await FileManager.getSongFolderContent(file);
-			// 	const song = await FileManager.loadSongAssets(songFolder);
-			// 	this.song = song;
-			// 	loading.cancel();
-			// }
-			// else {
-			// 	loading.cancel();
-			// }
-			debug.log("wip");
-		},
-		"savechartas": () => {
-			downloadChart(this);
-		},
-		"exit": () => {
-			transitionToScene(fadeOut, "menu", { index: 0 });
-		},
-		"selectall": () => {
-			this.selectedStamps = concatStamps(this.song.chart.notes, this.song.chart.events);
-		},
-		"deselect": () => {
-			this.resetSelectedStamps();
-		},
-		"delete": () => {
-			if (this.selectedStamps.length == 0) return;
-			this.takeSnapshot();
 
-			this.selectedStamps.forEach((stamp) => {
-				if (isStampNote(stamp)) this.deleteNote(stamp);
-				else this.deleteEvent(stamp);
-			});
-
-			playSound("noteRemove", { detune: rand(-50, 50) });
-			// there was an event in there
-			if (this.selectedStamps.some((stamp) => !isStampNote(stamp))) {
-				playSound("eventCog", { detune: rand(-50, 50) });
-			}
-
-			this.actions.deselect();
+		"Open Chart": {
+			shortcut: "Ctrl + O",
+			type: "File",
+			action: async (ChartState: StateChart) => {
+				debug.log("wip");
+			},
 		},
-		"invertselection": () => {
-			const allStamps = concatStamps(this.song.chart.notes, this.song.chart.events);
-			this.selectedStamps = allStamps.filter((stamp) => !this.selectedStamps.includes(stamp));
+
+		"Save chart\n": {
+			shortcut: "Ctrl + Shift + S",
+			type: "File",
+			action: () => {
+				downloadChart(this);
+			},
 		},
-		"copy": () => {
-			if (this.selectedStamps.length == 0) return;
 
-			this.clipboard = this.selectedStamps;
-			addFloatingText(clipboardMessage("copy", this.clipboard));
-			playSound("noteCopy", { detune: rand(25, 50) });
+		"Exit": {
+			shortcut: "Ctrl + Q",
+			type: "File",
+			action: () => {
+				transitionToScene(fadeOut, "menu", { index: 0 });
+			},
+		},
 
-			this.selectedStamps.forEach((stamp) => {
-				if (isStampNote(stamp)) {
-					const indexInNotes = this.song.chart.notes.indexOf(stamp);
-					tween(
-						choose([-1, 1]) * 20,
-						0,
-						0.5,
-						(p) => this.stampProps.notes[indexInNotes].angle = p,
-						easings.easeOutExpo,
-					);
-					tween(
-						vec2(1.2),
-						vec2(1),
-						0.5,
-						(p) => this.stampProps.notes[indexInNotes].scale = p,
-						easings.easeOutExpo,
-					);
+		"Select all": {
+			shortcut: "Ctrl + A",
+			type: "Edit",
+			action: () => {
+				this.selectedStamps = concatStamps(this.song.chart.notes, this.song.chart.events);
+			},
+		},
+
+		"Deselect": {
+			shortcut: "Ctrl + D",
+			type: "Edit",
+			action: () => {
+				this.selectedStamps = [];
+			},
+		},
+
+		"Invert selection\n": {
+			shortcut: "Ctrl + I",
+			type: "Edit",
+			action: () => {
+				const allStamps = concatStamps(this.song.chart.notes, this.song.chart.events);
+				this.selectedStamps = allStamps.filter((stamp) => !this.selectedStamps.includes(stamp));
+			},
+		},
+
+		"Delete": {
+			shortcut: "Backspace",
+			type: "Edit",
+			action: () => {
+				if (this.selectedStamps.length == 0) return;
+				this.takeSnapshot();
+
+				this.selectedStamps.forEach((stamp) => {
+					if (isStampNote(stamp)) this.deleteNote(stamp);
+					else this.deleteEvent(stamp);
+				});
+
+				playSound("noteRemove", { detune: rand(-50, 50) });
+				// there was an event in there
+				if (this.selectedStamps.some((stamp) => !isStampNote(stamp))) {
+					playSound("eventCog", { detune: rand(-50, 50) });
 				}
-				else {
-					const indexInEvents = this.song.chart.events.indexOf(stamp);
-					tween(
-						choose([-1, 1]) * 20,
-						0,
-						0.5,
-						(p) => this.stampProps.events[indexInEvents].angle = p,
-						easings.easeOutExpo,
-					);
-					tween(
-						vec2(1.2),
-						vec2(1),
-						0.5,
-						(p) => this.stampProps.events[indexInEvents].scale = p,
-						easings.easeOutExpo,
-					);
-				}
-			});
+
+				this.commands.Deselect.action();
+			},
 		},
-		"paste": () => {
-			if (this.clipboard.length == 0) return;
-			playSound("noteCopy", { detune: rand(-50, -25) });
-			addFloatingText(clipboardMessage("paste", this.clipboard));
 
-			this.clipboard.forEach((stamp) => {
-				const newTime = stamp.time + this.conductor.stepToTime(this.hoveredStep);
+		"Copy": {
+			shortcut: "Ctrl + C",
+			type: "Edit",
+			action: () => {
+				if (this.selectedStamps.length == 0) return;
 
-				if (isStampNote(stamp)) {
-					const newNote = this.placeNote(newTime, stamp.move);
-					const indexInNotes = this.song.chart.notes.indexOf(newNote);
-					if (indexInNotes == -1) return;
-					tween(
-						choose([-1, 1]) * 20,
-						0,
-						0.5,
-						(p) => this.stampProps.notes[indexInNotes].angle = p,
-						easings.easeOutExpo,
-					);
-				}
-				else {
-					const newEvent = this.placeEvent(newTime, stamp.id);
-					const indexInEvents = this.song.chart.events.indexOf(newEvent);
-					if (indexInEvents == -1) return;
-					tween(
-						choose([-1, 1]) * 20,
-						0,
-						0.5,
-						(p) => this.stampProps.events[indexInEvents].angle = p,
-						easings.easeOutExpo,
-					);
-				}
-			});
+				this.clipboard = this.selectedStamps;
+				addFloatingText(clipboardMessage("copy", this.clipboard));
+				playSound("noteCopy", { detune: rand(25, 50) });
 
-			// shickiiii
-			this.takeSnapshot();
+				this.selectedStamps.forEach((stamp) => {
+					if (isStampNote(stamp)) {
+						const indexInNotes = this.song.chart.notes.indexOf(stamp);
+						tween(
+							choose([-1, 1]) * 20,
+							0,
+							0.5,
+							(p) => this.stampProps.notes[indexInNotes].angle = p,
+							easings.easeOutExpo,
+						);
+						tween(
+							vec2(1.2),
+							vec2(1),
+							0.5,
+							(p) => this.stampProps.notes[indexInNotes].scale = p,
+							easings.easeOutExpo,
+						);
+					}
+					else {
+						const indexInEvents = this.song.chart.events.indexOf(stamp);
+						tween(
+							choose([-1, 1]) * 20,
+							0,
+							0.5,
+							(p) => this.stampProps.events[indexInEvents].angle = p,
+							easings.easeOutExpo,
+						);
+						tween(
+							vec2(1.2),
+							vec2(1),
+							0.5,
+							(p) => this.stampProps.events[indexInEvents].scale = p,
+							easings.easeOutExpo,
+						);
+					}
+				});
+			},
 		},
-		"cut": () => {
-			if (this.selectedStamps.length == 0) return;
 
-			// some code from the copy action
-			this.clipboard = this.selectedStamps;
-			addFloatingText(clipboardMessage("cut", this.clipboard));
-			playSound("noteCopy", { detune: rand(0, 25) });
+		"Cut": {
+			shortcut: "Ctrl + X",
+			type: "Edit",
+			action: (() => {
+				if (this.selectedStamps.length == 0) return;
 
-			this.selectedStamps.forEach((stamp) => {
-				if (isStampNote(stamp)) {
-					this.deleteNote(stamp);
+				// some code from the copy action
+				this.clipboard = this.selectedStamps;
+				addFloatingText(clipboardMessage("cut", this.clipboard));
+				playSound("noteCopy", { detune: rand(0, 25) });
+
+				this.selectedStamps.forEach((stamp) => {
+					if (isStampNote(stamp)) {
+						this.deleteNote(stamp);
+					}
+					else {
+						this.deleteEvent(stamp);
+					}
+				});
+			}),
+		},
+
+		"Paste\n": {
+			shortcut: "Ctrl + V",
+			type: "Edit",
+			action: () => {
+				if (this.clipboard.length == 0) return;
+				playSound("noteCopy", { detune: rand(-50, -25) });
+				addFloatingText(clipboardMessage("paste", this.clipboard));
+
+				this.clipboard.forEach((stamp) => {
+					const newTime = stamp.time + this.conductor.stepToTime(this.hoveredStep);
+
+					if (isStampNote(stamp)) {
+						const newNote = this.placeNote(newTime, stamp.move);
+						const indexInNotes = this.song.chart.notes.indexOf(newNote);
+						if (indexInNotes == -1) return;
+						tween(
+							choose([-1, 1]) * 20,
+							0,
+							0.5,
+							(p) => this.stampProps.notes[indexInNotes].angle = p,
+							easings.easeOutExpo,
+						);
+					}
+					else {
+						const newEvent = this.placeEvent(newTime, stamp.id);
+						const indexInEvents = this.song.chart.events.indexOf(newEvent);
+						if (indexInEvents == -1) return;
+						tween(
+							choose([-1, 1]) * 20,
+							0,
+							0.5,
+							(p) => this.stampProps.events[indexInEvents].angle = p,
+							easings.easeOutExpo,
+						);
+					}
+				});
+
+				// shickiiii
+				this.takeSnapshot();
+			},
+		},
+
+		"Undo": {
+			shortcut: "Ctrl + Z",
+			type: "Edit",
+			action: () => {
+				let oldSongState = this.song;
+				this.undo();
+
+				if (oldSongState != this.song) {
+					playSound("noteUndo", { detune: rand(-50, -25) });
 				}
-				else {
-					this.deleteEvent(stamp);
+			},
+		},
+
+		"Redo": {
+			shortcut: "Ctrl + Y",
+			type: "Edit",
+			action: () => {
+				let oldSongState = this.song;
+				this.redo();
+
+				if (oldSongState != this.song) {
+					playSound("noteUndo", { detune: rand(25, 50) });
 				}
-			});
-		},
-		"undo": () => {
-			let oldSongState = this.song;
-			this.undo();
-
-			if (oldSongState != this.song) {
-				playSound("noteUndo", { detune: rand(-50, -25) });
-			}
-		},
-		"redo": () => {
-			let oldSongState = this.song;
-			this.redo();
-
-			if (oldSongState != this.song) {
-				playSound("noteUndo", { detune: rand(25, 50) });
-			}
-		},
-		"settings": () => {
+			},
 		},
 	};
 
@@ -466,7 +522,7 @@ export class StateChart {
 
 		const indexInNotes = this.song.chart.notes.indexOf(newNote);
 		this.stampProps.notes[indexInNotes] = { scale: vec2(1), angle: 0 };
-		tween(NOTE_BIG_SCALE, vec2(1), 0.1, (p) => this.stampProps.notes[indexInNotes].scale = p);
+		tween(PROP_BIG_SCALE, vec2(1), 0.1, (p) => this.stampProps.notes[indexInNotes].scale = p);
 		this.selectedStamps.push(newNote);
 
 		return newNote;
@@ -494,7 +550,7 @@ export class StateChart {
 
 		const indexInEvents = this.song.chart.events.indexOf(newEvent);
 		this.stampProps.events[indexInEvents] = { scale: vec2(1), angle: 0 };
-		tween(NOTE_BIG_SCALE, vec2(1), 0.1, (p) => this.stampProps.events[indexInEvents].scale = p);
+		tween(PROP_BIG_SCALE, vec2(1), 0.1, (p) => this.stampProps.events[indexInEvents].scale = p);
 		this.selectedStamps.push(newEvent);
 
 		return newEvent;
@@ -862,9 +918,31 @@ export function moveHandler(ChartState: StateChart) {
 	});
 }
 
-export function parseCommands(ChartState: StateChart) {
-	// i should add the top buttons thing to chartstate and make it static somehow i think
-	// ChartState.actions.copy();
+/** Goes through each shortcut in the commands object and checks if it's pressed, if its run the command */
+export function parseActions(ChartState: StateChart) {
+	Object.values(ChartState.commands).forEach((action) => {
+		const keys: Key[] = [];
+
+		action.shortcut.split("+").forEach((key) => {
+			key = key.toLowerCase();
+			key = key.replace(" ", "");
+			if (key == "ctrl") key = "control";
+			keys.push(key);
+		});
+
+		const condition = () => {
+			if (
+				keys.every((key) => {
+					return (key == "control" || key == "shift") ? isKeyDown(key) : isKeyPressed(key);
+				})
+			) return true;
+			else return false;
+		};
+
+		if (condition()) {
+			action.action(ChartState);
+		}
+	});
 }
 
 /** Adds a cool little floating text */

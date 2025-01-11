@@ -504,9 +504,9 @@ export function addEditorTabs(ChartState: StateChart) {
 	});
 
 	// then this sets up the top menu button
-	TopMenuButton.buttons[2].minibuttons = arrayOfMinibuttonsAccordingToTab;
+	TopMenuButton.buttons.View.minibuttons = arrayOfMinibuttonsAccordingToTab;
 	// adds the slider (parsing is on that file)
-	TopMenuButton.buttons[2].minibuttons.push({ text: "hueslider", action: () => true });
+	TopMenuButton.buttons.View.minibuttons.push({ text: "hueslider", action: () => true });
 
 	// and this goes each frame and checks if a tab should be or should not be
 	onUpdate(() => {
