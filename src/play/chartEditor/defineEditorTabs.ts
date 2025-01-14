@@ -1,10 +1,10 @@
 import { GameObj, PosComp } from "kaplay";
 import { onBeatHit, onNoteHit } from "../../core/events";
-import { GameSave } from "../../core/gamesave";
+import { GameSave, GameSaveClass } from "../../core/gamesave";
 import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { FileManager } from "../../fileManaging";
 import { utils } from "../../utils";
-import { Move } from "../objects/dancer";
+import { createDancer, Move } from "../objects/dancer";
 import { ChartEvent } from "../song";
 import { isStampNote, StateChart } from "./EditorState";
 import { EditorTab } from "./editorTabs";
@@ -75,65 +75,6 @@ export function defineTabs(ChartState: StateChart) {
 		editorTabObj.width = 240;
 		editorTabObj.height = 300;
 
-		function makeDummyDancer() {
-			let waitEvent = wait(0);
-			const DANCER_SCALE = vec2(0.5);
-
-			function fakeDancerComp() {
-				return {
-					moveBop() {
-						return this.stretch({
-							XorY: "y",
-							startScale: DANCER_SCALE.y * 0.9,
-							endScale: DANCER_SCALE.y,
-							theTime: 0.25,
-						});
-					},
-
-					doMove(move: Move) {
-						this.moveBop();
-						this.play(move);
-
-						if (waitEvent) {
-							waitEvent.cancel();
-							waitEvent = null;
-						}
-						waitEvent = wait(1, () => {
-							// can't do doMove because then it'll turn into a loop
-							this.play("idle");
-						});
-					},
-
-					get currentMove() {
-						return this.getCurAnim().name;
-					},
-				};
-			}
-
-			const dancer = make([
-				sprite("dancer_" + GameSave.dancer),
-				anchor("bot"),
-				pos(),
-				area(),
-				scale(DANCER_SCALE),
-				juice(),
-				opacity(),
-				fakeDancerComp(),
-				"dummyDancer",
-				{
-					forcedAnim: false,
-				},
-			]);
-
-			dancer.onClick(() => {
-				dancer.moveBop();
-			});
-
-			dancer.doMove("idle");
-
-			return dancer;
-		}
-
 		function addCounterObj(index: number) {
 			const counter = editorTabObj.add([
 				text((index + 1).toString(), { align: "left", size: 25 }),
@@ -153,7 +94,8 @@ export function defineTabs(ChartState: StateChart) {
 			return counter;
 		}
 
-		const dummyDancer = editorTabObj.add(makeDummyDancer());
+		const dummyDancer = editorTabObj.add(createDancer("dancer_" + GameSave.dancer));
+		dummyDancer.scale = vec2(0.5);
 		dummyDancer.pos = vec2(0, editorTabObj.height - dummyDancer.height / 2 - 30);
 
 		dummyDancer.onUpdate(() => {
@@ -197,10 +139,11 @@ export function defineTabs(ChartState: StateChart) {
 				tween(YELLOW, WHITE, 0.15, (p) => currentBeatObj.color = p);
 			}
 
-			if (dummyDancer.currentMove == "idle") dummyDancer.moveBop();
+			if (dummyDancer.getCurAnim().name == "idle") dummyDancer.moveBop();
 		});
 
 		const onNoteHitEv = onNoteHit((note) => {
+			debug.log(note.move);
 			dummyDancer.doMove(note.move);
 		});
 
@@ -344,8 +287,9 @@ export function defineTabs(ChartState: StateChart) {
 			const newEvent = currentEvent;
 
 			if (oldEvent != newEvent) {
-				console.log(newEvent);
 				refreshEventObjs(currentEvent);
+				if (currentEvent) ChartState.input.shortcutEnabled = false;
+				else ChartState.input.shortcutEnabled = true;
 			}
 
 			editorTabObj.width = 300;

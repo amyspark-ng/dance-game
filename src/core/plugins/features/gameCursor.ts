@@ -1,5 +1,4 @@
 import { Comp } from "kaplay";
-import { GameDialog } from "../../../ui/dialogs/gameDialog";
 
 export let gameCursor: cursorObjectType = null;
 export type cursorDoing = "default" | "up" | "down" | "x" | "text" | "load";
@@ -136,7 +135,7 @@ export function addCursorObject() {
 			}
 		});
 
-		if (GameDialog.isOpen || hoveredObjects.some((obj) => obj.isHovering())) return;
+		if (hoveredObjects.some((obj) => obj.isHovering())) return;
 
 		customBehaviours.forEach((behav) => {
 			behav();

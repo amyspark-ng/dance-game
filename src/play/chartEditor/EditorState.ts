@@ -9,7 +9,6 @@ import { playMusic, playSound } from "../../core/plugins/features/sound";
 import { transitionToScene } from "../../core/scenes";
 import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { FileManager } from "../../fileManaging";
-import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { utils } from "../../utils";
 import { Move } from "../objects/dancer";
 import { ChartNote } from "../objects/note";
@@ -388,6 +387,7 @@ export class StateChart {
 			type: "Edit",
 			action: (() => {
 				if (this.selectedStamps.length == 0) return;
+				this.takeSnapshot();
 
 				// some code from the copy action
 				this.clipboard = this.selectedStamps;
@@ -472,6 +472,13 @@ export class StateChart {
 				}
 			},
 		},
+	};
+
+	input = {
+		/** Click to place, click to drag and move, click to delete */
+		trackEnabled: true,
+		/** Ctrl + C, Ctrl + V, Etc */
+		shortcutEnabled: true,
 	};
 
 	/** Runs when the sound for the soundPlay has changed */
@@ -652,7 +659,6 @@ export class StateChart {
 	}
 
 	constructor(params: paramsChartEditor) {
-		GameDialog.isOpen = false;
 		params.dancer = params.dancer ?? "astri";
 		params.playbackSpeed = params.playbackSpeed ?? 1;
 		params.playbackSpeed = Math.abs(clamp(params.playbackSpeed, 0, Infinity));
@@ -912,7 +918,6 @@ const keysAndMoves = {
 /** Creates the 'isKeyPressed' event to change notes */
 export function moveHandler(ChartState: StateChart) {
 	Object.keys(keysAndMoves).forEach((key) => {
-		if (GameDialog.isOpen) return;
 		if (isKeyPressed(key as Key)) {
 			ChartState.changeMove(keysAndMoves[key]);
 		}
@@ -932,9 +937,11 @@ export function parseActions(ChartState: StateChart) {
 		});
 
 		const condition = () => {
+			if (!ChartState.input.shortcutEnabled) return false;
+
 			if (
 				keys.every((key) => {
-					return (key == "control" || key == "shift") ? isKeyDown(key) : isKeyPressed(key);
+					return (key == "control" || key == "shift") ? isKeyDown(key) : isKeyPressedRepeat(key);
 				})
 			) return true;
 			else return false;

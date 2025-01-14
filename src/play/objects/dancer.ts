@@ -12,8 +12,8 @@ export const DANCER_POS = vec2(518, 377);
 export function createDancer(dancerName: string) {
 	let onAnimEndEvent: KEventController = null;
 
-	const dancerObj = add([
-		sprite(`dancer_${dancerName}`, { anim: "idle" }),
+	const dancerObj = make([
+		sprite(dancerName, { anim: "idle" }),
 		pos(center().x, height()),
 		anchor("bot"),
 		scale(),
@@ -39,7 +39,9 @@ export function createDancer(dancerName: string) {
 
 					this.waitForIdle?.cancel();
 					this.waitForIdle = wait(TIME_FOR_IDLE, () => {
-						const keyForMove = Object.values(GameSave.gameControls).find((gameKey) => gameKey.move == move).kbKey;
+						const keyForMove = Object.values(GameSave.gameControls).find((gameKey) =>
+							gameKey.move == move
+						).kbKey;
 						if (!isKeyDown(keyForMove)) {
 							this.doMove("idle");
 						}

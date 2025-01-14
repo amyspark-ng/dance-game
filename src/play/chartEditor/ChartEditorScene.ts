@@ -1,12 +1,10 @@
 // The actual scene for the chart editor
-import { GameObj, KEventController } from "kaplay";
-import { onBeatHit, onNoteHit, onStepHit, triggerEvent } from "../../core/events";
-import { GameSave } from "../../core/gamesave";
+import { KEventController } from "kaplay";
+import { onBeatHit, onStepHit, triggerEvent } from "../../core/events";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { playSound } from "../../core/plugins/features/sound";
 import { transitionToScene } from "../../core/scenes";
 import { fadeOut } from "../../core/transitions/fadeOutTransition";
-import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { utils } from "../../utils";
 import { ChartNote } from "../objects/note";
 import { paramsGameScene } from "../PlayState";
@@ -34,7 +32,6 @@ import {
 	parseActions,
 	selectionBoxHandler,
 	setMouseAnimConditions,
-	stampPropThing,
 	StateChart,
 	trailAtStep,
 } from "./EditorState";
@@ -69,6 +66,8 @@ export function ChartEditorScene() {
 
 		onUpdate(() => {
 			parseActions(ChartState);
+
+			debug.log(ChartState.input.shortcutEnabled);
 
 			// ChartState.bgColor = Color.fromHSL(GameSave.editorHue, 0.45, 0.48);
 			ChartState.bgColor = rgb(92, 50, 172);
@@ -140,8 +139,6 @@ export function ChartEditorScene() {
 			selectionBoxHandler(ChartState);
 			minimapHandler(ChartState);
 
-			if (GameDialog.isOpen) return;
-
 			let stepsToScroll = 0;
 
 			// scroll up
@@ -168,6 +165,10 @@ export function ChartEditorScene() {
 			if (isKeyPressedRepeat("right") && ChartState.scrollStep > 0) {
 				if (!ChartState.paused) ChartState.paused = true;
 			}
+
+			leftMousePress.paused = !ChartState.input.trackEnabled;
+			rightMousePress.paused = !ChartState.input.trackEnabled;
+			rightMouseDown.paused = !ChartState.input.trackEnabled;
 		});
 
 		// this is done like this so it's drawn on top of everything
@@ -176,7 +177,6 @@ export function ChartEditorScene() {
 		]);
 
 		selectDraw.onDraw(() => {
-			if (GameDialog.isOpen) return;
 			drawSelectionBox(ChartState);
 		});
 
@@ -210,9 +210,7 @@ export function ChartEditorScene() {
 		let stretchingNoteEV: KEventController = null;
 
 		// Behaviour for placing and selecting notes
-		onMousePress("left", () => {
-			if (GameDialog.isOpen) return;
-
+		const leftMousePress = onMousePress("left", () => {
 			/** The current hovered time */
 			const hoveredTime = ChartState.conductor.stepToTime(
 				ChartState.hoveredStep,
@@ -315,13 +313,11 @@ export function ChartEditorScene() {
 
 		// Resets the detune for moving notes
 		onMouseRelease("left", () => {
-			if (GameDialog.isOpen) return;
 			ChartState.selectionBox.leadingStamp = undefined;
 		});
 
 		// Removing notes
-		onMousePress("right", () => {
-			if (GameDialog.isOpen) return;
+		const rightMousePress = onMousePress("right", () => {
 			if (!ChartState.isCursorInGrid) return;
 
 			function noteBehaviour() {
@@ -355,9 +351,8 @@ export function ChartEditorScene() {
 		});
 
 		// Behaviour for moving notes
-		onMouseDown("left", () => {
+		const rightMouseDown = onMouseDown("left", () => {
 			if (stretchingNoteEV) return;
-			if (GameDialog.isOpen) return;
 			if (!ChartState.selectionBox.leadingStamp) return;
 
 			let oldStepOfLeading = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time);
@@ -420,8 +415,6 @@ export function ChartEditorScene() {
 
 		// Copies the color of a note
 		onMousePress("middle", () => {
-			if (GameDialog.isOpen) return;
-
 			if (ChartState.isInNoteGrid) {
 				const currentHoveredNote = getCurrentHoveredNote();
 				if (currentHoveredNote && ChartState.currentMove != currentHoveredNote.move) {
@@ -461,7 +454,6 @@ export function ChartEditorScene() {
 
 		// Send you to the game
 		onKeyPress("enter", async () => {
-			if (GameDialog.isOpen) return;
 			if (ChartState.inputDisabled) return;
 			if (get("textbox", { recursive: true }).some((textbox) => textbox.focused)) return;
 
@@ -483,7 +475,6 @@ export function ChartEditorScene() {
 
 		// Pausing unpausing behaviour
 		onKeyPress("space", () => {
-			if (GameDialog.isOpen) return;
 			if (ChartState.inputDisabled) return;
 			ChartState.paused = !ChartState.paused;
 
@@ -493,7 +484,6 @@ export function ChartEditorScene() {
 		});
 
 		onKeyPress("escape", () => {
-			if (GameDialog.isOpen) return;
 			// openExitDialog();
 		});
 
@@ -505,9 +495,34 @@ export function ChartEditorScene() {
 		// Scrolls the checkerboard
 		onStepHit(() => {
 			const allStamps = concatStamps(ChartState.song.chart.notes, ChartState.song.chart.events);
+			const step = ChartState.conductor.currentStep;
+
+			let currentStamp: ChartStamp = null;
 			allStamps.forEach((stamp) => {
-				const isNote = isStampNote(stamp);
+				// @ts-ignore
+				const index = ChartState.song.chart[isStampNote(stamp) ? "notes" : "events"].indexOf(stamp);
+				const stampStep = ChartState.conductor.timeToStep(stamp.time);
+				const prop = ChartState.stampProps[isStampNote(stamp) ? "notes" : "events"][index];
+				if (!prop) return;
+
+				const noteAtStep = findStampAtStep(step, ChartState).note();
+				if (stampStep == step || noteAtStep == stamp) {
+					prop.scale = lerp(prop.scale, vec2(PROP_BIG_SCALE), ChartState.LERP);
+					if (trailAtStep(step, ChartState)) currentStamp = stamp;
+					else currentStamp = null;
+				}
+				else {
+					prop.scale = lerp(prop.scale, vec2(1), ChartState.LERP);
+				}
 			});
+
+			if (!ChartState.paused) {
+				if (!currentStamp) return;
+				if (isStampNote(currentStamp)) {
+					triggerEvent("onNoteHit", currentStamp);
+				}
+				else ChartState.triggerEvent(currentStamp.id as keyof typeof ChartState.events);
+			}
 		});
 
 		onSceneLeave(() => {
