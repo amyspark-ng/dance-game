@@ -98,8 +98,8 @@ document.addEventListener("fullscreenchange", (event) => {
 });
 
 export function INITIAL_SCENE() {
-	goScene("charteditor", { song: getSong("bopeebo") } as paramsChartEditor);
-	// goScene("game", { song: getSong("bopeebo") } as paramsGameScene);
+	// goScene("charteditor", { song: getSong("bopeebo") } as paramsChartEditor);
+	goScene("game", { song: getSong("bopeebo") } as paramsGameScene);
 	// goScene("songselect", { index: 0 } as paramsSongSelect);
 	// goScene("menu", { index: 0 });
 }

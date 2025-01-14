@@ -107,7 +107,8 @@ export function addSongCapsule(curSong: SongContent) {
 	});
 
 	capsuleContainer.onUpdate(() => {
-		let clear = Math.round(Scoring.tally.cleared(getHighscore(curSong.manifest.uuid_DONT_CHANGE).tally));
+		const tally = getHighscore(curSong.manifest.uuid_DONT_CHANGE).tally;
+		let clear = Math.round(Scoring.tally(tally).cleared());
 		if (isNaN(clear)) clear = 0;
 
 		capsuleName.text = `${curSong.manifest.name} (${clear}%)\n${songDuration}`;
@@ -121,7 +122,7 @@ export function addSongCapsule(curSong: SongContent) {
 	// if the song has a highscore then add the sticker with the ranking
 	if (GameSave.songsPlayed.some((song) => song.uuid == curSong.manifest.uuid_DONT_CHANGE)) {
 		const tally = getHighscore(curSong.manifest.uuid_DONT_CHANGE).tally;
-		const ranking = Scoring.tally.ranking(tally);
+		const ranking = Scoring.tally(tally).ranking();
 
 		const maxOffset = 50;
 		const offset = vec2(rand(-maxOffset, maxOffset), rand(-maxOffset, maxOffset));
@@ -246,7 +247,8 @@ export function SongSelectScene() {
 				return;
 			}
 
-			const tallyScore = getHighscore(allCapsules[songSelectState.index].song.manifest.uuid_DONT_CHANGE).tally.score;
+			const tallyScore =
+				getHighscore(allCapsules[songSelectState.index].song.manifest.uuid_DONT_CHANGE).tally.score;
 			highscoreText.solidValue = Math.floor(tallyScore);
 
 			songSelectState.songPreview?.stop();

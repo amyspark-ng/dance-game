@@ -6,7 +6,7 @@ import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { playSound } from "../../core/plugins/features/sound";
 import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { utils } from "../../utils";
-import { moveToColor, NOTE_SPAWNPOINT, notesSpawner } from "../objects/note";
+import { ChartNote, NOTE_SPAWNPOINT, notesSpawner } from "../objects/note";
 import {
 	ChartStamp,
 	concatStamps,
@@ -121,7 +121,7 @@ export function stampRenderer(ChartState: StateChart) {
 						anchor: "center",
 						shader: "replacecolor",
 						uniform: {
-							"u_targetcolor": moveToColor(stamp.move),
+							"u_targetcolor": ChartNote.moveToColor(stamp.move),
 							"u_alpha": ChartState.conductor.timeInSeconds >= stamp.time ? 1 : 0.5,
 						},
 					});
@@ -140,7 +140,7 @@ export function stampRenderer(ChartState: StateChart) {
 							anchor: "center",
 							shader: "replacecolor",
 							uniform: {
-								"u_targetcolor": moveToColor(stamp.move),
+								"u_targetcolor": ChartNote.moveToColor(stamp.move),
 								"u_alpha": ChartState.conductor.timeInSeconds >= stamp.time ? 1 : 0.5,
 							},
 						});
@@ -233,7 +233,7 @@ export function drawNoteCursor(ChartState: StateChart) {
 	if (ChartState.isInNoteGrid) theSprite = GameSave.noteskin + "_" + ChartState.currentMove;
 	else theSprite = ChartState.currentEvent;
 
-	const curColor = ChartState.isInNoteGrid ? moveToColor(ChartState.currentMove) : WHITE;
+	const curColor = ChartState.isInNoteGrid ? ChartNote.moveToColor(ChartState.currentMove) : WHITE;
 
 	cursorPos = ChartState.stepToPos(ChartState.hoveredStep - ChartState.scrollStep);
 	if (ChartState.isInEventGrid) cursorPos = vec2(cursorPos.x + ChartState.SQUARE_SIZE.x, cursorPos.y);
@@ -311,7 +311,7 @@ export function drawMinimap(ChartState: StateChart) {
 
 		const isSelected = ChartState.selectedStamps.includes(stamp);
 
-		let theColor = isNote ? moveToColor(stamp.move) : BLACK.lerp(WHITE, 0.25);
+		let theColor = isNote ? ChartNote.moveToColor(stamp.move) : BLACK.lerp(WHITE, 0.25);
 		if (isSelected) theColor = theColor.lerp(selectColor, 0.25);
 
 		const drawOpts = {

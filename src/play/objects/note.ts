@@ -1,12 +1,9 @@
-import { Color, Comp, KEvent, KEventController, Vec2 } from "kaplay";
 import { onNoteHit, onReset, onStepHit, triggerEvent } from "../../core/events";
 import { GameSave } from "../../core/gamesave";
 import { utils } from "../../utils";
 import { getKeyForMove, INPUT_THRESHOLD, StateGame } from "../PlayState";
 import { Move } from "./dancer";
-
-/** How much pixels per second does the note move at */
-export const NOTE_PXPERSECOND = 5;
+import { Scoring } from "./scoring";
 
 /** The width of the note */
 export const NOTE_WIDTH = 80;
@@ -18,27 +15,53 @@ export const NOTE_SPAWNPOINT = 1024 + NOTE_WIDTH / 2;
 export class ChartNote {
 	/** The time of the song (in seconds) that this note must be hit on */
 	time: number = 0;
-	/** The move (the color) the dancer will do upon hitting this note */
+	/** The move the dancer will do upon hitting this note */
 	move: Move = "up";
 	/** How long the note is in steps */
-	length?: number;
-}
+	length?: number = undefined;
 
-function getNoteSpawnTime(note: ChartNote) {
-	return note.time - TIME_FOR_STRUM;
-}
+	/** The spawn time of the note based on the time to reach the strum */
+	static spawnTime(note: ChartNote): number {
+		return note.time - TIME_FOR_STRUM;
+	}
 
-/** Converts a move to a color (based on fnf lol) */
-export function moveToColor(move: Move): Color {
-	switch (move) {
-		case "left":
-			return utils.blendColors(RED, BLUE, 0.5).lighten(10);
-		case "down":
-			return BLUE.lighten(50);
-		case "up":
-			return GREEN.lighten(25);
-		case "right":
-			return RED.lighten(25);
+	/** Converts a move to a color */
+	static moveToColor(move: Move) {
+		switch (move) {
+			case "left":
+				return utils.blendColors(RED, BLUE, 0.5).lighten(10);
+			case "down":
+				return BLUE.lighten(50);
+			case "up":
+				return GREEN.lighten(25);
+			case "right":
+				return RED.lighten(25);
+			default:
+				return WHITE;
+		}
+	}
+
+	/** Converts a move to an offset */
+	static moveToOffset(move: Move) {
+		switch (move) {
+			case "left":
+				return LEFT;
+			case "down":
+				return DOWN;
+			case "up":
+				return UP;
+			case "right":
+				return RIGHT;
+			default:
+				return vec2();
+		}
+	}
+
+	/** Get the position of a note at a given time */
+	static getPosAtTime(time: number, note: ChartNote, strumlineXpos: number) {
+		let mapValue = (time - ChartNote.spawnTime(note)) / TIME_FOR_STRUM;
+		const xPos = map(mapValue, 0, 1, NOTE_SPAWNPOINT, strumlineXpos - NOTE_WIDTH / 2);
+		return xPos;
 	}
 }
 
@@ -49,9 +72,22 @@ export function setTimeForStrum(value: number) {
 	TIME_FOR_STRUM = value;
 }
 
+/** Adds a little mask for the long notes */
+function addMasked() {
+	const masked = add([
+		rect(width() / 2, height()),
+		pos(),
+		z(10),
+		mask("subtract"),
+		"masked",
+	]);
+	return masked;
+}
+
 /** Adds a note to the game */
 export function addNote(chartNote: ChartNote, GameState: StateGame) {
-	let lengthDraw: KEventController = null;
+	let trail: ReturnType<typeof addTrail> = null;
+
 	const noteObj = add([
 		sprite(GameSave.noteskin + "_" + chartNote.move),
 		pos(width() + NOTE_WIDTH, GameState.strumline.pos.y),
@@ -72,161 +108,149 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 			&& !hasMissedNote && GameState.spawnedNotes.includes(note) && !GameState.hitNotes.includes(note);
 	}
 
-	let stepHitEv: KEventController = null;
 	const noteHitEv = onNoteHit((noteHit) => {
-		if (noteHit != noteObj.chartNote) return;
+		if (noteHit != chartNote) return;
 
 		// this will only run when the note is hit
 		noteObj.destroy();
-		if (noteObj.chartNote.length) addTrail();
+		noteHitEv.cancel();
+
+		if (!noteHit.length) return;
+
+		let hasFinishedHolding = false;
+		trail.onUpdate(() => {
+			if (trail.pos.x + trail.width < width() / 2 && !hasFinishedHolding) {
+				hasFinishedHolding = true;
+			}
+
+			if (hasMissedNote) {
+				trail.opacity = noteObj.opacity;
+			}
+		});
+
+		const score = Scoring.getScorePerDiff(GameState.conductor.timeInSeconds, chartNote);
+		const stepHitEv = onStepHit(() => {
+			// will only run while the note is being held
+			if (hasFinishedHolding) {
+				stepHitEv.cancel();
+				return;
+			}
+
+			GameState.addScore(Math.round(score / 2));
+		});
+
+		const keyReleaseEv = onKeyRelease(getKeyForMove(chartNote.move), () => {
+			GameState.strumline.currentNote = null;
+
+			// didn't finish holding, bad
+			if (!hasFinishedHolding) {
+				trail.hidden = true;
+			}
+
+			keyReleaseEv.cancel();
+		});
 	});
 
-	let noteLength = noteObj.chartNote.length;
 	let hasMissedNote = false;
 	noteObj.onUpdate(() => {
 		if (GameState.paused) return;
 
-		if (GameState.strumline.currentNote != noteObj.chartNote) {
-			let mapValue = (GameState.conductor.timeInSeconds - getNoteSpawnTime(noteObj.chartNote)) / TIME_FOR_STRUM;
-			const xPos = map(mapValue, 0, 1, NOTE_SPAWNPOINT, GameState.strumline.pos.x - NOTE_WIDTH / 2);
+		if (GameState.strumline.currentNote != chartNote) {
+			const xPos = ChartNote.getPosAtTime(
+				GameState.conductor.timeInSeconds,
+				chartNote,
+				GameState.strumline.pos.x,
+			);
 			noteObj.pos.x = xPos;
 		}
 
 		if (conditionsForPassedNote(chartNote)) {
-			noteLength = 0;
 			hasMissedNote = true;
 			triggerEvent("onMiss");
 		}
 
 		if (hasMissedNote) {
 			noteObj.opacity -= 0.085;
-			noteLength -= 1;
 			if (noteObj.pos.x < -noteObj.width) {
 				noteObj.destroy();
 			}
 		}
 	});
 
-	// have to do the thing where if you release int he middle of the trail you can't pick it up again
+	function addTrail() {
+		const masked = get("masked")[0] as ReturnType<typeof addMasked>;
 
-	// this is just a fake trail for when the real one comes
-	if (noteObj.chartNote.length) {
-		lengthDraw = onDraw(() => {
-			for (let i = 0; i < noteLength; i++) {
+		const trail = masked.add([
+			pos(noteObj.pos),
+			anchor(noteObj.anchor),
+			opacity(),
+			{
+				width: NOTE_WIDTH * chartNote.length,
+			},
+		]);
+
+		trail.onDraw(() => {
+			for (let i = 0; i < chartNote.length; i++) {
 				if (i == 0) {
-					// this is the one that connects the note with the trail
 					drawSprite({
-						width: noteObj.width / 2,
-						height: noteObj.height,
 						sprite: GameSave.noteskin + "_" + "trail",
-						pos: vec2(noteObj.pos.x + noteObj.width / 4, noteObj.pos.y),
-						anchor: "center",
+						width: NOTE_WIDTH / 2,
+						height: NOTE_WIDTH,
+						anchor: "left",
 						shader: "replacecolor",
+						opacity: trail.opacity,
 						uniform: {
-							"u_targetcolor": moveToColor(noteObj.chartNote.move),
-							"u_alpha": noteObj.opacity,
+							"u_targetcolor": ChartNote.moveToColor(chartNote.move),
+							"u_alpha": trail.opacity,
 						},
 					});
 				}
 
 				drawSprite({
-					width: noteObj.width,
-					height: noteObj.height,
-					sprite: GameSave.noteskin + "_" + (i == noteObj.chartNote.length - 1 ? "tail" : "trail"),
-					pos: vec2(noteObj.pos.x + ((i + 1) * noteObj.height), noteObj.pos.y),
-					anchor: "center",
+					sprite: (i != chartNote.length - 1)
+						? GameSave.noteskin + "_" + "trail"
+						: GameSave.noteskin + "_" + "tail",
+					pos: vec2(NOTE_WIDTH / 2 + (NOTE_WIDTH * i), 0),
+					anchor: "left",
 					shader: "replacecolor",
+					opacity: trail.opacity,
 					uniform: {
-						"u_targetcolor": moveToColor(noteObj.chartNote.move),
-						"u_alpha": noteObj.opacity,
+						"u_targetcolor": ChartNote.moveToColor(chartNote.move),
+						"u_alpha": trail.opacity,
 					},
 				});
+
+				// DEBUGGING purposes
+				// drawRect({
+				// 	width: NOTE_WIDTH,
+				// 	height: NOTE_WIDTH,
+				// 	outline: {
+				// 		width: 1,
+				// 		color: WHITE,
+				// 	},
+				// 	fill: false,
+				// 	pos: vec2(NOTE_WIDTH / 2 + (NOTE_WIDTH * i), 0),
+				// 	anchor: "left",
+				// });
 			}
 		});
+
+		trail.onUpdate(() => {
+			const xPos = ChartNote.getPosAtTime(
+				GameState.conductor.timeInSeconds,
+				chartNote,
+				GameState.strumline.pos.x,
+			);
+			trail.pos = vec2(xPos, noteObj.pos.y);
+		});
+
+		return trail;
 	}
 
-	function addTrail() {
-		let trailOpacity = noteObj.opacity;
-		const trailObj = add([
-			sprite(GameSave.noteskin + "_trail", {
-				tiled: true,
-				height: noteObj.height,
-			}),
-			pos(),
-			anchor("left"),
-			z(noteObj.z + 1),
-			shader("replacecolor", () => ({
-				"u_targetcolor": moveToColor(noteObj.chartNote.move),
-				"u_alpha": trailOpacity,
-			})),
-			"trailObj",
-			{
-				// let's say a note has a visualLength of 3, the third one is the tail
-				visualLength: noteObj.chartNote.length,
-			},
-		]);
-
-		trailObj.width = NOTE_WIDTH * (trailObj.visualLength - 1);
-		trailObj.pos.y = noteObj.pos.y;
-		// accounts for half the note width because of the little thingy that connects the note and the trail
-		trailObj.pos.x = noteObj.pos.x + NOTE_WIDTH / 2;
-
-		let tailWidth = NOTE_WIDTH;
-
-		// draws the tail
-		trailObj.onDraw(() => {
-			drawSprite({
-				width: tailWidth,
-				sprite: GameSave.noteskin + "_tail",
-				pos: vec2(trailObj.width, 0),
-				anchor: "left",
-				shader: "replacecolor",
-				uniform: {
-					"u_targetcolor": moveToColor(noteObj.chartNote.move),
-					"u_alpha": trailOpacity,
-				},
-			});
-		});
-
-		trailObj.onUpdate(() => {
-			if (trailObj.visualLength <= 1) {
-				tailWidth = lerp(tailWidth, 0, 0.15);
-			}
-			const clampVisualLength = clamp(trailObj.visualLength - 1, 0, Infinity);
-			trailObj.width = lerp(trailObj.width, NOTE_WIDTH * clampVisualLength, 0.15);
-
-			trailOpacity = noteObj.exists() ? noteObj.opacity : 1;
-			if (!noteObj.exists()) noteObj.destroy();
-
-			if (hasMissedNote) trailObj.visualLength = 0;
-		});
-
-		const stepHitEv = onStepHit(() => {
-			if (hasMissedNote) return;
-			if (!isKeyDown(getKeyForMove(noteObj.chartNote.move))) {
-				// released the key for the note
-				trailObj.destroy();
-				return;
-			}
-
-			if (trailObj.visualLength <= 0 || trailObj.visualLength - 1 <= 0) {
-				// note released properly, congrats!
-				GameState.strumline.currentNote = null;
-				trailObj.destroy();
-			}
-			else trailObj.visualLength -= 1;
-		});
-
-		trailObj.onDestroy(() => {
-			stepHitEv.cancel();
-		});
+	// have to do the thing where if you release int he middle of the trail you can't pick it up again
+	if (chartNote.length) {
+		trail = addTrail();
 	}
-
-	noteObj.onDestroy(() => {
-		noteHitEv.cancel();
-		stepHitEv?.cancel();
-		lengthDraw?.cancel();
-	});
 
 	return noteObj;
 }
@@ -234,14 +258,15 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 export type NoteGameObj = ReturnType<typeof addNote>;
 
 // MF you genius
-
 /** Crucial function that handles the spawning of notes in the game */
 export function notesSpawner(GameState: StateGame) {
+	addMasked();
+
 	/** holds all the chart.notes that have not been spawned */
 	let waiting: ChartNote[] = [];
 
 	function resetWaiting() {
-		waiting = GameState.song.chart.notes.toSorted((a, b) => getNoteSpawnTime(b) - getNoteSpawnTime(a));
+		waiting = GameState.song.chart.notes.toSorted((a, b) => ChartNote.spawnTime(b) - ChartNote.spawnTime(a));
 	}
 
 	resetWaiting();
@@ -256,7 +281,7 @@ export function notesSpawner(GameState: StateGame) {
 		while (index >= 0) {
 			const note = waiting[index];
 			// If next note is in the future, stop
-			if (getNoteSpawnTime(note) > t) {
+			if (ChartNote.spawnTime(note) > t) {
 				break;
 			}
 			addNote(note, GameState);

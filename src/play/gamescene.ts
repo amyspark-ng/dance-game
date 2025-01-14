@@ -161,6 +161,7 @@ export function GameScene() {
 			}
 
 			if (GameState.dancer.getMove() == "idle") {
+				GameState.dancer.play("idle");
 				GameState.dancer.moveBop();
 			}
 		});
@@ -187,7 +188,7 @@ export function GameScene() {
 
 			const judgementText = addJudgement(judgement);
 
-			if (Scoring.tally.isPerfect(GameState.tally)) judgementText.text += "!!";
+			if (Scoring.tally(GameState.tally).isPerfect()) judgementText.text += "!!";
 			else if (GameState.tally.misses < 1) judgementText.text += "!";
 
 			addComboText(GameState.combo);
@@ -196,7 +197,9 @@ export function GameScene() {
 			if (chartNote.length) {
 				let keyRelease: KEventController = null;
 
-				const noteObj = get("noteObj", { recursive: true }).find((obj: NoteGameObj) => obj.chartNote == chartNote) as NoteGameObj;
+				const noteObj = get("noteObj", { recursive: true }).find((obj: NoteGameObj) =>
+					obj.chartNote == chartNote
+				) as NoteGameObj;
 				noteObj.opacity = 0;
 
 				keyRelease = onKeyRelease(getKeyForMove(chartNote.move), () => {

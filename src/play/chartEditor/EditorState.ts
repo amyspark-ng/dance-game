@@ -516,6 +516,7 @@ export class StateChart {
 			this.deleteNote(noteWithSameTimeButDifferentMove);
 		}
 
+		// @ts-ignore
 		const newNote: ChartNote = { time: time, move: move };
 		this.song.chart.notes.push(newNote);
 		this.song.chart.events.sort((a, b) => a.time - b.time);

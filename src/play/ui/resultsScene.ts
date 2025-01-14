@@ -34,7 +34,7 @@ export function ResultsScene() {
 		const tallyThings: tallyContainer[] = [
 			{ title: "score", value: params.GameState.tally.score, color: WHITE },
 			// { title: "total notes", value: params.GameState.songZip.notes.length, color: WHITE },
-			{ title: "hit notes", value: Scoring.tally.hitNotes(params.GameState.tally), color: WHITE },
+			{ title: "hit notes", value: Scoring.tally(params.GameState.tally).hitNotes(), color: WHITE },
 			{ title: "awesomes", value: params.GameState.tally.awesomes, color: BLUE.lighten(50) },
 			{ title: "goods", value: params.GameState.tally.goods, color: GREEN.lighten(50) },
 			{ title: "ehhs", value: params.GameState.tally.ehhs, color: BLACK.lighten(50) },
@@ -49,10 +49,10 @@ export function ResultsScene() {
 		const initialY = 40;
 
 		/** How cleared was the song */
-		const cleared = Scoring.tally.cleared(params.GameState.tally);
+		const cleared = Scoring.tally(params.GameState.tally).cleared();
 
 		/** The ranking you're gonna get */
-		const ranking = Scoring.tally.ranking(params.GameState.tally);
+		const ranking = Scoring.tally(params.GameState.tally).ranking();
 
 		/** The animations of the dancer according to the ranking you got */
 		const anims = getAnimsAccordingToRanking(ranking);

@@ -8,7 +8,7 @@ import { transitionToScene } from "../../core/scenes";
 import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { GameDialog } from "../../ui/dialogs/gameDialog";
 import { utils } from "../../utils";
-import { moveToColor } from "../objects/note";
+import { ChartNote } from "../objects/note";
 import { paramsGameScene } from "../PlayState";
 import {
 	checkerboardRenderer,
@@ -127,7 +127,7 @@ export function ChartEditorScene() {
 			ChartState.lerpScrollStep = lerp(ChartState.lerpScrollStep, ChartState.scrollStep, SCROLL_LERP_VALUE);
 
 			// MOUSE COLOR
-			const currentColor = moveToColor(ChartState.currentMove);
+			const currentColor = ChartNote.moveToColor(ChartState.currentMove);
 			const mouseColor = utils.blendColors(WHITE, currentColor, 0.5);
 			gameCursor.color = lerp(gameCursor.color, mouseColor, SCROLL_LERP_VALUE);
 

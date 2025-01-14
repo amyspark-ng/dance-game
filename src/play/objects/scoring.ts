@@ -38,54 +38,56 @@ export class Scoring {
 	}
 
 	/** Tally obj for tally utils */
-	static tally = {
-		/** Current hit notes */
-		hitNotes(tally: Tally): number {
-			return tally.awesomes + tally.goods + tally.ehhs;
-		},
+	static tally(tally: Tally) {
+		return {
+			/** Current hit notes */
+			hitNotes(): number {
+				return tally.awesomes + tally.goods + tally.ehhs;
+			},
 
-		/**
-		 * Current total notes.
-		 *
-		 * (This would only be used in results sceen, because it's not accurate otherwise) */
-		totalNotes(tally: Tally): number {
-			return tally.awesomes + tally.goods + tally.ehhs + tally.misses;
-		},
+			/**
+			 * Current total notes.
+			 *
+			 * (This should only be used in results sceen, because it's not accurate otherwise) */
+			totalNotes(): number {
+				return tally.awesomes + tally.goods + tally.ehhs + tally.misses;
+			},
 
-		/** Returns number from 0 to 100 based on how many notes were hit */
-		cleared(tally: Tally): number {
-			let division = this.hitNotes(tally) / this.totalNotes(tally);
-			if (isNaN(division)) return 0;
-			else return division * 100;
-		},
+			/** Returns number from 0 to 100 based on how many notes were hit */
+			cleared(): number {
+				let division = this.hitNotes(tally) / this.totalNotes(tally);
+				if (isNaN(division)) return 0;
+				else return division * 100;
+			},
 
-		/** Wheter the player has gotten a 'not-awesome' */
-		isPerfect(tally: Tally) {
-			return tally.awesomes == this.hitNotes(tally) && tally.misses == 0;
-		},
+			/** Wheter the player has gotten a 'not-awesome' */
+			isPerfect() {
+				return tally.awesomes == this.hitNotes(tally) && tally.misses == 0;
+			},
 
-		/** Gets the ranking for the current tally */
-		ranking(tally: Tally): Ranking {
-			if (tally.awesomes == this.totalNotes(tally) && tally.score > 1) return "S+";
-			else if (tally.misses == 0 && tally.score > 1) return "S";
-			else if (this.cleared(tally) > 85) return "A";
-			else if (this.cleared(tally) > 70) return "B";
-			else if (this.cleared(tally) > 50) return "C";
-			else return "F";
-		},
+			/** Gets the ranking for the current tally */
+			ranking(): Ranking {
+				if (tally.awesomes == this.totalNotes(tally) && tally.score > 1) return "S+";
+				else if (tally.misses == 0 && tally.score > 1) return "S";
+				else if (this.cleared(tally) > 85) return "A";
+				else if (this.cleared(tally) > 70) return "B";
+				else if (this.cleared(tally) > 50) return "C";
+				else return "F";
+			},
 
-		/** Returns a tally with random properties for a song */
-		random(): Tally {
-			return {
-				awesomes: rand(0, 10),
-				goods: rand(0, 10),
-				ehhs: rand(0, 10),
-				misses: rand(0, 10),
-				score: 2000,
-				highestCombo: 100,
-			};
-		},
-	};
+			/** Returns a tally with random properties for a song */
+			random(): Tally {
+				return {
+					awesomes: rand(0, 10),
+					goods: rand(0, 10),
+					ehhs: rand(0, 10),
+					misses: rand(0, 10),
+					score: 2000,
+					highestCombo: 100,
+				};
+			},
+		};
+	}
 }
 
 /** Class for the current tallies of a song */

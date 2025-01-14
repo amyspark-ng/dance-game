@@ -1,11 +1,10 @@
-import { GameObj, MaskComp, PosComp, RectComp } from "kaplay";
 import { triggerEvent } from "../../core/events";
 import { GameSave } from "../../core/gamesave";
 import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { utils } from "../../utils";
 import { Move } from "../objects/dancer";
 import { INPUT_THRESHOLD, StateGame } from "../PlayState";
-import { ChartNote, getNotesOnScreen, moveToColor, NoteGameObj } from "./note";
+import { ChartNote, getNotesOnScreen } from "./note";
 import { checkForNoteHit } from "./scoring";
 
 /** Scale of the strumline when pressed */
@@ -73,7 +72,7 @@ export function createStrumline(GameState: StateGame) {
 		if (strumlineObj.pressed) {
 			// has an actual note
 			if (strumlineObj.currentNote) {
-				const colorOfNote = moveToColor(strumlineObj.currentNote.move);
+				const colorOfNote = ChartNote.moveToColor(strumlineObj.currentNote.move);
 				strumlineObj.color = lerp(strumlineObj.color, colorOfNote, 0.5);
 				strumlineObj.scale = lerp(strumlineObj.scale, PRESS_SCALE, 0.5);
 			}
@@ -81,7 +80,7 @@ export function createStrumline(GameState: StateGame) {
 			else {
 				const pressedKey = Object.values(GameSave.gameControls).find((gameKey) => isKeyDown(gameKey.kbKey));
 				if (!pressedKey) return;
-				const colorOfKey = moveToColor(pressedKey.move);
+				const colorOfKey = ChartNote.moveToColor(pressedKey.move);
 				strumlineObj.color = lerp(strumlineObj.color, colorOfKey.lerp(STRUMLINE_COLOR, 0.5), 0.5);
 				strumlineObj.scale = lerp(strumlineObj.scale, vec2(0.9), 0.5);
 			}
