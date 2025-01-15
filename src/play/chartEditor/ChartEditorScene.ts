@@ -9,34 +9,10 @@ import { utils } from "../../utils";
 import { ChartNote } from "../objects/note";
 import { paramsGameScene } from "../PlayState";
 import { addMenuBars } from "./editorMenus";
-import {
-	checkerboardRenderer,
-	drawMinimap,
-	drawNoteCursor,
-	drawSelectionBox,
-	drawSelectSquares,
-	drawStrumline,
-	PROP_BIG_SCALE,
-	SCROLL_LERP_VALUE,
-	stampRenderer,
-} from "./editorRenderer";
-import {
-	ChartStamp,
-	concatStamps,
-	findStampAtStep,
-	fixStamp,
-	isStampNote,
-	minimapHandler,
-	moveHandler,
-	moveToDetune,
-	paramsChartEditor,
-	parseActions,
-	selectionBoxHandler,
-	setMouseAnimConditions,
-	StateChart,
-	trailAtStep,
-} from "./EditorState";
+import { EditorRenderer, PROP_BIG_SCALE, SCROLL_LERP_VALUE } from "./editorRenderer";
+import { ChartStamp, paramsChartEditor, StateChart } from "./EditorState";
 import { addEditorTabs } from "./editorTabs";
+import { EditorUtils } from "./EditorUtils";
 
 export function ChartEditorScene() {
 	scene("charteditor", (params: paramsChartEditor) => {
@@ -51,31 +27,17 @@ export function ChartEditorScene() {
 		});
 
 		gameCursor.show();
-		setMouseAnimConditions(ChartState);
-
-		/** Gets the current note that is being hovered */
-		function getCurrentHoveredNote() {
-			return findStampAtStep(ChartState.hoveredStep, ChartState).note();
-		}
-
-		function getCurrentHoveredEvent() {
-			return ChartState.song.chart.events.find((ev) => {
-				return Math.round(ChartState.conductor.timeToStep(ev.time)) == ChartState.hoveredStep;
-			});
-		}
 
 		onUpdate(() => {
-			parseActions(ChartState);
-
 			// ChartState.bgColor = Color.fromHSL(GameSave.editorHue, 0.45, 0.48);
 			ChartState.bgColor = rgb(92, 50, 172);
 
 			// STAMPS
-			const allStamps = concatStamps(ChartState.song.chart.notes, ChartState.song.chart.events);
+			const allStamps = EditorUtils.stamps.concat(ChartState.song.chart.notes, ChartState.song.chart.events);
 			allStamps.forEach((stamp, index) => {
-				fixStamp(stamp, ChartState);
+				EditorUtils.stamps.fix(stamp);
 
-				const isNote = isStampNote(stamp);
+				const isNote = EditorUtils.stamps.isNote(stamp);
 				if (!ChartState.stampProps[isNote ? "notes" : "events"][index]) {
 					ChartState.stampProps[isNote ? "notes" : "events"][index] = {
 						scale: vec2(1),
@@ -131,11 +93,9 @@ export function ChartEditorScene() {
 			// HOVERED STEP
 			ChartState.hoveredStep = ChartState.scrollStep + Math.floor(gameCursor.pos.y / ChartState.SQUARE_SIZE.y);
 
-			// Handle move change input
-			moveHandler(ChartState);
-
-			selectionBoxHandler(ChartState);
-			minimapHandler(ChartState);
+			EditorUtils.handlers.shortcuts();
+			EditorUtils.handlers.selectionBox();
+			EditorUtils.handlers.minimap();
 
 			let stepsToScroll = 0;
 
@@ -160,7 +120,7 @@ export function ChartEditorScene() {
 			}
 
 			// ceil to closest beat
-			if (isKeyPressedRepeat("right") && ChartState.scrollStep > 0) {
+			if (isKeyPressedRepeat("d") && ChartState.scrollStep > 0) {
 				if (!ChartState.paused) ChartState.paused = true;
 			}
 
@@ -169,23 +129,15 @@ export function ChartEditorScene() {
 			rightMouseDown.paused = !ChartState.input.trackEnabled;
 		});
 
-		// this is done like this so it's drawn on top of everything
-		const selectDraw = add([
-			z(1),
-		]);
-
-		selectDraw.onDraw(() => {
-			drawSelectionBox(ChartState);
-		});
-
 		/** The main event, draws everything so i don't have to use objects */
 		onDraw(() => {
-			checkerboardRenderer(ChartState);
-			stampRenderer(ChartState);
-			drawStrumline(ChartState);
-			drawMinimap(ChartState);
-			drawNoteCursor(ChartState);
-			drawSelectSquares(ChartState);
+			EditorRenderer.trackBackground();
+			EditorRenderer.stamps();
+			EditorRenderer.strumline();
+			EditorRenderer.minimap();
+			EditorRenderer.noteCursor();
+			EditorRenderer.selectSquares();
+			EditorRenderer.selectionBox();
 		});
 
 		/** When a leading note is selected, this gets filled with times of how far every other selected thing was from the new leading note */
@@ -216,7 +168,7 @@ export function ChartEditorScene() {
 			);
 
 			function noteBehaviour() {
-				let hoveredNote = getCurrentHoveredNote();
+				let hoveredNote = EditorUtils.stamps.getHovered("note");
 
 				// there's already a note in that place
 				if (hoveredNote) {
@@ -239,7 +191,7 @@ export function ChartEditorScene() {
 				else {
 					ChartState.commands.Deselect.action();
 					hoveredNote = ChartState.placeNote(hoveredTime, ChartState.currentMove);
-					playSound("noteAdd", { detune: moveToDetune(hoveredNote.move) });
+					EditorUtils.noteSound(hoveredNote, "Add");
 					ChartState.takeSnapshot();
 
 					setLeading(hoveredNote);
@@ -271,7 +223,7 @@ export function ChartEditorScene() {
 			}
 
 			function eventBehaviour() {
-				let hoveredEvent = getCurrentHoveredEvent();
+				let hoveredEvent = EditorUtils.stamps.getHovered("event");
 
 				// there's already an event in that place
 				if (hoveredEvent) {
@@ -319,10 +271,10 @@ export function ChartEditorScene() {
 			if (!ChartState.isCursorInGrid) return;
 
 			function noteBehaviour() {
-				const note = getCurrentHoveredNote();
+				const note = EditorUtils.stamps.getHovered("note");
 				if (!note) return;
 
-				if (trailAtStep(ChartState.hoveredStep, ChartState)) {
+				if (EditorUtils.stamps.trailAtStep(ChartState.hoveredStep)) {
 					// if you click the trail instead of the note it will only remove the trail rather than the note
 					note.length = undefined;
 					playSound("noteSnap", { detune: -50 });
@@ -330,13 +282,13 @@ export function ChartEditorScene() {
 				}
 				else {
 					ChartState.deleteNote(note);
-					playSound("noteRemove", { detune: moveToDetune(note.move) });
+					EditorUtils.noteSound(note, "Remove");
 					ChartState.takeSnapshot();
 				}
 			}
 
 			function eventBehaviour() {
-				const hoveredEvent = getCurrentHoveredEvent();
+				const hoveredEvent = EditorUtils.stamps.getHovered("event");
 				if (!hoveredEvent) return;
 				ChartState.deleteEvent(hoveredEvent);
 				playSound("noteRemove");
@@ -366,7 +318,7 @@ export function ChartEditorScene() {
 					ChartState.selectionBox.leadingStamp = selectedStamp;
 				}
 				else {
-					const isNote = isStampNote(selectedStamp);
+					const isNote = EditorUtils.stamps.isNote(selectedStamp);
 
 					const leadingStampStep = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time);
 
@@ -399,8 +351,8 @@ export function ChartEditorScene() {
 				const diff = newStepOfLeading - ChartState.stepForDetune;
 				let baseDetune = 0;
 
-				if (isStampNote(ChartState.selectionBox.leadingStamp)) {
-					baseDetune = Math.abs(moveToDetune(ChartState.selectionBox.leadingStamp.move)) * 0.5;
+				if (EditorUtils.stamps.isNote(ChartState.selectionBox.leadingStamp)) {
+					baseDetune = Math.abs(EditorUtils.moveToDetune(ChartState.selectionBox.leadingStamp.move)) * 0.5;
 				}
 				else {
 					baseDetune = Object.keys(ChartState.events).indexOf(ChartState.selectionBox.leadingStamp.id) * 10;
@@ -414,13 +366,13 @@ export function ChartEditorScene() {
 		// Copies the color of a note
 		onMousePress("middle", () => {
 			if (ChartState.isInNoteGrid) {
-				const currentHoveredNote = getCurrentHoveredNote();
+				const currentHoveredNote = EditorUtils.stamps.getHovered("note");
 				if (currentHoveredNote && ChartState.currentMove != currentHoveredNote.move) {
 					ChartState.changeMove(currentHoveredNote.move);
 				}
 			}
 			else {
-				const currentHoveredEvent = getCurrentHoveredEvent();
+				const currentHoveredEvent = EditorUtils.stamps.getHovered("event");
 				if (currentHoveredEvent && ChartState.currentEvent != currentHoveredEvent.id) {
 					ChartState.currentEvent = currentHoveredEvent.id as keyof typeof ChartState.events;
 				}
@@ -486,48 +438,19 @@ export function ChartEditorScene() {
 		});
 
 		// makes the strumline BOP
-		onBeatHit(() => {
+		onBeatHit((currentBeat) => {
 			tween(vec2(1.2), vec2(1), 0.1, (p) => ChartState.strumlineScale = p);
 		});
 
 		// Scrolls the checkerboard
-		onStepHit(() => {
-			const allStamps = concatStamps(ChartState.song.chart.notes, ChartState.song.chart.events);
-			const step = ChartState.conductor.currentStep;
-
-			let currentStamp: ChartStamp = null;
-			allStamps.forEach((stamp) => {
-				// @ts-ignore
-				const index = ChartState.song.chart[isStampNote(stamp) ? "notes" : "events"].indexOf(stamp);
-				const stampStep = ChartState.conductor.timeToStep(stamp.time);
-				const prop = ChartState.stampProps[isStampNote(stamp) ? "notes" : "events"][index];
-				if (!prop) return;
-
-				const noteAtStep = findStampAtStep(step, ChartState).note();
-				if (stampStep == step || noteAtStep == stamp) {
-					prop.scale = lerp(prop.scale, vec2(PROP_BIG_SCALE), ChartState.LERP);
-					if (trailAtStep(step, ChartState)) currentStamp = stamp;
-					else currentStamp = null;
-				}
-				else {
-					prop.scale = lerp(prop.scale, vec2(1), ChartState.LERP);
-				}
-			});
-
-			if (!ChartState.paused) {
-				if (!currentStamp) return;
-				if (isStampNote(currentStamp)) {
-					triggerEvent("onNoteHit", currentStamp);
-				}
-				else ChartState.triggerEvent(currentStamp.id as keyof typeof ChartState.events);
-			}
+		onStepHit((currentStep) => {
 		});
 
 		onSceneLeave(() => {
 			gameCursor.color = WHITE;
 		});
 
-		addMenuBars(ChartState);
-		addEditorTabs(ChartState);
+		addMenuBars();
+		addEditorTabs();
 	});
 }

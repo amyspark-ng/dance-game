@@ -29,15 +29,15 @@ export function onTransitionEnd(action: (nameOfTransition: string) => void) {
 	return getTreeRoot().on("transitionEnd", action);
 }
 
-export function onBeatHit(action: () => void) {
+export function onBeatHit(action: (currentBeat: number) => void) {
 	return getTreeRoot().on("onBeatHit", action);
 }
 
-export function onStepHit(action: () => void) {
+export function onStepHit(action: (currentStep: number) => void) {
 	return getTreeRoot().on("onStepHit", action);
 }
 
-export function onMeasureHit(action: () => void) {
+export function onMeasureHit(action: (currentMeasure: number) => void) {
 	return getTreeRoot().on("onMeasureHit", action);
 }
 

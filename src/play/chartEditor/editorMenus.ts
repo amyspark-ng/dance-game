@@ -75,7 +75,9 @@ export class MenuBar {
 }
 
 /** Manages and adds all of the menubar items for the chart editor */
-export function addMenuBars(ChartState: StateChart) {
+export function addMenuBars() {
+	const ChartState = StateChart.instance;
+
 	const allActions = ChartState.commands;
 	const fileActions = Object.keys(allActions).filter((key) => allActions[key].type == "File");
 	const editActions = Object.keys(allActions).filter((key) => allActions[key].type == "Edit");

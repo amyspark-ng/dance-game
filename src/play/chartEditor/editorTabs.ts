@@ -460,7 +460,9 @@ export class EditorTab {
 }
 
 /** Function that handles the addition for all the editor tabs in the chart editor */
-export function addEditorTabs(ChartState: StateChart) {
+export function addEditorTabs() {
+	const ChartState = StateChart.instance;
+
 	// this goes through each tab and adds an item for it in the view menubar
 	const arrayOfItems: MenuItem[] = [];
 	Object.values(EditorTab.tabs).forEach((tab) => {
@@ -518,5 +520,5 @@ export function addEditorTabs(ChartState: StateChart) {
 		});
 	});
 
-	defineTabs(ChartState);
+	defineTabs();
 }

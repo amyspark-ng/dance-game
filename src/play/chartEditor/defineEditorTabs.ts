@@ -4,13 +4,16 @@ import { GameSave, GameSaveClass } from "../../core/gamesave";
 import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { FileManager } from "../../fileManaging";
 import { utils } from "../../utils";
-import { createDancer, Move } from "../objects/dancer";
+import { makeDancer, Move } from "../objects/dancer";
 import { ChartEvent } from "../song";
-import { isStampNote, StateChart } from "./EditorState";
+import { StateChart } from "./EditorState";
 import { EditorTab } from "./editorTabs";
+import { EditorUtils } from "./EditorUtils";
 
 /** Function that defines the tabs found in the {@link EditorTab} class */
-export function defineTabs(ChartState: StateChart) {
+export function defineTabs() {
+	const ChartState = StateChart.instance;
+
 	EditorTab.tabs.Notes.addElements((editorTabObj) => {
 		editorTabObj.width = 240;
 		editorTabObj.height = 65;
@@ -94,8 +97,9 @@ export function defineTabs(ChartState: StateChart) {
 			return counter;
 		}
 
-		const dummyDancer = editorTabObj.add(createDancer("dancer_" + GameSave.dancer));
-		dummyDancer.scale = vec2(0.5);
+		const dummyDancer = editorTabObj.add(makeDancer(GameSave.dancer));
+		dummyDancer.intendedScale = vec2(0.5);
+		dummyDancer.scale = dummyDancer.intendedScale;
 		dummyDancer.pos = vec2(0, editorTabObj.height - dummyDancer.height / 2 - 30);
 
 		dummyDancer.onUpdate(() => {
@@ -143,7 +147,6 @@ export function defineTabs(ChartState: StateChart) {
 		});
 
 		const onNoteHitEv = onNoteHit((note) => {
-			debug.log(note.move);
 			dummyDancer.doMove(note.move);
 		});
 
@@ -283,7 +286,7 @@ export function defineTabs(ChartState: StateChart) {
 
 		editorTabObj.onUpdate(() => {
 			const oldEvent = currentEvent;
-			currentEvent = ChartState.selectedStamps.find((stamp) => !isStampNote(stamp)) as ChartEvent;
+			currentEvent = ChartState.selectedStamps.find((stamp) => !EditorUtils.stamps.isNote(stamp)) as ChartEvent;
 			const newEvent = currentEvent;
 
 			if (oldEvent != newEvent) {

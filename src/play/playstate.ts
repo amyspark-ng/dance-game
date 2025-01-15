@@ -9,7 +9,7 @@ import { transitionToScene } from "../core/scenes";
 import { fadeOut } from "../core/transitions/fadeOutTransition";
 import { paramsSongSelect } from "../ui/SongSelectScene";
 import { paramsChartEditor } from "./chartEditor/EditorState";
-import { createDancer, DancerGameObj, Move } from "./objects/dancer";
+import { DancerGameObj, makeDancer, Move } from "./objects/dancer";
 import { ChartNote, getNotesOnScreen, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
 import { Tally } from "./objects/scoring";
 import { createStrumline, StrumlineGameObj } from "./objects/strumline";
@@ -125,7 +125,7 @@ export class StateGame {
 
 		// adds the ui to the game
 		this.strumline = createStrumline(this);
-		this.dancer = createDancer(this.params.dancer);
+		this.dancer = add(makeDancer(this.params.dancer));
 		this.gameUI = addUI();
 		this.pauseUI = addPauseUI(this);
 

@@ -171,11 +171,11 @@ export class Conductor {
 
 			// if (this.paused) return;
 			if (oldStep != this.currentStep) {
-				triggerEvent("onStepHit");
+				triggerEvent("onStepHit", this.currentStep);
 			}
 
 			if (oldBeat != this.currentBeat) {
-				triggerEvent("onBeatHit");
+				triggerEvent("onBeatHit", this.currentStep);
 			}
 		}
 	}

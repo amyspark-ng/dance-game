@@ -14,13 +14,18 @@ import { Move } from "../objects/dancer";
 import { ChartNote } from "../objects/note";
 import { ChartEvent, SongContent } from "../song";
 import { PROP_BIG_SCALE } from "./editorRenderer";
+import { EditorUtils } from "./EditorUtils";
+
+/** The params for the chart editor */
+export type paramsChartEditor = {
+	song: SongContent;
+	playbackSpeed: number;
+	seekTime: number;
+	dancer: string;
+};
 
 /** Is either a note or an event */
 export type ChartStamp = ChartNote | ChartEvent;
-/** Wheter the stamp is a note or not */
-export function isStampNote(stamp: ChartStamp) {
-	return "move" in stamp;
-}
 
 export type EditorAction = {
 	shortcut: string;
@@ -44,109 +49,11 @@ export type stampPropThing = {
 	scale: Vec2;
 };
 
-/** Concatenates the stamps */
-export function concatStamps(notes: ChartNote[], events: ChartEvent[]): ChartStamp[] {
-	return [...notes, ...events];
-}
-
-/** Gets the closest stamp at a certain step
- *
- * If it's note it will account for trails of note [length]
- * @param step The step to find the note at
- */
-export function findStampAtStep(step: number, ChartState: StateChart) {
-	return {
-		note() {
-			const note = ChartState.song.chart.notes.find((note) =>
-				Math.round(ChartState.conductor.timeToStep(note.time)) == step
-			);
-			if (note) return note;
-			else {
-				const longNotes = ChartState.song.chart.notes.filter((note) => note.length != undefined);
-				const noteWithTrailAtStep = longNotes.find((note) => {
-					const noteStep = Math.round(ChartState.conductor.timeToStep(note.time));
-					if (utils.isInRange(step, noteStep, noteStep + note.length)) {
-						return note;
-					}
-					else return undefined;
-				});
-				return noteWithTrailAtStep;
-			}
-		},
-		event() {
-			const event = ChartState.song.chart.events.find((event) => {
-				Math.round(ChartState.conductor.timeToStep(event.time)) == step;
-			});
-			return event;
-		},
-	};
-}
-
-export function fixStamp(stamp: ChartStamp, ChartState: StateChart) {
-	const isNote = isStampNote(stamp);
-	const songDuration = ChartState.conductor.audioPlay.duration();
-	// clamps from 0 to time
-	stamp.time = clamp(stamp.time, 0, songDuration);
-
-	function snapToClosestTime(t: number) {
-		const stampStep = ChartState.conductor.timeToStep(t);
-		const closestStep = Math.round(stampStep);
-		return parseFloat(ChartState.conductor.stepToTime(closestStep).toFixed(2));
-	}
-
-	// clamps to closest step
-	stamp.time = snapToClosestTime(stamp.time);
-
-	if (isNote) {
-		stamp.length = Math.round(stamp.length);
-		if (isNaN(stamp.length)) stamp.length = undefined;
-	}
-}
-
-/** Determins wheter there's a trail at a certain step
- * @param step The step to find the trail at
- */
-export function trailAtStep(step: number, ChartState: StateChart): boolean {
-	const note = findStampAtStep(step, ChartState).note();
-	if (note) {
-		const noteStep = Math.round(ChartState.conductor.timeToStep(note.time));
-		if (note.length) {
-			return utils.isInRange(step, noteStep + 1, noteStep + 1 + note.length);
-		}
-		else return false;
-	}
-	else return false;
-}
-
-/** Get the message for the clipboard */
-export function clipboardMessage(action: "copy" | "cut" | "paste", clipboard: ChartStamp[]) {
-	let message = "";
-
-	const notesLength = clipboard.filter((thing) => isStampNote(thing)).length;
-	const eventsLength = clipboard.filter((thing) => !isStampNote(thing)).length;
-	const moreThanOneNote = notesLength > 1;
-	const moreThanOneEvent = eventsLength > 1;
-
-	const stringForAction = action == "copy" ? "Copied" : action == "cut" ? "Cut" : "Pasted";
-
-	if (notesLength > 0 && eventsLength == 0) {
-		message = `${stringForAction} ${notesLength} ${moreThanOneNote ? "notes" : "note"}!`;
-	}
-	else if (notesLength == 0 && eventsLength > 0) {
-		message = `${stringForAction} ${eventsLength} ${moreThanOneEvent ? "events" : "event"}!`;
-	}
-	else if (notesLength > 0 && eventsLength > 0) {
-		message = `${stringForAction} ${notesLength} ${moreThanOneNote ? "notes" : "note"} and ${eventsLength} ${
-			moreThanOneEvent ? "events" : "event"
-		}!`;
-	}
-	else if (notesLength == 0 && eventsLength == 0) message = `${stringForAction} nothing!`;
-
-	return message;
-}
-
 /** Class that manages every important variable in the chart editor */
 export class StateChart {
+	/** Static instance of the statechart */
+	static instance: StateChart = null;
+
 	bgColor: Color = rgb(92, 50, 172);
 	song: SongContent;
 	paused: boolean;
@@ -274,7 +181,7 @@ export class StateChart {
 			shortcut: "Ctrl + Shift + S",
 			type: "File",
 			action: () => {
-				downloadChart(this);
+				EditorUtils.downloadChart();
 			},
 		},
 
@@ -290,7 +197,7 @@ export class StateChart {
 			shortcut: "Ctrl + A",
 			type: "Edit",
 			action: () => {
-				this.selectedStamps = concatStamps(this.song.chart.notes, this.song.chart.events);
+				this.selectedStamps = EditorUtils.stamps.concat(this.song.chart.notes, this.song.chart.events);
 			},
 		},
 
@@ -306,7 +213,7 @@ export class StateChart {
 			shortcut: "Ctrl + I",
 			type: "Edit",
 			action: () => {
-				const allStamps = concatStamps(this.song.chart.notes, this.song.chart.events);
+				const allStamps = EditorUtils.stamps.concat(this.song.chart.notes, this.song.chart.events);
 				this.selectedStamps = allStamps.filter((stamp) => !this.selectedStamps.includes(stamp));
 			},
 		},
@@ -319,13 +226,13 @@ export class StateChart {
 				this.takeSnapshot();
 
 				this.selectedStamps.forEach((stamp) => {
-					if (isStampNote(stamp)) this.deleteNote(stamp);
+					if (EditorUtils.stamps.isNote(stamp)) this.deleteNote(stamp);
 					else this.deleteEvent(stamp);
 				});
 
 				playSound("noteRemove", { detune: rand(-50, 50) });
 				// there was an event in there
-				if (this.selectedStamps.some((stamp) => !isStampNote(stamp))) {
+				if (this.selectedStamps.some((stamp) => !EditorUtils.stamps.isNote(stamp))) {
 					playSound("eventCog", { detune: rand(-50, 50) });
 				}
 
@@ -340,11 +247,11 @@ export class StateChart {
 				if (this.selectedStamps.length == 0) return;
 
 				this.clipboard = this.selectedStamps;
-				addFloatingText(clipboardMessage("copy", this.clipboard));
+				EditorUtils.addFloatyText(EditorUtils.clipboardMessage("copy", this.clipboard));
 				playSound("noteCopy", { detune: rand(25, 50) });
 
 				this.selectedStamps.forEach((stamp) => {
-					if (isStampNote(stamp)) {
+					if (EditorUtils.stamps.isNote(stamp)) {
 						const indexInNotes = this.song.chart.notes.indexOf(stamp);
 						tween(
 							choose([-1, 1]) * 20,
@@ -391,11 +298,11 @@ export class StateChart {
 
 				// some code from the copy action
 				this.clipboard = this.selectedStamps;
-				addFloatingText(clipboardMessage("cut", this.clipboard));
+				EditorUtils.addFloatyText(EditorUtils.clipboardMessage("cut", this.clipboard));
 				playSound("noteCopy", { detune: rand(0, 25) });
 
 				this.selectedStamps.forEach((stamp) => {
-					if (isStampNote(stamp)) {
+					if (EditorUtils.stamps.isNote(stamp)) {
 						this.deleteNote(stamp);
 					}
 					else {
@@ -411,12 +318,12 @@ export class StateChart {
 			action: () => {
 				if (this.clipboard.length == 0) return;
 				playSound("noteCopy", { detune: rand(-50, -25) });
-				addFloatingText(clipboardMessage("paste", this.clipboard));
+				EditorUtils.addFloatyText(EditorUtils.clipboardMessage("paste", this.clipboard));
 
 				this.clipboard.forEach((stamp) => {
 					const newTime = stamp.time + this.conductor.stepToTime(this.hoveredStep);
 
-					if (isStampNote(stamp)) {
+					if (EditorUtils.stamps.isNote(stamp)) {
 						const newNote = this.placeNote(newTime, stamp.move);
 						const indexInNotes = this.song.chart.notes.indexOf(newNote);
 						if (indexInNotes == -1) return;
@@ -710,275 +617,6 @@ export class StateChart {
 
 		this.curSnapshotIndex = 0;
 		this.snapshots = [JSON.parse(JSON.stringify(this))];
+		StateChart.instance = this;
 	}
-}
-
-/** The params for the chart editor */
-export type paramsChartEditor = {
-	song: SongContent;
-	playbackSpeed: number;
-	seekTime: number;
-	dancer: string;
-};
-
-/** Converts the move to a detune, sounds good i think */
-export function moveToDetune(move: Move) {
-	switch (move) {
-		case "left":
-			return -50;
-		case "down":
-			return -100;
-		case "up":
-			return 100;
-		case "right":
-			return 50;
-	}
-}
-
-/** RUns on update */
-export function selectionBoxHandler(ChartState: StateChart) {
-	if (isMousePressed("left")) {
-		const canSelect = !get("hover", { recursive: true }).some((obj) => obj.isHovering())
-			&& !ChartState.isCursorInGrid
-			&& !get("editorTab").some((obj) => obj.isHovering)
-			&& !ChartState.minimap.canMove;
-
-		ChartState.selectionBox.canSelect = canSelect;
-		if (ChartState.selectionBox.canSelect) {
-			ChartState.selectionBox.clickPos = gameCursor.pos;
-		}
-	}
-
-	if (isMouseDown("left") && ChartState.selectionBox.canSelect) {
-		ChartState.selectionBox.width = Math.abs(gameCursor.pos.x - ChartState.selectionBox.clickPos.x);
-		ChartState.selectionBox.height = Math.abs(gameCursor.pos.y - ChartState.selectionBox.clickPos.y);
-
-		ChartState.selectionBox.pos.x = Math.min(ChartState.selectionBox.clickPos.x, gameCursor.pos.x);
-		ChartState.selectionBox.pos.y = Math.min(ChartState.selectionBox.clickPos.y, gameCursor.pos.y);
-
-		// # topleft
-		// the pos will just be the pos of the selectionbox since it's anchor topleft
-		ChartState.selectionBox.points[0] = ChartState.selectionBox.pos;
-
-		// # topright
-		// the x will be the same as topleft.x + width
-		ChartState.selectionBox.points[1].x = ChartState.selectionBox.pos.x + ChartState.selectionBox.width;
-		// y will be the same as topleft.y
-		ChartState.selectionBox.points[1].y = ChartState.selectionBox.pos.y;
-
-		// # bottomleft
-		// the x will be the same as points[0].x
-		ChartState.selectionBox.points[2].x = ChartState.selectionBox.pos.x;
-		// the y will be pos.y + height
-		ChartState.selectionBox.points[2].y = ChartState.selectionBox.pos.y + ChartState.selectionBox.height;
-
-		// # bottomright
-		// the x will be the same as topright x pos
-		ChartState.selectionBox.points[3].x = ChartState.selectionBox.points[1].x;
-		// the y will be the same as bottom left
-		ChartState.selectionBox.points[3].y = ChartState.selectionBox.points[2].y;
-	}
-
-	if (isMouseReleased("left") && ChartState.selectionBox.canSelect) {
-		const theRect = new Rect(
-			ChartState.selectionBox.pos,
-			ChartState.selectionBox.width,
-			ChartState.selectionBox.height,
-		);
-
-		const oldSelectStamps = ChartState.selectedStamps;
-		// ChartState.selectedStamps = [];
-
-		const combined = concatStamps(ChartState.song.chart.notes, ChartState.song.chart.events);
-
-		combined.forEach((stamp) => {
-			let stampPos = ChartState.stepToPos(ChartState.conductor.timeToStep(stamp.time));
-			stampPos.y -= ChartState.SQUARE_SIZE.y * ChartState.lerpScrollStep;
-			if (!isStampNote(stamp)) stampPos.x = ChartState.INITIAL_POS.x + ChartState.SQUARE_SIZE.x;
-
-			// is the topleft of the position
-			const posInScreen = vec2(
-				stampPos.x - ChartState.SQUARE_SIZE.x / 2,
-				stampPos.y - ChartState.SQUARE_SIZE.y / 2,
-			);
-
-			// this is for long notes
-			let otherPossiblePos = posInScreen;
-
-			if (isStampNote(stamp) && stamp.length) {
-				otherPossiblePos.y += ChartState.SQUARE_SIZE.y * stamp.length;
-			}
-
-			// these are the positions in all 4 corners
-			const possiblePos = [
-				posInScreen, // topleft
-				vec2(posInScreen.x + ChartState.SQUARE_SIZE.x, posInScreen.y), // topright
-				vec2(posInScreen.x, posInScreen.y + ChartState.SQUARE_SIZE.y), // bottomleft
-				vec2(posInScreen.x + ChartState.SQUARE_SIZE.x, posInScreen.y + ChartState.SQUARE_SIZE.y), // bottomright
-			];
-
-			// goes through each one and seeis if they're in the selection box
-			for (const posy in possiblePos) {
-				if (theRect.contains(possiblePos[posy]) || theRect.contains(otherPossiblePos)) {
-					ChartState.selectedStamps.push(stamp);
-					break;
-				}
-			}
-		});
-
-		const newSelectStamps = ChartState.selectedStamps;
-
-		if (oldSelectStamps != newSelectStamps) ChartState.takeSnapshot();
-
-		ChartState.selectionBox.clickPos = vec2(0, 0);
-		ChartState.selectionBox.points = [vec2(0, 0), vec2(0, 0), vec2(0, 0), vec2(0, 0)];
-		ChartState.selectionBox.pos = vec2(0, 0);
-		ChartState.selectionBox.width = 0;
-		ChartState.selectionBox.height = 0;
-	}
-}
-
-export function minimapHandler(ChartState: StateChart) {
-	const minLeft = ChartState.minimap.pos.x - ChartState.SQUARE_SIZE.x / 2;
-	const maxRight = ChartState.minimap.pos.x + ChartState.SQUARE_SIZE.x / 2;
-
-	/** How big a note is depending on the amount of total steps */
-	const SIZE = vec2(ChartState.SQUARE_SIZE.x / 3, height() / ChartState.conductor.totalSteps);
-	const heightOfMinimap = SIZE.y * 11;
-
-	if (gameCursor.pos.x >= minLeft && gameCursor.pos.x <= maxRight) ChartState.minimap.canMove = true;
-	else if (
-		(gameCursor.pos.x < ChartState.minimap.pos.x || gameCursor.pos.x > ChartState.minimap.pos.x)
-		&& !ChartState.minimap.isMoving
-	) ChartState.minimap.canMove = false;
-
-	if (!ChartState.minimap.isMoving) {
-		ChartState.minimap.pos.y = mapc(
-			ChartState.scrollStep,
-			0,
-			ChartState.conductor.totalSteps,
-			0,
-			height() - heightOfMinimap,
-		);
-	}
-
-	if (ChartState.minimap.canMove) {
-		if (isMousePressed("left")) {
-			ChartState.minimap.isMoving = true;
-			if (!ChartState.paused) ChartState.paused = true;
-		}
-		else if (isMouseReleased("left") && ChartState.minimap.isMoving) {
-			ChartState.minimap.isMoving = false;
-		}
-
-		if (ChartState.minimap.isMoving) {
-			ChartState.minimap.pos.y = gameCursor.pos.y;
-			ChartState.minimap.pos.y = clamp(ChartState.minimap.pos.y, 0, height() - heightOfMinimap);
-
-			const newStep = mapc(
-				ChartState.minimap.pos.y,
-				0,
-				height() - heightOfMinimap,
-				0,
-				ChartState.conductor.totalSteps,
-			);
-
-			ChartState.scrollToStep(newStep);
-		}
-	}
-}
-
-/** Handles the animation of the mouse */
-export function setMouseAnimConditions(ChartState: StateChart) {
-	gameCursor.addAnimCondition(() => {
-		// then the ones for the actual charting state
-		// kinda hardcoded, this probably just means the player is loading something nothing  else
-		if (!gameCursor.canMove && ChartState.inputDisabled) gameCursor.do("load");
-		else {
-			if (!ChartState.isCursorInGrid) {
-				if (isMouseDown("left") && ChartState.minimap.isMoving) gameCursor.do("down");
-				else gameCursor.do("default");
-			}
-			else {
-				if (!isMouseDown("left") && !isMouseDown("right")) gameCursor.do("up");
-				else if (isMouseDown("left") && !isMouseDown("right")) gameCursor.do("down");
-				else if (!isMouseDown("left") && isMouseDown("right")) gameCursor.do("x");
-			}
-		}
-	});
-}
-
-const keysAndMoves = {
-	"1": "left",
-	"2": "down",
-	"3": "up",
-	"4": "right",
-};
-
-/** Creates the 'isKeyPressed' event to change notes */
-export function moveHandler(ChartState: StateChart) {
-	Object.keys(keysAndMoves).forEach((key) => {
-		if (isKeyPressed(key as Key)) {
-			ChartState.changeMove(keysAndMoves[key]);
-		}
-	});
-}
-
-/** Goes through each shortcut in the commands object and checks if it's pressed, if its run the command */
-export function parseActions(ChartState: StateChart) {
-	Object.values(ChartState.commands).forEach((action) => {
-		const keys: Key[] = [];
-
-		action.shortcut.split("+").forEach((key) => {
-			key = key.toLowerCase();
-			key = key.replace(" ", "");
-			if (key == "ctrl") key = "control";
-			keys.push(key);
-		});
-
-		const condition = () => {
-			if (!ChartState.input.shortcutEnabled) return false;
-
-			if (
-				keys.every((key) => {
-					return (key == "control" || key == "shift") ? isKeyDown(key) : isKeyPressedRepeat(key);
-				})
-			) return true;
-			else return false;
-		};
-
-		if (condition()) {
-			action.action(ChartState);
-		}
-	});
-}
-
-/** Adds a cool little floating text */
-export function addFloatingText(texting: string) {
-	const copyText = add([
-		text(texting, { align: "left", size: 20 }),
-		pos(gameCursor.pos),
-		anchor("left"),
-		fixed(),
-		color(3, 252, 73),
-		opacity(),
-		timer(),
-	]);
-
-	copyText.tween(copyText.pos.y, copyText.pos.y - rand(25, 35), 0.5, (p) => copyText.pos.y = p, easings.easeOutQuint)
-		.onEnd(() => {
-			copyText.fadeOut(0.25).onEnd(() => copyText.destroy());
-		});
-
-	return copyText;
-}
-
-export async function downloadChart(ChartState: StateChart) {
-	getTreeRoot().trigger("download");
-
-	const SongFolder = await FileManager.writeSongFolder(ChartState.song);
-
-	// downloads the zip
-	downloadBlob(`${ChartState.song.manifest.name}.zip`, SongFolder);
-	debug.log(`${ChartState.song.manifest.name}.zip, DOWNLOADED! :)`);
 }

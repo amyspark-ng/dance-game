@@ -9,11 +9,11 @@ export type Move = "left" | "right" | "up" | "down" | "idle";
 const TIME_FOR_IDLE = 1;
 
 export const DANCER_POS = vec2(518, 377);
-export function createDancer(dancerName: string) {
+export function makeDancer(dancerName: string) {
 	let onAnimEndEvent: KEventController = null;
 
 	const dancerObj = make([
-		sprite(dancerName, { anim: "idle" }),
+		sprite("dancer_" + dancerName, { anim: "idle" }),
 		pos(center().x, height()),
 		anchor("bot"),
 		scale(),
@@ -21,6 +21,7 @@ export function createDancer(dancerName: string) {
 		z(2),
 		"dancerObj",
 		{
+			intendedScale: vec2(1),
 			forcedAnim: false,
 			/** The timer controller for the wait for the idle */
 			waitForIdle: null as KEventController,
@@ -59,18 +60,19 @@ export function createDancer(dancerName: string) {
 			 * Bops the dancer kinda like a FNF object
 			 * @returns The tween, check juice stretch for more info
 			 */
-			moveBop(theScale: Vec2 = vec2(1, 1)): TweenController {
+			moveBop(): TweenController {
+				this.scale.x = this.intendedScale.x;
 				return this.stretch({
 					XorY: "y",
-					startScale: theScale.y * 0.9,
-					endScale: theScale.y,
+					startScale: this.intendedScale.y * 0.9,
+					endScale: this.intendedScale.y,
 					theTime: 0.25,
 				});
 			},
 
 			/** Gets the current move */
 			getMove(): Move {
-				return this.getCurAnim().name;
+				return this.getCurAnim()?.name ?? "idle";
 			},
 
 			/** miss */
@@ -93,7 +95,7 @@ export function createDancer(dancerName: string) {
 }
 
 /** The type that a dancer game object would be */
-export type DancerGameObj = ReturnType<typeof createDancer>;
+export type DancerGameObj = ReturnType<typeof makeDancer>;
 
 /** Class that holds some info related to a dancer */
 export class DancerFile {
