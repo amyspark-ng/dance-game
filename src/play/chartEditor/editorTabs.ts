@@ -3,13 +3,13 @@ import { drag } from "../../core/plugins/features/drag";
 import { playSound } from "../../core/plugins/features/sound";
 import { utils } from "../../utils";
 import { defineTabs } from "./defineEditorTabs";
+import { MenuBar, MenuItem } from "./editorMenus";
 import { StateChart } from "./EditorState";
-import { TopMenuButton, TopMenuMinibutton } from "./editorTopmenu";
 
 /** The type for the {@link EditorTab.addElements `addElements()`} function in {@link EditorTab} */
 type EditorTabElementsAction = (editorTabObj: ReturnType<typeof EditorTab.addEditorTab>) => void;
 
-/** Class to handle the tabs found in the {@link TopMenuButton.buttons `TopMenuButton.buttons`} TopMenu (for the chart editor) */
+/** Class to handle the tabs found in the {@link MenuBar.bars `TopMenuButton.buttons`} TopMenu (for the chart editor) */
 export class EditorTab {
 	/** The title of the tab */
 	title: string;
@@ -23,7 +23,7 @@ export class EditorTab {
 	/** Holds the actual function to run to add the elements in the tab */
 	private elementsAction: EditorTabElementsAction = () => {};
 
-	/** Is a static object that holds all of the tabs in the view {@link TopMenuButton `TopMenuButton`} */
+	/** Is a static object that holds all of the tabs in the view {@link MenuBar `TopMenuButton`} */
 	static tabs = {
 		"SongInfo": new EditorTab("Song info", vec2(800, 300), false),
 		"Sync": new EditorTab("Sync", vec2(800, 300), true),
@@ -461,10 +461,10 @@ export class EditorTab {
 
 /** Function that handles the addition for all the editor tabs in the chart editor */
 export function addEditorTabs(ChartState: StateChart) {
-	// this goes through each tab and adds a minibutton for it in the view top menu
-	const arrayOfMinibuttonsAccordingToTab: TopMenuMinibutton[] = [];
+	// this goes through each tab and adds an item for it in the view menubar
+	const arrayOfItems: MenuItem[] = [];
 	Object.values(EditorTab.tabs).forEach((tab) => {
-		arrayOfMinibuttonsAccordingToTab.push({
+		arrayOfItems.push({
 			text: tab.title,
 			action: () => {
 				tab.visible = !tab.visible;
@@ -474,9 +474,9 @@ export function addEditorTabs(ChartState: StateChart) {
 				}
 			},
 			// this runs some extra code which is an ondraw that serves as a checkbox
-			extraCode(minibuttonObj) {
-				const posOfSquare = vec2(minibuttonObj.width - 5, 12.5);
-				minibuttonObj.onDraw(() => {
+			extraCode(itemObj) {
+				const posOfSquare = vec2(itemObj.width - 5, 12.5);
+				itemObj.onDraw(() => {
 					drawRect({
 						width: 20,
 						height: 20,
@@ -504,9 +504,9 @@ export function addEditorTabs(ChartState: StateChart) {
 	});
 
 	// then this sets up the top menu button
-	TopMenuButton.buttons.View.minibuttons = arrayOfMinibuttonsAccordingToTab;
+	MenuBar.bars.View.items = arrayOfItems;
 	// adds the slider (parsing is on that file)
-	TopMenuButton.buttons.View.minibuttons.push({ text: "hueslider", action: () => true });
+	MenuBar.bars.View.items.push({ text: "hueslider", action: () => true });
 
 	// and this goes each frame and checks if a tab should be or should not be
 	onUpdate(() => {

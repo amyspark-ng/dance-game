@@ -8,6 +8,7 @@ import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { utils } from "../../utils";
 import { ChartNote } from "../objects/note";
 import { paramsGameScene } from "../PlayState";
+import { addMenuBars } from "./editorMenus";
 import {
 	checkerboardRenderer,
 	drawMinimap,
@@ -36,7 +37,6 @@ import {
 	trailAtStep,
 } from "./EditorState";
 import { addEditorTabs } from "./editorTabs";
-import { addTopMenuButtons } from "./editorTopmenu";
 
 export function ChartEditorScene() {
 	scene("charteditor", (params: paramsChartEditor) => {
@@ -66,8 +66,6 @@ export function ChartEditorScene() {
 
 		onUpdate(() => {
 			parseActions(ChartState);
-
-			debug.log(ChartState.input.shortcutEnabled);
 
 			// ChartState.bgColor = Color.fromHSL(GameSave.editorHue, 0.45, 0.48);
 			ChartState.bgColor = rgb(92, 50, 172);
@@ -529,7 +527,7 @@ export function ChartEditorScene() {
 			gameCursor.color = WHITE;
 		});
 
-		addTopMenuButtons(ChartState);
+		addMenuBars(ChartState);
 		addEditorTabs(ChartState);
 	});
 }
