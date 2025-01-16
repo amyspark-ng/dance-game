@@ -99,8 +99,6 @@ export class EditorRenderer {
 
 			if (!ChartState.stampProps[isNote ? "notes" : "events"][index]) return;
 
-			const stepOfStamp = ChartState.conductor.timeToStep(stamp.time);
-			const lengthOfStamp = isNote ? stamp.length : 0;
 			const stampLengthIsInRange = isNote && EditorUtils.stamps.trailAtStep(ChartState.scrollStep);
 
 			const canDraw = EditorRenderer.conditionsForDrawing(stampPos.y) || stampLengthIsInRange;
@@ -183,49 +181,6 @@ export class EditorRenderer {
 	/** Draw the cursor to highlight notes */
 	static noteCursor() {
 		const ChartState = StateChart.instance;
-
-		const strumlineYPos = ChartState.SQUARE_SIZE.y * ChartState.strumlineStep;
-
-		const minLeft = center().x - ChartState.SQUARE_SIZE.x / 2;
-		const maxRight = minLeft + ChartState.SQUARE_SIZE.x * 2;
-
-		// if the distance between the cursor and the square is small enough then highlight it
-		if (utils.isInRange(gameCursor.pos.x, minLeft, maxRight)) {
-			// above the grid
-			if (ChartState.scrollStep == 0 && gameCursor.pos.y < ChartState.INITIAL_POS.y) {
-				ChartState.isInEventGrid = false;
-				ChartState.isInNoteGrid = false;
-			}
-			// below the grid
-			else if (
-				ChartState.scrollStep == ChartState.conductor.totalSteps /* && gameCursor.pos.y >= strumlineYPos */
-			) {
-				ChartState.isInEventGrid = false;
-				ChartState.isInNoteGrid = false;
-			}
-			// actually inside the grid
-			else {
-				// note grid
-				if (gameCursor.pos.x >= minLeft && gameCursor.pos.x < maxRight - ChartState.SQUARE_SIZE.x) {
-					ChartState.isInNoteGrid = true;
-				}
-				else ChartState.isInNoteGrid = false;
-
-				// event grid
-				if (gameCursor.pos.x >= minLeft + ChartState.SQUARE_SIZE.x && gameCursor.pos.x < maxRight) {
-					ChartState.isInEventGrid = true;
-				}
-				else ChartState.isInEventGrid = false;
-			}
-		}
-		else {
-			ChartState.isInEventGrid = false;
-			ChartState.isInNoteGrid = false;
-		}
-
-		// if it's on either of them then it's in the grid
-		ChartState.isCursorInGrid = ChartState.isInNoteGrid || ChartState.isInEventGrid;
-
 		if (!ChartState.isCursorInGrid) return;
 
 		// cursor = the square you're hovering over

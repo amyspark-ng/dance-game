@@ -9,10 +9,10 @@ import { utils } from "../../utils";
 import { ChartNote } from "../objects/note";
 import { paramsGameScene } from "../PlayState";
 import { addMenuBars } from "./editorMenus";
-import { EditorRenderer, PROP_BIG_SCALE, SCROLL_LERP_VALUE } from "./editorRenderer";
+import { EditorRenderer, SCROLL_LERP_VALUE } from "./editorRenderer.ts";
 import { ChartStamp, paramsChartEditor, StateChart } from "./EditorState";
 import { addEditorTabs } from "./editorTabs";
-import { EditorUtils } from "./EditorUtils";
+import { EditorCommands, EditorUtils } from "./EditorUtils";
 
 export function ChartEditorScene() {
 	scene("charteditor", (params: paramsChartEditor) => {
@@ -27,10 +27,13 @@ export function ChartEditorScene() {
 		});
 
 		gameCursor.show();
+		EditorUtils.handlers.mouseAnim();
 
 		onUpdate(() => {
 			// ChartState.bgColor = Color.fromHSL(GameSave.editorHue, 0.45, 0.48);
 			ChartState.bgColor = rgb(92, 50, 172);
+
+			debug.log(ChartState.snapshots[ChartState.snapshotIndex].command);
 
 			// STAMPS
 			const allStamps = EditorUtils.stamps.concat(ChartState.song.chart.notes, ChartState.song.chart.events);
@@ -93,36 +96,11 @@ export function ChartEditorScene() {
 			// HOVERED STEP
 			ChartState.hoveredStep = ChartState.scrollStep + Math.floor(gameCursor.pos.y / ChartState.SQUARE_SIZE.y);
 
+			// some handlers
+			EditorUtils.handlers.grid();
 			EditorUtils.handlers.shortcuts();
 			EditorUtils.handlers.selectionBox();
 			EditorUtils.handlers.minimap();
-
-			let stepsToScroll = 0;
-
-			// scroll up
-			if (isKeyPressedRepeat("w") && ChartState.scrollStep > 0) {
-				if (!ChartState.paused) ChartState.paused = true;
-				if (isKeyDown("shift")) stepsToScroll = -10;
-				else stepsToScroll = -1;
-				ChartState.scrollToStep(ChartState.scrollStep + stepsToScroll);
-			}
-			// scroll down
-			else if (isKeyPressedRepeat("s") && ChartState.scrollStep < ChartState.conductor.totalSteps - 1) {
-				if (!ChartState.paused) ChartState.paused = true;
-				if (isKeyDown("shift")) stepsToScroll = 10;
-				else stepsToScroll = 1;
-				ChartState.scrollToStep(ChartState.scrollStep + stepsToScroll);
-			}
-			// scroll left nah just messing with you closest beat
-			if (isKeyPressedRepeat("a") && ChartState.scrollStep > 0) {
-				if (!ChartState.paused) ChartState.paused = true;
-				// TODO: do this lol
-			}
-
-			// ceil to closest beat
-			if (isKeyPressedRepeat("d") && ChartState.scrollStep > 0) {
-				if (!ChartState.paused) ChartState.paused = true;
-			}
 
 			leftMousePress.paused = !ChartState.input.trackEnabled;
 			rightMousePress.paused = !ChartState.input.trackEnabled;
@@ -189,7 +167,7 @@ export function ChartEditorScene() {
 				}
 				// there's no note in that place
 				else {
-					ChartState.commands.Deselect.action();
+					EditorCommands.DeselectAll();
 					hoveredNote = ChartState.placeNote(hoveredTime, ChartState.currentMove);
 					EditorUtils.noteSound(hoveredNote, "Add");
 					ChartState.takeSnapshot();
@@ -252,7 +230,7 @@ export function ChartEditorScene() {
 					!get("hover", { recursive: true }).some((obj) => obj.isHovering())
 					&& !get("editorTab").some((obj) => obj.isHovering)
 				) {
-					ChartState.commands.Deselect.action();
+					EditorCommands.DeselectAll();
 				}
 			}
 			else {
@@ -391,14 +369,16 @@ export function ChartEditorScene() {
 			if (isKeyDown("shift")) {
 				if (ChartState.strumlineStep >= 0 && ChartState.strumlineStep < ChartState.conductor.totalSteps) {
 					ChartState.strumlineStep += scrollPlus;
-					ChartState.strumlineStep = clamp(ChartState.strumlineStep, 0, ChartState.conductor.totalSteps);
+					ChartState.strumlineStep = clamp(
+						ChartState.strumlineStep,
+						0,
+						ChartState.conductor.totalSteps - ChartState.scrollStep,
+					);
 				}
 			}
 			else {
 				// scroll step
-				if (ChartState.scrollStep >= 0 && ChartState.scrollStep < ChartState.conductor.totalSteps) {
-					ChartState.scrollToStep(ChartState.scrollStep + scrollPlus);
-				}
+				ChartState.scrollToStep(ChartState.scrollStep + scrollPlus);
 			}
 		});
 

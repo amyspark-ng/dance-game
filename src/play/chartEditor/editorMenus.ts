@@ -1,5 +1,6 @@
 import { GameSave } from "../../core/gamesave";
 import { EditorAction, StateChart } from "./EditorState";
+import { EditorCommands } from "./EditorUtils";
 
 const SIZE_OF_MENUBAR = vec2(125, 25);
 const STARTING_POS = vec2(25, 25);
@@ -9,7 +10,7 @@ const TEXT_WIDTH = formatText({ text: "A", size: TEXT_SIZE }).width;
 /** Type for the menu item class */
 export type MenuItem = {
 	text: string;
-	action: (ChartState?: StateChart) => void;
+	action: () => void;
 	extraCode?: (itemObj: ReturnType<typeof MenuBar.makeMenuItem>) => void;
 };
 
@@ -25,8 +26,87 @@ export class MenuBar {
 
 	/** Is an static object that holds the current menubars */
 	static bars = {
-		"File": new MenuBar("File", []),
-		"Edit": new MenuBar("Edit", []),
+		"File": new MenuBar("File", [
+			{
+				text: "New (Ctrl + N)",
+				action: () => EditorCommands.NewChart(),
+			},
+			{
+				text: "Open (Ctrl + O)\n",
+				action: () => EditorCommands.OpenChart(),
+			},
+			{
+				text: "Save as... (Ctrl + Shift + S)\n",
+				action: () => EditorCommands.SaveChart(),
+			},
+			{
+				text: "Exit (Ctrl + Q)",
+				action: () => EditorCommands.Exit(),
+			},
+		]),
+		"Edit": new MenuBar("Edit", [
+			{
+				text: "Select all (Ctrl + A)",
+				action: () => EditorCommands.SelectAll(),
+			},
+			{
+				text: "Deselect (Ctrl + D)",
+				action: () => EditorCommands.DeselectAll(),
+			},
+			{
+				text: "Invert selection (Ctrl + I)\n",
+				action: () => EditorCommands.InvertSelection(),
+			},
+			{
+				text: "Delete (Backspace)",
+				action: () => EditorCommands.Delete(),
+			},
+			{
+				text: "Copy (Ctrl + C)",
+				action: () => EditorCommands.Copy(),
+			},
+			{
+				text: "Cut (Ctrl + X)",
+				action: () => EditorCommands.Cut(),
+			},
+			{
+				text: "Paste (Ctrl + V)\n",
+				action: () => EditorCommands.Paste(),
+			},
+			{
+				text: "Undo (Ctrl + Z)",
+				action: () => EditorCommands.Undo(),
+				extraCode(itemObj) {
+					const ChartState = StateChart.instance;
+					itemObj.onUpdate(() => {
+						if (ChartState.snapshotIndex == 0) itemObj.off = true;
+						else {
+							itemObj.off = false;
+							const lastCommand = ChartState.snapshots[ChartState.snapshotIndex].command;
+							if (lastCommand) itemObj.item.text = `Undo ${lastCommand} (Ctrl + Z)`;
+							else itemObj.item.text = "Undo (Ctrl + Z)";
+						}
+					});
+				},
+			},
+			{
+				text: "Redo (Ctrl + Z)",
+				action: () => EditorCommands.Redo(),
+				extraCode(itemObj) {
+					itemObj.onUpdate(() => {
+						const ChartState = StateChart.instance;
+
+						if (ChartState.snapshotIndex == 0) itemObj.off = true;
+						else {
+							const nextCommand =
+								StateChart.instance.snapshots[StateChart.instance.snapshotIndex - 1].command;
+							if (nextCommand) itemObj.item.text = `Redo ${nextCommand} (Ctrl + Y)`;
+							else itemObj.item.text = `Redo (Ctrl + Y)`;
+						}
+					});
+				},
+			},
+		]),
 		"View": new MenuBar("View", []),
 	};
 
@@ -63,6 +143,11 @@ export class MenuBar {
 			color(),
 			"tabbutton",
 			"hover",
+			{
+				/** This means it can't be clicked */
+				off: false,
+				item: null as MenuItem,
+			},
 		]);
 
 		return item;
@@ -77,30 +162,6 @@ export class MenuBar {
 /** Manages and adds all of the menubar items for the chart editor */
 export function addMenuBars() {
 	const ChartState = StateChart.instance;
-
-	const allActions = ChartState.commands;
-	const fileActions = Object.keys(allActions).filter((key) => allActions[key].type == "File");
-	const editActions = Object.keys(allActions).filter((key) => allActions[key].type == "Edit");
-
-	function addToMenubar(key: string, menuname: keyof typeof MenuBar.bars) {
-		const editorAction = allActions[key] as EditorAction;
-		const hasLine = key.includes("\n");
-		const text = key.replace("\n", "") + " (" + editorAction.shortcut + ")" + (hasLine ? "_" : "");
-		MenuBar.bars[menuname].items.push({
-			text,
-			action: editorAction.action,
-		});
-	}
-
-	// FILE ACTIONS
-	fileActions.forEach((key) => {
-		addToMenubar(key, "File");
-	});
-
-	// EDIT ACTIONS
-	editActions.forEach((key) => {
-		addToMenubar(key, "Edit");
-	});
 
 	Object.values(MenuBar.bars).forEach((button, index) => {
 		const bar = MenuBar.addMenuBar();
@@ -132,6 +193,7 @@ export function addMenuBars() {
 
 					let menuitem = MenuBar.makeMenuItem();
 					menuitem = bar.add(menuitem);
+					menuitem.item = item;
 
 					const intendedY = SIZE_OF_MENUBAR.y + index * SIZE_OF_MENUBAR.y;
 
@@ -145,10 +207,15 @@ export function addMenuBars() {
 					else menuitem.width = theWidth;
 
 					menuitem.onUpdate(() => {
-						const intendedColor = menuitem.isHovering()
-							? WHITE
-							: ChartState.bgColor.lerp(WHITE, 0.5);
-						menuitem.color = lerp(menuitem.color, intendedColor, 0.5);
+						if (menuitem.off == false) {
+							const intendedColor = menuitem.isHovering()
+								? WHITE
+								: ChartState.bgColor.lerp(WHITE, 0.5);
+							menuitem.color = lerp(menuitem.color, intendedColor, 0.5);
+						}
+						else {
+							menuitem.color = lerp(menuitem.color, ChartState.bgColor.lerp(WHITE, 0.25), 0.5);
+						}
 
 						menuitem.pos.y = lerp(
 							menuitem.pos.y,
@@ -196,12 +263,13 @@ export function addMenuBars() {
 					}
 
 					menuitem.onClick(() => {
+						if (menuitem.off) return;
 						bar.removeAll();
-						item.action(ChartState);
+						item.action();
 					});
 
-					const hasLine = item.text.includes("_");
-					let itemtext = item.text.replace("_", "");
+					const hasLine = item.text.includes("\n");
+					let itemtext = item.text.replace("\n", "");
 					const hasShortcut = item.text.includes("(");
 					const shortcut = MenuBar.getShortcut(itemtext);
 					if (hasShortcut) {

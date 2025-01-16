@@ -1,20 +1,16 @@
 // File that stores some of the chart editor behaviour backend
-import { Color, Key, Vec2 } from "kaplay";
+import { Color, Vec2 } from "kaplay";
 import { v4 } from "uuid";
 import { Conductor } from "../../conductor";
 import { GameSave } from "../../core/gamesave";
 import { dancers, loadedSongs } from "../../core/loader";
-import { gameCursor } from "../../core/plugins/features/gameCursor";
-import { playMusic, playSound } from "../../core/plugins/features/sound";
-import { transitionToScene } from "../../core/scenes";
-import { fadeOut } from "../../core/transitions/fadeOutTransition";
+import { playMusic } from "../../core/plugins/features/sound";
 import { FileManager } from "../../fileManaging";
 import { utils } from "../../utils";
 import { Move } from "../objects/dancer";
 import { ChartNote } from "../objects/note";
 import { ChartEvent, SongContent } from "../song";
 import { PROP_BIG_SCALE } from "./editorRenderer";
-import { EditorUtils } from "./EditorUtils";
 
 /** The params for the chart editor */
 export type paramsChartEditor = {
@@ -37,9 +33,11 @@ export type EditorAction = {
 export class ChartSnapshot {
 	song: SongContent;
 	selectedStamps: ChartStamp[] = [];
-	constructor(song: SongContent, selectedStamps: ChartStamp[]) {
+	command: string = undefined;
+	constructor(song: SongContent, selectedStamps: ChartStamp[], command?: string) {
 		this.song = song;
 		this.selectedStamps = selectedStamps;
+		this.command = command;
 	}
 }
 
@@ -145,7 +143,10 @@ export class StateChart {
 	selectedStamps: ChartStamp[] = [];
 
 	/** Every time you do something, the new state will be pushed to this array */
-	snapshots: StateChart[] = [];
+	snapshots: ChartSnapshot[] = [];
+
+	/** Current index of the current snapshot blah */
+	snapshotIndex = 0;
 
 	/** The things currently copied */
 	clipboard: ChartStamp[] = [];
@@ -155,231 +156,6 @@ export class StateChart {
 
 	/** Determines the current time in the song */
 	strumlineStep = 0;
-
-	/** Current index of the current snapshot blah */
-	curSnapshotIndex = 0;
-
-	/** Is an object that holds all the possible commands in the chart editor */
-	commands = {
-		"New": {
-			shortcut: "Ctrl + N",
-			type: "File",
-			action: () => {
-				this.createNewSong();
-			},
-		},
-
-		"Open Chart": {
-			shortcut: "Ctrl + O",
-			type: "File",
-			action: async (ChartState: StateChart) => {
-				debug.log("wip");
-			},
-		},
-
-		"Save chart\n": {
-			shortcut: "Ctrl + Shift + S",
-			type: "File",
-			action: () => {
-				EditorUtils.downloadChart();
-			},
-		},
-
-		"Exit": {
-			shortcut: "Ctrl + Q",
-			type: "File",
-			action: () => {
-				transitionToScene(fadeOut, "menu", { index: 0 });
-			},
-		},
-
-		"Select all": {
-			shortcut: "Ctrl + A",
-			type: "Edit",
-			action: () => {
-				this.selectedStamps = EditorUtils.stamps.concat(this.song.chart.notes, this.song.chart.events);
-			},
-		},
-
-		"Deselect": {
-			shortcut: "Ctrl + D",
-			type: "Edit",
-			action: () => {
-				this.selectedStamps = [];
-			},
-		},
-
-		"Invert selection\n": {
-			shortcut: "Ctrl + I",
-			type: "Edit",
-			action: () => {
-				const allStamps = EditorUtils.stamps.concat(this.song.chart.notes, this.song.chart.events);
-				this.selectedStamps = allStamps.filter((stamp) => !this.selectedStamps.includes(stamp));
-			},
-		},
-
-		"Delete": {
-			shortcut: "Backspace",
-			type: "Edit",
-			action: () => {
-				if (this.selectedStamps.length == 0) return;
-				this.takeSnapshot();
-
-				this.selectedStamps.forEach((stamp) => {
-					if (EditorUtils.stamps.isNote(stamp)) this.deleteNote(stamp);
-					else this.deleteEvent(stamp);
-				});
-
-				playSound("noteRemove", { detune: rand(-50, 50) });
-				// there was an event in there
-				if (this.selectedStamps.some((stamp) => !EditorUtils.stamps.isNote(stamp))) {
-					playSound("eventCog", { detune: rand(-50, 50) });
-				}
-
-				this.commands.Deselect.action();
-			},
-		},
-
-		"Copy": {
-			shortcut: "Ctrl + C",
-			type: "Edit",
-			action: () => {
-				if (this.selectedStamps.length == 0) return;
-
-				this.clipboard = this.selectedStamps;
-				EditorUtils.addFloatyText(EditorUtils.clipboardMessage("copy", this.clipboard));
-				playSound("noteCopy", { detune: rand(25, 50) });
-
-				this.selectedStamps.forEach((stamp) => {
-					if (EditorUtils.stamps.isNote(stamp)) {
-						const indexInNotes = this.song.chart.notes.indexOf(stamp);
-						tween(
-							choose([-1, 1]) * 20,
-							0,
-							0.5,
-							(p) => this.stampProps.notes[indexInNotes].angle = p,
-							easings.easeOutExpo,
-						);
-						tween(
-							vec2(1.2),
-							vec2(1),
-							0.5,
-							(p) => this.stampProps.notes[indexInNotes].scale = p,
-							easings.easeOutExpo,
-						);
-					}
-					else {
-						const indexInEvents = this.song.chart.events.indexOf(stamp);
-						tween(
-							choose([-1, 1]) * 20,
-							0,
-							0.5,
-							(p) => this.stampProps.events[indexInEvents].angle = p,
-							easings.easeOutExpo,
-						);
-						tween(
-							vec2(1.2),
-							vec2(1),
-							0.5,
-							(p) => this.stampProps.events[indexInEvents].scale = p,
-							easings.easeOutExpo,
-						);
-					}
-				});
-			},
-		},
-
-		"Cut": {
-			shortcut: "Ctrl + X",
-			type: "Edit",
-			action: (() => {
-				if (this.selectedStamps.length == 0) return;
-				this.takeSnapshot();
-
-				// some code from the copy action
-				this.clipboard = this.selectedStamps;
-				EditorUtils.addFloatyText(EditorUtils.clipboardMessage("cut", this.clipboard));
-				playSound("noteCopy", { detune: rand(0, 25) });
-
-				this.selectedStamps.forEach((stamp) => {
-					if (EditorUtils.stamps.isNote(stamp)) {
-						this.deleteNote(stamp);
-					}
-					else {
-						this.deleteEvent(stamp);
-					}
-				});
-			}),
-		},
-
-		"Paste\n": {
-			shortcut: "Ctrl + V",
-			type: "Edit",
-			action: () => {
-				if (this.clipboard.length == 0) return;
-				playSound("noteCopy", { detune: rand(-50, -25) });
-				EditorUtils.addFloatyText(EditorUtils.clipboardMessage("paste", this.clipboard));
-
-				this.clipboard.forEach((stamp) => {
-					const newTime = stamp.time + this.conductor.stepToTime(this.hoveredStep);
-
-					if (EditorUtils.stamps.isNote(stamp)) {
-						const newNote = this.placeNote(newTime, stamp.move);
-						const indexInNotes = this.song.chart.notes.indexOf(newNote);
-						if (indexInNotes == -1) return;
-						tween(
-							choose([-1, 1]) * 20,
-							0,
-							0.5,
-							(p) => this.stampProps.notes[indexInNotes].angle = p,
-							easings.easeOutExpo,
-						);
-					}
-					else {
-						const newEvent = this.placeEvent(newTime, stamp.id);
-						const indexInEvents = this.song.chart.events.indexOf(newEvent);
-						if (indexInEvents == -1) return;
-						tween(
-							choose([-1, 1]) * 20,
-							0,
-							0.5,
-							(p) => this.stampProps.events[indexInEvents].angle = p,
-							easings.easeOutExpo,
-						);
-					}
-				});
-
-				// shickiiii
-				this.takeSnapshot();
-			},
-		},
-
-		"Undo": {
-			shortcut: "Ctrl + Z",
-			type: "Edit",
-			action: () => {
-				let oldSongState = this.song;
-				this.undo();
-
-				if (oldSongState != this.song) {
-					playSound("noteUndo", { detune: rand(-50, -25) });
-				}
-			},
-		},
-
-		"Redo": {
-			shortcut: "Ctrl + Y",
-			type: "Edit",
-			action: () => {
-				let oldSongState = this.song;
-				this.redo();
-
-				if (oldSongState != this.song) {
-					playSound("noteUndo", { detune: rand(25, 50) });
-				}
-			},
-		},
-	};
 
 	input = {
 		/** Click to place, click to drag and move, click to delete */
@@ -408,8 +184,6 @@ export class StateChart {
 
 	/** Unselects any stamp and the detune */
 	resetSelectedStamps() {
-		this.selectedStamps = [];
-		this.stepForDetune = 0;
 	}
 
 	/** Changes the current move */
@@ -422,6 +196,8 @@ export class StateChart {
 	 * @returns The added note
 	 */
 	placeNote(time: number, move: Move) {
+		this.takeSnapshot(`add ${move} note`);
+
 		const noteWithSameTimeButDifferentMove = this.song.chart.notes.find(note =>
 			note.time == time && note.move != move || note.time == time && note.move == move
 		);
@@ -447,6 +223,8 @@ export class StateChart {
 	 * @returns The removed note
 	 */
 	deleteNote(noteToRemove: ChartNote): ChartNote {
+		this.takeSnapshot(`delete ${move} note`);
+
 		const oldNote = this.song.chart.notes.find(note => note == noteToRemove);
 		if (oldNote == undefined) return;
 
@@ -483,22 +261,22 @@ export class StateChart {
 	}
 
 	/** Pushes a snapshot of the current state of the chart */
-	takeSnapshot() {
-		const snapshot = new ChartSnapshot(this.song, this.selectedStamps);
+	takeSnapshot(action?: string) {
+		const snapshot = new ChartSnapshot(this.song, this.selectedStamps, action);
 		// Remove any states ahead of the current index for redo to behave correctly
-		this.snapshots = this.snapshots.slice(0, this.curSnapshotIndex + 1);
+		this.snapshots = this.snapshots.slice(0, this.snapshotIndex + 1);
 
 		// Add new state as a deep copy to avoid reference issues
 		this.snapshots.push(JSON.parse(JSON.stringify(snapshot)));
-		this.curSnapshotIndex++;
+		this.snapshotIndex++;
 	}
 
 	/** Undos the song and selected notes to latest snapshot */
 	undo() {
-		if (this.curSnapshotIndex > 0) {
-			this.curSnapshotIndex--;
+		if (this.snapshotIndex > 0) {
+			this.snapshotIndex--;
 			// Return deep copy of the state
-			const newState: ChartSnapshot = JSON.parse(JSON.stringify(this.snapshots[this.curSnapshotIndex]));
+			const newState: ChartSnapshot = JSON.parse(JSON.stringify(this.snapshots[this.snapshotIndex]));
 			this.selectedStamps = newState.selectedStamps;
 			this.song = newState.song;
 		}
@@ -508,9 +286,9 @@ export class StateChart {
 
 	/** Redoes the song and selected notes to latest snapshot */
 	redo() {
-		if (this.curSnapshotIndex < this.snapshots.length - 1) {
-			this.curSnapshotIndex++;
-			const newState: ChartSnapshot = JSON.parse(JSON.stringify(this.snapshots[this.curSnapshotIndex])); // Return deep copy of the state
+		if (this.snapshotIndex < this.snapshots.length - 1) {
+			this.snapshotIndex++;
+			const newState: ChartSnapshot = JSON.parse(JSON.stringify(this.snapshots[this.snapshotIndex])); // Return deep copy of the state
 			this.selectedStamps = newState.selectedStamps;
 			this.song = newState.song;
 		}
@@ -615,7 +393,7 @@ export class StateChart {
 		this.paused = true;
 		this.scrollToStep(this.conductor.timeToStep(this.params.seekTime));
 
-		this.curSnapshotIndex = 0;
+		this.snapshotIndex = 0;
 		this.snapshots = [JSON.parse(JSON.stringify(this))];
 		StateChart.instance = this;
 	}

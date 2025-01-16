@@ -29,7 +29,7 @@ export class EditorTab {
 		"Sync": new EditorTab("Sync", vec2(800, 300), true),
 		"Notes": new EditorTab("Notes", vec2(180, 400), false),
 		"Events": new EditorTab("All events", vec2(180, 200), false),
-		"EditEvent": new EditorTab("Edit event_", vec2(800, 300), false),
+		"EditEvent": new EditorTab("Edit event\n", vec2(800, 300), false),
 	};
 
 	static HEADER_COLOR = rgb(30, 29, 36);
@@ -461,8 +461,6 @@ export class EditorTab {
 
 /** Function that handles the addition for all the editor tabs in the chart editor */
 export function addEditorTabs() {
-	const ChartState = StateChart.instance;
-
 	// this goes through each tab and adds an item for it in the view menubar
 	const arrayOfItems: MenuItem[] = [];
 	Object.values(EditorTab.tabs).forEach((tab) => {

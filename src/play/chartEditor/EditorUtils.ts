@@ -1,6 +1,8 @@
 import { Key } from "kaplay";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { playSound } from "../../core/plugins/features/sound";
+import { transitionToScene } from "../../core/scenes";
+import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { FileManager } from "../../fileManaging";
 import { utils } from "../../utils";
 import { Move } from "../objects/dancer";
@@ -39,6 +41,197 @@ interface stampUtils {
 
 	/** Concats notes and events */
 	concat(notes: ChartNote[], events: ChartEvent[]): ChartStamp[];
+}
+
+/** Class that stores the actions of all editor commands */
+export class EditorCommands {
+	static NewChart() {
+		StateChart.instance.createNewSong();
+	}
+
+	static OpenChart() {
+		debug.log("wip");
+	}
+
+	static SaveChart() {
+		EditorUtils.downloadChart();
+	}
+
+	static Exit() {
+		transitionToScene(fadeOut, "menu", { index: 0 });
+	}
+
+	static SelectAll() {
+		StateChart.instance.takeSnapshot("select all");
+		const notes = StateChart.instance.song.chart.notes;
+		const events = StateChart.instance.song.chart.events;
+		StateChart.instance.selectedStamps = EditorUtils.stamps.concat(notes, events);
+	}
+
+	static DeselectAll() {
+		if (StateChart.instance.selectedStamps.length == 0) return;
+		StateChart.instance.takeSnapshot("deselect all");
+		StateChart.instance.selectedStamps = [];
+		StateChart.instance.stepForDetune = 0;
+	}
+
+	static InvertSelection() {
+		StateChart.instance.takeSnapshot("invert selection");
+		const notes = StateChart.instance.song.chart.notes;
+		const events = StateChart.instance.song.chart.events;
+		const allStamps = EditorUtils.stamps.concat(notes, events);
+		StateChart.instance.selectedStamps = allStamps.filter((stamp) =>
+			!StateChart.instance.selectedStamps.includes(stamp)
+		);
+	}
+
+	static Delete(stamps?: ChartStamp[]) {
+		const ChartState = StateChart.instance;
+		stamps = stamps ?? ChartState.selectedStamps;
+		if (stamps.length == 0) return;
+		ChartState.takeSnapshot(`delete ${stamps.length} stamps`);
+
+		stamps.forEach((stamp) => {
+			if (EditorUtils.stamps.isNote(stamp)) ChartState.deleteNote(stamp);
+			else ChartState.deleteEvent(stamp);
+		});
+
+		playSound("noteRemove", { detune: rand(-50, 50) });
+		// there was an event in there
+		if (stamps.some((stamp) => !EditorUtils.stamps.isNote(stamp))) {
+			playSound("eventCog", { detune: rand(-50, 50) });
+		}
+
+		ChartState.selectedStamps = [];
+		ChartState.stepForDetune = 0;
+	}
+
+	static Copy(stamps?: ChartStamp[]) {
+		const ChartState = StateChart.instance;
+		stamps = stamps ?? ChartState.selectedStamps;
+		if (stamps.length == 0) return;
+
+		ChartState.clipboard = stamps;
+		EditorUtils.addFloatyText(EditorUtils.clipboardMessage("copy", ChartState.clipboard));
+		playSound("noteCopy", { detune: rand(25, 50) });
+
+		stamps.forEach((stamp) => {
+			if (EditorUtils.stamps.isNote(stamp)) {
+				const indexInNotes = ChartState.song.chart.notes.indexOf(stamp);
+				tween(
+					choose([-1, 1]) * 20,
+					0,
+					0.5,
+					(p) => ChartState.stampProps.notes[indexInNotes].angle = p,
+					easings.easeOutExpo,
+				);
+				tween(
+					vec2(1.2),
+					vec2(1),
+					0.5,
+					(p) => ChartState.stampProps.notes[indexInNotes].scale = p,
+					easings.easeOutExpo,
+				);
+			}
+			else {
+				const indexInEvents = ChartState.song.chart.events.indexOf(stamp);
+				tween(
+					choose([-1, 1]) * 20,
+					0,
+					0.5,
+					(p) => ChartState.stampProps.events[indexInEvents].angle = p,
+					easings.easeOutExpo,
+				);
+				tween(
+					vec2(1.2),
+					vec2(1),
+					0.5,
+					(p) => ChartState.stampProps.events[indexInEvents].scale = p,
+					easings.easeOutExpo,
+				);
+			}
+		});
+	}
+
+	static Cut(stamps?: ChartStamp[]) {
+		const ChartState = StateChart.instance;
+		stamps = stamps ?? ChartState.selectedStamps;
+		if (stamps.length == 0) return;
+		ChartState.takeSnapshot(`cut ${stamps.length} stamps`);
+
+		// some code from the copy action
+		ChartState.clipboard = stamps;
+		EditorUtils.addFloatyText(EditorUtils.clipboardMessage("cut", ChartState.clipboard));
+		playSound("noteCopy", { detune: rand(0, 25) });
+
+		stamps.forEach((stamp) => {
+			if (EditorUtils.stamps.isNote(stamp)) {
+				ChartState.deleteNote(stamp);
+			}
+			else {
+				ChartState.deleteEvent(stamp);
+			}
+		});
+	}
+
+	static Paste(stamps?: ChartStamp[]) {
+		const ChartState = StateChart.instance;
+		stamps = stamps ?? ChartState.clipboard;
+		if (stamps.length == 0) return;
+
+		// shickiiii
+		ChartState.takeSnapshot(`paste ${stamps.length} stamps`);
+
+		playSound("noteCopy", { detune: rand(-50, -25) });
+		EditorUtils.addFloatyText(EditorUtils.clipboardMessage("paste", stamps));
+
+		stamps.forEach((stamp) => {
+			const newTime = stamp.time + ChartState.conductor.stepToTime(ChartState.hoveredStep);
+
+			if (EditorUtils.stamps.isNote(stamp)) {
+				const newNote = ChartState.placeNote(newTime, stamp.move);
+				const indexInNotes = ChartState.song.chart.notes.indexOf(newNote);
+				if (indexInNotes == -1) return;
+				tween(
+					choose([-1, 1]) * 20,
+					0,
+					0.5,
+					(p) => ChartState.stampProps.notes[indexInNotes].angle = p,
+					easings.easeOutExpo,
+				);
+			}
+			else {
+				const newEvent = ChartState.placeEvent(newTime, stamp.id);
+				const indexInEvents = ChartState.song.chart.events.indexOf(newEvent);
+				if (indexInEvents == -1) return;
+				tween(
+					choose([-1, 1]) * 20,
+					0,
+					0.5,
+					(p) => ChartState.stampProps.events[indexInEvents].angle = p,
+					easings.easeOutExpo,
+				);
+			}
+		});
+	}
+
+	static Undo() {
+		let oldSongState = StateChart.instance.song;
+		StateChart.instance.undo();
+
+		if (oldSongState != StateChart.instance.song) {
+			playSound("noteUndo", { detune: rand(-50, -25) });
+		}
+	}
+
+	static Redo() {
+		let oldSongState = StateChart.instance.song;
+		StateChart.instance.redo();
+
+		if (oldSongState != StateChart.instance.song) {
+			playSound("noteUndo", { detune: rand(25, 50) });
+		}
+	}
 }
 
 /** Class that manages some handlers for the editor class */
@@ -122,6 +315,7 @@ export class EditorUtils {
 		debug.log(`${StateChart.instance.song.manifest.name}.zip, DOWNLOADED! :)`);
 	}
 
+	/** Object with some functions related to stamp utils */
 	static stamps: stampUtils = {
 		find(stampType: "note" | "event", step: number) {
 			if (stampType == "note") {
@@ -202,6 +396,68 @@ export class EditorUtils {
 	};
 
 	static handlers = {
+		/** Determines some mouse anims */
+		mouseAnim: () => {
+			gameCursor.addAnimCondition(() => {
+				// then the ones for the actual charting state
+				// kinda hardcoded, this probably just means the player is loading something nothing  else
+				if (!gameCursor.canMove && StateChart.instance.inputDisabled) gameCursor.do("load");
+				else {
+					if (!StateChart.instance.isCursorInGrid) {
+						if (isMouseDown("left") && StateChart.instance.minimap.isMoving) gameCursor.do("down");
+						else gameCursor.do("default");
+					}
+					else {
+						if (!isMouseDown("left") && !isMouseDown("right")) gameCursor.do("up");
+						else if (isMouseDown("left") && !isMouseDown("right")) gameCursor.do("down");
+						else if (!isMouseDown("left") && isMouseDown("right")) gameCursor.do("x");
+					}
+				}
+			});
+		},
+		/** Determines mouse grid conditions */
+		grid: () => {
+			const ChartState = StateChart.instance;
+			const minLeft = center().x - ChartState.SQUARE_SIZE.x / 2;
+			const maxRight = minLeft + ChartState.SQUARE_SIZE.x * 2;
+
+			// if the distance between the cursor and the square is small enough then highlight it
+			if (utils.isInRange(gameCursor.pos.x, minLeft, maxRight)) {
+				// above the grid
+				if (ChartState.scrollStep == 0 && gameCursor.pos.y < ChartState.INITIAL_POS.y) {
+					ChartState.isInEventGrid = false;
+					ChartState.isInNoteGrid = false;
+				}
+				// below the grid
+				else if (
+					ChartState.scrollStep == ChartState.conductor.totalSteps /* && gameCursor.pos.y >= strumlineYPos */
+				) {
+					ChartState.isInEventGrid = false;
+					ChartState.isInNoteGrid = false;
+				}
+				// actually inside the grid
+				else {
+					// note grid
+					if (gameCursor.pos.x >= minLeft && gameCursor.pos.x < maxRight - ChartState.SQUARE_SIZE.x) {
+						ChartState.isInNoteGrid = true;
+					}
+					else ChartState.isInNoteGrid = false;
+
+					// event grid
+					if (gameCursor.pos.x >= minLeft + ChartState.SQUARE_SIZE.x && gameCursor.pos.x < maxRight) {
+						ChartState.isInEventGrid = true;
+					}
+					else ChartState.isInEventGrid = false;
+				}
+			}
+			else {
+				ChartState.isInEventGrid = false;
+				ChartState.isInNoteGrid = false;
+			}
+
+			// if it's on either of them then it's in the grid
+			ChartState.isCursorInGrid = ChartState.isInNoteGrid || ChartState.isInEventGrid;
+		},
 		selectionBox: () => {
 			const ChartState = StateChart.instance;
 
@@ -361,14 +617,62 @@ export class EditorUtils {
 		shortcuts: () => {
 			const ChartState = StateChart.instance;
 
-			// MOVES
+			// #region SCROLLING
+			let stepsToScroll = 0;
+
+			// scroll up
+			if (isKeyPressedRepeat("w")) {
+				if (!ChartState.paused) ChartState.paused = true;
+				if (isKeyDown("shift")) stepsToScroll = -5;
+				else stepsToScroll = -1;
+				ChartState.scrollToStep(ChartState.scrollStep + stepsToScroll);
+			}
+			// scroll down
+			else if (isKeyPressedRepeat("s")) {
+				if (!ChartState.paused) ChartState.paused = true;
+				if (isKeyDown("shift")) stepsToScroll = 5;
+				else stepsToScroll = 1;
+				ChartState.scrollToStep(ChartState.scrollStep + stepsToScroll);
+			}
+
+			// scroll left nah just messing with you
+			// floor to closest beat
+			if (isKeyPressedRepeat("a") && !isKeyDown("control")) {
+				if (!ChartState.paused) ChartState.paused = true;
+				ChartState.scrollToStep(ChartState.scrollStep - ChartState.conductor.stepsPerBeat);
+			}
+			// ceil to closest beat
+			else if (isKeyPressedRepeat("d") && !isKeyDown("control")) {
+				if (!ChartState.paused) ChartState.paused = true;
+				ChartState.scrollToStep(ChartState.scrollStep + ChartState.conductor.stepsPerBeat);
+			}
+			// #endregion SCROLLING
+
+			// #region MOVES
 			if (isKeyPressed("1")) ChartState.currentMove = "left";
 			else if (isKeyPressed("2")) ChartState.currentMove = "down";
 			else if (isKeyPressed("3")) ChartState.currentMove = "up";
 			else if (isKeyPressed("4")) ChartState.currentMove = "right";
+			// #endregion MOVES
 
-			// COMMANDS
-			// WIP
+			// #region COMMANDS
+			if (isKeyPressed("backspace")) EditorCommands.Delete();
+
+			// all the control commands
+			if (!isKeyDown("control")) return;
+			else if (isKeyDown("shift") && isKeyPressed("s")) EditorCommands.SaveChart();
+			else if (isKeyPressed("n")) EditorCommands.NewChart();
+			else if (isKeyPressed("o")) EditorCommands.OpenChart();
+			else if (isKeyPressed("q")) EditorCommands.Exit();
+			else if (isKeyPressed("a")) EditorCommands.SelectAll();
+			else if (isKeyPressed("d")) EditorCommands.DeselectAll();
+			else if (isKeyPressed("i")) EditorCommands.InvertSelection();
+			else if (isKeyPressed("c")) EditorCommands.Copy();
+			else if (isKeyPressed("x")) EditorCommands.Cut();
+			else if (isKeyPressed("v")) EditorCommands.Paste();
+			else if (isKeyPressedRepeat("z")) EditorCommands.Undo();
+			else if (isKeyPressedRepeat("y")) EditorCommands.Redo();
+			// #endregion COMMANDS
 		},
 	};
 }
