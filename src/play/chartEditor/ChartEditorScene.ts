@@ -8,10 +8,10 @@ import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { utils } from "../../utils";
 import { ChartNote } from "../objects/note";
 import { paramsGameScene } from "../PlayState";
-import { addMenuBars } from "./editorMenus";
+import { MenuBar } from "./editorMenus";
 import { EditorRenderer, SCROLL_LERP_VALUE } from "./editorRenderer.ts";
 import { ChartStamp, paramsChartEditor, StateChart } from "./EditorState";
-import { addEditorTabs } from "./editorTabs";
+import { EditorTab } from "./editorTabs";
 import { EditorCommands, EditorUtils } from "./EditorUtils";
 
 export function ChartEditorScene() {
@@ -33,7 +33,7 @@ export function ChartEditorScene() {
 			// ChartState.bgColor = Color.fromHSL(GameSave.editorHue, 0.45, 0.48);
 			ChartState.bgColor = rgb(92, 50, 172);
 
-			debug.log(ChartState.snapshots[ChartState.snapshotIndex].command);
+			// debug.log(`${ChartState.snapshotIndex} - ${ChartState.snapshots[ChartState.snapshotIndex].command}`);
 
 			// STAMPS
 			const allStamps = EditorUtils.stamps.concat(ChartState.song.chart.notes, ChartState.song.chart.events);
@@ -155,7 +155,6 @@ export function ChartEditorScene() {
 						// if control is not down then reset the selected notes
 						if (!isKeyDown("control")) ChartState.resetSelectedStamps();
 						ChartState.selectedStamps.push(hoveredNote);
-						ChartState.takeSnapshot();
 					}
 
 					if (hoveredNote.length) {
@@ -167,10 +166,9 @@ export function ChartEditorScene() {
 				}
 				// there's no note in that place
 				else {
-					EditorCommands.DeselectAll();
+					if (ChartState.selectedStamps.length > 0) EditorCommands.DeselectAll();
 					hoveredNote = ChartState.placeNote(hoveredTime, ChartState.currentMove);
 					EditorUtils.noteSound(hoveredNote, "Add");
-					ChartState.takeSnapshot();
 
 					setLeading(hoveredNote);
 
@@ -208,7 +206,6 @@ export function ChartEditorScene() {
 					if (!ChartState.selectedStamps.includes(hoveredEvent)) {
 						if (!isKeyDown("control")) ChartState.resetSelectedStamps();
 						ChartState.selectedStamps.push(hoveredEvent);
-						ChartState.takeSnapshot();
 					}
 				}
 				else {
@@ -216,7 +213,6 @@ export function ChartEditorScene() {
 					hoveredEvent = ChartState.placeEvent(hoveredTime, ChartState.currentEvent);
 					playSound("noteAdd", { detune: rand(-50, 50) });
 					playSound("eventCog", { detune: rand(-50, 50) });
-					ChartState.takeSnapshot();
 				}
 
 				setLeading(hoveredEvent);
@@ -256,22 +252,21 @@ export function ChartEditorScene() {
 					// if you click the trail instead of the note it will only remove the trail rather than the note
 					note.length = undefined;
 					playSound("noteSnap", { detune: -50 });
-					ChartState.takeSnapshot();
 				}
 				else {
 					ChartState.deleteNote(note);
 					EditorUtils.noteSound(note, "Remove");
-					ChartState.takeSnapshot();
 				}
 			}
 
 			function eventBehaviour() {
 				const hoveredEvent = EditorUtils.stamps.getHovered("event");
+				console.log(EditorUtils.stamps.find("event", ChartState.hoveredStep));
+
 				if (!hoveredEvent) return;
 				ChartState.deleteEvent(hoveredEvent);
 				playSound("noteRemove");
 				playSound("eventCog", { detune: rand(-50, 50) });
-				ChartState.takeSnapshot();
 			}
 
 			if (ChartState.isInNoteGrid) noteBehaviour();
@@ -337,7 +332,6 @@ export function ChartEditorScene() {
 				}
 
 				playSound("noteMove", { detune: baseDetune * diff });
-				ChartState.takeSnapshot();
 			}
 		});
 
@@ -430,7 +424,7 @@ export function ChartEditorScene() {
 			gameCursor.color = WHITE;
 		});
 
-		addMenuBars();
-		addEditorTabs();
+		MenuBar.setup();
+		EditorTab.setup();
 	});
 }

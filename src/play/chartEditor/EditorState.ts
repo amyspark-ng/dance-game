@@ -223,7 +223,7 @@ export class StateChart {
 	 * @returns The removed note
 	 */
 	deleteNote(noteToRemove: ChartNote): ChartNote {
-		this.takeSnapshot(`delete ${move} note`);
+		this.takeSnapshot(`delete ${noteToRemove.move} note`);
 
 		const oldNote = this.song.chart.notes.find(note => note == noteToRemove);
 		if (oldNote == undefined) return;

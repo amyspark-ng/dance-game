@@ -424,7 +424,7 @@ export class EditorTab {
 			});
 
 			drawText({
-				text: tab.title,
+				text: tab.title.replace("\n", ""),
 				size: 20,
 				anchor: "botleft",
 				pos: vec2(-tabObj.width / 2 + 10, -tabObj.height / 2 - 2.5),
@@ -452,71 +452,71 @@ export class EditorTab {
 		return tabObj;
 	}
 
+	/** Function that handles the addition for all the editor tabs in the chart editor */
+	static setup() {
+		// this goes through each tab and adds an item for it in the view menubar
+		const arrayOfItems: MenuItem[] = [];
+		Object.values(EditorTab.tabs).forEach((tab) => {
+			arrayOfItems.push({
+				text: tab.title,
+				action: () => {
+					tab.visible = !tab.visible;
+					if (tab.visible == true) {
+						const index = Object.values(EditorTab.tabs).indexOf(tab);
+						playSound("dialogOpen", { detune: rand(-25, 25) * (index + 1) * 2 });
+					}
+				},
+				// this runs some extra code which is an ondraw that serves as a checkbox
+				extraCode(itemObj) {
+					const posOfSquare = vec2(itemObj.width - 5, 12.5);
+					itemObj.onDraw(() => {
+						drawRect({
+							width: 20,
+							height: 20,
+							fill: false,
+							pos: posOfSquare,
+							anchor: "right",
+							outline: {
+								color: BLACK,
+								width: 2,
+							},
+						});
+
+						if (tab.visible) {
+							drawRect({
+								width: 16,
+								height: 16,
+								color: BLACK,
+								pos: vec2(posOfSquare.x - 2, posOfSquare.y),
+								anchor: "right",
+							});
+						}
+					});
+				},
+			});
+		});
+
+		// then this sets up the top menu button
+		MenuBar.bars.View.items = arrayOfItems;
+		// adds the slider (parsing is on that file)
+		MenuBar.bars.View.items.push({ text: "hueslider", action: () => true });
+
+		// and this goes each frame and checks if a tab should be or should not be
+		onUpdate(() => {
+			Object.values(EditorTab.tabs).forEach((tabInstance) => {
+				const tabObjWithTab = EditorTab.findTabByInstance(tabInstance);
+
+				if (tabInstance.visible == true && !tabObjWithTab) EditorTab.addEditorTab(tabInstance);
+				else if (tabInstance.visible == false && tabObjWithTab) tabObjWithTab.destroy();
+			});
+		});
+
+		defineTabs();
+	}
+
 	constructor(title: string, pos: Vec2 = vec2(), visible: boolean = true) {
 		this.title = title;
 		this.pos = pos;
 		this.visible = visible;
 	}
-}
-
-/** Function that handles the addition for all the editor tabs in the chart editor */
-export function addEditorTabs() {
-	// this goes through each tab and adds an item for it in the view menubar
-	const arrayOfItems: MenuItem[] = [];
-	Object.values(EditorTab.tabs).forEach((tab) => {
-		arrayOfItems.push({
-			text: tab.title,
-			action: () => {
-				tab.visible = !tab.visible;
-				if (tab.visible == true) {
-					const index = Object.values(EditorTab.tabs).indexOf(tab);
-					playSound("dialogOpen", { detune: rand(-25, 25) * (index + 1) * 2 });
-				}
-			},
-			// this runs some extra code which is an ondraw that serves as a checkbox
-			extraCode(itemObj) {
-				const posOfSquare = vec2(itemObj.width - 5, 12.5);
-				itemObj.onDraw(() => {
-					drawRect({
-						width: 20,
-						height: 20,
-						fill: false,
-						pos: posOfSquare,
-						anchor: "right",
-						outline: {
-							color: BLACK,
-							width: 2,
-						},
-					});
-
-					if (tab.visible) {
-						drawRect({
-							width: 16,
-							height: 16,
-							color: BLACK,
-							pos: vec2(posOfSquare.x - 2, posOfSquare.y),
-							anchor: "right",
-						});
-					}
-				});
-			},
-		});
-	});
-
-	// then this sets up the top menu button
-	MenuBar.bars.View.items = arrayOfItems;
-	// adds the slider (parsing is on that file)
-	MenuBar.bars.View.items.push({ text: "hueslider", action: () => true });
-
-	// and this goes each frame and checks if a tab should be or should not be
-	onUpdate(() => {
-		Object.values(EditorTab.tabs).forEach((tabInstance) => {
-			const tabObjWithTab = EditorTab.findTabByInstance(tabInstance);
-
-			if (tabInstance.visible == true && !tabObjWithTab) EditorTab.addEditorTab(tabInstance);
-			else if (tabInstance.visible == false && tabObjWithTab) tabObjWithTab.destroy();
-		});
-	});
-
-	defineTabs();
 }

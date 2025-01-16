@@ -336,10 +336,10 @@ export class EditorUtils {
 				}
 			}
 			else if (stampType == "event") {
-				const event = StateChart.instance.song.chart.events.find((event) => {
-					Math.round(StateChart.instance.conductor.timeToStep(event.time)) == step;
-				});
-				return event as ChartEvent;
+				return StateChart.instance.song.chart.events.find((ev) => {
+					const evStep = Math.round(StateChart.instance.conductor.timeToStep(ev.time));
+					return evStep == step;
+				}) as ChartEvent;
 			}
 			else return undefined as any;
 		},
@@ -554,7 +554,9 @@ export class EditorUtils {
 
 				const newSelectStamps = ChartState.selectedStamps;
 
-				if (oldSelectStamps != newSelectStamps) ChartState.takeSnapshot();
+				if (oldSelectStamps != newSelectStamps) {
+					ChartState.takeSnapshot(`select ${newSelectStamps.length} notes`);
+				}
 
 				ChartState.selectionBox.clickPos = vec2(0, 0);
 				ChartState.selectionBox.points = [vec2(0, 0), vec2(0, 0), vec2(0, 0), vec2(0, 0)];
@@ -673,6 +675,9 @@ export class EditorUtils {
 			else if (isKeyPressedRepeat("z")) EditorCommands.Undo();
 			else if (isKeyPressedRepeat("y")) EditorCommands.Redo();
 			// #endregion COMMANDS
+		},
+
+		trackPressLeft: () => {
 		},
 	};
 }
