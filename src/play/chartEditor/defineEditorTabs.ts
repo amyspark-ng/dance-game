@@ -1,7 +1,5 @@
 import { GameObj, PosComp } from "kaplay";
-import { onBeatHit, onNoteHit } from "../../core/events";
 import { GameSave, GameSaveClass } from "../../core/gamesave";
-import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { FileManager } from "../../fileManaging";
 import { utils } from "../../utils";
 import { makeDancer, Move } from "../objects/dancer";
@@ -48,7 +46,7 @@ export function defineTabs() {
 	});
 
 	EditorTab.tabs.Events.addElements((editorTabObj) => {
-		const allEvents = Object.keys(ChartState.events) as (keyof typeof ChartState.events)[];
+		const allEvents = Object.keys(ChartState.eventSchema) as (keyof typeof ChartState.eventSchema)[];
 		editorTabObj.width = 240;
 		editorTabObj.height = 65 + 65 * allEvents.length % 4;
 
@@ -133,9 +131,9 @@ export function defineTabs() {
 			addCounterObj(i);
 		}
 
-		const onBeatHitEv = onBeatHit(() => {
+		const onBeatHitEv = ChartState.conductor.onBeatHit((curBeat) => {
 			const currentBeatObj = (editorTabObj.get("beatcounter") as ReturnType<typeof addCounterObj>[]).find((obj) =>
-				obj.beat == (ChartState.conductor.currentBeat % ChartState.conductor.stepsPerBeat) + 1
+				obj.beat == (curBeat % ChartState.conductor.stepsPerBeat) + 1
 			);
 
 			tween(vec2(1.3), vec2(1), 0.15, (p) => currentBeatObj.scale = p);
@@ -146,7 +144,7 @@ export function defineTabs() {
 			if (dummyDancer.getCurAnim().name == "idle") dummyDancer.moveBop();
 		});
 
-		const onNoteHitEv = onNoteHit((note) => {
+		const onNoteHitEv = ChartState.events.onNoteHit((note) => {
 			dummyDancer.doMove(note.move);
 		});
 
@@ -255,7 +253,7 @@ export function defineTabs() {
 			eventProps.forEach((valueKey: string, index: number) => {
 				const value = event.value[valueKey];
 				const typeOfValue = typeof value;
-				const defaultValue = ChartState.events[event.id][valueKey];
+				const defaultValue = ChartState.eventSchema[event.id][valueKey];
 
 				if (typeOfValue == "string") {
 					const textbox = EditorTab.ui.addTextbox(editorTabObj, defaultValue);

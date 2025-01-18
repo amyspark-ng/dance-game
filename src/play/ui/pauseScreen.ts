@@ -1,12 +1,14 @@
-import { GameObj, OpacityComp } from "kaplay";
-import { gameCursor } from "../../core/plugins/features/gameCursor";
+import { GameSave } from "../../core/gamesave";
 import { playSound } from "../../core/plugins/features/sound";
 import { utils } from "../../utils";
 import { DANCER_POS } from "../objects/dancer";
-import { exitToChartEditor, exitToMenu, restartSong, StateGame } from "../PlayState";
+import { StateGame } from "../PlayState";
 
 /** Runs when the game is paused */
-export function addPauseUI(GameState: StateGame) {
+export function addPauseUI() {
+	const GameState = StateGame.instance;
+	let paused: boolean = GameState.paused;
+
 	const baseZ = 100;
 	const baseLerp = 0.5;
 	let scrollindex = 0;
@@ -31,7 +33,7 @@ export function addPauseUI(GameState: StateGame) {
 		const baseXpos = 50;
 		buttonObj.onUpdate(() => {
 			const buttonLerp = (baseLerp / 2) * (buttonIndex + 1);
-			if (GameState.paused) {
+			if (paused) {
 				const buttonXPos = baseXpos - (scrollindex == buttonIndex ? 30 : 0);
 				buttonObj.pos.x = lerp(buttonObj.pos.x, buttonXPos, buttonLerp);
 				buttonObj.opacity = lerp(buttonObj.opacity, 1, baseLerp);
@@ -59,7 +61,7 @@ export function addPauseUI(GameState: StateGame) {
 	]);
 
 	blackScreen.onUpdate(() => {
-		blackScreen.opacity = lerp(blackScreen.opacity, GameState.paused ? 0.5 : 0, baseLerp);
+		blackScreen.opacity = lerp(blackScreen.opacity, paused ? 0.5 : 0, baseLerp);
 	});
 
 	// title stuff
@@ -82,7 +84,7 @@ export function addPauseUI(GameState: StateGame) {
 	title.onUpdate(() => {
 		pausedText.pos = lerp(pausedText.pos, title.pos.add(vec2(0, title.height)), baseLerp * 0.9);
 
-		if (GameState.paused) {
+		if (paused) {
 			title.pos = lerp(title.pos, vec2(center().x, 70), baseLerp);
 			title.opacity = lerp(title.opacity, 1, baseLerp);
 		}
@@ -106,20 +108,20 @@ export function addPauseUI(GameState: StateGame) {
 
 	const buttons = [
 		addPauseButton("Resume", 0, () => {
-			GameState.setPause(false);
+			GameState.paused = false;
 		}),
 		addPauseButton("Restart", 1, () => {
-			restartSong(GameState);
+			GameState.restart();
 		}),
 		addPauseButton("Exit to menu", 2, () => {
-			exitToMenu(GameState);
+			GameState.exit.menu();
 		}),
 	];
 
 	if (GameState.params.fromChartEditor) {
 		buttons[2].destroy();
-		buttons[2] = addPauseButton("Exit to chart editor", 2, () => {
-			exitToChartEditor(GameState);
+		buttons[2] = addPauseButton("Exit to editor", 2, () => {
+			GameState.exit.editor();
 		});
 	}
 
@@ -134,7 +136,7 @@ export function addPauseUI(GameState: StateGame) {
 
 	const fakeDancerPos = vec2(center().x + fakeDancer.width, center().y);
 	fakeDancer.onUpdate(() => {
-		if (GameState.paused) {
+		if (paused) {
 			fakeDancer.pos = lerp(fakeDancer.pos, fakeDancerPos, baseLerp);
 		}
 		else {
@@ -143,7 +145,7 @@ export function addPauseUI(GameState: StateGame) {
 	});
 
 	GameState.dancer.onUpdate(() => {
-		if (GameState.paused) {
+		if (paused) {
 			GameState.dancer.pos = lerp(GameState.dancer.pos, center().scale(1, 2), 0.9);
 			GameState.dancer.scale.x = lerp(GameState.dancer.scale.x, 0, 0.8);
 		}
@@ -154,13 +156,18 @@ export function addPauseUI(GameState: StateGame) {
 	});
 
 	const tagsToPause = ["judgementObj", "strumlineObj"];
-	GameState.onPauseChange(() => {
-		// playSound("pauseScratch", { detune: rand(-50, 50) });
+	GameState.onPauseChange((newPause: boolean) => {
+		paused = newPause;
+		playSound("pauseScratch", {
+			detune: newPause == true ? -150 : 150,
+			volume: GameSave.sound.music.volume,
+			speed: 1,
+		});
 	});
 
 	// get all the objects and filter the ones that have any tag that is included in tagsToPause
 	get("*").filter((obj) => obj.tags.some((tag) => tagsToPause.includes(tag))).forEach((obj) => {
-		obj.paused = GameState.paused;
+		obj.paused = paused;
 	});
 
 	return { blackScreen, title, pausedText, buttons, fakeDancer };

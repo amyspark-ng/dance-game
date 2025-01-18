@@ -1,6 +1,6 @@
 // The actual scene for the chart editor
 import { KEventController } from "kaplay";
-import { onBeatHit, onStepHit, triggerEvent } from "../../core/events";
+import { triggerEvent } from "../../core/events";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { playSound } from "../../core/plugins/features/sound";
 import { transitionToScene } from "../../core/scenes";
@@ -9,7 +9,7 @@ import { utils } from "../../utils";
 import { ChartNote } from "../objects/note";
 import { paramsGameScene } from "../PlayState";
 import { MenuBar } from "./editorMenus";
-import { EditorRenderer, SCROLL_LERP_VALUE } from "./editorRenderer.ts";
+import { EditorRenderer, SCROLL_LERP_VALUE } from "./EditorRenderer.ts";
 import { ChartStamp, paramsChartEditor, StateChart } from "./EditorState";
 import { EditorTab } from "./editorTabs";
 import { EditorCommands, EditorUtils } from "./EditorUtils";
@@ -328,7 +328,8 @@ export function ChartEditorScene() {
 					baseDetune = Math.abs(EditorUtils.moveToDetune(ChartState.selectionBox.leadingStamp.move)) * 0.5;
 				}
 				else {
-					baseDetune = Object.keys(ChartState.events).indexOf(ChartState.selectionBox.leadingStamp.id) * 10;
+					baseDetune = Object.keys(ChartState.eventSchema).indexOf(ChartState.selectionBox.leadingStamp.id)
+						* 10;
 				}
 
 				playSound("noteMove", { detune: baseDetune * diff });
@@ -346,7 +347,7 @@ export function ChartEditorScene() {
 			else {
 				const currentHoveredEvent = EditorUtils.stamps.getHovered("event");
 				if (currentHoveredEvent && ChartState.currentEvent != currentHoveredEvent.id) {
-					ChartState.currentEvent = currentHoveredEvent.id as keyof typeof ChartState.events;
+					ChartState.currentEvent = currentHoveredEvent.id as keyof typeof ChartState.eventSchema;
 				}
 			}
 		});
@@ -412,12 +413,15 @@ export function ChartEditorScene() {
 		});
 
 		// makes the strumline BOP
-		onBeatHit((currentBeat) => {
+		ChartState.conductor.onBeatHit((curBeat) => {
 			tween(vec2(1.2), vec2(1), 0.1, (p) => ChartState.strumlineScale = p);
 		});
 
 		// Scrolls the checkerboard
-		onStepHit((currentStep) => {
+		ChartState.conductor.onStepHit((currentStep) => {
+			const note = EditorUtils.stamps.find("note", currentStep);
+			// TODO: this??
+			if (note) ChartState.events.trigger("notehit", note);
 		});
 
 		onSceneLeave(() => {

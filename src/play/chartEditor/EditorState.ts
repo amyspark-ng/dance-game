@@ -10,7 +10,7 @@ import { utils } from "../../utils";
 import { Move } from "../objects/dancer";
 import { ChartNote } from "../objects/note";
 import { ChartEvent, SongContent } from "../song";
-import { PROP_BIG_SCALE } from "./editorRenderer";
+import { PROP_BIG_SCALE } from "./EditorRenderer";
 
 /** The params for the chart editor */
 export type paramsChartEditor = {
@@ -105,7 +105,7 @@ export class StateChart {
 	currentMove: Move = "up";
 
 	/** All the ids for the events */
-	events = {
+	eventSchema = {
 		"change-scroll": { duration: 0, speed: 1.0, easing: ["linear"] },
 		"cam-move": { duration: 0, x: 0, y: 0, zoom: 1, angle: 0, easing: ["linear"] },
 		"play-anim": { anim: "victory", speed: 1, force: false, looped: false, ping_pong: false },
@@ -113,7 +113,7 @@ export class StateChart {
 	};
 
 	/** The current selected event */
-	currentEvent: keyof typeof this.events = "change-scroll";
+	currentEvent: keyof typeof this.eventSchema = "change-scroll";
 
 	/** The step that is currently being hovered */
 	hoveredStep = 0;
@@ -162,6 +162,17 @@ export class StateChart {
 		trackEnabled: true,
 		/** Ctrl + C, Ctrl + V, Etc */
 		shortcutEnabled: true,
+	};
+
+	/** Object that holds some of the events in the state */
+	events = {
+		trigger(event: "notehit", arg?: any) {
+			return getTreeRoot().trigger(event, arg);
+		},
+
+		onNoteHit(action: (note: ChartNote) => void) {
+			return getTreeRoot().on("notehit", action);
+		},
 	};
 
 	/** Runs when the sound for the soundPlay has changed */
@@ -236,7 +247,7 @@ export class StateChart {
 
 	/** Adds an event to the events array */
 	placeEvent(time: number, id: string) {
-		const newEvent: ChartEvent = { time: time, id: id, value: this.events[id] };
+		const newEvent: ChartEvent = { time: time, id: id, value: this.eventSchema[id] };
 		this.song.chart.events.push(newEvent);
 		// now sort them in time order
 		this.song.chart.events.sort((a, b) => a.time - b.time);
@@ -322,12 +333,12 @@ export class StateChart {
 	}
 
 	/** Triggers an event for the game */
-	triggerEvent(event: keyof typeof this.events, args?: any) {
+	triggerEvent(event: keyof typeof this.eventSchema, args?: any) {
 		getTreeRoot().trigger(event, args);
 	}
 
 	/** Runs when an event is triggered */
-	onEvent(event: keyof typeof this.events, action: (ev: any) => void) {
+	onEvent(event: keyof typeof this.eventSchema, action: (ev: any) => void) {
 		return getTreeRoot().on(event, action);
 	}
 

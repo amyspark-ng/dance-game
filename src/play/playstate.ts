@@ -1,8 +1,6 @@
 // Handles the setup for the game scene and some other important stuff
 import { Conductor } from "../conductor";
-import { triggerEvent } from "../core/events";
 import { GameSave } from "../core/gamesave";
-import { GAME } from "../core/initGame";
 import { cam } from "../core/plugins/features/camera";
 import { playSound } from "../core/plugins/features/sound";
 import { transitionToScene } from "../core/scenes";
@@ -17,8 +15,27 @@ import { ChartEvent, SongContent } from "./song";
 import { addUI } from "./ui/gameUi";
 import { addPauseUI } from "./ui/pauseScreen";
 
+/** Type to store the parameters for the game scene */
+export type paramsGameScene = {
+	/** The song passed for gameplay */
+	song: SongContent;
+	/** The name of the dancer */
+	dancer: string;
+	/** How fast to make the song :smiling_imp: */
+	playbackSpeed?: number;
+
+	/** If the song should start at a specific second */
+	seekTime?: number;
+
+	/** Wheter the player is coming from the chart editor or from regular gameplay */
+	fromChartEditor: boolean;
+};
+
 /** Class that holds and manages some important variables in the game scene */
 export class StateGame {
+	/** Static instance of the class */
+	static instance: StateGame = null;
+
 	/** The current conductor */
 	conductor: Conductor = null;
 
@@ -46,6 +63,7 @@ export class StateGame {
 	/** Current player health */
 	health: number = 100;
 
+	/** The params this was initialized with */
 	params: paramsGameScene = null;
 
 	/** Wheter the player can press keys to play */
@@ -69,18 +87,48 @@ export class StateGame {
 	/** Dictates wheter the game is paused or not, please do not touch if not through the manage pause function */
 	private _paused: boolean = false;
 
+	private lastTimeOnPause: number = 0;
+
 	/** Wheter the game is currently paused or not */
 	get paused() {
 		return this._paused;
 	}
 
 	/** Will set the pause to true or false, if a parameter isn't passed it will be toggled */
-	setPause(newPause: boolean) {
+	set paused(newPause: boolean) {
 		newPause = newPause ?? !this._paused;
-
 		this._paused = newPause;
-		this.conductor.paused = this._paused;
-		getTreeRoot().trigger("pauseChange", this._paused);
+
+		// these tweens somehow are spam-proof! good :)
+		// unpaused
+		if (this._paused == false) {
+			this.conductor.paused = this._paused;
+			this.conductor.timeInSeconds = this.lastTimeOnPause;
+			this.conductor.audioPlay.seek(this.lastTimeOnPause);
+			tween(this.conductor.audioPlay.detune, 0, 0.15 / 2, (p) => this.conductor.audioPlay.detune = p);
+			tween(
+				this.conductor.audioPlay.volume,
+				GameSave.sound.music.volume,
+				0.15,
+				(p) => this.conductor.audioPlay.volume = p,
+			);
+		}
+		// paused
+		else {
+			this.lastTimeOnPause = this.conductor.timeInSeconds;
+			tween(this.conductor.audioPlay.detune, -150, 0.15 / 2, (p) => this.conductor.audioPlay.detune = p);
+			tween(this.conductor.audioPlay.volume, 0, 0.15, (p) => this.conductor.audioPlay.volume = p);
+
+			// Waits 15 seconds so the audio isn't paused inmediately
+			wait(0.15, () => {
+				this.conductor.paused = this._paused;
+			});
+		}
+
+		// After half the time the menu is brought up
+		wait(0.15 / 2, () => {
+			getTreeRoot().trigger("pauseChange", this._paused);
+		});
 	}
 
 	/** Add score to the tally (animates the ui too)
@@ -94,11 +142,133 @@ export class StateGame {
 	}
 
 	/** Runs when the pause has changed */
-	onPauseChange(action: () => void) {
+	onPauseChange(action: (newPause: boolean) => void) {
 		return getTreeRoot().on("pauseChange", action);
 	}
 
+	/** Restarts the song */
+	restart() {
+		if (this.paused) this.paused = false;
+
+		this.conductor.audioPlay.stop();
+
+		this.health = 100;
+		this.spawnedNotes = [];
+		this.eventsDone = [];
+		this.hitNotes = [];
+		this.tally = new Tally();
+		this.combo = 0;
+		this.highestCombo = 0;
+
+		this.song.chart.notes.forEach((note) => {
+			if (note.time <= this.params.seekTime) {
+				this.hitNotes.push(note);
+				this.spawnedNotes.push(note);
+			}
+		});
+
+		if (this.params.seekTime > 0) {
+			this.conductor.audioPlay.seek(this.params.seekTime);
+		}
+		else {
+			this.conductor.timeInSeconds = -TIME_FOR_STRUM;
+		}
+
+		tween(cam.pos, center(), 0.1, (p) => cam.pos = p, easings.easeOutExpo);
+		tween(cam.zoom, vec2(1), 0.1, (p) => cam.zoom = p, easings.easeOutExpo);
+		tween(cam.rotation, 0, 0.1, (p) => cam.rotation = p, easings.easeOutExpo);
+
+		getNotesOnScreen().forEach((noteObj) => {
+			noteObj.destroy();
+
+			let rotationDirection = choose([-10, 10]);
+			const newdumbnote = add([
+				sprite(GameSave.noteskin + "_" + noteObj.chartNote.move),
+				pos(noteObj.pos),
+				anchor(noteObj.anchor),
+				opacity(noteObj.opacity),
+				z(noteObj.z),
+				body(),
+				area({ collisionIgnore: ["dumbNote"] }),
+				rotate(0),
+				"dumbNote",
+				{
+					update() {
+						this.angle += rotationDirection;
+						if (this.pos.y >= height() + this.height) this.destroy();
+					},
+				},
+			]);
+
+			newdumbnote.fadeOut(TIME_FOR_STRUM);
+			newdumbnote.jump(rand(250, 500));
+		});
+
+		get("trailObj").forEach((obj) => {
+			obj.destroy();
+		});
+
+		this.events.trigger("restart");
+	}
+
+	/** I don't remember what this was for?? */
+	stop() {
+		this.conductor.paused = true;
+		this.conductor.audioPlay.stop();
+		this.menuInputEnabled = true;
+	}
+
+	exit = {
+		/** Function to exit to the song select menu from the gamescene */
+		menu() {
+			// let song = getSong(this.songZip.)
+			// let index = song ? allSongCharts.indexOf(song) : 0
+			// TODO: Find a way to comfortably get a song
+			transitionToScene(fadeOut, "songselect", { index: 0 } as paramsSongSelect);
+		},
+		/** Function to exit to the editor menu from the gamescene */
+		editor() {
+			// supper means dinner
+			// super means the parent of the object (in this case the playstate instance)
+			super.stop();
+			super.menuInputEnabled = false;
+			transitionToScene(
+				fadeOut,
+				"charteditor",
+				{
+					song: super.song,
+					seekTime: super.conductor.timeInSeconds,
+					dancer: super.params.dancer,
+				} as paramsChartEditor,
+			);
+		},
+	};
+
+	/** Collection of event related functions */
+	events = {
+		/** Triggers one of the possible events in the state
+		 * @param arg CAN ONLY PASS ONE OBJECT GOMENASAI
+		 */
+		trigger(event: "notehit" | "miss" | "restart", arg?: any) {
+			return getTreeRoot().trigger(event, arg);
+		},
+
+		/** Runs when player hit a note, you can grab the note in action */
+		onNoteHit(action: (note: ChartNote) => void) {
+			return getTreeRoot().on("notehit", action);
+		},
+		/** Runs when player misses */
+		onMiss(action: (harm: boolean) => void) {
+			return getTreeRoot().on("miss", action);
+		},
+		/** Runs when the players selects restart */
+		onRestart(action: () => void) {
+			return getTreeRoot().on("restart", action);
+		},
+	};
+
 	constructor(params: paramsGameScene) {
+		StateGame.instance = this;
 		params.playbackSpeed = params.playbackSpeed ?? 1;
 		params.seekTime = params.seekTime ?? 0;
 		params.dancer = params.dancer ?? "astri";
@@ -124,10 +294,10 @@ export class StateGame {
 		});
 
 		// adds the ui to the game
-		this.strumline = createStrumline(this);
+		this.strumline = createStrumline();
 		this.dancer = add(makeDancer(this.params.dancer));
 		this.gameUI = addUI();
-		this.pauseUI = addPauseUI(this);
+		this.pauseUI = addPauseUI();
 
 		// there are the notes that have been spawned yet
 		this.song.chart.notes.filter((note) => note.time <= this.params.seekTime).forEach((passedNote) => {
@@ -138,114 +308,6 @@ export class StateGame {
 		this.conductor.audioPlay.seek(this.params.seekTime);
 		if (this.dancer) this.dancer.doMove("idle");
 	}
-}
-
-export type paramsGameScene = {
-	/** The song passed for gameplay */
-	song: SongContent;
-	/** The name of the dancer */
-	dancer: string;
-	/** How fast to make the song :smiling_imp: */
-	playbackSpeed?: number;
-
-	/** If the song should start at a specific second */
-	seekTime?: number;
-
-	/** Wheter the player is coming from the chart editor or from regular gameplay */
-	fromChartEditor: boolean;
-};
-
-export function restartSong(GameState: StateGame) {
-	if (GameState.paused) GameState.setPause(false);
-
-	GameState.conductor.audioPlay.stop();
-
-	GameState.health = 100;
-	GameState.spawnedNotes = [];
-	GameState.eventsDone = [];
-	GameState.hitNotes = [];
-	GameState.tally = new Tally();
-	GameState.combo = 0;
-	GameState.highestCombo = 0;
-
-	GameState.song.chart.notes.forEach((note) => {
-		if (note.time <= GameState.params.seekTime) {
-			GameState.hitNotes.push(note);
-			GameState.spawnedNotes.push(note);
-		}
-	});
-
-	if (GameState.params.seekTime > 0) {
-		GameState.conductor.audioPlay.seek(GameState.params.seekTime);
-	}
-	else {
-		GameState.conductor.timeInSeconds = -TIME_FOR_STRUM;
-	}
-
-	tween(cam.pos, center(), 0.1, (p) => cam.pos = p, easings.easeOutExpo);
-	tween(cam.zoom, vec2(1), 0.1, (p) => cam.zoom = p, easings.easeOutExpo);
-	tween(cam.rotation, 0, 0.1, (p) => cam.rotation = p, easings.easeOutExpo);
-
-	getNotesOnScreen().forEach((noteObj) => {
-		noteObj.destroy();
-
-		let rotationDirection = choose([-10, 10]);
-		const newdumbnote = add([
-			sprite(GameSave.noteskin + "_" + noteObj.chartNote.move),
-			pos(noteObj.pos),
-			anchor(noteObj.anchor),
-			opacity(noteObj.opacity),
-			z(noteObj.z),
-			body(),
-			area({ collisionIgnore: ["dumbNote"] }),
-			rotate(0),
-			"dumbNote",
-			{
-				update() {
-					this.angle += rotationDirection;
-					if (this.pos.y >= height() + this.height) this.destroy();
-				},
-			},
-		]);
-
-		newdumbnote.fadeOut(TIME_FOR_STRUM);
-		newdumbnote.jump(rand(250, 500));
-	});
-
-	get("trailObj").forEach((obj) => {
-		obj.destroy();
-	});
-
-	triggerEvent("onReset");
-}
-
-export function stopPlay(GameState: StateGame) {
-	GameState.conductor.paused = true;
-	GameState.conductor.audioPlay.stop();
-	GameState.menuInputEnabled = true;
-}
-
-/** Function to exit to the song select menu from the gamescene */
-export function exitToMenu(GameState: StateGame) {
-	// let song = getSong(GameState.songZip.)
-	// let index = song ? allSongCharts.indexOf(song) : 0
-	// TODO: Find a way to comfortably get a song
-	transitionToScene(fadeOut, "songselect", { index: 0 } as paramsSongSelect);
-}
-
-/** Function to exit to the song select menu from the gamescene */
-export function exitToChartEditor(GameState: StateGame) {
-	stopPlay(GameState);
-	GameState.menuInputEnabled = false;
-	transitionToScene(
-		fadeOut,
-		"charteditor",
-		{
-			song: GameState.song,
-			seekTime: GameState.conductor.timeInSeconds,
-			dancer: GameState.params.dancer,
-		} as paramsChartEditor,
-	);
 }
 
 export function introGo() {
@@ -292,16 +354,18 @@ export function inputHandler(GameState: StateGame) {
 	if (!GameState.menuInputEnabled) return;
 
 	if (isKeyPressed("escape")) {
-		GameState.setPause(!GameState.paused);
+		// this will trigger some stuff, check the 'paused' setter
+		if (GameState.conductor.timeInSeconds < 0) return;
+		GameState.paused = !GameState.paused;
 	}
 	else if (isKeyDown("shift") && isKeyDown("r")) {
-		restartSong(GameState);
+		GameState.restart();
 	}
 
 	// if no game key is 7 then it will exit to the chart editor
 	if (!Object.values(GameSave.gameControls).some((gameKey) => gameKey.kbKey == "7")) {
 		if (isKeyPressed("7")) {
-			exitToChartEditor(GameState);
+			GameState.exit.editor();
 		}
 	}
 }

@@ -1,4 +1,3 @@
-import { triggerEvent } from "../../core/events";
 import { GameSave } from "../../core/gamesave";
 import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { utils } from "../../utils";
@@ -11,7 +10,9 @@ import { checkForNoteHit } from "./scoring";
 const PRESS_SCALE = vec2(1.2);
 /** Dumb color for strumline */
 const STRUMLINE_COLOR = WHITE.darken(60);
-export function createStrumline(GameState: StateGame) {
+export function createStrumline() {
+	const GameState = StateGame.instance;
+
 	/** The position of the strumline */
 	const STRUM_POS = vec2(center().x, height() - 60);
 
@@ -39,14 +40,14 @@ export function createStrumline(GameState: StateGame) {
 				this.pressed = true;
 				// there's notes on the screen
 				if (getNotesOnScreen().length > 0) {
-					const note = checkForNoteHit(GameState, move);
+					const note = checkForNoteHit(move);
 
 					// means it found a note that's between the input treshold
 					if (note) {
 						this.currentNote = note;
 						if (!this.currentNote.length) counterForReleasing = 0.5;
 						else counterForReleasing = undefined;
-						triggerEvent("onNoteHit", note);
+						GameState.events.trigger("notehit", note);
 					}
 					else {
 						// there's no close enough to be hit, but there ARE notes on the screen
@@ -60,7 +61,7 @@ export function createStrumline(GameState: StateGame) {
 								)
 							)
 						) {
-							triggerEvent("onMiss", false);
+							GameState.events.trigger("miss");
 						}
 					}
 				}

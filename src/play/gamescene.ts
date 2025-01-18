@@ -1,6 +1,5 @@
 import { appWindow } from "@tauri-apps/api/window";
 import { KEventController, TweenController } from "kaplay";
-import { onBeatHit, onMiss, onNoteHit, onReset, onStepHit, triggerEvent } from "../core/events";
 import { GameSave } from "../core/gamesave";
 import { GAME } from "../core/initGame";
 import { dancers } from "../core/loader";
@@ -14,7 +13,6 @@ import { addComboText, addJudgement, getClosestNote, Scoring } from "./objects/s
 import { getKeyForMove, inputHandler, introGo, paramsGameScene, StateGame } from "./PlayState";
 import { SaveScore } from "./song";
 import { paramsDeathScene } from "./ui/DeathScene";
-import { addPauseUI } from "./ui/pauseScreen";
 import { paramsResultsScene } from "./ui/ResultsScene";
 
 export function GameScene() {
@@ -52,7 +50,7 @@ export function GameScene() {
 
 		const camTweens: TweenController[] = [];
 
-		if (!isFocused()) GameState.setPause(true);
+		if (!isFocused()) GameState.paused = true;
 
 		onUpdate(() => {
 			if (GameState.conductor.timeInSeconds >= -(TIME_FOR_STRUM / 2) && !hasPlayedGo) {
@@ -151,13 +149,13 @@ export function GameScene() {
 
 		onHide(() => {
 			if (!GameState.paused) {
-				GameState.setPause(true);
+				GameState.paused = true;
 			}
 		});
 
-		onBeatHit(() => {
+		GameState.conductor.onBeatHit((curBeat) => {
 			if (GameState.health <= 25) {
-				playSound("lowhealth", { detune: GameState.conductor.currentBeat % 2 == 0 ? 0 : 25 });
+				playSound("lowhealth", { detune: curBeat % 2 == 0 ? 0 : 25 });
 			}
 
 			if (GameState.dancer.getMove() == "idle") {
@@ -166,11 +164,11 @@ export function GameScene() {
 			}
 		});
 
-		onNoteHit((chartNote: ChartNote) => {
+		GameState.events.onNoteHit((chartNote: ChartNote) => {
 			let judgement = Scoring.judgeNote(GameState.conductor.timeInSeconds, chartNote);
 
 			if (judgement == "Miss") {
-				triggerEvent("onMiss");
+				GameState.events.trigger("miss");
 				return;
 			}
 
@@ -209,7 +207,7 @@ export function GameScene() {
 			}
 		});
 
-		onMiss((harm: boolean) => {
+		GameState.events.onMiss((harm: boolean) => {
 			GameState.dancer.miss();
 
 			if (harm == false) return;
@@ -240,7 +238,7 @@ export function GameScene() {
 			}
 		});
 
-		onReset(() => GameState.dancer.doMove("idle"));
+		GameState.events.onRestart(() => GameState.dancer.doMove("idle"));
 
 		// END SONG
 		GameState.conductor.audioPlay.onEnd(() => {

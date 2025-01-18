@@ -1,6 +1,4 @@
-import { triggerEvent } from "./core/events";
 import { customAudioPlay } from "./core/plugins/features/sound";
-import { ChartEvent } from "./play/song";
 
 /*
 	=== Some explanations about conducting and music ===
@@ -158,7 +156,7 @@ export class Conductor {
 
 			if (!this.started) {
 				this.started = true;
-				getTreeRoot().trigger("conductorStart");
+				this.trigger("start");
 			}
 
 			this.updateIntervals();
@@ -171,18 +169,38 @@ export class Conductor {
 
 			// if (this.paused) return;
 			if (oldStep != this.currentStep) {
-				triggerEvent("onStepHit", this.currentStep);
+				this.trigger("step", this.currentStep);
 			}
 
 			if (oldBeat != this.currentBeat) {
-				triggerEvent("onBeatHit", this.currentStep);
+				this.trigger("beat", this.currentStep);
 			}
 		}
 	}
 
+	/** Trigger an event */
+	private trigger(event: "start" | "beat" | "step" | "measure", ...args: any) {
+		return getTreeRoot().trigger(event, args);
+	}
+
 	/** Runs when the conductor starts playing (time in seconds is greater than 0) */
 	onStart(action: () => void) {
-		return getTreeRoot().on("conductorStart", action);
+		return getTreeRoot().on("start", action);
+	}
+
+	/** Runs when the conductor's beat changes */
+	onBeatHit(action: (curBeat: number) => void) {
+		return getTreeRoot().on("beat", action);
+	}
+
+	/** Runs when the conductor's step changes */
+	onStepHit(action: (curStep: number) => void) {
+		return getTreeRoot().on("step", action);
+	}
+
+	/** Runs when the conductor's measure changes */
+	onMeasureHit(action: (curMeasure: number) => void) {
+		return getTreeRoot().on("measure", action);
 	}
 
 	constructor(opts: conductorOpts) {

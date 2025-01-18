@@ -1,4 +1,3 @@
-import { onNoteHit, onReset, onStepHit, triggerEvent } from "../../core/events";
 import { GameSave } from "../../core/gamesave";
 import { utils } from "../../utils";
 import { getKeyForMove, INPUT_THRESHOLD, StateGame } from "../PlayState";
@@ -108,7 +107,7 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 			&& !hasMissedNote && GameState.spawnedNotes.includes(note) && !GameState.hitNotes.includes(note);
 	}
 
-	const noteHitEv = onNoteHit((noteHit) => {
+	const noteHitEv = GameState.events.onNoteHit((noteHit) => {
 		if (noteHit != chartNote) return;
 
 		// this will only run when the note is hit
@@ -129,7 +128,7 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 		});
 
 		const score = Scoring.getScorePerDiff(GameState.conductor.timeInSeconds, chartNote);
-		const stepHitEv = onStepHit(() => {
+		const stepHitEv = GameState.conductor.onStepHit(() => {
 			// will only run while the note is being held
 			if (hasFinishedHolding) {
 				stepHitEv.cancel();
@@ -166,7 +165,7 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 
 		if (conditionsForPassedNote(chartNote)) {
 			hasMissedNote = true;
-			triggerEvent("onMiss");
+			GameState.events.trigger("miss");
 		}
 
 		if (hasMissedNote) {
@@ -236,6 +235,7 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 		});
 
 		trail.onUpdate(() => {
+			if (GameState.paused) return;
 			const xPos = ChartNote.getPosAtTime(
 				GameState.conductor.timeInSeconds,
 				chartNote,
@@ -271,7 +271,7 @@ export function notesSpawner(GameState: StateGame) {
 
 	resetWaiting();
 
-	onReset(() => resetWaiting());
+	GameState.events.onRestart(() => resetWaiting());
 
 	function checkNotes() {
 		const t = GameState.conductor.timeInSeconds;
