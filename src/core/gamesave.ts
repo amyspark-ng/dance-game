@@ -6,6 +6,7 @@ import { volumeChannel } from "./plugins/features/sound";
 
 type gameKey = { kbKey: Key; move: Move; };
 
+// TODO: Maybe make this static?????
 /** Holds all the info that should be saved and loaded through sessions */
 export class GameSaveClass {
 	sound = {
@@ -74,6 +75,11 @@ export class GameSaveClass {
 	load() {
 		const data = getData(GAME.SAVE_NAME);
 		this.set(data as GameSaveClass);
+	}
+
+	/** Gets the key stored in the game save for a certain move */
+	getKeyForMove(move: Move) {
+		return Object.values(GameSave.gameControls).find((gameKey) => gameKey.move == move).kbKey;
 	}
 }
 

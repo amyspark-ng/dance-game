@@ -5,9 +5,9 @@ import { transitionToScene } from "../../core/scenes";
 import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { FileManager } from "../../fileManaging";
 import { utils } from "../../utils";
+import { ChartEvent } from "../event";
 import { Move } from "../objects/dancer";
 import { ChartNote } from "../objects/note";
-import { ChartEvent } from "../song";
 import { ChartStamp, StateChart } from "./EditorState";
 
 // Function overloading is pretty cool pretty powerful for this specific case :)

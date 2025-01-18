@@ -327,11 +327,6 @@ export function introGo() {
 	});
 }
 
-/** Returns the user key for a given move */
-export function getKeyForMove(move: Move) {
-	return Object.values(GameSave.gameControls).find((gameKey) => gameKey.move == move).kbKey;
-}
-
 /** The function that manages input functions inside the game, must be called onUpdate */
 export function inputHandler(GameState: StateGame) {
 	Object.values(GameSave.gameControls).forEach((gameKey, index) => {

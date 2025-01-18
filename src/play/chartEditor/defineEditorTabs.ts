@@ -47,8 +47,11 @@ export function defineTabs() {
 
 	EditorTab.tabs.Events.addElements((editorTabObj) => {
 		const allEvents = Object.keys(ChartEvent.eventSchema) as (keyof typeof ChartEvent.eventSchema)[];
-		editorTabObj.width = 240;
-		editorTabObj.height = 65 + 65 * allEvents.length % 4;
+
+		const theHeight = (Math.floor(allEvents.length / 4) * 65)
+			+ (allEvents.length % 4 != 0 ? 65 : 0);
+		editorTabObj.width = 65 * 4;
+		editorTabObj.height = theHeight;
 
 		allEvents.forEach((eventKey, index) => {
 			const eventObj = editorTabObj.add([
@@ -63,8 +66,17 @@ export function defineTabs() {
 
 			eventObj.width = 60;
 			eventObj.height = 60;
-			eventObj.pos.x = (-editorTabObj.width / 2 + index * 60) + eventObj.width / 2;
-			eventObj.pos.y = (-editorTabObj.height / 2) + eventObj.height / 2;
+			const startingPos = vec2(
+				-editorTabObj.width / 2 + eventObj.width / 2,
+				-editorTabObj.height / 2 + eventObj.height / 2,
+			);
+
+			const row = Math.floor(index / 4);
+			const column = index % 4;
+			const thepos = utils.getPosInGrid(startingPos, row, column, vec2(65));
+
+			eventObj.pos.x = thepos.x;
+			eventObj.pos.y = thepos.y;
 
 			eventObj.onClick(() => {
 				ChartState.currentEvent = eventKey;
@@ -265,7 +277,7 @@ export function defineTabs() {
 				}
 				else if (typeOfValue == "number") {
 					let increment = 0;
-					if (keyofValue == "speed" || keyofValue == "zoom") increment = 0.1;
+					if (keyofValue == "speed" || keyofValue == "zoom" || keyofValue == "strength") increment = 0.1;
 					else if (keyofValue == "x" || keyofValue == "y" || keyofValue == "angle") increment = 10;
 					else increment = 1;
 
@@ -389,7 +401,9 @@ export function defineTabs() {
 				object = EditorTab.ui.addTextbox(editorTabObj, initialValue);
 			}
 			else if (field.type == "number") {
-				const increase = field.direction.includes("scrollspeed") ? 0.1 : 1;
+				const increase = field.direction.includes("scrollspeed")
+					? 0.1
+					: 1;
 				object = EditorTab.ui.addScrollable(editorTabObj, initialValue, null, increase);
 			}
 			else if (field.type == "function") {

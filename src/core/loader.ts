@@ -2,6 +2,7 @@ import isUrl from "is-url";
 import JSZip from "jszip";
 import { LoadSpriteOpt } from "kaplay";
 import { FileManager } from "../fileManaging";
+import { ChartEvent } from "../play/event";
 import { DancerFile } from "../play/objects/dancer";
 import { rankings } from "../play/objects/scoring";
 import { SongContent, SongManifest } from "../play/song";
@@ -156,7 +157,7 @@ export async function loadAssets() {
 
 	loadSprite("optionsCursor", "sprites/optionsCursor.png");
 
-	const events = ["change-scroll", "cam-move", "play-anim", "change-dancer"];
+	const events = Object.keys(ChartEvent.eventSchema);
 	const eventsSpriteAtlas = {};
 	events.forEach((event, index) => {
 		eventsSpriteAtlas[event] = {
