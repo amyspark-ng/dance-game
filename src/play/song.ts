@@ -1,5 +1,6 @@
 import { EaseFunc } from "kaplay";
 import { utils } from "../utils";
+import { ChartEvent } from "./event";
 import { ChartNote } from "./objects/note";
 import { Tally } from "./objects/scoring";
 
@@ -53,16 +54,6 @@ export class SongManifest {
 
 		if (param) Object.assign(this, param);
 	}
-}
-
-/** An event in the chart */
-export class ChartEvent {
-	/** The time of the song the event must be triggered at */
-	time: number;
-	/** The event id, string to know what is it */
-	id: string;
-	/** The value the event contains, might be an object or something else idk */
-	value: any;
 }
 
 /** The content of the chart file */

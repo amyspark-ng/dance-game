@@ -7,11 +7,12 @@ import { transitionToScene } from "../core/scenes";
 import { fadeOut } from "../core/transitions/fadeOutTransition";
 import { paramsSongSelect } from "../ui/SongSelectScene";
 import { paramsChartEditor } from "./chartEditor/EditorState";
+import { ChartEvent } from "./event";
 import { DancerGameObj, makeDancer, Move } from "./objects/dancer";
 import { ChartNote, getNotesOnScreen, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
 import { Tally } from "./objects/scoring";
 import { createStrumline, StrumlineGameObj } from "./objects/strumline";
-import { ChartEvent, SongContent } from "./song";
+import { SongContent } from "./song";
 import { addUI } from "./ui/gameUi";
 import { addPauseUI } from "./ui/pauseScreen";
 
@@ -218,31 +219,28 @@ export class StateGame {
 		this.menuInputEnabled = true;
 	}
 
-	exit = {
-		/** Function to exit to the song select menu from the gamescene */
-		menu() {
-			// let song = getSong(this.songZip.)
-			// let index = song ? allSongCharts.indexOf(song) : 0
-			// TODO: Find a way to comfortably get a song
-			transitionToScene(fadeOut, "songselect", { index: 0 } as paramsSongSelect);
-		},
-		/** Function to exit to the editor menu from the gamescene */
-		editor() {
-			// supper means dinner
-			// super means the parent of the object (in this case the playstate instance)
-			super.stop();
-			super.menuInputEnabled = false;
-			transitionToScene(
-				fadeOut,
-				"charteditor",
-				{
-					song: super.song,
-					seekTime: super.conductor.timeInSeconds,
-					dancer: super.params.dancer,
-				} as paramsChartEditor,
-			);
-		},
-	};
+	/** Function to exit to the song select menu from the gamescene */
+	exitMenu() {
+		// let song = getSong(this.songZip.)
+		// let index = song ? allSongCharts.indexOf(song) : 0
+		// TODO: Find a way to comfortably get a song
+		transitionToScene(fadeOut, "songselect", { index: 0 } as paramsSongSelect);
+	}
+
+	/** Function to exit to the editor menu from the gamescene */
+	exitEditor() {
+		this.stop();
+		this.menuInputEnabled = false;
+		transitionToScene(
+			fadeOut,
+			"charteditor",
+			{
+				song: this.song,
+				seekTime: this.conductor.timeInSeconds,
+				dancer: this.params.dancer,
+			} as paramsChartEditor,
+		);
+	}
 
 	/** Collection of event related functions */
 	events = {
@@ -365,7 +363,7 @@ export function inputHandler(GameState: StateGame) {
 	// if no game key is 7 then it will exit to the chart editor
 	if (!Object.values(GameSave.gameControls).some((gameKey) => gameKey.kbKey == "7")) {
 		if (isKeyPressed("7")) {
-			GameState.exit.editor();
+			GameState.exitEditor();
 		}
 	}
 }

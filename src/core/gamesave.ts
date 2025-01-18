@@ -78,4 +78,4 @@ export class GameSaveClass {
 }
 
 /** The game save, an instance of GameSaveClass */
-export let GameSave = new GameSaveClass();
+export const GameSave = new GameSaveClass();

@@ -2,12 +2,11 @@ import { appWindow } from "@tauri-apps/api/window";
 import { KEventController, TweenController } from "kaplay";
 import { GameSave } from "../core/gamesave";
 import { GAME } from "../core/initGame";
-import { dancers } from "../core/loader";
-import { cam } from "../core/plugins/features/camera";
 import { gameCursor } from "../core/plugins/features/gameCursor";
 import { playSound } from "../core/plugins/features/sound";
 import { goScene } from "../core/scenes";
 import { utils } from "../utils";
+import { ChartEvent } from "./event";
 import { ChartNote, NoteGameObj, notesSpawner, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
 import { addComboText, addJudgement, getClosestNote, Scoring } from "./objects/scoring";
 import { getKeyForMove, inputHandler, introGo, paramsGameScene, StateGame } from "./PlayState";
@@ -58,85 +57,96 @@ export function GameScene() {
 				hasPlayedGo = true;
 			}
 
-			GameState.song.chart.events.forEach((ev) => {
-				if (GameState.conductor.timeInSeconds >= ev.time && !GameState.eventsDone.includes(ev)) {
-					GameState.eventsDone.push(ev);
+			const currentScrollEv = ChartEvent.getAtTime(
+				"change-scroll",
+				GameState.song.chart.events,
+				GameState.conductor.timeInSeconds,
+			);
 
-					if (ev.id == "change-scroll") {
-						tween(
-							TIME_FOR_STRUM,
-							(1.25 / ev.value.speed) / GameSave.scrollSpeed,
-							ev.value.duration,
-							(p) => setTimeForStrum(p),
-							easings[ev.value.easing],
-						);
-					}
-					else if (ev.id == "cam-move") {
-						const posToArr = vec2(ev.value.x, ev.value.y);
-						const zoomToArr = vec2(ev.value.zoom);
-						const camAngle = ev.value.angle;
-						const camPosTween = tween(
-							cam.pos,
-							center().add(posToArr),
-							ev.value.duration,
-							(p) => cam.pos = p,
-							easings[ev.value.easing],
-						);
-						const camZoomTween = tween(
-							cam.zoom,
-							zoomToArr,
-							ev.value.duration,
-							(p) => cam.zoom = p,
-							easings[ev.value.easing],
-						);
-						const camRotationTween = tween(
-							cam.rotation,
-							camAngle,
-							ev.value.duration,
-							(p) => cam.rotation = p,
-							easings[ev.value.easing],
-						);
+			if (currentScrollEv) {
+				const value = currentScrollEv.value;
+				if (value) setTimeForStrum(1.25 / value.speed);
+			}
 
-						camTweens.push(camPosTween);
-						camTweens.push(camZoomTween);
-						camTweens.push(camRotationTween);
-					}
-					else if (ev.id == "play-anim") {
-						if (GameState.dancer.getAnim(ev.value.anim) == null) {
-							console.warn("Animation not found for dancer: " + ev.value.anim);
-							return;
-						}
+			// GameState.song.chart.events.forEach((ev) => {
+			// 	if (GameState.conductor.timeInSeconds >= ev.time && !GameState.eventsDone.includes(ev)) {
+			// 		GameState.eventsDone.push(ev);
 
-						GameState.dancer.forcedAnim = ev.value.force;
+			// 		if (ev.id == "change-scroll") {
+			// 			tween(
+			// 				TIME_FOR_STRUM,
+			// 				(1.25 / ev.value.speed) / GameSave.scrollSpeed,
+			// 				ev.value.duration,
+			// 				(p) => setTimeForStrum(p),
+			// 				easings[ev.value.easing],
+			// 			);
+			// 		}
+			// 		else if (ev.id == "cam-move") {
+			// 			const posToArr = vec2(ev.value.x, ev.value.y);
+			// 			const zoomToArr = vec2(ev.value.zoom);
+			// 			const camAngle = ev.value.angle;
+			// 			const camPosTween = tween(
+			// 				cam.pos,
+			// 				center().add(posToArr),
+			// 				ev.value.duration,
+			// 				(p) => cam.pos = p,
+			// 				easings[ev.value.easing],
+			// 			);
+			// 			const camZoomTween = tween(
+			// 				cam.zoom,
+			// 				zoomToArr,
+			// 				ev.value.duration,
+			// 				(p) => cam.zoom = p,
+			// 				easings[ev.value.easing],
+			// 			);
+			// 			const camRotationTween = tween(
+			// 				cam.rotation,
+			// 				camAngle,
+			// 				ev.value.duration,
+			// 				(p) => cam.rotation = p,
+			// 				easings[ev.value.easing],
+			// 			);
 
-						// @ts-ignore
-						const animSpeed = GameState.dancer.getAnim(ev.value.anim)?.speed;
-						GameState.dancer.play(ev.value.anim, {
-							speed: animSpeed * ev.value.speed,
-							loop: true,
-							pingpong: ev.value.ping_pong,
-						});
+			// 			camTweens.push(camPosTween);
+			// 			camTweens.push(camZoomTween);
+			// 			camTweens.push(camRotationTween);
+			// 		}
+			// 		else if (ev.id == "play-anim") {
+			// 			if (GameState.dancer.getAnim(ev.value.anim) == null) {
+			// 				console.warn("Animation not found for dancer: " + ev.value.anim);
+			// 				return;
+			// 			}
 
-						GameState.dancer.onAnimEnd((animEnded) => {
-							if (animEnded != ev.value.anim) return;
-							GameState.dancer.forcedAnim = false;
-							GameState.dancer.play("idle");
-						});
-					}
-					else if (ev.id == "change-dancer") {
-						if (!dancers.map((names) => names.dancerName).includes(ev.value.dancer)) {
-							console.warn("Dancer not found: " + ev.value.dancer);
-							return;
-						}
+			// 			GameState.dancer.forcedAnim = ev.value.force;
 
-						GameState.dancer.sprite = "dancer_" + ev.value.dancer;
-					}
-				}
-			});
+			// 			// @ts-ignore
+			// 			const animSpeed = GameState.dancer.getAnim(ev.value.anim)?.speed;
+			// 			GameState.dancer.play(ev.value.anim, {
+			// 				speed: animSpeed * ev.value.speed,
+			// 				loop: true,
+			// 				pingpong: ev.value.ping_pong,
+			// 			});
 
-			camTweens.forEach((tweenT) => {
-				tweenT.paused = GameState.paused;
-			});
+			// 			GameState.dancer.onAnimEnd((animEnded) => {
+			// 				if (animEnded != ev.value.anim) return;
+			// 				GameState.dancer.forcedAnim = false;
+			// 				GameState.dancer.play("idle");
+			// 			});
+			// 		}
+			// 		else if (ev.id == "change-dancer") {
+			// 			if (!dancers.map((names) => names.dancerName).includes(ev.value.dancer)) {
+			// 				console.warn("Dancer not found: " + ev.value.dancer);
+			// 				return;
+			// 			}
+
+			// 			GameState.dancer.sprite = "dancer_" + ev.value.dancer;
+			// 		}
+			// 	}
+			// });
+
+			// camTweens.forEach((tweenT) => {
+			// 	tweenT.paused = GameState.paused;
+			// });
 
 			inputHandler(GameState);
 			GameState.gameUI.missesText.misses = GameState.tally.misses;

@@ -2,8 +2,8 @@ import { GameObj, PosComp } from "kaplay";
 import { GameSave, GameSaveClass } from "../../core/gamesave";
 import { FileManager } from "../../fileManaging";
 import { utils } from "../../utils";
+import { ChartEvent } from "../event";
 import { makeDancer, Move } from "../objects/dancer";
-import { ChartEvent } from "../song";
 import { StateChart } from "./EditorState";
 import { EditorTab } from "./editorTabs";
 import { EditorUtils } from "./EditorUtils";
@@ -46,7 +46,7 @@ export function defineTabs() {
 	});
 
 	EditorTab.tabs.Events.addElements((editorTabObj) => {
-		const allEvents = Object.keys(ChartState.eventSchema) as (keyof typeof ChartState.eventSchema)[];
+		const allEvents = Object.keys(ChartEvent.eventSchema) as (keyof typeof ChartEvent.eventSchema)[];
 		editorTabObj.width = 240;
 		editorTabObj.height = 65 + 65 * allEvents.length % 4;
 
@@ -250,33 +250,33 @@ export function defineTabs() {
 
 			/** All the properties an an event's value has */
 			const eventProps = Object.keys(event.value);
-			eventProps.forEach((valueKey: string, index: number) => {
-				const value = event.value[valueKey];
+			eventProps.forEach((keyofValue: string, index: number) => {
+				const value = event.value[keyofValue];
 				const typeOfValue = typeof value;
-				const defaultValue = ChartState.eventSchema[event.id][valueKey];
+				const defaultValue = ChartEvent.eventSchema[event.id][keyofValue];
 
 				if (typeOfValue == "string") {
 					const textbox = EditorTab.ui.addTextbox(editorTabObj, defaultValue);
-					objAfterwork(textbox, event, valueKey, index);
+					objAfterwork(textbox, event, keyofValue, index);
 				}
 				else if (typeOfValue == "boolean") {
 					const checkbox = EditorTab.ui.addCheckbox(editorTabObj, defaultValue);
-					objAfterwork(checkbox, event, valueKey, index);
+					objAfterwork(checkbox, event, keyofValue, index);
 				}
 				else if (typeOfValue == "number") {
 					let increment = 0;
-					if (valueKey == "speed" || valueKey == "zoom") increment = 0.1;
-					else if (valueKey == "x" || valueKey == "y" || valueKey == "angle") increment = 10;
+					if (keyofValue == "speed" || keyofValue == "zoom") increment = 0.1;
+					else if (keyofValue == "x" || keyofValue == "y" || keyofValue == "angle") increment = 10;
 					else increment = 1;
 
 					const scrollable = EditorTab.ui.addScrollable(editorTabObj, defaultValue, null, increment);
-					objAfterwork(scrollable, event, valueKey, index);
+					objAfterwork(scrollable, event, keyofValue, index);
 				}
 				else if (typeOfValue == "object") {
 					if (Array.isArray(value)) {
 						const easingKeys = Object.keys(easings);
 						const scrollable = EditorTab.ui.addScrollable(editorTabObj, defaultValue, easingKeys);
-						objAfterwork(scrollable, event, valueKey, index);
+						objAfterwork(scrollable, event, keyofValue, index);
 					}
 				}
 			});

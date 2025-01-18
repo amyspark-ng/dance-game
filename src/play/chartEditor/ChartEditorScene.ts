@@ -1,11 +1,11 @@
 // The actual scene for the chart editor
 import { KEventController } from "kaplay";
-import { triggerEvent } from "../../core/events";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { playSound } from "../../core/plugins/features/sound";
 import { transitionToScene } from "../../core/scenes";
 import { fadeOut } from "../../core/transitions/fadeOutTransition";
 import { utils } from "../../utils";
+import { ChartEvent } from "../event.ts";
 import { ChartNote } from "../objects/note";
 import { paramsGameScene } from "../PlayState";
 import { MenuBar } from "./editorMenus";
@@ -33,9 +33,6 @@ export function ChartEditorScene() {
 			// ChartState.bgColor = Color.fromHSL(GameSave.editorHue, 0.45, 0.48);
 			ChartState.bgColor = rgb(92, 50, 172);
 
-			// debug.log(`${ChartState.snapshotIndex} - ${ChartState.snapshots[ChartState.snapshotIndex].command}`);
-
-			// STAMPS
 			const allStamps = EditorUtils.stamps.concat(ChartState.song.chart.notes, ChartState.song.chart.events);
 			allStamps.forEach((stamp, index) => {
 				EditorUtils.stamps.fix(stamp);
@@ -261,7 +258,6 @@ export function ChartEditorScene() {
 
 			function eventBehaviour() {
 				const hoveredEvent = EditorUtils.stamps.getHovered("event");
-				console.log(EditorUtils.stamps.find("event", ChartState.hoveredStep));
 
 				if (!hoveredEvent) return;
 				ChartState.deleteEvent(hoveredEvent);
@@ -328,7 +324,7 @@ export function ChartEditorScene() {
 					baseDetune = Math.abs(EditorUtils.moveToDetune(ChartState.selectionBox.leadingStamp.move)) * 0.5;
 				}
 				else {
-					baseDetune = Object.keys(ChartState.eventSchema).indexOf(ChartState.selectionBox.leadingStamp.id)
+					baseDetune = Object.keys(ChartEvent.eventSchema).indexOf(ChartState.selectionBox.leadingStamp.id)
 						* 10;
 				}
 
@@ -347,7 +343,7 @@ export function ChartEditorScene() {
 			else {
 				const currentHoveredEvent = EditorUtils.stamps.getHovered("event");
 				if (currentHoveredEvent && ChartState.currentEvent != currentHoveredEvent.id) {
-					ChartState.currentEvent = currentHoveredEvent.id as keyof typeof ChartState.eventSchema;
+					ChartState.currentEvent = currentHoveredEvent.id as keyof typeof ChartEvent.eventSchema;
 				}
 			}
 		});

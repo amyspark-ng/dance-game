@@ -1,7 +1,6 @@
 import isUrl from "is-url";
 import JSZip from "jszip";
 import { LoadSpriteOpt } from "kaplay";
-import TOML from "smol-toml";
 import { FileManager } from "../fileManaging";
 import { DancerFile } from "../play/objects/dancer";
 import { rankings } from "../play/objects/scoring";

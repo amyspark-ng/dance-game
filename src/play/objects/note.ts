@@ -10,7 +10,10 @@ export const NOTE_WIDTH = 80;
 /** The spawn point of the note */
 export const NOTE_SPAWNPOINT = 1024 + NOTE_WIDTH / 2;
 
-/** Type that holds the properties a note in a chart file would have */
+/** Class that holds the properties a note in a chart file would have
+ *
+ * + Some static properties related to notes and moves
+ */
 export class ChartNote {
 	/** The time of the song (in seconds) that this note must be hit on */
 	time: number = 0;
@@ -67,6 +70,7 @@ export class ChartNote {
 /** How much time will take for the note to reach the strum */
 export let TIME_FOR_STRUM = 1.25;
 
+// TODO: Move this to GameState????????
 export function setTimeForStrum(value: number) {
 	TIME_FOR_STRUM = value;
 }
@@ -259,6 +263,7 @@ export type NoteGameObj = ReturnType<typeof addNote>;
 
 // MF you genius
 /** Crucial function that handles the spawning of notes in the game */
+// TODO: Move this to ChartNote?
 export function notesSpawner(GameState: StateGame) {
 	addMasked();
 
@@ -302,6 +307,7 @@ export function notesSpawner(GameState: StateGame) {
 }
 
 /** Returns an array of all the notes currently on the screen */
+// TODO: Move this to ChartNote?
 export function getNotesOnScreen() {
 	return get("noteObj", { recursive: true });
 }

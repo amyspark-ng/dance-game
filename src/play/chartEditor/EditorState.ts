@@ -7,9 +7,10 @@ import { dancers, loadedSongs } from "../../core/loader";
 import { playMusic } from "../../core/plugins/features/sound";
 import { FileManager } from "../../fileManaging";
 import { utils } from "../../utils";
+import { ChartEvent } from "../event";
 import { Move } from "../objects/dancer";
 import { ChartNote } from "../objects/note";
-import { ChartEvent, SongContent } from "../song";
+import { SongContent } from "../song";
 import { PROP_BIG_SCALE } from "./EditorRenderer";
 
 /** The params for the chart editor */
@@ -104,16 +105,8 @@ export class StateChart {
 	/** The current selected move to place a note */
 	currentMove: Move = "up";
 
-	/** All the ids for the events */
-	eventSchema = {
-		"change-scroll": { duration: 0, speed: 1.0, easing: ["linear"] },
-		"cam-move": { duration: 0, x: 0, y: 0, zoom: 1, angle: 0, easing: ["linear"] },
-		"play-anim": { anim: "victory", speed: 1, force: false, looped: false, ping_pong: false },
-		"change-dancer": { dancer: "astri" },
-	};
-
 	/** The current selected event */
-	currentEvent: keyof typeof this.eventSchema = "change-scroll";
+	currentEvent: keyof typeof ChartEvent.eventSchema = "change-scroll";
 
 	/** The step that is currently being hovered */
 	hoveredStep = 0;
@@ -247,7 +240,7 @@ export class StateChart {
 
 	/** Adds an event to the events array */
 	placeEvent(time: number, id: string) {
-		const newEvent: ChartEvent = { time: time, id: id, value: this.eventSchema[id] };
+		const newEvent: ChartEvent = { time: time, id: id, value: ChartEvent.eventSchema[id] };
 		this.song.chart.events.push(newEvent);
 		// now sort them in time order
 		this.song.chart.events.sort((a, b) => a.time - b.time);
@@ -308,7 +301,7 @@ export class StateChart {
 	}
 
 	/** Gets the dancer at a current time in the song */
-	getDancerAtTime(time: number = this.conductor.timeInSeconds) {
+	getDancerAtTime(time: number = this.conductor.timeInSeconds): string {
 		let dancerChangeEvents = this.song.chart.events.filter((event) => event.id == "change-dancer");
 
 		// some stuff to remove faulty names from dancer list
@@ -333,12 +326,12 @@ export class StateChart {
 	}
 
 	/** Triggers an event for the game */
-	triggerEvent(event: keyof typeof this.eventSchema, args?: any) {
+	triggerEvent(event: keyof typeof ChartEvent.eventSchema, args?: any) {
 		getTreeRoot().trigger(event, args);
 	}
 
 	/** Runs when an event is triggered */
-	onEvent(event: keyof typeof this.eventSchema, action: (ev: any) => void) {
+	onEvent(event: keyof typeof ChartEvent.eventSchema, action: (ev: any) => void) {
 		return getTreeRoot().on(event, action);
 	}
 

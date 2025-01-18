@@ -114,14 +114,14 @@ export function addPauseUI() {
 			GameState.restart();
 		}),
 		addPauseButton("Exit to menu", 2, () => {
-			GameState.exit.menu();
+			GameState.exitMenu();
 		}),
 	];
 
 	if (GameState.params.fromChartEditor) {
 		buttons[2].destroy();
 		buttons[2] = addPauseButton("Exit to editor", 2, () => {
-			GameState.exit.editor();
+			GameState.exitEditor();
 		});
 	}
 
