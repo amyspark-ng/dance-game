@@ -4,34 +4,82 @@ import { SaveScore } from "../play/song";
 import { GAME } from "./initGame";
 import { volumeChannel } from "./plugins/features/sound";
 
-type gameKey = { kbKey: Key; move: Move; };
+/** Function to manage some merging of gamesaves */
+export function deepMergeSaves(oldSave: _GameSave, newSave: _GameSave): _GameSave {
+	const result: any = { ...oldSave }; // Start with a shallow copy of the old save
 
-// TODO: Maybe make this static?????
+	for (const key in newSave) {
+		if (newSave.hasOwnProperty(key)) {
+			if (
+				typeof newSave[key] === "object"
+				&& newSave[key] !== null
+				&& !Array.isArray(newSave[key])
+			) {
+				// If it's an object, recursively merge
+				result[key] = deepMergeSaves(
+					oldSave[key] || {}, // Use oldSave's value or empty object
+					newSave[key],
+				);
+			}
+			else if (!result.hasOwnProperty(key)) {
+				// Add new property from newSave only if it doesn't exist in oldSave
+				result[key] = newSave[key];
+			}
+		}
+	}
+
+	return result;
+}
+
+/** The type for an object that holds the controls for the game */
+type gameControls = Record<Move, Key>;
+
+/** The default controls for the game */
+const defaultControls: gameControls = {
+	left: "left",
+	down: "down",
+	up: "up",
+	right: "right",
+};
+
 /** Holds all the info that should be saved and loaded through sessions */
-export class GameSaveClass {
+export class _GameSave {
 	sound = {
 		sfx: { volume: 1, muted: false } as volumeChannel,
 		music: { volume: 1, muted: false } as volumeChannel,
 		masterVolume: 1,
 	};
 
+	/** Wheter the strumline and lane will be on the top or the bottom (LOL) */
+	upscroll: boolean = false;
+	/** The multiplier for the scrollspeed */
 	scrollSpeed: number = 1;
-	fullscreen: boolean = false;
 
+	/** The dancer the player is using (to dance) */
 	dancer: string = "astri";
 
-	gameControls = {
-		left: { kbKey: "left", move: "left" } as gameKey,
-		down: { kbKey: "down", move: "down" } as gameKey,
-		up: { kbKey: "up", move: "up" } as gameKey,
-		right: { kbKey: "right", move: "right" } as gameKey,
-	};
+	/** The dancers the player can use */
+	unlockedDancers: string[] = ["astri"];
 
+	/** (static) property that holds the default controls for the game
+	 *
+	 * Its type is actually a record! (Record<Move, Key>)
+	 */
+	static defaultControls: gameControls = defaultControls;
+
+	/** The controls for the game
+	 *
+	 * Its type is actually a record! (Record<Move, Key>)
+	 */
+	gameControls: gameControls = defaultControls;
+
+	/** (From 0 to 1) The hue of the background in the editor */
 	editorHue = 0.696;
 
+	/** The prefix for the noteskin */
 	noteskin: string = "A";
 
-	/** The songs that have been played, check {@link songSaveScore} type for more info */
+	/** The songs that have been played, check @link {} type for more info */
 	songsPlayed: SaveScore[] = [];
 
 	/** Writes current instance to localStorage */
@@ -44,44 +92,41 @@ export class GameSaveClass {
 	 * Sets GameSave to an instance
 	 * @param theNewSave The instance
 	 */
-	set(theNewSave: GameSaveClass = this.getLatestSave()) {
+	set(theNewSave: _GameSave = this.getLatestSave()) {
 		Object.assign(this, theNewSave);
 	}
 
 	/** Sets this class to a new instance of itself */
 	delete() {
-		const theNewSave = new GameSaveClass();
+		const theNewSave = new _GameSave();
 		this.set(theNewSave);
+		return console.log("DELETED GAME SAVE!!");
 	}
 
 	/** Gets the latest instance in localStorage */
-	getLatestSave(): GameSaveClass {
-		function deepMerge(target: any, source: any): any {
-			for (const key in source) {
-				if (source[key] instanceof Object && key in target) {
-					Object.assign(source[key], deepMerge(target[key], source[key]));
-				}
-			}
-			return Object.assign(target || {}, source);
-		}
+	private getLatestSave(): _GameSave {
+		const newGameSave = new _GameSave();
+		const data = getData(GAME.SAVE_NAME, newGameSave);
 
-		const newGameSave = new GameSaveClass();
-		const data = getData(GAME.SAVE_NAME);
-
-		return deepMerge(data, newGameSave);
+		return deepMergeSaves(data, newGameSave);
 	}
 
 	/** Assigns itself to {@link getLatestSave `getLatestSave()`}  */
 	load() {
-		const data = getData(GAME.SAVE_NAME);
-		this.set(data as GameSaveClass);
+		const data = this.getLatestSave();
+		this.set(data as _GameSave);
 	}
 
 	/** Gets the key stored in the game save for a certain move */
-	getKeyForMove(move: Move) {
-		return Object.values(GameSave.gameControls).find((gameKey) => gameKey.move == move).kbKey;
+	getKeyForMove(move: Move): Key {
+		return this.gameControls[move];
+	}
+
+	/** Returns the move you'd do if you pressed the key stored in the game save for that move */
+	getMoveForKey(gameKey: Key): Move {
+		return Object.keys(this.gameControls).find((move) => this.gameControls[move] == gameKey) as Move;
 	}
 }
 
-/** The game save, an instance of GameSaveClass */
-export const GameSave = new GameSaveClass();
+/** The game save, an instance of _GameSave */
+export const GameSave = new _GameSave();

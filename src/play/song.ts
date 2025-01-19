@@ -1,10 +1,9 @@
-import { EaseFunc } from "kaplay";
-import { utils } from "../utils";
+import { _GameSave } from "../core/gamesave";
 import { ChartEvent } from "./event";
 import { ChartNote } from "./objects/note";
 import { Tally } from "./objects/scoring";
 
-/** When a song ends, an object of this type gets pushed to GameSave.songsPlayed*/
+/** When a song ends, an object of this type gets pushed to {@link `_GameSave.songsPlayed`}*/
 export class SaveScore {
 	/** The uuid of the song */
 	uuid: string;

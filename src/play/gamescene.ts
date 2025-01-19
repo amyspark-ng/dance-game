@@ -1,6 +1,6 @@
 import { appWindow } from "@tauri-apps/api/window";
 import { EaseFunc, KEventController, TweenController } from "kaplay";
-import { GameSave, GameSaveClass } from "../core/gamesave";
+import { GameSave } from "../core/gamesave";
 import { GAME } from "../core/initGame";
 import { cam } from "../core/plugins/features/camera";
 import { gameCursor } from "../core/plugins/features/gameCursor";
@@ -99,14 +99,20 @@ export function GameScene() {
 				GameState.dancer.moveBop();
 			}
 
-			const bopStrength = ChartEvent.getAtTime(
+			const camMoveEV = ChartEvent.getAtTime(
 				"cam-move",
 				GameState.song.chart.events,
 				GameState.conductor.timeInSeconds,
 			);
 
-			if (bopStrength) {
-				cam.bop(vec2(bopStrength.value.bopStrength), vec2(1), GameState.conductor.beatInterval);
+			if (camMoveEV) {
+				const easingFunc = easings[camMoveEV.value.easing[0]] as EaseFunc;
+				cam.bop(
+					vec2(camMoveEV.value.bopStrength),
+					vec2(1),
+					camMoveEV.value.duration,
+					easingFunc,
+				);
 			}
 		});
 

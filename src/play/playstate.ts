@@ -8,8 +8,8 @@ import { fadeOut } from "../core/transitions/fadeOutTransition";
 import { paramsSongSelect } from "../ui/SongSelectScene";
 import { paramsChartEditor } from "./chartEditor/EditorState";
 import { ChartEvent } from "./event";
-import { DancerGameObj, makeDancer, Move } from "./objects/dancer";
-import { ChartNote, getNotesOnScreen, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
+import { DancerGameObj, makeDancer } from "./objects/dancer";
+import { ChartNote, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
 import { Tally } from "./objects/scoring";
 import { createStrumline, StrumlineGameObj } from "./objects/strumline";
 import { SongContent } from "./song";
@@ -37,6 +37,9 @@ export class StateGame {
 	/** Static instance of the class */
 	static instance: StateGame = null;
 
+	/** The params this was initialized with */
+	params: paramsGameScene = null;
+
 	/** The current conductor */
 	conductor: Conductor = null;
 
@@ -49,7 +52,7 @@ export class StateGame {
 	/** The current combo */
 	combo: number = 0;
 
-	/** The current combo */
+	/** The current highest combo achieved */
 	highestCombo: number = 0;
 
 	/** Holds all the notes that have been spawned */
@@ -63,9 +66,6 @@ export class StateGame {
 
 	/** Current player health */
 	health: number = 100;
-
-	/** The params this was initialized with */
-	params: paramsGameScene = null;
 
 	/** Wheter the player can press keys to play */
 	gameInputEnabled: boolean = true;
@@ -85,25 +85,25 @@ export class StateGame {
 	/** The strumline in the gameplay */
 	strumline: StrumlineGameObj = null;
 
-	/** Dictates wheter the game is paused or not, please do not touch if not through the manage pause function */
+	/** Private property that manages the game paused state, it's actually getted and setted */
 	private _paused: boolean = false;
 
+	/** Private property that manages the last time the game was paused (for a cool effect) */
 	private lastTimeOnPause: number = 0;
 
-	/** Wheter the game is currently paused or not */
 	get paused() {
 		return this._paused;
 	}
 
-	/** Will set the pause to true or false, if a parameter isn't passed it will be toggled */
+	/** Wheter the game is currently paused or not */
 	set paused(newPause: boolean) {
 		newPause = newPause ?? !this._paused;
 		this._paused = newPause;
 
 		// these tweens somehow are spam-proof! good :)
 		// unpaused
-		if (this._paused == false) {
-			this.conductor.paused = this._paused;
+		if (this.paused == false) {
+			this.conductor.paused = this.paused;
 			this.conductor.timeInSeconds = this.lastTimeOnPause;
 			this.conductor.audioPlay.seek(this.lastTimeOnPause);
 			tween(this.conductor.audioPlay.detune, 0, 0.15 / 2, (p) => this.conductor.audioPlay.detune = p);
@@ -122,13 +122,13 @@ export class StateGame {
 
 			// Waits 15 seconds so the audio isn't paused inmediately
 			wait(0.15, () => {
-				this.conductor.paused = this._paused;
+				this.conductor.paused = this.paused;
 			});
 		}
 
 		// After half the time the menu is brought up
 		wait(0.15 / 2, () => {
-			getTreeRoot().trigger("pauseChange", this._paused);
+			getTreeRoot().trigger("pauseChange", this.paused);
 		});
 	}
 
@@ -142,7 +142,7 @@ export class StateGame {
 		this.gameUI.scoreDiffText.bop({ startScale: vec2(1.1), endScale: vec2(1) });
 	}
 
-	/** Runs when the pause has changed */
+	/** Runs when the game has been paused or unpaused (mainly for the pause ui) */
 	onPauseChange(action: (newPause: boolean) => void) {
 		return getTreeRoot().on("pauseChange", action);
 	}
@@ -179,7 +179,7 @@ export class StateGame {
 		tween(cam.zoom, vec2(1), 0.1, (p) => cam.zoom = p, easings.easeOutExpo);
 		tween(cam.rotation, 0, 0.1, (p) => cam.rotation = p, easings.easeOutExpo);
 
-		getNotesOnScreen().forEach((noteObj) => {
+		ChartNote.getNotesOnScreen().forEach((noteObj) => {
 			noteObj.destroy();
 
 			let rotationDirection = choose([-10, 10]);
@@ -213,7 +213,7 @@ export class StateGame {
 	}
 
 	/** I don't remember what this was for?? */
-	stop() {
+	private stop() {
 		this.conductor.paused = true;
 		this.conductor.audioPlay.stop();
 		this.menuInputEnabled = true;
@@ -242,7 +242,7 @@ export class StateGame {
 		);
 	}
 
-	/** Collection of event related functions */
+	/** Collection of events called in the state */
 	events = {
 		/** Triggers one of the possible events in the state
 		 * @param arg CAN ONLY PASS ONE OBJECT GOMENASAI
@@ -266,6 +266,8 @@ export class StateGame {
 	};
 
 	constructor(params: paramsGameScene) {
+		console.log(GameSave.gameControls);
+
 		StateGame.instance = this;
 		params.playbackSpeed = params.playbackSpeed ?? 1;
 		params.seekTime = params.seekTime ?? 0;
@@ -329,17 +331,15 @@ export function introGo() {
 
 /** The function that manages input functions inside the game, must be called onUpdate */
 export function inputHandler(GameState: StateGame) {
+	// goes through each gamekey
 	Object.values(GameSave.gameControls).forEach((gameKey, index) => {
 		if (GameState.paused) return;
+		const moveForKey = GameSave.getMoveForKey(gameKey);
 
-		const kbKey = gameKey.kbKey;
-		const defaultKey = Object.keys(GameSave.gameControls)[index];
-
-		if (isKeyPressed(kbKey) || isKeyPressed(defaultKey)) {
-			// bust a move
-			GameState.strumline.press(gameKey.move);
+		if (isKeyPressed(gameKey)) {
+			GameState.strumline.press(moveForKey);
 		}
-		else if (isKeyReleased(kbKey) || isKeyReleased(defaultKey)) {
+		else if (isKeyReleased(gameKey)) {
 			GameState.strumline.pressed = false;
 		}
 	});
@@ -356,7 +356,7 @@ export function inputHandler(GameState: StateGame) {
 	}
 
 	// if no game key is 7 then it will exit to the chart editor
-	if (!Object.values(GameSave.gameControls).some((gameKey) => gameKey.kbKey == "7")) {
+	if (!Object.values(GameSave.gameControls).some((gameKey) => gameKey == "7")) {
 		if (isKeyPressed("7")) {
 			GameState.exitEditor();
 		}

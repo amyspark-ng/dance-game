@@ -30,7 +30,7 @@ export class ChartEvent {
 	static get eventSchema() {
 		return {
 			"change-scroll": { duration: 0, speed: 1.0, easing: ["linear"] },
-			"cam-move": { duration: 0, x: 0, y: 0, zoom: 1, angle: 0, easing: ["linear"] },
+			"cam-move": { duration: 0, x: 0, y: 0, zoom: 1, angle: 0, easing: ["linear"], bopStrength: 1 },
 			"play-anim": { anim: "", speed: 1, force: false, looped: false, ping_pong: false },
 			"change-dancer": { dancer: "astri" },
 		};

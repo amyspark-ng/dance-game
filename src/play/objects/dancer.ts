@@ -2,8 +2,12 @@ import { Comp, KEventController, TimerController, TweenController, Vec2 } from "
 import { GameSave } from "../../core/gamesave";
 import { juice } from "../../core/plugins/graphics/juiceComponent";
 
-/** Moves available for the dancer, also handles the note type */
-export type Move = "left" | "right" | "up" | "down" | "idle";
+const moveAnimsArr = ["left", "right", "up", "down"] as const;
+/** The moves in the gameplay, also handles the note type */
+export type Move = typeof moveAnimsArr[number];
+
+/** The moves the dancer can make */
+export type MoveAnim = Move | "idle";
 
 /** Time it'll take for the dancer to go back to idleing */
 const TIME_FOR_IDLE = 1;
@@ -29,7 +33,7 @@ export function makeDancer(dancerName: string) {
 				this.waitForIdle = wait(0);
 			},
 
-			doMove(move: Move): void {
+			doMove(move: MoveAnim): void {
 				if (this.forcedAnim) return;
 
 				onAnimEndEvent?.cancel();
@@ -40,9 +44,8 @@ export function makeDancer(dancerName: string) {
 
 					this.waitForIdle?.cancel();
 					this.waitForIdle = wait(TIME_FOR_IDLE, () => {
-						const keyForMove = Object.values(GameSave.gameControls).find((gameKey) =>
-							gameKey.move == move
-						).kbKey;
+						const keyForMove = GameSave.getKeyForMove(move);
+
 						if (!isKeyDown(keyForMove)) {
 							this.doMove("idle");
 						}
@@ -70,9 +73,13 @@ export function makeDancer(dancerName: string) {
 				});
 			},
 
-			/** Gets the current move */
-			getMove(): Move {
-				return this.getCurAnim()?.name ?? "idle";
+			/** Gets the current move
+			 * @warning If it returns undefined it means it's doing other thing
+			 */
+			getMove(): MoveAnim {
+				const curAnimName = this.getCurAnim()?.name;
+				if (moveAnimsArr.includes(curAnimName)) return curAnimName;
+				else return undefined;
 			},
 
 			/** miss */

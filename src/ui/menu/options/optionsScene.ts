@@ -1,10 +1,11 @@
 import { appWindow } from "@tauri-apps/api/window";
 import { GameObj, KEventController, Key, Vec2 } from "kaplay";
-import { GameSave, GameSaveClass } from "../../../core/gamesave";
+import { _GameSave, GameSave } from "../../../core/gamesave";
 import { noteskins } from "../../../core/loader";
 import { playSound, updateMasterVolume } from "../../../core/plugins/features/sound";
 import { juice } from "../../../core/plugins/graphics/juiceComponent";
 import { goScene } from "../../../core/scenes";
+import { Move } from "../../../play/objects/dancer";
 import { utils } from "../../../utils";
 import { paramsSongSelect } from "../../SongSelectScene";
 import { addCheckbox, addNumberItem, addVolumeSlider, tagForCheckbox, tagForNumItem, tagForSlider } from "./optionsUI";
@@ -18,7 +19,7 @@ function uiSelectSound() {
 }
 
 // draws a key "sprite"
-function drawKey(opts: { key: string; position: Vec2; opacity: number; }) {
+function drawKey(opts: { key: Key; position: Vec2; opacity: number; }) {
 	drawRect({
 		width: 60,
 		height: 60,
@@ -115,7 +116,7 @@ function manageOptionsState(page: number, OptionsState: StateOptions, workThem: 
 	// game keys
 	if (page == 0) {
 		OptionsState.inputEnabled = true;
-		let moves = Object.keys(GameSave.gameControls);
+		let moves: Move[] = Object.keys(GameSave.gameControls) as Move[];
 
 		// this is done so the isKeyPressed("enter") doesn't run the second this is triggered
 		let canChangeKeys = false;
@@ -147,7 +148,7 @@ function manageOptionsState(page: number, OptionsState: StateOptions, workThem: 
 					/** Runs when the user is done picking a key */
 					function doneIt() {
 						// if the chosen key is new || good
-						if (newKey != undefined && newKey != GameSave.gameControls[hoveredKey.curMove].kbKey) {
+						if (newKey != undefined && newKey != GameSave.gameControls[hoveredKey.curMove]) {
 							// does little anim
 							uiSelectSound();
 							tween(
@@ -163,10 +164,10 @@ function manageOptionsState(page: number, OptionsState: StateOptions, workThem: 
 						escapeEvent.cancel();
 						arrowKeyPressEvents.forEach((ev) => ev.cancel());
 
-						const defaultKeys = Object.keys(new GameSaveClass().gameControls);
+						const defaultKeys = _GameSave.defaultControls;
 
 						// checks if any key is the same as the new key
-						if (Object.values(GameSave.gameControls).some((key) => key.kbKey == newKey)) {
+						if (Object.values(GameSave.gameControls).some((key) => key == newKey)) {
 							// if that key is in another gameControl then set that game control to the default else don't do anything
 
 							// runs through each gameControl
@@ -174,8 +175,8 @@ function manageOptionsState(page: number, OptionsState: StateOptions, workThem: 
 								if (newKey == key) continue;
 
 								// set to default if the key is repeated
-								if (GameSave.gameControls[key].kbKey == newKey) {
-									GameSave.gameControls[key].kbKey = defaultKeys[
+								if (GameSave.gameControls[key] == newKey) {
+									GameSave.gameControls[key] = defaultKeys[
 										Object.values(GameSave.gameControls).indexOf(GameSave.gameControls[key])
 									];
 								}
@@ -183,7 +184,7 @@ function manageOptionsState(page: number, OptionsState: StateOptions, workThem: 
 						}
 
 						if (newKey != undefined) {
-							GameSave.gameControls[hoveredKey.curMove].kbKey = newKey;
+							GameSave.gameControls[hoveredKey.curMove] = newKey;
 						}
 
 						// so iskeypressed left and right can't run inmediately after choosing an arrow key
@@ -262,7 +263,7 @@ function manageOptionsState(page: number, OptionsState: StateOptions, workThem: 
 
 			noteForKey.onDraw(() => {
 				drawKey({
-					key: GameSave.gameControls[curMove].kbKey,
+					key: GameSave.gameControls[curMove],
 					position: vec2(0, noteForKey.height),
 					opacity: noteForKey.opacity,
 				});
@@ -400,7 +401,6 @@ function manageOptionsState(page: number, OptionsState: StateOptions, workThem: 
 		utils.runInDesktop(() => {
 			const fullscreenBox = addCheckbox("Fullscreen");
 			fullscreenBox.onCheck((selected) => {
-				GameSave.fullscreen = selected;
 				appWindow.setFullscreen(selected);
 			});
 

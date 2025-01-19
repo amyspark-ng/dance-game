@@ -3,7 +3,7 @@ import { juice } from "../../core/plugins/graphics/juiceComponent";
 import { utils } from "../../utils";
 import { Move } from "../objects/dancer";
 import { INPUT_THRESHOLD, StateGame } from "../PlayState";
-import { ChartNote, getNotesOnScreen } from "./note";
+import { addNote, ChartNote } from "./note";
 import { checkForNoteHit } from "./scoring";
 
 /** Scale of the strumline when pressed */
@@ -39,7 +39,7 @@ export function createStrumline() {
 			press(move: Move) {
 				this.pressed = true;
 				// there's notes on the screen
-				if (getNotesOnScreen().length > 0) {
+				if (ChartNote.getNotesOnScreen().length > 0) {
 					const note = checkForNoteHit(move);
 
 					// means it found a note that's between the input treshold
@@ -66,6 +66,11 @@ export function createStrumline() {
 					}
 				}
 			},
+
+			/** Spawns a note????' */
+			spawnNote(chartnote: ChartNote) {
+				addNote(chartnote, GameState, this);
+			},
 		},
 	]);
 
@@ -79,9 +84,9 @@ export function createStrumline() {
 			}
 			// doesn't have a note, shallow press
 			else {
-				const pressedKey = Object.values(GameSave.gameControls).find((gameKey) => isKeyDown(gameKey.kbKey));
+				const pressedKey = Object.values(GameSave.gameControls).find((gameKey) => isKeyDown(gameKey));
 				if (!pressedKey) return;
-				const colorOfKey = ChartNote.moveToColor(pressedKey.move);
+				const colorOfKey = ChartNote.moveToColor(GameSave.getMoveForKey(pressedKey));
 				strumlineObj.color = lerp(strumlineObj.color, colorOfKey.lerp(STRUMLINE_COLOR, 0.5), 0.5);
 				strumlineObj.scale = lerp(strumlineObj.scale, vec2(0.9), 0.5);
 			}

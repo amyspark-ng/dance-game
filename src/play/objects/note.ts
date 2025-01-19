@@ -3,6 +3,7 @@ import { utils } from "../../utils";
 import { INPUT_THRESHOLD, StateGame } from "../PlayState";
 import { Move } from "./dancer";
 import { Scoring } from "./scoring";
+import { StrumlineGameObj } from "./strumline";
 
 /** The width of the note */
 export const NOTE_WIDTH = 80;
@@ -65,6 +66,11 @@ export class ChartNote {
 		const xPos = map(mapValue, 0, 1, NOTE_SPAWNPOINT, strumlineXpos - NOTE_WIDTH / 2);
 		return xPos;
 	}
+
+	/** Returns an array of all the notes currently on the screen (not counting trails) */
+	static getNotesOnScreen(): NoteGameObj[] {
+		return get("noteObj", { recursive: true });
+	}
 }
 
 /** How much time will take for the note to reach the strum */
@@ -88,12 +94,12 @@ function addMasked() {
 }
 
 /** Adds a note to the game */
-export function addNote(chartNote: ChartNote, GameState: StateGame) {
+export function addNote(chartNote: ChartNote, GameState: StateGame, strumline: StrumlineGameObj) {
 	let trail: ReturnType<typeof addTrail> = null;
 
 	const noteObj = add([
 		sprite(GameSave.noteskin + "_" + chartNote.move),
-		pos(width() + NOTE_WIDTH, GameState.strumline.pos.y),
+		pos(width() + NOTE_WIDTH, strumline.pos.y),
 		anchor("center"),
 		opacity(),
 		z(2),
@@ -143,7 +149,7 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 		});
 
 		const keyReleaseEv = onKeyRelease(GameSave.getKeyForMove(chartNote.move), () => {
-			GameState.strumline.currentNote = null;
+			strumline.currentNote = null;
 
 			// didn't finish holding, bad
 			if (!hasFinishedHolding) {
@@ -158,11 +164,11 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 	noteObj.onUpdate(() => {
 		if (GameState.paused) return;
 
-		if (GameState.strumline.currentNote != chartNote) {
+		if (strumline.currentNote != chartNote) {
 			const xPos = ChartNote.getPosAtTime(
 				GameState.conductor.timeInSeconds,
 				chartNote,
-				GameState.strumline.pos.x,
+				strumline.pos.x,
 			);
 			noteObj.pos.x = xPos;
 		}
@@ -243,7 +249,7 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 			const xPos = ChartNote.getPosAtTime(
 				GameState.conductor.timeInSeconds,
 				chartNote,
-				GameState.strumline.pos.x,
+				strumline.pos.x,
 			);
 			trail.pos = vec2(xPos, noteObj.pos.y);
 		});
@@ -259,6 +265,7 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 	return noteObj;
 }
 
+/** The type for the game object of a chartnote */
 export type NoteGameObj = ReturnType<typeof addNote>;
 
 // MF you genius
@@ -270,14 +277,15 @@ export function notesSpawner(GameState: StateGame) {
 	/** holds all the chart.notes that have not been spawned */
 	let waiting: ChartNote[] = [];
 
+	/** Resets the queued notes */
 	function resetWaiting() {
 		waiting = GameState.song.chart.notes.toSorted((a, b) => ChartNote.spawnTime(b) - ChartNote.spawnTime(a));
 	}
 
 	resetWaiting();
-
 	GameState.events.onRestart(() => resetWaiting());
 
+	/** Check wheter a note should be spawned */
 	function checkNotes() {
 		const t = GameState.conductor.timeInSeconds;
 		let index = waiting.length - 1;
@@ -289,7 +297,7 @@ export function notesSpawner(GameState: StateGame) {
 			if (ChartNote.spawnTime(note) > t) {
 				break;
 			}
-			addNote(note, GameState);
+			GameState.strumline.spawnNote(note);
 			index--;
 		}
 
@@ -304,10 +312,4 @@ export function notesSpawner(GameState: StateGame) {
 		if (GameState.conductor.paused) return;
 		checkNotes();
 	});
-}
-
-/** Returns an array of all the notes currently on the screen */
-// TODO: Move this to ChartNote?
-export function getNotesOnScreen() {
-	return get("noteObj", { recursive: true });
 }

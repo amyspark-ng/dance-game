@@ -416,7 +416,6 @@ export function ChartEditorScene() {
 		// Scrolls the checkerboard
 		ChartState.conductor.onStepHit((currentStep) => {
 			const note = EditorUtils.stamps.find("note", currentStep);
-			// TODO: this??
 			if (note) ChartState.events.trigger("notehit", note);
 		});
 

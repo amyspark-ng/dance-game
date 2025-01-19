@@ -1,5 +1,5 @@
 import { GameObj, PosComp } from "kaplay";
-import { GameSave, GameSaveClass } from "../../core/gamesave";
+import { GameSave } from "../../core/gamesave";
 import { FileManager } from "../../fileManaging";
 import { utils } from "../../utils";
 import { ChartEvent } from "../event";

@@ -67,7 +67,7 @@ onLoad(() => {
 });
 
 utils.runInDesktop(() => {
-	if (GameSave.fullscreen) appWindow.setFullscreen(GameSave.fullscreen);
+	// if (GameSave.fullscreen) appWindow.setFullscreen(GameSave.fullscreen);
 });
 
 // for drag
@@ -93,13 +93,14 @@ document.addEventListener("keydown", function(e) {
 
 // update fullscreen
 document.addEventListener("fullscreenchange", (event) => {
-	if (document.fullscreenElement) GameSave.fullscreen = true;
-	else GameSave.fullscreen = false;
+	// if (document.fullscreenElement) GameSave.fullscreen = true;
+	// else GameSave.fullscreen = false;
 });
 
 export function INITIAL_SCENE() {
-	goScene("charteditor", { song: getSong("bopeebo") } as paramsChartEditor);
+	// goScene("charteditor", { song: getSong("bopeebo") } as paramsChartEditor);
 	// goScene("game", { song: getSong("bopeebo") } as paramsGameScene);
 	// goScene("songselect", { index: 0 } as paramsSongSelect);
 	// goScene("menu", { index: 0 });
+	// goScene("options");
 }
