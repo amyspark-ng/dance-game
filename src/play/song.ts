@@ -1,4 +1,4 @@
-import { _GameSave } from "../core/gamesave";
+import { _GameSave, GameSave } from "../core/gamesave";
 import { ChartEvent } from "./event";
 import { ChartNote } from "./objects/note";
 import { Tally } from "./objects/scoring";
@@ -9,6 +9,20 @@ export class SaveScore {
 	uuid: string;
 	/** The tally of the score */
 	tally: Tally;
+
+	/** Gets the saveScore for a song name */
+	static getHighscore(uuid: string): SaveScore {
+		const scoresOfSong = GameSave.songsPlayed.filter((song) => song.uuid == uuid);
+
+		if (scoresOfSong.length < 1) {
+			return new SaveScore();
+		}
+		else {
+			// get the highest song save score
+			return scoresOfSong.reduce((a, b) => a.tally.score > b.tally.score ? a : b);
+		}
+	}
+
 	constructor() {
 		this.uuid = undefined;
 		this.tally = new Tally();

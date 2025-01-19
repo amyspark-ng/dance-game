@@ -127,7 +127,7 @@ export function addPauseUI() {
 
 	// dancer
 	const fakeDancer = add([
-		sprite("dancer_" + GameState.params.dancer, { anim: "idle" }),
+		sprite("dancer_" + GameState.params.dancerName, { anim: "idle" }),
 		pos(center()),
 		z(baseZ),
 		anchor("center"),

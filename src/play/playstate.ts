@@ -3,10 +3,9 @@ import { Conductor } from "../conductor";
 import { GameSave } from "../core/gamesave";
 import { cam } from "../core/plugins/features/camera";
 import { playSound } from "../core/plugins/features/sound";
-import { transitionToScene } from "../core/scenes";
-import { fadeOut } from "../core/transitions/fadeOutTransition";
-import { paramsSongSelect } from "../ui/SongSelectScene";
-import { paramsChartEditor } from "./chartEditor/EditorState";
+import { KaplayState } from "../core/scenes";
+import { StateSongSelect } from "../ui/SongSelectScene";
+import { StateChart } from "./chartEditor/EditorState";
 import { ChartEvent } from "./event";
 import { DancerGameObj, makeDancer } from "./objects/dancer";
 import { ChartNote, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
@@ -15,13 +14,14 @@ import { createStrumline, StrumlineGameObj } from "./objects/strumline";
 import { SongContent } from "./song";
 import { addUI } from "./ui/gameUi";
 import { addPauseUI } from "./ui/pauseScreen";
+import "./GameScene";
 
 /** Type to store the parameters for the game scene */
 export type paramsGameScene = {
 	/** The song passed for gameplay */
 	song: SongContent;
 	/** The name of the dancer */
-	dancer: string;
+	dancerName: string;
 	/** How fast to make the song :smiling_imp: */
 	playbackSpeed?: number;
 
@@ -33,7 +33,7 @@ export type paramsGameScene = {
 };
 
 /** Class that holds and manages some important variables in the game scene */
-export class StateGame {
+export class StateGame extends KaplayState {
 	/** Static instance of the class */
 	static instance: StateGame = null;
 
@@ -223,22 +223,20 @@ export class StateGame {
 	exitMenu() {
 		// let song = getSong(this.songZip.)
 		// let index = song ? allSongCharts.indexOf(song) : 0
-		// TODO: Find a way to comfortably get a song
-		transitionToScene(fadeOut, "songselect", { index: 0 } as paramsSongSelect);
+		KaplayState.switchState(new StateSongSelect({ index: 0 }));
 	}
 
 	/** Function to exit to the editor menu from the gamescene */
 	exitEditor() {
 		this.stop();
 		this.menuInputEnabled = false;
-		transitionToScene(
-			fadeOut,
-			"charteditor",
-			{
-				song: this.song,
+		KaplayState.switchState(
+			new StateChart({
+				dancer: GameSave.dancer,
+				playbackSpeed: this.params.playbackSpeed,
 				seekTime: this.conductor.timeInSeconds,
-				dancer: this.params.dancer,
-			} as paramsChartEditor,
+				song: this.song,
+			}),
 		);
 	}
 
@@ -265,18 +263,7 @@ export class StateGame {
 		},
 	};
 
-	constructor(params: paramsGameScene) {
-		console.log(GameSave.gameControls);
-
-		StateGame.instance = this;
-		params.playbackSpeed = params.playbackSpeed ?? 1;
-		params.seekTime = params.seekTime ?? 0;
-		params.dancer = params.dancer ?? "astri";
-		params.song = params.song ?? null;
-
-		this.params = params;
-		this.song = this.params.song;
-
+	add() {
 		// now that we have the song we can get the scroll speed multiplier and set the playback speed for funzies
 		const speed = this.song.manifest.initial_scrollspeed * GameSave.scrollSpeed;
 		setTimeForStrum(1.25);
@@ -295,7 +282,7 @@ export class StateGame {
 
 		// adds the ui to the game
 		this.strumline = createStrumline();
-		this.dancer = add(makeDancer(this.params.dancer));
+		this.dancer = add(makeDancer(this.params.dancerName));
 		this.gameUI = addUI();
 		this.pauseUI = addPauseUI();
 
@@ -307,6 +294,18 @@ export class StateGame {
 
 		this.conductor.audioPlay.seek(this.params.seekTime);
 		if (this.dancer) this.dancer.doMove("idle");
+	}
+
+	constructor(params: paramsGameScene) {
+		super("game");
+		StateGame.instance = this;
+		params.playbackSpeed = params.playbackSpeed ?? 1;
+		params.seekTime = params.seekTime ?? 0;
+		params.dancerName = params.dancerName ?? "astri";
+		params.song = params.song ?? null;
+
+		this.params = params;
+		this.song = this.params.song;
 	}
 }
 

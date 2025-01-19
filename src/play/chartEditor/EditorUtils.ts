@@ -1,9 +1,9 @@
 import { Key } from "kaplay";
 import { gameCursor } from "../../core/plugins/features/gameCursor";
 import { playSound } from "../../core/plugins/features/sound";
-import { transitionToScene } from "../../core/scenes";
-import { fadeOut } from "../../core/transitions/fadeOutTransition";
+import { KaplayState } from "../../core/scenes";
 import { FileManager } from "../../fileManaging";
+import { StateMenu } from "../../ui/menu/MenuScene";
 import { utils } from "../../utils";
 import { ChartEvent } from "../event";
 import { Move } from "../objects/dancer";
@@ -58,7 +58,7 @@ export class EditorCommands {
 	}
 
 	static Exit() {
-		transitionToScene(fadeOut, "menu", { index: 0 });
+		KaplayState.switchState(new StateMenu("editor"));
 	}
 
 	static SelectAll() {

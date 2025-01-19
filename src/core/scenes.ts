@@ -1,61 +1,30 @@
-import { ChartEditorScene } from "../play/chartEditor/ChartEditorScene";
-import { GameScene } from "../play/GameScene";
-import { CharSelectScene } from "../play/ui/CharSelectScene";
-import { DeathScene } from "../play/ui/DeathScene";
-import { ResultsScene } from "../play/ui/ResultsScene";
-import { FocusScene } from "../ui/FocusScene";
-import { MenuScene } from "../ui/menu/MenuScene";
-import { OptionsScene } from "../ui/menu/options/OptionsScene";
-import { SongSelectScene } from "../ui/SongSelectScene";
-import { TitleScene } from "../ui/TitleScene";
+const sceneDefinitions: Record<string, (state: KaplayState) => void> = {};
 
-/** Object containing the name of all game scenes */
-const allGameScenes = {
-	"focus": FocusScene,
-	"title": TitleScene,
-	"game": GameScene,
-	"menu": MenuScene,
-	"results": ResultsScene,
-	"songselect": SongSelectScene,
-	"charselect": CharSelectScene,
-	"death": DeathScene,
-	"charteditor": ChartEditorScene,
-	"options": OptionsScene,
-};
+/** Type for transition function */
+export type StateSwitchTransition = (state: KaplayState) => void;
 
-/** Custom type for scene names */
-export type sceneNameType = keyof typeof allGameScenes;
+export class KaplayState {
+	/** The name of the scene to go to when the transition is over */
+	sceneName: string;
 
-export type newSceneOpts = {
-	sceneName: sceneNameType;
-	params?: any;
-};
+	static scene(name: string, sceneDef: (state: KaplayState) => void) {
+		sceneDefinitions[name] = sceneDef;
+	}
 
-/**
- * Receives a transition function so it can call it and transition from one scene to another
- * @param transitionFunction The transition function
- * @param sceneName The typed name of the scene
- * @param params Extra params you'd want to add (please be an object)
- */
-export function transitionToScene(
-	transitionFunction: (sceneName: sceneNameType, params: any) => void,
-	sceneName: sceneNameType,
-	params: any,
-) {
-	// Call the passed transition function with the provided scene name and params
-	transitionFunction(sceneName, params);
-}
-
-/**
- * Just like a regular go() but with the scene name typed
- * @param sceneName The typed name of the scene
- * @param params Extra params you'd want to add (please be an object)
- */
-export function goScene(sceneName: sceneNameType, params?: any) {
-	go(sceneName, params);
+	static switchState(state: KaplayState, transition?: StateSwitchTransition) {
+		// console.log("going to scene: " + state.sceneName);
+		if (transition) transition(state);
+		else go(state.sceneName, state);
+	}
+	constructor(sceneName: string) {
+		this.sceneName = sceneName;
+	}
 }
 
 /** Is the function that calls all the scene definitions, thus loading them */
 export function setupScenes() {
-	Object.values(allGameScenes).forEach(sceneDefinition => sceneDefinition());
+	Object.keys(sceneDefinitions).forEach((sceneName) => {
+		scene(sceneName, sceneDefinitions[sceneName]);
+		// console.log("loaded: " + sceneName);
+	});
 }

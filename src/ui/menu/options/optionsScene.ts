@@ -4,10 +4,11 @@ import { _GameSave, GameSave } from "../../../core/gamesave";
 import { noteskins } from "../../../core/loader";
 import { playSound, updateMasterVolume } from "../../../core/plugins/features/sound";
 import { juice } from "../../../core/plugins/graphics/juiceComponent";
-import { goScene } from "../../../core/scenes";
+import { KaplayState } from "../../../core/scenes";
 import { Move } from "../../../play/objects/dancer";
 import { utils } from "../../../utils";
 import { paramsSongSelect } from "../../SongSelectScene";
+import { StateMenu } from "../MenuScene";
 import { addCheckbox, addNumberItem, addVolumeSlider, tagForCheckbox, tagForNumItem, tagForSlider } from "./optionsUI";
 
 function uiMoveSound(change: 1 | -1) {
@@ -44,7 +45,7 @@ function drawKey(opts: { key: Key; position: Vec2; opacity: number; }) {
 	});
 }
 
-class StateOptions {
+export class StateOptions extends KaplayState {
 	/** The current ui element in the current page */
 	optionIndex: number = 0;
 
@@ -73,7 +74,7 @@ class StateOptions {
 		if (!this.inputEnabled) return;
 
 		if (this.inLeft) {
-			goScene("menu", { index: 1 });
+			KaplayState.switchState(new StateMenu("options"));
 			GameSave.save();
 		}
 		else {
@@ -84,6 +85,10 @@ class StateOptions {
 			this.inLeft = true;
 			manageOptionsState(this.leftIndex, this, false);
 		}
+	}
+
+	constructor() {
+		super("options");
 	}
 }
 

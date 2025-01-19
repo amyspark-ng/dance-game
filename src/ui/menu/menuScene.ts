@@ -1,15 +1,22 @@
 import { GameSave } from "../../core/gamesave";
 import { juice } from "../../core/plugins/graphics/juiceComponent";
-import { goScene } from "../../core/scenes";
-import { paramsChartEditor } from "../../play/chartEditor/EditorState";
+import { KaplayState } from "../../core/scenes";
+import { paramsChartEditor, StateChart } from "../../play/chartEditor/EditorState";
+import { SongContent } from "../../play/song";
 import { utils } from "../../utils";
-import { paramsSongSelect } from "../SongSelectScene";
+import { StateCredits } from "../CreditsScene";
+import { paramsSongSelect, StateSongSelect } from "../SongSelectScene";
+import { StateTitle } from "../TitleScene";
+import { StateOptions } from "./options/OptionsScene";
+
+const buttonList = ["songs", "options", "credits", "editor"] as const;
+type buttonOption = typeof buttonList[number];
 
 // i'd be cool if when you start hovering over it, it did a 3d spin and then a 2d waving of the rotation
 // and the other ones should also do something idk one maybe make them do like a wave
 const timeForMenuSpin = 0.5;
 
-export function addMenuButton(title: string, action: () => void) {
+export function addMenuButton(title: buttonOption, action: () => void) {
 	const icon = add([
 		sprite("cdCase"),
 		pos(),
@@ -49,80 +56,82 @@ export function addMenuButton(title: string, action: () => void) {
 		texty.pos.y = icon.pos.y + (icon.height * 1.1) / 2;
 	});
 
+	icon.index = get("menubutton").indexOf(icon);
+
 	return icon;
 }
 
-class StateMenu {
+export class StateMenu extends KaplayState {
 	index: number = 0;
+	constructor(option: typeof buttonList[number]) {
+		super("menu");
+		this.index = buttonList.indexOf(option) ?? 0;
+	}
 }
 
-type paramsMenuScene = {
-	index: number;
-};
+KaplayState.scene("menu", (MenuState: StateMenu) => {
+	const somePurple = rgb(39, 20, 92);
+	setBackground(somePurple);
 
-export function MenuScene() {
-	scene("menu", (params: paramsMenuScene) => {
-		const somePurple = rgb(39, 20, 92);
-		setBackground(somePurple);
+	onUpdate(() => {
+		if (isKeyPressed("right")) MenuState.index = utils.scrollIndex(MenuState.index, 1, 5);
+		else if (isKeyPressed("left")) MenuState.index = utils.scrollIndex(MenuState.index, -1, 5);
 
-		params.index = params.index ?? 0;
-		const MenuState = new StateMenu();
-		MenuState.index = params.index;
+		const hoveredButton = get("menubutton").find((button) => button.index == MenuState.index);
+		if (!hoveredButton) return;
 
-		onUpdate(() => {
-			if (isKeyPressed("right")) MenuState.index = utils.scrollIndex(MenuState.index, 1, 5);
-			else if (isKeyPressed("left")) MenuState.index = utils.scrollIndex(MenuState.index, -1, 5);
-
-			const hoveredButton = get("menubutton").find((button) => button.index == MenuState.index);
-			if (!hoveredButton) return;
-
-			if (isKeyPressed("enter")) {
-				hoveredButton.spin();
-				wait(timeForMenuSpin, () => {
-					hoveredButton.action();
-				});
-			}
-		});
-
-		const songsButton = addMenuButton("Songs", () => {
-			goScene("songselect", { index: 0 } as paramsSongSelect);
-		});
-		songsButton.index = 0;
-
-		const optionsButton = addMenuButton("Options", () => {
-			goScene("options");
-		});
-		optionsButton.index = 1;
-
-		const achievementsButton = addMenuButton("Achievements", () => {
-		});
-		achievementsButton.index = 2;
-
-		const creditsButton = addMenuButton("Credits", () => {
-		});
-		creditsButton.index = 3;
-
-		const chartButton = addMenuButton("Chart Editor", () => {
-			goScene("charteditor", { dancer: GameSave.dancer, song: null } as paramsChartEditor);
-		});
-		chartButton.index = 4;
-
-		const initialX = 100;
-
-		onUpdate("menubutton", (menubutton) => {
-			menubutton.pos.y = center().y;
-
-			// so convulated!
-			menubutton.pos.x = initialX + initialX + (menubutton.width * 1.1) * menubutton.index;
-
-			if (MenuState.index == menubutton.index) {
-				menubutton.opacity = 1;
-			}
-			else menubutton.opacity = 0.5;
-		});
-
-		onKeyPress("escape", () => {
-			goScene("title");
-		});
+		if (isKeyPressed("enter")) {
+			hoveredButton.spin();
+			wait(timeForMenuSpin, () => {
+				hoveredButton.action();
+			});
+		}
 	});
-}
+
+	buttonList.forEach((option) => {
+		let theFunction = () => {};
+
+		if (option == "songs") {
+			theFunction = () => {
+				KaplayState.switchState(new StateSongSelect({ index: 0 }));
+			};
+		}
+		else if (option == "credits") {
+			theFunction = () => {
+				KaplayState.switchState(new StateCredits());
+			};
+		}
+		else if (option == "editor") {
+			theFunction = () => {
+				KaplayState.switchState(
+					new StateChart({ dancer: GameSave.dancer, playbackSpeed: 1, seekTime: 0, song: new SongContent() }),
+				);
+			};
+		}
+		else if (option == "options") {
+			theFunction = () => {
+				KaplayState.switchState(new StateOptions());
+			};
+		}
+
+		addMenuButton(option, theFunction);
+	});
+
+	const initialX = 100;
+
+	onUpdate("menubutton", (menubutton) => {
+		menubutton.pos.y = center().y;
+
+		// so convulated!
+		menubutton.pos.x = initialX + initialX + (menubutton.width * 1.1) * menubutton.index;
+
+		if (MenuState.index == menubutton.index) {
+			menubutton.opacity = 1;
+		}
+		else menubutton.opacity = 0.5;
+	});
+
+	onKeyPress("escape", () => {
+		KaplayState.switchState(new StateTitle());
+	});
+});

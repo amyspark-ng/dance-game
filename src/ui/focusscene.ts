@@ -1,16 +1,20 @@
 import { INITIAL_SCENE } from "../core/initGame";
-import { goScene } from "../core/scenes";
+import { KaplayState } from "../core/scenes";
 
-export function FocusScene() {
-	scene("focus", () => {
-		setBackground(BLACK.lighten(50));
-
-		add([
-			text("CLICK TO FOCUS"),
-		]);
-
-		onClick(() => {
-			INITIAL_SCENE();
-		});
-	});
+export class FocusState extends KaplayState {
+	constructor() {
+		super("focus");
+	}
 }
+
+KaplayState.scene("focus", (FocusState: FocusState) => {
+	setBackground(BLACK.lighten(50));
+
+	add([
+		text("CLICK TO FOCUS"),
+	]);
+
+	onClick(() => {
+		INITIAL_SCENE();
+	});
+});

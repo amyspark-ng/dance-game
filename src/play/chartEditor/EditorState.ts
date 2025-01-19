@@ -5,13 +5,15 @@ import { Conductor } from "../../conductor";
 import { GameSave } from "../../core/gamesave";
 import { dancers, loadedSongs } from "../../core/loader";
 import { playMusic } from "../../core/plugins/features/sound";
+import { KaplayState } from "../../core/scenes";
 import { FileManager } from "../../fileManaging";
 import { utils } from "../../utils";
-import { ChartEvent } from "../event";
+import { ChartEvent, eventId } from "../event";
 import { Move } from "../objects/dancer";
 import { ChartNote } from "../objects/note";
 import { SongContent } from "../song";
 import { PROP_BIG_SCALE } from "./EditorRenderer";
+import "./ChartEditorScene";
 
 /** The params for the chart editor */
 export type paramsChartEditor = {
@@ -49,7 +51,7 @@ export type stampPropThing = {
 };
 
 /** Class that manages every important variable in the chart editor */
-export class StateChart {
+export class StateChart extends KaplayState {
 	/** Static instance of the statechart */
 	static instance: StateChart = null;
 
@@ -239,7 +241,7 @@ export class StateChart {
 	}
 
 	/** Adds an event to the events array */
-	placeEvent(time: number, id: string) {
+	placeEvent(time: number, id: eventId) {
 		const newEvent: ChartEvent = { time: time, id: id, value: ChartEvent.eventSchema[id] };
 		this.song.chart.events.push(newEvent);
 		// now sort them in time order
@@ -348,6 +350,8 @@ export class StateChart {
 	}
 
 	constructor(params: paramsChartEditor) {
+		super("editor");
+		StateChart.instance = this;
 		params.dancer = params.dancer ?? "astri";
 		params.playbackSpeed = params.playbackSpeed ?? 1;
 		params.playbackSpeed = Math.abs(clamp(params.playbackSpeed, 0, Infinity));
@@ -356,10 +360,10 @@ export class StateChart {
 		params.song = params.song ?? new SongContent();
 		this.params = params;
 
-		const oldUUID = params.song.manifest.uuid_DONT_CHANGE;
-
 		// Creates a deep copy of the song so it doesn't overwrite the current song
 		this.song = JSON.parse(JSON.stringify(this.params.song));
+
+		const oldUUID = params.song.manifest.uuid_DONT_CHANGE;
 
 		// the uuid alreaddy exists
 		if (loadedSongs.map((song) => song.manifest.uuid_DONT_CHANGE).includes(this.song.manifest.uuid_DONT_CHANGE)) {
@@ -385,20 +389,7 @@ export class StateChart {
 			});
 		}
 
-		this.conductor = new Conductor({
-			audioPlay: playMusic(`${this.song.manifest.uuid_DONT_CHANGE}-audio`, {
-				speed: this.params.playbackSpeed,
-			}),
-			BPM: this.song.manifest.initial_bpm * this.params.playbackSpeed,
-			timeSignature: this.song.manifest.time_signature,
-			offset: 0,
-		});
-		this.conductor.audioPlay.seek(this.params.seekTime);
-		this.paused = true;
-		this.scrollToStep(this.conductor.timeToStep(this.params.seekTime));
-
 		this.snapshotIndex = 0;
 		this.snapshots = [JSON.parse(JSON.stringify(this))];
-		StateChart.instance = this;
 	}
 }

@@ -11,6 +11,9 @@ class EventSchema {
 	}
 }
 
+/** Stringed type for any of the ids in the event schema */
+export type eventId = keyof typeof ChartEvent.eventSchema;
+
 /** Class that holds the properties an event in a chart file would have
  *
  * Plus Some static properties related to events
@@ -19,7 +22,7 @@ export class ChartEvent {
 	/** The time of the song the event must be triggered at */
 	time: number;
 	/** The event id, string to know what is it */
-	id: keyof typeof ChartEvent.eventSchema;
+	id: eventId;
 	/** The value the event contains, might be an object or something else idk */
 	value: any;
 
@@ -143,7 +146,7 @@ export class ChartEvent {
 	 * @param arr The array of events to comb through
 	 * @param time The current time
 	 */
-	static getAtTime(id: keyof typeof ChartEvent.eventSchema | "any", arr: ChartEvent[], time: number): ChartEvent {
+	static getAtTime(id: eventId | "any", arr: ChartEvent[], time: number): ChartEvent {
 		let events = arr;
 		if (id != "any") events = events.filter((ev) => ev.id == id);
 
@@ -165,6 +168,6 @@ export class ChartEvent {
 
 /** The type of the handler object for the chart events */
 type ChartEventHandler = Record<
-	keyof typeof ChartEvent.eventSchema,
+	eventId,
 	(curTime: number, evs: ChartEvent[]) => any
 >;

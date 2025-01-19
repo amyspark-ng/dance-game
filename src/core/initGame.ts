@@ -1,18 +1,17 @@
 import { getCurrent, WebviewWindow } from "@tauri-apps/api/window";
-import { FileManager } from "../fileManaging";
-import { paramsChartEditor } from "../play/chartEditor/EditorState";
-import { paramsGameScene } from "../play/PlayState";
-import { paramsSongSelect } from "../ui/SongSelectScene";
+import { StateChart } from "../play/chartEditor/EditorState";
+import { StateGame } from "../play/PlayState";
+import { FocusState } from "../ui/FocusScene";
+import { StateTitle } from "../ui/TitleScene";
 import { utils } from "../utils";
 import { GameSave } from "./gamesave";
 import { getSong, loadAssets, loadingScreen } from "./loader";
 import { setupCamera } from "./plugins/features/camera";
-import { curDraggin, drag } from "./plugins/features/drag";
-import { gameCursor, setupCursor } from "./plugins/features/gameCursor";
+import { curDraggin } from "./plugins/features/drag";
+import { setupCursor } from "./plugins/features/gameCursor";
 import { updateMasterVolume } from "./plugins/features/sound";
 import { setupSoundtray } from "./plugins/features/soundtray";
-import { setupWatch } from "./plugins/features/watcher";
-import { goScene, setupScenes } from "./scenes";
+import { KaplayState, setupScenes } from "./scenes";
 
 /** Class that handles some variables related to the game as a product */
 export class GAME {
@@ -59,7 +58,7 @@ onLoad(() => {
 
 	if (GAME.FEATURE_FOCUS) {
 		if (isFocused()) INITIAL_SCENE();
-		else goScene("focus");
+		else KaplayState.switchState(new FocusState());
 	}
 	else {
 		INITIAL_SCENE();
@@ -98,9 +97,17 @@ document.addEventListener("fullscreenchange", (event) => {
 });
 
 export function INITIAL_SCENE() {
-	// goScene("charteditor", { song: getSong("bopeebo") } as paramsChartEditor);
-	// goScene("game", { song: getSong("bopeebo") } as paramsGameScene);
-	// goScene("songselect", { index: 0 } as paramsSongSelect);
-	// goScene("menu", { index: 0 });
-	// goScene("options");
+	KaplayState.switchState(new StateTitle());
+	// KaplayState.switchState(
+	// 	new StateChart({ dancer: GameSave.dancer, playbackSpeed: 1, seekTime: 1, song: getSong("bopeebo") }),
+	// );
+	// KaplayState.switchState(
+	// 	new StateGame({
+	// 		dancerName: GameSave.dancer,
+	// 		fromChartEditor: false,
+	// 		song: getSong("bopeebo"),
+	// 		playbackSpeed: 1,
+	// 		seekTime: 0,
+	// 	}),
+	// );
 }
