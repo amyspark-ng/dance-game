@@ -1,6 +1,6 @@
 import { GameSave } from "../../core/gamesave";
 import { utils } from "../../utils";
-import { getKeyForMove, INPUT_THRESHOLD, StateGame } from "../PlayState";
+import { INPUT_THRESHOLD, StateGame } from "../PlayState";
 import { Move } from "./dancer";
 import { Scoring } from "./scoring";
 
@@ -142,7 +142,7 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 			GameState.addScore(Math.round(score / 2));
 		});
 
-		const keyReleaseEv = onKeyRelease(getKeyForMove(chartNote.move), () => {
+		const keyReleaseEv = onKeyRelease(GameSave.getKeyForMove(chartNote.move), () => {
 			GameState.strumline.currentNote = null;
 
 			// didn't finish holding, bad

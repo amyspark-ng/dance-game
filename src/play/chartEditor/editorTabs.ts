@@ -392,6 +392,10 @@ export class EditorTab {
 			{
 				isHovering: false,
 				tab: tab,
+				/** Gets the topleft position of the tab obj (not including the header) */
+				getTopLeft() {
+					return vec2(-this.width / 2, -this.height / 2);
+				},
 			},
 		]);
 

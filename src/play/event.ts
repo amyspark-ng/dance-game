@@ -1,5 +1,16 @@
 import { EaseFunc } from "kaplay";
 
+class EventSchema {
+	id: string;
+	name: string;
+	defaultValue: any;
+	constructor(id: string, name: string, defaultValue: any) {
+		this.id = id;
+		this.name = name;
+		this.defaultValue = defaultValue;
+	}
+}
+
 /** Class that holds the properties an event in a chart file would have
  *
  * Plus Some static properties related to events
@@ -22,7 +33,6 @@ export class ChartEvent {
 			"cam-move": { duration: 0, x: 0, y: 0, zoom: 1, angle: 0, easing: ["linear"] },
 			"play-anim": { anim: "", speed: 1, force: false, looped: false, ping_pong: false },
 			"change-dancer": { dancer: "astri" },
-			"bop-strength": { strength: 1 },
 		};
 	}
 
@@ -78,11 +88,18 @@ export class ChartEvent {
 				easedLerpV,
 			);
 
+			const newBopStrength = lerp(
+				previousEV.value.bopStrength,
+				currentEV.value.bopStrength,
+				easedLerpV,
+			);
+
 			return {
 				angle: newAngle,
 				x: newPos.x,
 				y: newPos.y,
 				zoom: newZoom,
+				bopStrength: newBopStrength,
 				duration: currentEV.value.duration,
 				easing: currentEV.value.easing,
 			} as typeof ChartEvent.eventSchema["cam-move"];
@@ -114,8 +131,6 @@ export class ChartEvent {
 				easing: currentEV.value.easing,
 				speed: newSpeed,
 			} as typeof ChartEvent.eventSchema["change-scroll"];
-		},
-		"bop-strength": (curTime: number = 0, evs: ChartEvent[]) => {
 		},
 		"change-dancer": (curTime: number = 0, evs: ChartEvent[]) => {
 		},

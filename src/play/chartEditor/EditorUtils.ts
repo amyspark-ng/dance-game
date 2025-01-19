@@ -618,6 +618,8 @@ export class EditorUtils {
 		},
 		shortcuts: () => {
 			const ChartState = StateChart.instance;
+			// if shortcuts disabled return (don't do anything)
+			if (!ChartState.input.shortcutEnabled) return;
 
 			// #region SCROLLING
 			let stepsToScroll = 0;

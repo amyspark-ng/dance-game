@@ -100,13 +100,13 @@ export function GameScene() {
 			}
 
 			const bopStrength = ChartEvent.getAtTime(
-				"bop-strength",
+				"cam-move",
 				GameState.song.chart.events,
 				GameState.conductor.timeInSeconds,
 			);
 
 			if (bopStrength) {
-				cam.bop(vec2(bopStrength.value.strength), vec2(1), GameState.conductor.beatInterval);
+				cam.bop(vec2(bopStrength.value.bopStrength), vec2(1), GameState.conductor.beatInterval);
 			}
 		});
 

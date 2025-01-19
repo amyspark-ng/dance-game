@@ -30,8 +30,8 @@ export function defineTabs() {
 
 			noteObj.width = 60;
 			noteObj.height = 60;
-			noteObj.pos.x = (-editorTabObj.width / 2 + index * 60) + noteObj.width / 2;
-			noteObj.pos.y = (-editorTabObj.height / 2) + noteObj.height / 2;
+			noteObj.pos.x = (editorTabObj.getTopLeft().x + index * 60) + noteObj.width / 2;
+			noteObj.pos.y = (editorTabObj.getTopLeft().y) + noteObj.height / 2;
 
 			noteObj.onClick(() => {
 				ChartState.currentMove = move;
@@ -67,8 +67,8 @@ export function defineTabs() {
 			eventObj.width = 60;
 			eventObj.height = 60;
 			const startingPos = vec2(
-				-editorTabObj.width / 2 + eventObj.width / 2,
-				-editorTabObj.height / 2 + eventObj.height / 2,
+				editorTabObj.getTopLeft().x + eventObj.width / 2,
+				editorTabObj.getTopLeft().y + eventObj.height / 2,
 			);
 
 			const row = Math.floor(index / 4);
@@ -163,14 +163,14 @@ export function defineTabs() {
 		editorTabObj.onDraw(() => {
 			drawText({
 				text: "Current step: " + ChartState.conductor.currentStep,
-				pos: vec2(-editorTabObj.width / 2 + 5, -editorTabObj.height / 2 + 5),
+				pos: vec2(editorTabObj.getTopLeft().x + 5, editorTabObj.getTopLeft().y + 5),
 				size: 20,
 				align: "left",
 			});
 
 			drawText({
 				text: "Current beat: " + ChartState.conductor.currentBeat,
-				pos: vec2(-editorTabObj.width / 2 + 5, -editorTabObj.height / 2 + 25),
+				pos: vec2(editorTabObj.getTopLeft().x + 5, editorTabObj.getTopLeft().y + 25),
 				size: 20,
 				align: "left",
 			});
@@ -200,7 +200,7 @@ export function defineTabs() {
 				height: 10,
 				radius: [0, 0, 50, 50],
 				anchor: "left",
-				pos: vec2(-editorTabObj.width / 2, editorTabObj.height / 2 - 5),
+				pos: vec2(editorTabObj.getTopLeft().x, editorTabObj.height / 2 - 5),
 				color: ChartState.bgColor.lighten(50),
 			});
 
@@ -208,12 +208,12 @@ export function defineTabs() {
 				text: utils.formatTime(ChartState.conductor.timeInSeconds, true),
 				align: "left",
 				size: 20,
-				pos: vec2(-editorTabObj.width / 2 + 5, editorTabObj.height / 2 - 30),
+				pos: vec2(editorTabObj.getTopLeft().x + 5, editorTabObj.height / 2 - 30),
 			});
 
 			drawCircle({
 				radius: 6,
-				pos: vec2(-editorTabObj.width / 2 + lerpedWidth, editorTabObj.height / 2 - 5),
+				pos: vec2(editorTabObj.getTopLeft().x + lerpedWidth, editorTabObj.height / 2 - 5),
 				color: ChartState.bgColor.lighten(40),
 				anchor: "center",
 				outline: {
@@ -232,33 +232,63 @@ export function defineTabs() {
 	});
 
 	EditorTab.tabs.EditEvent.addElements((editorTabObj) => {
+		/** The event that is actually being selected and modified */
 		let currentEvent: ChartEvent = null;
+		/** A copy for getting the event */
+		let testEvent: ChartEvent = null;
 
-		function positionObject(obj: GameObj<PosComp | any>, index: number) {
-			const initialPos = vec2(-editorTabObj.width / 2, -editorTabObj.height / 2);
-			obj.pos = vec2(initialPos.x + 15, initialPos.y + 15 + index * 40);
-		}
+		/** Refreshes the objects in the ui */
+		function refreshTabUI(event: ChartEvent) {
+			/** This runs to do some work related to ui props */
+			function objAfterwork(obj: GameObj<PosComp | any>, event: ChartEvent, evKey: string, index: number) {
+				function positionObject(obj: GameObj<PosComp | any>, index: number) {
+					const initialPos = vec2(editorTabObj.getTopLeft().x, editorTabObj.getTopLeft().y);
+					obj.pos = vec2(initialPos.x + 15, initialPos.y + 15 + index * 40);
+				}
 
-		function objAfterwork(obj: GameObj<PosComp | any>, event: ChartEvent, evKey: string, index: number) {
-			obj.use("eventobj");
-			obj.value = event.value[evKey];
-			obj.onUpdate(() => {
-				positionObject(obj, index);
-				event.value[evKey] = obj.value;
-			});
-
-			obj.onDraw(() => {
-				drawText({
-					text: utils.unIdText(evKey),
-					size: 20,
-					pos: vec2(obj.width + 10, 10),
+				obj.use("eventobj");
+				obj.value = event.value[evKey];
+				obj.onUpdate(() => {
+					positionObject(obj, index);
+					event.value[evKey] = obj.value;
 				});
-			});
-		}
 
-		function refreshEventObjs(event: ChartEvent) {
+				obj.onDraw(() => {
+					drawText({
+						text: utils.unIdText(evKey),
+						size: 20,
+						pos: vec2(obj.width + 10, 10),
+					});
+				});
+			}
+
 			editorTabObj.get("eventobj").forEach((obj) => obj.destroy());
-			if (!event) return;
+
+			if (!event) {
+				editorTabObj.add([
+					text("No event", { size: 25, align: "center" }),
+					anchor("center"),
+					"eventobj",
+				]);
+				editorTabObj.tab.title = "Edit event";
+				return;
+			}
+
+			// # ALL of this will run if the you can there's an actual event
+			editorTabObj.tab.title = "Editing event: ";
+			editorTabObj.add([
+				sprite(currentEvent.id, { width: 25, height: 25 }),
+				pos(),
+				"eventobj",
+				{
+					update() {
+						this.pos = vec2(
+							editorTabObj.getTopLeft().x + formatText({ text: editorTabObj.tab.title, size: 25 }).width,
+							editorTabObj.getTopLeft().y - 30,
+						);
+					},
+				},
+			]);
 
 			/** All the properties an an event's value has */
 			const eventProps = Object.keys(event.value);
@@ -294,17 +324,36 @@ export function defineTabs() {
 			});
 		}
 
-		editorTabObj.onUpdate(() => {
-			const oldEvent = currentEvent;
-			currentEvent = ChartState.selectedStamps.find((stamp) => !EditorUtils.stamps.isNote(stamp)) as ChartEvent;
-			const newEvent = currentEvent;
+		// runs to set everything up
+		refreshTabUI(currentEvent);
 
+		editorTabObj.onUpdate(() => {
+			// the other event thing is so you can deselect the event and still make it work
+			const oldEvent = testEvent;
+			testEvent = ChartState.selectedStamps.find((stamp) => !EditorUtils.stamps.isNote(stamp)) as ChartEvent;
+			const newEvent = testEvent;
+
+			// this runs whenever the selected event changes
 			if (oldEvent != newEvent) {
-				refreshEventObjs(currentEvent);
-				if (currentEvent) ChartState.input.shortcutEnabled = false;
-				else ChartState.input.shortcutEnabled = true;
+				// this removes the current event if the event was removed from the array
+				const validEvent = testEvent != undefined;
+				const notValidEvent = testEvent == undefined && !ChartState.song.chart.events.includes(currentEvent);
+
+				if (validEvent || notValidEvent) {
+					if (notValidEvent) {
+						currentEvent = undefined;
+						ChartState.input.shortcutEnabled = true;
+					}
+					else if (validEvent) {
+						currentEvent = testEvent;
+						ChartState.input.shortcutEnabled = false;
+					}
+
+					refreshTabUI(currentEvent);
+				}
 			}
 
+			// sets the size of the tab
 			editorTabObj.width = 300;
 			let theHeight = 0;
 			if (currentEvent) {
@@ -317,32 +366,7 @@ export function defineTabs() {
 			editorTabObj.height = lerp(editorTabObj.height, theHeight, 0.8);
 		});
 
-		editorTabObj.onDraw(() => {
-			if (!currentEvent) {
-				drawText({
-					text: "No valid event",
-					size: 25,
-					anchor: "center",
-					align: "center",
-				});
-			}
-			else {
-				drawSprite({
-					sprite: currentEvent.id,
-					pos: vec2(
-						-editorTabObj.width / 2 + formatText({
-							text: "Edit event: ",
-							align: "left",
-							size: 20,
-						}).width,
-						-editorTabObj.height / 2 - 30,
-					),
-					height: 25,
-					width: 25,
-				});
-			}
-		});
-
+		// draws a cool line from the event position to the position of the tab so you can know what event is being modified
 		const pointer = onDraw(() => {
 			if (currentEvent) {
 				const eventStep = ChartState.conductor.timeToStep(currentEvent.time);
@@ -437,7 +461,7 @@ export function defineTabs() {
 			else return;
 
 			title.pos.x = 10;
-			title.pos.y = 10 + (-editorTabObj.height / 2) + 40 * index;
+			title.pos.y = 10 + (editorTabObj.getTopLeft().y) + 40 * index;
 
 			object.pos.y = title.pos.y;
 			object.pos.x = 10;
