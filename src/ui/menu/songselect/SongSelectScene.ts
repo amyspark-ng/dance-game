@@ -1,9 +1,10 @@
+import { AudioPlay } from "kaplay";
 import { gameCursor } from "../../../core/cursor";
 import { defaultUUIDS, loadedSongs } from "../../../core/loading/loader";
 import { GameSave } from "../../../core/save";
 import { KaplayState } from "../../../core/scenes/scenes";
 import { BlackBarsTransition } from "../../../core/scenes/transitions/blackbar";
-import { customAudioPlay, playMusic } from "../../../core/sound";
+import { Sound } from "../../../core/sound";
 import { FileManager } from "../../../FileManager";
 import { Scoring } from "../../../play/objects/scoring";
 import { StateGame } from "../../../play/PlayState";
@@ -20,7 +21,7 @@ export class StateSongSelect extends KaplayState {
 
 	menuInputEnabled: boolean = true;
 
-	songPreview: customAudioPlay;
+	songPreview: AudioPlay;
 
 	/** Scrolls the index, so scrolling the songs */
 	scroll(change: number, songAmount: number) {
@@ -251,11 +252,11 @@ KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 		highscoreText.solidValue = Math.floor(tallyScore.tally.score);
 
 		SongSelectState.songPreview?.stop();
-		SongSelectState.songPreview = playMusic(
+		SongSelectState.songPreview = Sound.playMusic(
 			allCapsules[SongSelectState.index].song.manifest.uuid_DONT_CHANGE + "-audio",
 		);
 		SongSelectState.songPreview.loop = true;
-		tween(0, GameSave.sound.music.volume, 0.25, (p) => SongSelectState.songPreview.volume = p);
+		tween(0, GameSave.musicVolume, 0.25, (p) => SongSelectState.songPreview.volume = p);
 	});
 
 	onKeyPress("enter", async () => {

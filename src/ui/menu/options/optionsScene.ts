@@ -4,18 +4,18 @@ import { juice } from "../../../core/juiceComp";
 import { noteskins } from "../../../core/loading/loader";
 import { _GameSave, GameSave } from "../../../core/save";
 import { KaplayState } from "../../../core/scenes/scenes";
-import { playSound, updateMasterVolume } from "../../../core/sound";
+import { Sound } from "../../../core/sound";
 import { Move } from "../../../play/objects/dancer";
 import { utils } from "../../../utils";
 import { StateMenu } from "../MenuScene";
 import { addCheckbox, addNumberItem, addVolumeSlider, tagForCheckbox, tagForNumItem, tagForSlider } from "./optionsUI";
 
 function uiMoveSound(change: 1 | -1) {
-	playSound("uiMove", { detune: 50 * change * -1 });
+	Sound.playSound("uiMove", { detune: 50 * change * -1 });
 }
 
 function uiSelectSound() {
-	playSound("uiSelect");
+	Sound.playSound("uiSelect");
 }
 
 // draws a key "sprite"
@@ -379,15 +379,15 @@ function manageOptionsState(page: number, OptionsState: StateOptions, workThem: 
 		});
 
 		const masterVolume = addVolumeSlider("Master");
-		masterVolume.value = GameSave.sound.masterVolume;
+		masterVolume.value = GameSave.volume;
 		const musicVolume = addVolumeSlider("Music");
-		musicVolume.value = GameSave.sound.music.volume;
+		musicVolume.value = GameSave.musicVolume;
 		const sfxVolume = addVolumeSlider("Sfx");
-		sfxVolume.value = GameSave.sound.sfx.volume;
+		sfxVolume.value = GameSave.sfxVolume;
 
 		masterVolume.onUpdate(() => {
 			let blendValue = 0;
-			blendValue = map(GameSave.sound.masterVolume, 0, 1, 0, 1);
+			blendValue = map(GameSave.volume, 0, 1, 0, 1);
 			masterVolume.color = utils.blendColors(GREEN, RED, blendValue);
 		});
 
@@ -432,16 +432,15 @@ function manageOptionsState(page: number, OptionsState: StateOptions, workThem: 
 			if (hoveredObj.is(tagForSlider)) {
 				function updateVolumeSave() {
 					if (hoveredObj.is("Master")) {
-						updateMasterVolume();
-						GameSave.sound.masterVolume = hoveredObj.value;
+						Sound.changeVolume(hoveredObj.value);
 					}
-					else if (hoveredObj.is("Music")) GameSave.sound.music.volume = hoveredObj.value;
-					else if (hoveredObj.is("Sfx")) GameSave.sound.sfx.volume = hoveredObj.value;
+					else if (hoveredObj.is("Music")) GameSave.musicVolume = hoveredObj.value;
+					else if (hoveredObj.is("Sfx")) GameSave.sfxVolume = hoveredObj.value;
 				}
 
-				if (hoveredObj.is("Master")) hoveredObj.value = GameSave.sound.masterVolume;
-				else if (hoveredObj.is("Music")) hoveredObj.value = GameSave.sound.music.volume;
-				else if (hoveredObj.is("Sfx")) hoveredObj.value = GameSave.sound.sfx.volume;
+				if (hoveredObj.is("Master")) hoveredObj.value = GameSave.volume;
+				else if (hoveredObj.is("Music")) hoveredObj.value = GameSave.musicVolume;
+				else if (hoveredObj.is("Sfx")) hoveredObj.value = GameSave.sfxVolume;
 
 				const cursorObj = OptionsState.cursorProps.obj;
 				const cursorObjWidth = cursorObj.width * OptionsState.cursorProps.scale.x;
@@ -530,145 +529,141 @@ function manageOptionsState(page: number, OptionsState: StateOptions, workThem: 
 	});
 }
 
-export function OptionsScene() {
-	scene("options", () => {
-		setBackground(BLUE.lighten(30));
+KaplayState.scene("options", (OptionsState: StateOptions) => {
+	setBackground(BLUE.lighten(30));
 
-		const optionsState = new StateOptions();
+	add([
+		text("OPTIONS", { size: 80 }),
+		anchor("center"),
+		pos(center().x, 70),
+	]);
 
-		add([
-			text("OPTIONS", { size: 80 }),
-			anchor("center"),
-			pos(center().x, 70),
-		]);
+	const optionsCursor = add([
+		sprite("optionsCursor"),
+		pos(),
+		anchor("center"),
+		opacity(),
+		scale(),
+		rotate(0),
+		z(10),
+		{
+			update() {
+				OptionsState.cursorProps.obj = this;
+			},
+		},
+	]);
 
-		const optionsCursor = add([
-			sprite("optionsCursor"),
-			pos(),
-			anchor("center"),
+	optionsCursor.onUpdate(() => {
+		if (OptionsState.inLeft) {
+			const hoveredPage = get("pageText").find(page => page.index == OptionsState.leftIndex);
+
+			if (hoveredPage != undefined) {
+				OptionsState.cursorProps.pos.x = hoveredPage.pos.x - 25;
+				OptionsState.cursorProps.pos.y = hoveredPage.pos.y;
+			}
+
+			OptionsState.cursorProps.angle = 0;
+			OptionsState.cursorProps.scale.x = 1;
+			OptionsState.cursorProps.scale.y = 1;
+		}
+
+		// lerp stuff
+		optionsCursor.pos = lerp(
+			optionsCursor.pos,
+			OptionsState.cursorProps.pos,
+			OptionsState.cursorProps.lerpValue,
+		);
+		optionsCursor.angle = lerp(
+			optionsCursor.angle,
+			OptionsState.cursorProps.angle,
+			OptionsState.cursorProps.lerpValue,
+		);
+		optionsCursor.opacity = lerp(
+			optionsCursor.opacity,
+			OptionsState.cursorProps.opacity,
+			OptionsState.cursorProps.lerpValue,
+		);
+		optionsCursor.scale.x = lerp(
+			optionsCursor.scale.x,
+			OptionsState.cursorProps.scale.x,
+			OptionsState.cursorProps.lerpValue,
+		);
+		optionsCursor.scale.y = lerp(
+			optionsCursor.scale.y,
+			OptionsState.cursorProps.scale.y,
+			OptionsState.cursorProps.lerpValue,
+		);
+	});
+
+	const pages = ["Controls", "Noteskins", "Etc"];
+	pages.forEach((option, index) => {
+		const initialY = 190;
+		const pageTextSize = 70;
+		const curPage = add([
+			text(option, { size: pageTextSize, align: "left" }),
+			pos(pageTextSize - 10, initialY + (pageTextSize * 1.25) * index),
 			opacity(),
-			scale(),
-			rotate(0),
-			z(10),
+			anchor("left"),
+			"pageText",
 			{
-				update() {
-					optionsState.cursorProps.obj = this;
-				},
+				index: index,
 			},
 		]);
 
-		optionsCursor.onUpdate(() => {
-			if (optionsState.inLeft) {
-				const hoveredPage = get("pageText").find(page => page.index == optionsState.leftIndex);
-
-				if (hoveredPage != undefined) {
-					optionsState.cursorProps.pos.x = hoveredPage.pos.x - 25;
-					optionsState.cursorProps.pos.y = hoveredPage.pos.y;
-				}
-
-				optionsState.cursorProps.angle = 0;
-				optionsState.cursorProps.scale.x = 1;
-				optionsState.cursorProps.scale.y = 1;
+		let targetOpacity = 1;
+		curPage.onUpdate(() => {
+			if (OptionsState.inLeft) {
+				if (OptionsState.leftIndex == index) targetOpacity = 1;
+				else targetOpacity = 0.5;
+			}
+			else {
+				if (OptionsState.leftIndex == index) targetOpacity = 0.5;
+				else targetOpacity = 0.25;
 			}
 
-			// lerp stuff
-			optionsCursor.pos = lerp(
-				optionsCursor.pos,
-				optionsState.cursorProps.pos,
-				optionsState.cursorProps.lerpValue,
-			);
-			optionsCursor.angle = lerp(
-				optionsCursor.angle,
-				optionsState.cursorProps.angle,
-				optionsState.cursorProps.lerpValue,
-			);
-			optionsCursor.opacity = lerp(
-				optionsCursor.opacity,
-				optionsState.cursorProps.opacity,
-				optionsState.cursorProps.lerpValue,
-			);
-			optionsCursor.scale.x = lerp(
-				optionsCursor.scale.x,
-				optionsState.cursorProps.scale.x,
-				optionsState.cursorProps.lerpValue,
-			);
-			optionsCursor.scale.y = lerp(
-				optionsCursor.scale.y,
-				optionsState.cursorProps.scale.y,
-				optionsState.cursorProps.lerpValue,
-			);
-		});
-
-		const pages = ["Controls", "Noteskins", "Etc"];
-		pages.forEach((option, index) => {
-			const initialY = 190;
-			const pageTextSize = 70;
-			const curPage = add([
-				text(option, { size: pageTextSize, align: "left" }),
-				pos(pageTextSize - 10, initialY + (pageTextSize * 1.25) * index),
-				opacity(),
-				anchor("left"),
-				"pageText",
-				{
-					index: index,
-				},
-			]);
-
-			let targetOpacity = 1;
-			curPage.onUpdate(() => {
-				if (optionsState.inLeft) {
-					if (optionsState.leftIndex == index) targetOpacity = 1;
-					else targetOpacity = 0.5;
-				}
-				else {
-					if (optionsState.leftIndex == index) targetOpacity = 0.5;
-					else targetOpacity = 0.25;
-				}
-
-				curPage.opacity = lerp(curPage.opacity, targetOpacity, 0.5);
-			});
-		});
-
-		manageOptionsState(optionsState.leftIndex, optionsState, false);
-
-		onKeyPress("down", () => {
-			if (!optionsState.inputEnabled) return;
-
-			if (optionsState.inLeft) {
-				optionsState.leftIndex = utils.scrollIndex(optionsState.leftIndex, 1, pages.length);
-				uiMoveSound(1);
-				manageOptionsState(optionsState.leftIndex, optionsState, false);
-			}
-		});
-
-		onKeyPress("up", () => {
-			if (!optionsState.inputEnabled) return;
-
-			if (optionsState.inLeft) {
-				optionsState.leftIndex = utils.scrollIndex(optionsState.leftIndex, -1, pages.length);
-				uiMoveSound(-1);
-				manageOptionsState(optionsState.leftIndex, optionsState, false);
-			}
-		});
-
-		onKeyPress("escape", () => {
-			optionsState.exitAction();
-		});
-
-		onKeyPress("enter", () => {
-			if (!optionsState.inputEnabled) return;
-
-			if (optionsState.inLeft == true) {
-				optionsState.inLeft = false;
-				// this will set the inPage value
-				manageOptionsState(optionsState.leftIndex, optionsState, true);
-				uiSelectSound();
-			}
-		});
-
-		onSceneLeave(() => {
-			// just in case
-			GameSave.save();
+			curPage.opacity = lerp(curPage.opacity, targetOpacity, 0.5);
 		});
 	});
-}
+
+	manageOptionsState(OptionsState.leftIndex, OptionsState, false);
+
+	onKeyPress("down", () => {
+		if (!OptionsState.inputEnabled) return;
+
+		if (OptionsState.inLeft) {
+			OptionsState.leftIndex = utils.scrollIndex(OptionsState.leftIndex, 1, pages.length);
+			uiMoveSound(1);
+			manageOptionsState(OptionsState.leftIndex, OptionsState, false);
+		}
+	});
+
+	onKeyPress("up", () => {
+		if (!OptionsState.inputEnabled) return;
+
+		if (OptionsState.inLeft) {
+			OptionsState.leftIndex = utils.scrollIndex(OptionsState.leftIndex, -1, pages.length);
+			uiMoveSound(-1);
+			manageOptionsState(OptionsState.leftIndex, OptionsState, false);
+		}
+	});
+
+	onKeyPress("escape", () => {
+		OptionsState.exitAction();
+	});
+
+	onKeyPress("enter", () => {
+		if (!OptionsState.inputEnabled) return;
+
+		if (OptionsState.inLeft == true) {
+			OptionsState.inLeft = false;
+			// this will set the inPage value
+			manageOptionsState(OptionsState.leftIndex, OptionsState, true);
+			uiSelectSound();
+		}
+	});
+
+	onSceneLeave(() => {
+		// just in case
+		GameSave.save();
+	});
+});

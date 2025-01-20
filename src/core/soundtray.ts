@@ -1,8 +1,8 @@
-import { GameObj, KEventController, Key, StayComp, TimerController, TweenController } from "kaplay";
+import { GameObj, KEventController, Key, StayComp, TweenController } from "kaplay";
 import { utils } from "../utils";
 import { juice } from "./juiceComp";
 import { GameSave } from "./save";
-import { allSoundHandlers, playSound, updateMasterVolume } from "./sound";
+import { Sound } from "./sound";
 
 export interface SoundTray {
 	show: (keepAround?: boolean) => void;
@@ -50,8 +50,8 @@ function addSoundElements() {
 		"volElement",
 		{
 			update() {
-				if (GameSave.sound.masterVolume > 0) {
-					this.text = `VOLUME ${(Math.round(GameSave.sound.masterVolume * 100))}%`;
+				if (GameSave.volume > 0) {
+					this.text = `VOLUME ${(Math.round(GameSave.volume * 100))}%`;
 				}
 				else this.text = "MUTED";
 			},
@@ -76,7 +76,7 @@ function addSoundElements() {
 			{
 				volume: parseFloat((0.1 * (i + 1)).toFixed(1)),
 				update() {
-					if (GameSave.sound.masterVolume.toFixed(1) < this.volume.toFixed(1)) this.opacity = 0.1;
+					if (GameSave.volume.toFixed(1) < this.volume.toFixed(1)) this.opacity = 0.1;
 					else this.opacity = 1;
 				},
 			},
@@ -105,22 +105,18 @@ export function addSoundTray(opts: addSoundTrayOpt): SoundTray {
 		stay(),
 		{
 			update() {
-				changeVolTune = map(GameSave.sound.masterVolume, 0, 1, -250, 0);
+				changeVolTune = map(GameSave.volume, 0, 1, -250, 0);
 
-				if (isKeyPressed(opts.downVolumeKey)) {
-					if (GameSave.sound.masterVolume > 0) {
-						GameSave.sound.masterVolume = utils.fixDecimal(GameSave.sound.masterVolume - 0.1);
-						GameSave.sound.masterVolume = clamp(GameSave.sound.masterVolume, 0, 1);
-						updateMasterVolume();
+				if (isKeyPressedRepeat(opts.downVolumeKey)) {
+					if (GameSave.volume > 0) {
+						Sound.changeVolume(GameSave.volume - 0.1);
 					}
 
 					soundTrayEvents.trigger("show", -1, false);
 				}
-				else if (isKeyPressed(opts.upVolumeKey)) {
-					if (GameSave.sound.masterVolume <= 0.9) {
-						GameSave.sound.masterVolume = utils.fixDecimal(GameSave.sound.masterVolume + 0.1);
-						GameSave.sound.masterVolume = clamp(GameSave.sound.masterVolume, 0, 1);
-						updateMasterVolume();
+				else if (isKeyPressedRepeat(opts.upVolumeKey)) {
+					if (GameSave.volume <= 0.9) {
+						Sound.changeVolume(GameSave.volume + 0.1);
 					}
 
 					soundTrayEvents.trigger("show", 1, false);
@@ -199,23 +195,23 @@ export function setupSoundtray() {
 	// # MANAGES GENERAL BEHAVIOUR
 	soundTray.onShow((change) => {
 		if (change > 0) {
-			const bar = getSoundElements().filter((obj) => obj.volume == GameSave.sound.masterVolume)[0];
+			const bar = getSoundElements().filter((obj) => obj.volume == GameSave.volume)[0];
 
 			if (bar) {
 				bar.bop({ startScale: 1.2, endScale: 1 });
 			}
 
-			if (GameSave.sound.masterVolume == 1) {
+			if (GameSave.volume == 1) {
 				const bars = getSoundElements().filter(obj => obj.is("bar"));
 				bars.forEach((bar) => bar.bop({ startScale: 1.2, endScale: 1 }));
 			}
 
-			play("volumeChange");
+			Sound.playSound("volumeChange", { volume: 1 });
 		}
 		else if (change < 0) {
-			play("volumeChange");
+			Sound.playSound("volumeChange", { volume: 1 });
 
-			const bar = getSoundElements().filter((obj) => obj.volume == GameSave.sound.masterVolume)[0];
+			const bar = getSoundElements().filter((obj) => obj.volume == GameSave.volume)[0];
 
 			if (bar) {
 				bar.bop({ startScale: 0.9, endScale: 1 });

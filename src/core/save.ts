@@ -2,7 +2,6 @@ import { Key } from "kaplay";
 import { Move } from "../play/objects/dancer";
 import { SaveScore } from "../play/song";
 import { GAME } from "./init";
-import { volumeChannel } from "./sound";
 
 /** Function to manage some merging of gamesaves */
 export function deepMergeSaves(oldSave: _GameSave, newSave: _GameSave): _GameSave {
@@ -44,11 +43,9 @@ const defaultControls: gameControls = {
 
 /** Holds all the info that should be saved and loaded through sessions */
 export class _GameSave {
-	sound = {
-		sfx: { volume: 1, muted: false } as volumeChannel,
-		music: { volume: 1, muted: false } as volumeChannel,
-		masterVolume: 1,
-	};
+	volume: number = 1;
+	sfxVolume: number = 1;
+	musicVolume: number = 1;
 
 	/** Wheter the strumline and lane will be on the top or the bottom (LOL) */
 	upscroll: boolean = false;

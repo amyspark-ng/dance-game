@@ -3,7 +3,8 @@ import { Conductor } from "../Conductor";
 import { cam } from "../core/camera";
 import { GameSave } from "../core/save";
 import { KaplayState } from "../core/scenes/scenes";
-import { playSound } from "../core/sound";
+import { BlackBarsTransition } from "../core/scenes/transitions/blackbar";
+import { StateSongSelect } from "../ui/menu/songselect/SongSelectScene";
 import { StateChart } from "./editor/EditorState";
 import { ChartEvent } from "./event";
 import { DancerGameObj, makeDancer } from "./objects/dancer";
@@ -14,8 +15,7 @@ import { addUI } from "./objects/ui/gameUi";
 import { addPauseUI } from "./objects/ui/pauseUi";
 import { SongContent } from "./song";
 import "./GameScene";
-import { BlackBarsTransition } from "../core/scenes/transitions/blackbar";
-import { StateSongSelect } from "../ui/menu/songselect/SongSelectScene";
+import { Sound } from "../core/sound";
 
 /** Type to store the parameters for the game scene */
 export type paramsGameScene = {
@@ -110,7 +110,7 @@ export class StateGame extends KaplayState {
 			tween(this.conductor.audioPlay.detune, 0, 0.15 / 2, (p) => this.conductor.audioPlay.detune = p);
 			tween(
 				this.conductor.audioPlay.volume,
-				GameSave.sound.music.volume,
+				GameSave.musicVolume,
 				0.15,
 				(p) => this.conductor.audioPlay.volume = p,
 			);
@@ -272,8 +272,8 @@ export class StateGame extends KaplayState {
 
 		// then we actually setup the conductor and play the song
 		this.conductor = new Conductor({
-			audioPlay: playSound(`${this.params.song.manifest.uuid_DONT_CHANGE}-audio`, {
-				volume: GameSave.sound.music.volume,
+			audioPlay: Sound.playSound(`${this.params.song.manifest.uuid_DONT_CHANGE}-audio`, {
+				volume: GameSave.musicVolume,
 				speed: this.params.playbackSpeed,
 			}),
 			BPM: this.params.song.manifest.initial_bpm * this.params.playbackSpeed,
@@ -311,7 +311,7 @@ export class StateGame extends KaplayState {
 }
 
 export function introGo() {
-	playSound("introGo", { volume: 1 });
+	Sound.playSound("introGo", { volume: 1 });
 	const goText = add([
 		pos(center()),
 		text("GO!", { size: height() / 4 }),

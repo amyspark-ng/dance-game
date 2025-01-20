@@ -4,7 +4,7 @@ import { Conductor } from "../../Conductor.ts";
 import { gameCursor } from "../../core/cursor.ts";
 import { GameSave } from "../../core/save.ts";
 import { KaplayState } from "../../core/scenes/scenes.ts";
-import { playMusic, playSound } from "../../core/sound.ts";
+import { Sound } from "../../core/sound.ts";
 import { utils } from "../../utils.ts";
 import { ChartEvent } from "../event.ts";
 import { ChartNote } from "../objects/note.ts";
@@ -18,7 +18,7 @@ import { EditorCommands, EditorUtils } from "./EditorUtils.ts";
 KaplayState.scene("editor", (ChartState: StateChart) => {
 	// Find a way to comfortably put this back in the constructor
 	ChartState.conductor = new Conductor({
-		audioPlay: playMusic(`${ChartState.song.manifest.uuid_DONT_CHANGE}-audio`, {
+		audioPlay: Sound.playMusic(`${ChartState.song.manifest.uuid_DONT_CHANGE}-audio`, {
 			speed: ChartState.params.playbackSpeed,
 		}),
 		BPM: ChartState.song.manifest.initial_bpm * ChartState.params.playbackSpeed,
@@ -191,12 +191,12 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 					let newLength = hoveredNote.length;
 					if (oldLength != newLength) {
 						const detune = newLength % 2 == 0 ? 0 : 100;
-						playSound("noteStretch", { detune: detune });
+						Sound.playSound("noteStretch", { detune: detune });
 					}
 				});
 
 				const releaseEV = onMouseRelease(() => {
-					if (hoveredNote.length) playSound("noteSnap", { detune: rand(-25, 25) });
+					if (hoveredNote.length) Sound.playSound("noteSnap", { detune: rand(-25, 25) });
 					releaseEV.cancel();
 					stretchingNoteEV?.cancel();
 					stretchingNoteEV = null;
@@ -219,8 +219,8 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 			else {
 				ChartState.resetSelectedStamps();
 				hoveredEvent = ChartState.placeEvent(hoveredTime, ChartState.currentEvent);
-				playSound("noteAdd", { detune: rand(-50, 50) });
-				playSound("eventCog", { detune: rand(-50, 50) });
+				Sound.playSound("noteAdd", { detune: rand(-50, 50) });
+				Sound.playSound("eventCog", { detune: rand(-50, 50) });
 			}
 
 			setLeading(hoveredEvent);
@@ -259,7 +259,7 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 			if (EditorUtils.stamps.trailAtStep(ChartState.hoveredStep)) {
 				// if you click the trail instead of the note it will only remove the trail rather than the note
 				note.length = undefined;
-				playSound("noteSnap", { detune: -50 });
+				Sound.playSound("noteSnap", { detune: -50 });
 			}
 			else {
 				ChartState.deleteNote(note);
@@ -272,8 +272,8 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 
 			if (!hoveredEvent) return;
 			ChartState.deleteEvent(hoveredEvent);
-			playSound("noteRemove");
-			playSound("eventCog", { detune: rand(-50, 50) });
+			Sound.playSound("noteRemove");
+			Sound.playSound("eventCog", { detune: rand(-50, 50) });
 		}
 
 		if (ChartState.isInNoteGrid) noteBehaviour();
@@ -339,7 +339,7 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 					* 10;
 			}
 
-			playSound("noteMove", { detune: baseDetune * diff });
+			Sound.playSound("noteMove", { detune: baseDetune * diff });
 		}
 	});
 

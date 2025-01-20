@@ -1,7 +1,7 @@
 import { Key } from "kaplay";
 import { gameCursor } from "../../core/cursor";
 import { KaplayState } from "../../core/scenes/scenes";
-import { playSound } from "../../core/sound";
+import { Sound } from "../../core/sound";
 import { FileManager } from "../../FileManager";
 import { StateMenu } from "../../ui/menu/MenuScene";
 import { utils } from "../../utils";
@@ -96,10 +96,10 @@ export class EditorCommands {
 			else ChartState.deleteEvent(stamp);
 		});
 
-		playSound("noteRemove", { detune: rand(-50, 50) });
+		Sound.playSound("noteRemove", { detune: rand(-50, 50) });
 		// there was an event in there
 		if (stamps.some((stamp) => !EditorUtils.stamps.isNote(stamp))) {
-			playSound("eventCog", { detune: rand(-50, 50) });
+			Sound.playSound("eventCog", { detune: rand(-50, 50) });
 		}
 
 		ChartState.selectedStamps = [];
@@ -113,7 +113,7 @@ export class EditorCommands {
 
 		ChartState.clipboard = stamps;
 		EditorUtils.addFloatyText(EditorUtils.clipboardMessage("copy", ChartState.clipboard));
-		playSound("noteCopy", { detune: rand(25, 50) });
+		Sound.playSound("noteCopy", { detune: rand(25, 50) });
 
 		stamps.forEach((stamp) => {
 			if (EditorUtils.stamps.isNote(stamp)) {
@@ -162,7 +162,7 @@ export class EditorCommands {
 		// some code from the copy action
 		ChartState.clipboard = stamps;
 		EditorUtils.addFloatyText(EditorUtils.clipboardMessage("cut", ChartState.clipboard));
-		playSound("noteCopy", { detune: rand(0, 25) });
+		Sound.playSound("noteCopy", { detune: rand(0, 25) });
 
 		stamps.forEach((stamp) => {
 			if (EditorUtils.stamps.isNote(stamp)) {
@@ -182,7 +182,7 @@ export class EditorCommands {
 		// shickiiii
 		ChartState.takeSnapshot(`paste ${stamps.length} stamps`);
 
-		playSound("noteCopy", { detune: rand(-50, -25) });
+		Sound.playSound("noteCopy", { detune: rand(-50, -25) });
 		EditorUtils.addFloatyText(EditorUtils.clipboardMessage("paste", stamps));
 
 		stamps.forEach((stamp) => {
@@ -220,7 +220,7 @@ export class EditorCommands {
 		StateChart.instance.undo();
 
 		if (oldSongState != StateChart.instance.song) {
-			playSound("noteUndo", { detune: rand(-50, -25) });
+			Sound.playSound("noteUndo", { detune: rand(-50, -25) });
 		}
 	}
 
@@ -229,7 +229,7 @@ export class EditorCommands {
 		StateChart.instance.redo();
 
 		if (oldSongState != StateChart.instance.song) {
-			playSound("noteUndo", { detune: rand(25, 50) });
+			Sound.playSound("noteUndo", { detune: rand(25, 50) });
 		}
 	}
 }
@@ -301,7 +301,7 @@ export class EditorUtils {
 	static noteSound(note: ChartNote, action: "Add" | "Remove") {
 		const detune = this.moveToDetune(note.move)
 			+ map(note.time, 0, StateChart.instance.conductor.audioPlay.duration(), 0, 50);
-		return playSound(`note${action}`, { detune: detune });
+		return Sound.playSound(`note${action}`, { detune: detune });
 	}
 
 	/** Downloads the chart */

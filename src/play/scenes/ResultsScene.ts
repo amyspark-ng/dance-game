@@ -2,7 +2,7 @@ import { Color } from "kaplay";
 // import { allSongCharts } from "../../core/loading/loader"
 import { loadedSongs } from "../../core/loading/loader";
 import { KaplayState } from "../../core/scenes/scenes";
-import { playSound } from "../../core/sound";
+import { Sound } from "../../core/sound";
 import { StateSongSelect } from "../../ui/menu/songselect/SongSelectScene";
 import { utils } from "../../utils";
 import { Ranking, Scoring } from "../objects/scoring";
@@ -58,7 +58,7 @@ KaplayState.scene("results", (ResultsState: StateResults) => {
 	/** The animations of the dancer according to the ranking you got */
 	const anims = getAnimsAccordingToRanking(ranking);
 
-	const drumroll = playSound("drumroll", { volume: 1 });
+	const drumroll = Sound.playSound("drumroll", { volume: 1 });
 	const durationPerTally = drumroll.duration() / tallyThings.length;
 
 	tallyThings.forEach((tallyT, index) => {
@@ -145,7 +145,7 @@ KaplayState.scene("results", (ResultsState: StateResults) => {
 		let oldValue = Math.round(clearObj.value);
 		clearObj.value = p;
 		let newValue = Math.round(clearObj.value);
-		if (oldValue != newValue) playSound("noteMove", { detune: 2 * cleared });
+		if (oldValue != newValue) Sound.playSound("noteMove", { detune: 2 * cleared });
 	}, easings.easeOutCirc);
 
 	wait(drumroll.duration() + 1, () => {

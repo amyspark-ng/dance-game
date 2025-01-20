@@ -1,5 +1,5 @@
 import { GameSave } from "../../../core/save";
-import { playSound } from "../../../core/sound";
+import { Sound } from "../../../core/sound";
 import { utils } from "../../../utils";
 import { StateGame } from "../../PlayState";
 import { DANCER_POS } from "../dancer";
@@ -158,9 +158,9 @@ export function addPauseUI() {
 	const tagsToPause = ["judgementObj", "strumlineObj"];
 	GameState.onPauseChange((newPause: boolean) => {
 		paused = newPause;
-		playSound("pauseScratch", {
+		Sound.playSound("pauseScratch", {
 			detune: newPause == true ? -150 : 150,
-			volume: GameSave.sound.music.volume,
+			volume: GameSave.musicVolume,
 			speed: 1,
 		});
 	});

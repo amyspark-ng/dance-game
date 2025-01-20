@@ -5,7 +5,7 @@ import { gameCursor } from "../core/cursor";
 import { GAME } from "../core/init";
 import { GameSave } from "../core/save";
 import { KaplayState } from "../core/scenes/scenes";
-import { playSound } from "../core/sound";
+import { Sound } from "../core/sound";
 import { utils } from "../utils";
 import { ChartEvent } from "./event";
 import { ChartNote, NoteGameObj, notesSpawner, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
@@ -93,7 +93,7 @@ KaplayState.scene("game", (GameState: StateGame) => {
 
 	GameState.conductor.onBeatHit((curBeat) => {
 		if (GameState.health <= 25) {
-			playSound("lowhealth", { detune: curBeat % 2 == 0 ? 0 : 25 });
+			Sound.playSound("lowhealth", { detune: curBeat % 2 == 0 ? 0 : 25 });
 		}
 
 		if (GameState.dancer.getMove() == "idle") {
@@ -165,7 +165,7 @@ KaplayState.scene("game", (GameState: StateGame) => {
 		GameState.dancer.miss();
 
 		if (harm == false) return;
-		playSound("missnote");
+		Sound.playSound("missnote");
 		addJudgement("Miss");
 		if (GameState.combo > 0) {
 			addComboText("break");

@@ -5,7 +5,7 @@ import { Conductor } from "../../Conductor";
 import { dancers, loadedSongs } from "../../core/loading/loader";
 import { GameSave } from "../../core/save";
 import { KaplayState } from "../../core/scenes/scenes";
-import { playMusic } from "../../core/sound";
+import { Sound } from "../../core/sound";
 import { FileManager } from "../../FileManager";
 import { utils } from "../../utils";
 import { ChartEvent, eventId } from "../event";
@@ -173,7 +173,7 @@ export class StateChart extends KaplayState {
 	/** Runs when the sound for the soundPlay has changed */
 	updateAudio() {
 		this.conductor.audioPlay.stop();
-		this.conductor.audioPlay = playMusic(this.song.manifest.uuid_DONT_CHANGE + "-audio");
+		this.conductor.audioPlay = Sound.playMusic(this.song.manifest.uuid_DONT_CHANGE + "-audio");
 	}
 
 	/** Sets scrollStep to a clamped and rounded value */

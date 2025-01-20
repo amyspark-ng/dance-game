@@ -9,7 +9,6 @@ import { curDraggin } from "./drag";
 import { loadAssets, loadingScreen } from "./loading/loader";
 import { GameSave } from "./save";
 import { KaplayState, setupScenes } from "./scenes/scenes";
-import { updateMasterVolume } from "./sound";
 import { setupSoundtray } from "./soundtray";
 
 /** Class that handles some variables related to the game as a product */
@@ -51,7 +50,6 @@ onLoad(() => {
 	setupCursor();
 	setupCamera();
 	setupSoundtray();
-	updateMasterVolume();
 
 	console.log(`${GAME.AUTHOR}.${GAME.NAME} v: ${GAME.VERSION}`);
 

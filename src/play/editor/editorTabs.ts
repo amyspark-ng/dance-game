@@ -1,6 +1,6 @@
 import { KEventController, Vec2 } from "kaplay";
 import { drag } from "../../core/drag";
-import { playSound } from "../../core/sound";
+import { Sound } from "../../core/sound";
 import { utils } from "../../utils";
 import { defineTabs } from "./defineEditorTabs";
 import { MenuBar, MenuItem } from "./editorMenus";
@@ -467,7 +467,7 @@ export class EditorTab {
 					tab.visible = !tab.visible;
 					if (tab.visible == true) {
 						const index = Object.values(EditorTab.tabs).indexOf(tab);
-						playSound("dialogOpen", { detune: rand(-25, 25) * (index + 1) * 2 });
+						Sound.playSound("dialogOpen", { detune: rand(-25, 25) * (index + 1) * 2 });
 					}
 				},
 				// this runs some extra code which is an ondraw that serves as a checkbox
