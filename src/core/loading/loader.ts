@@ -1,13 +1,13 @@
 import isUrl from "is-url";
 import JSZip from "jszip";
 import { LoadSpriteOpt } from "kaplay";
-import { FileManager } from "../fileManaging";
-import { ChartEvent } from "../play/event";
-import { DancerFile } from "../play/objects/dancer";
-import { rankings } from "../play/objects/scoring";
-import { SongContent, SongManifest } from "../play/song";
-import { utils } from "../utils";
-import { loadCursor } from "./plugins/features/gameCursor";
+import { FileManager } from "../../FileManager";
+import { ChartEvent } from "../../play/event";
+import { DancerFile } from "../../play/objects/dancer";
+import { rankings } from "../../play/objects/scoring";
+import { SongContent } from "../../play/song";
+import { utils } from "../../utils";
+import { loadCursor } from "../cursor";
 
 /** Array of zip names to load songs */
 export const defaultSongs = ["bopeebo", "unholy-blight"];
@@ -183,19 +183,7 @@ export async function loadAssets() {
 	loadSprite("importedSong", "sprites/imported.png");
 	loadSprite("importSongBtn", "sprites/importSong.png");
 
-	const icons = ["about", "fields", "download", "new"];
-	const iconsAtlas = {};
-	icons.forEach((icon, index) => {
-		iconsAtlas[icon + "_charticon"] = {
-			width: 45,
-			height: 50,
-			x: 45 * index,
-			y: 0,
-		};
-	});
-
 	loadSound("new-song-audio", "new-song-audio.ogg");
-	loadSpriteAtlas("sprites/chartEditorIcons.png", iconsAtlas);
 
 	loadSound("uiMove", "sounds/uiMove.wav");
 	loadSound("uiSelect", "sounds/uiSelect.wav");

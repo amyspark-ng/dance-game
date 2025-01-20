@@ -25,6 +25,5 @@ export class KaplayState {
 export function setupScenes() {
 	Object.keys(sceneDefinitions).forEach((sceneName) => {
 		scene(sceneName, sceneDefinitions[sceneName]);
-		// console.log("loaded: " + sceneName);
 	});
 }

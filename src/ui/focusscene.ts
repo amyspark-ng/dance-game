@@ -1,4 +1,4 @@
-import { INITIAL_SCENE } from "../core/initGame";
+import { INITIAL_SCENE } from "../core/init";
 import { KaplayState } from "../core/scenes";
 
 export class FocusState extends KaplayState {

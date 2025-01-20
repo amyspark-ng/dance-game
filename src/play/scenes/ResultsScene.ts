@@ -1,9 +1,9 @@
 import { Color } from "kaplay";
-// import { allSongCharts } from "../../core/loader"
-import { loadedSongs } from "../../core/loader";
-import { playSound } from "../../core/plugins/features/sound";
+// import { allSongCharts } from "../../core/loading/loader"
+import { loadedSongs } from "../../core/loading/loader";
 import { KaplayState } from "../../core/scenes";
-import { paramsSongSelect, StateSongSelect } from "../../ui/SongSelectScene";
+import { playSound } from "../../core/sound";
+import { StateSongSelect } from "../../ui/menu/songselect/SongSelectScene";
 import { utils } from "../../utils";
 import { Ranking, Scoring } from "../objects/scoring";
 import { StateGame } from "../PlayState";

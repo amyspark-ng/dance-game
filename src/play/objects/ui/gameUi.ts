@@ -1,5 +1,5 @@
-import { juice } from "../../core/plugins/graphics/juiceComponent";
-import { utils } from "../../utils";
+import { juice } from "../../../core/juiceComp";
+import { utils } from "../../../utils";
 
 /** Adds some of the ui and interface in the game scene */
 export function addUI() {

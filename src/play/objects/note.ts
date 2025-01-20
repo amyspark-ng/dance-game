@@ -1,4 +1,4 @@
-import { GameSave } from "../../core/gamesave";
+import { GameSave } from "../../core/save";
 import { utils } from "../../utils";
 import { INPUT_THRESHOLD, StateGame } from "../PlayState";
 import { Move } from "./dancer";

@@ -1,7 +1,7 @@
 // File that draws all the chart editor stuff
 import { DrawRectOpt, Vec2 } from "kaplay";
-import { GameSave } from "../../core/gamesave";
-import { gameCursor } from "../../core/plugins/features/gameCursor";
+import { gameCursor } from "../../core/cursor";
+import { GameSave } from "../../core/save";
 import { utils } from "../../utils";
 import { ChartNote } from "../objects/note";
 import { ChartStamp, StateChart } from "./EditorState";

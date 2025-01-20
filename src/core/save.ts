@@ -1,8 +1,8 @@
 import { Key } from "kaplay";
 import { Move } from "../play/objects/dancer";
 import { SaveScore } from "../play/song";
-import { GAME } from "./initGame";
-import { volumeChannel } from "./plugins/features/sound";
+import { GAME } from "./init";
+import { volumeChannel } from "./sound";
 
 /** Function to manage some merging of gamesaves */
 export function deepMergeSaves(oldSave: _GameSave, newSave: _GameSave): _GameSave {

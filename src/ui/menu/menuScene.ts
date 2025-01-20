@@ -1,13 +1,13 @@
-import { GameSave } from "../../core/gamesave";
-import { juice } from "../../core/plugins/graphics/juiceComponent";
+import { juice } from "../../core/juiceComp";
+import { GameSave } from "../../core/save";
 import { KaplayState } from "../../core/scenes";
-import { paramsChartEditor, StateChart } from "../../play/chartEditor/EditorState";
+import { paramsEditor, StateChart } from "../../play/editor/EditorState";
 import { SongContent } from "../../play/song";
 import { utils } from "../../utils";
-import { StateCredits } from "../CreditsScene";
-import { paramsSongSelect, StateSongSelect } from "../SongSelectScene";
 import { StateTitle } from "../TitleScene";
+import { StateCredits } from "./CreditsScene";
 import { StateOptions } from "./options/OptionsScene";
+import { StateSongSelect } from "./songselect/SongSelectScene";
 
 const buttonList = ["songs", "options", "credits", "editor"] as const;
 type buttonOption = typeof buttonList[number];

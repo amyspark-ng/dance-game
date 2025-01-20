@@ -1,7 +1,7 @@
 import { GameObj, KEventController, Key, StayComp, TimerController, TweenController } from "kaplay";
-import { utils } from "../../../utils";
-import { GameSave } from "../../gamesave";
-import { juice } from "../graphics/juiceComponent";
+import { utils } from "../utils";
+import { juice } from "./juiceComp";
+import { GameSave } from "./save";
 import { allSoundHandlers, playSound, updateMasterVolume } from "./sound";
 
 export interface SoundTray {

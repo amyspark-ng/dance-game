@@ -1,19 +1,19 @@
 import { appWindow } from "@tauri-apps/api/window";
 import { EaseFunc, KEventController, TweenController } from "kaplay";
-import { GameSave } from "../core/gamesave";
-import { GAME } from "../core/initGame";
-import { cam } from "../core/plugins/features/camera";
-import { gameCursor } from "../core/plugins/features/gameCursor";
-import { playSound } from "../core/plugins/features/sound";
+import { cam } from "../core/camera";
+import { gameCursor } from "../core/cursor";
+import { GAME } from "../core/init";
+import { GameSave } from "../core/save";
 import { KaplayState } from "../core/scenes";
+import { playSound } from "../core/sound";
 import { utils } from "../utils";
 import { ChartEvent } from "./event";
 import { ChartNote, NoteGameObj, notesSpawner, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
 import { addComboText, addJudgement, getClosestNote, Scoring } from "./objects/scoring";
 import { inputHandler, introGo, paramsGameScene, StateGame } from "./PlayState";
+import { StateDeath } from "./scenes/DeathScene";
+import { StateResults } from "./scenes/ResultsScene";
 import { SaveScore } from "./song";
-import { StateDeath } from "./ui/DeathScene";
-import { StateResults } from "./ui/ResultsScene";
 
 KaplayState.scene("game", (GameState: StateGame) => {
 	GameState.add();
@@ -65,7 +65,7 @@ KaplayState.scene("game", (GameState: StateGame) => {
 		);
 		cam.pos.x = camThing.x;
 		cam.pos.y = camThing.y;
-		cam.rotation = camThing.angle;
+		cam.angle = camThing.angle;
 		cam.zoom = vec2(camThing.zoom);
 
 		// HANDLE SCROLL SPEED

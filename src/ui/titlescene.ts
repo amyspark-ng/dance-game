@@ -1,4 +1,4 @@
-import { appWindow } from "../core/initGame";
+import { appWindow } from "../core/init";
 import { KaplayState } from "../core/scenes";
 import { utils } from "../utils";
 import { StateMenu } from "./menu/MenuScene";
@@ -11,7 +11,7 @@ export class StateTitle extends KaplayState {
 
 // hopefully this scene will have some way of adding really cool scrollable texts
 // with some jokes and easter eggs and stuff yeah :)
-KaplayState.scene("title", (state: StateTitle) => {
+KaplayState.scene("title", (TitleState: StateTitle) => {
 	setBackground(BLUE.lighten(30));
 
 	let inDesktop = false;

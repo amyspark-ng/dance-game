@@ -1,4 +1,4 @@
-import { customAudioPlay } from "./core/plugins/features/sound";
+import { customAudioPlay } from "./core/sound";
 
 /*
 	=== Some explanations about conducting and music ===

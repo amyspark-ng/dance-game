@@ -1,22 +1,22 @@
 // File that stores some of the chart editor behaviour backend
 import { Color, Vec2 } from "kaplay";
 import { v4 } from "uuid";
-import { Conductor } from "../../conductor";
-import { GameSave } from "../../core/gamesave";
-import { dancers, loadedSongs } from "../../core/loader";
-import { playMusic } from "../../core/plugins/features/sound";
+import { Conductor } from "../../Conductor";
+import { dancers, loadedSongs } from "../../core/loading/loader";
+import { GameSave } from "../../core/save";
 import { KaplayState } from "../../core/scenes";
-import { FileManager } from "../../fileManaging";
+import { playMusic } from "../../core/sound";
+import { FileManager } from "../../FileManager";
 import { utils } from "../../utils";
 import { ChartEvent, eventId } from "../event";
 import { Move } from "../objects/dancer";
 import { ChartNote } from "../objects/note";
 import { SongContent } from "../song";
 import { PROP_BIG_SCALE } from "./EditorRenderer";
-import "./ChartEditorScene";
+import "./EditorScene";
 
 /** The params for the chart editor */
-export type paramsChartEditor = {
+export type paramsEditor = {
 	song: SongContent;
 	playbackSpeed: number;
 	seekTime: number;
@@ -59,7 +59,7 @@ export class StateChart extends KaplayState {
 	song: SongContent;
 	paused: boolean;
 	conductor: Conductor;
-	params: paramsChartEditor;
+	params: paramsEditor;
 
 	inputDisabled: boolean = false;
 
@@ -339,7 +339,7 @@ export class StateChart extends KaplayState {
 
 	/** Creates a new song */
 	createNewSong() {
-		const params: paramsChartEditor = {
+		const params: paramsEditor = {
 			playbackSpeed: 1,
 			seekTime: 0,
 			dancer: GameSave.dancer ?? "astri",
@@ -349,7 +349,7 @@ export class StateChart extends KaplayState {
 		Object.assign(this, new StateChart(params));
 	}
 
-	constructor(params: paramsChartEditor) {
+	constructor(params: paramsEditor) {
 		super("editor");
 		StateChart.instance = this;
 		params.dancer = params.dancer ?? "astri";

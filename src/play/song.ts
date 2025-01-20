@@ -1,4 +1,4 @@
-import { _GameSave, GameSave } from "../core/gamesave";
+import { _GameSave, GameSave } from "../core/save";
 import { ChartEvent } from "./event";
 import { ChartNote } from "./objects/note";
 import { Tally } from "./objects/scoring";

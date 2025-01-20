@@ -1,15 +1,15 @@
-import { GameSave } from "../core/gamesave";
-import { defaultUUIDS, loadedSongs } from "../core/loader";
-import { gameCursor } from "../core/plugins/features/gameCursor";
-import { customAudioPlay, playMusic } from "../core/plugins/features/sound";
-import { KaplayState } from "../core/scenes";
-import { FileManager } from "../fileManaging";
-import { Scoring } from "../play/objects/scoring";
-import { StateGame } from "../play/PlayState";
-import { SaveScore, SongContent } from "../play/song";
-import { StateDancerSelect } from "../play/ui/CharSelectScene";
-import { utils } from "../utils";
-import { StateMenu } from "./menu/MenuScene";
+import { gameCursor } from "../../../core/cursor";
+import { defaultUUIDS, loadedSongs } from "../../../core/loading/loader";
+import { GameSave } from "../../../core/save";
+import { KaplayState } from "../../../core/scenes";
+import { customAudioPlay, playMusic } from "../../../core/sound";
+import { FileManager } from "../../../FileManager";
+import { Scoring } from "../../../play/objects/scoring";
+import { StateGame } from "../../../play/PlayState";
+import { SaveScore, SongContent } from "../../../play/song";
+import { utils } from "../../../utils";
+import { StateMenu } from "../MenuScene";
+import { StateDancerSelect } from "./dancerselect/DancerSelectScene";
 
 export class StateSongSelect extends KaplayState {
 	index: number = 0;
@@ -302,7 +302,7 @@ KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 				KaplayState.switchState(
 					new StateGame({
 						dancerName: GameSave.dancer,
-						fromChartEditor: false,
+						fromEditor: false,
 						song: currentSongZip,
 						playbackSpeed: 1,
 					}),

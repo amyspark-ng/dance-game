@@ -1,6 +1,5 @@
-import { GameSave } from "../../core/gamesave";
 import { KaplayState } from "../../core/scenes";
-import { StateSongSelect } from "../../ui/SongSelectScene";
+import { StateSongSelect } from "../../ui/menu/songselect/SongSelectScene";
 import { paramsGameScene, StateGame } from "../PlayState";
 
 export class StateDeath extends KaplayState {
@@ -35,7 +34,7 @@ KaplayState.scene("death", (DeathState: StateDeath) => {
 		// TODO: Restart button
 		const gameParams: paramsGameScene = {
 			dancerName: DeathState.GameState.params.dancerName,
-			fromChartEditor: false,
+			fromEditor: false,
 			song: DeathState.GameState.song,
 			playbackSpeed: DeathState.GameState.params.playbackSpeed,
 			seekTime: DeathState.GameState.params.seekTime,

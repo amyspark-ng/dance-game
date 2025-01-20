@@ -1,6 +1,6 @@
 import { Comp, KEventController, TimerController, TweenController, Vec2 } from "kaplay";
-import { GameSave } from "../../core/gamesave";
-import { juice } from "../../core/plugins/graphics/juiceComponent";
+import { juice } from "../../core/juiceComp";
+import { GameSave } from "../../core/save";
 
 const moveAnimsArr = ["left", "right", "up", "down"] as const;
 /** The moves in the gameplay, also handles the note type */

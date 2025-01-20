@@ -1,8 +1,8 @@
-import { GameSave } from "../../core/gamesave";
-import { playSound } from "../../core/plugins/features/sound";
-import { utils } from "../../utils";
-import { DANCER_POS } from "../objects/dancer";
-import { StateGame } from "../PlayState";
+import { GameSave } from "../../../core/save";
+import { playSound } from "../../../core/sound";
+import { utils } from "../../../utils";
+import { StateGame } from "../../PlayState";
+import { DANCER_POS } from "../dancer";
 
 /** Runs when the game is paused */
 export function addPauseUI() {
@@ -118,7 +118,7 @@ export function addPauseUI() {
 		}),
 	];
 
-	if (GameState.params.fromChartEditor) {
+	if (GameState.params.fromEditor) {
 		buttons[2].destroy();
 		buttons[2] = addPauseButton("Exit to editor", 2, () => {
 			GameState.exitEditor();

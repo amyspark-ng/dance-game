@@ -1,17 +1,15 @@
 import { getCurrent, WebviewWindow } from "@tauri-apps/api/window";
-import { StateChart } from "../play/chartEditor/EditorState";
-import { StateGame } from "../play/PlayState";
 import { FocusState } from "../ui/FocusScene";
 import { StateTitle } from "../ui/TitleScene";
 import { utils } from "../utils";
-import { GameSave } from "./gamesave";
-import { getSong, loadAssets, loadingScreen } from "./loader";
-import { setupCamera } from "./plugins/features/camera";
-import { curDraggin } from "./plugins/features/drag";
-import { setupCursor } from "./plugins/features/gameCursor";
-import { updateMasterVolume } from "./plugins/features/sound";
-import { setupSoundtray } from "./plugins/features/soundtray";
+import { setupCamera } from "./camera";
+import { setupCursor } from "./cursor";
+import { curDraggin } from "./drag";
+import { loadAssets, loadingScreen } from "./loading/loader";
+import { GameSave } from "./save";
 import { KaplayState, setupScenes } from "./scenes";
+import { updateMasterVolume } from "./sound";
+import { setupSoundtray } from "./soundtray";
 
 /** Class that handles some variables related to the game as a product */
 export class GAME {

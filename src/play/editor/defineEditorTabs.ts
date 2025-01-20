@@ -1,6 +1,6 @@
 import { GameObj, PosComp } from "kaplay";
-import { GameSave } from "../../core/gamesave";
-import { FileManager } from "../../fileManaging";
+import { GameSave } from "../../core/save";
+import { FileManager } from "../../FileManager";
 import { utils } from "../../utils";
 import { ChartEvent } from "../event";
 import { makeDancer, Move } from "../objects/dancer";

@@ -1,6 +1,6 @@
 import { openSync } from "fs";
 import { AudioPlay, AudioPlayOpt, Key, TweenController } from "kaplay";
-import { GameSave } from "../../gamesave";
+import { GameSave } from "./save";
 
 // ======= SOUND PLAYING ==========
 export class volumeChannel {

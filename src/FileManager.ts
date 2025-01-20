@@ -1,8 +1,8 @@
 import audioBufferToBlob from "audiobuffer-to-blob";
 import JSZip from "jszip";
 import TOML from "smol-toml";
-import { defaultUUIDS, loadedSongs } from "./core/loader";
-import { gameCursor } from "./core/plugins/features/gameCursor";
+import { gameCursor } from "./core/cursor";
+import { defaultUUIDS, loadedSongs } from "./core/loading/loader";
 import { SongChart, SongContent, SongManifest } from "./play/song";
 
 /** File manager for some stuff of the game */
@@ -115,7 +115,9 @@ export class FileManager {
 	 * Used mostly for default songs
 	 */
 	static async fetchSongFolder(folderPath: string): Promise<songFolder> {
-		const manifest = await fetch(`${folderPath}/manifest.toml`).then((thing) => thing.text()).then((text) => TOML.parse(text)) as SongManifest;
+		const manifest = await fetch(`${folderPath}/manifest.toml`).then((thing) => thing.text()).then((text) =>
+			TOML.parse(text)
+		) as SongManifest;
 		const chart = await fetch(`${folderPath}/${manifest.chart_file}`).then((thing) => thing.json()) as SongChart;
 		const audio = await fetch(`${folderPath}/${manifest.audio_file}`).then((thing) => thing.blob()) as Blob;
 		const cover = await fetch(`${folderPath}/${manifest.cover_file}`).then((thing) => thing.blob()) as Blob;
@@ -140,7 +142,9 @@ export class FileManager {
 		};
 
 		// songContent
-		const songIsAlreadyLoaded = loadedSongs.find((song) => song.manifest.uuid_DONT_CHANGE == songContent.manifest.uuid_DONT_CHANGE);
+		const songIsAlreadyLoaded = loadedSongs.find((song) =>
+			song.manifest.uuid_DONT_CHANGE == songContent.manifest.uuid_DONT_CHANGE
+		);
 		const isDefaultSong = defaultUUIDS.includes(songContent.manifest.uuid_DONT_CHANGE);
 
 		if (songIsAlreadyLoaded) {
@@ -178,15 +182,21 @@ export class FileManager {
 		}
 
 		const audio_file = zipContent.file(songFolder.manifest.audio_file);
-		if (!audio_file) return new Promise((_, reject) => reject("No audio file found in zip or wrong name in manifest"));
+		if (!audio_file) {
+			return new Promise((_, reject) => reject("No audio file found in zip or wrong name in manifest"));
+		}
 		else songFolder.audio = await audio_file.async("blob");
 
 		const cover_file = zipContent.file(songFolder.manifest.cover_file);
-		if (!cover_file) return new Promise((_, reject) => reject("No cover file found in zip or wrong name in manifest"));
+		if (!cover_file) {
+			return new Promise((_, reject) => reject("No cover file found in zip or wrong name in manifest"));
+		}
 		else songFolder.cover = await cover_file.async("blob");
 
 		const chart_file = zipContent.file(songFolder.manifest.chart_file);
-		if (!chart_file) return new Promise((_, reject) => reject("No chart file found in zip or wrong name in manifest"));
+		if (!chart_file) {
+			return new Promise((_, reject) => reject("No chart file found in zip or wrong name in manifest"));
+		}
 		else songFolder.chart = JSON.parse(await chart_file.async("string")) as SongChart;
 
 		// this will run at the end because all the foolproof returns have been returned

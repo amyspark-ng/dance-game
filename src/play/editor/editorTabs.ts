@@ -1,6 +1,6 @@
 import { KEventController, Vec2 } from "kaplay";
-import { drag } from "../../core/plugins/features/drag";
-import { playSound } from "../../core/plugins/features/sound";
+import { drag } from "../../core/drag";
+import { playSound } from "../../core/sound";
 import { utils } from "../../utils";
 import { defineTabs } from "./defineEditorTabs";
 import { MenuBar, MenuItem } from "./editorMenus";

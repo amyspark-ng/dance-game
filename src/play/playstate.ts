@@ -1,20 +1,20 @@
 // Handles the setup for the game scene and some other important stuff
-import { Conductor } from "../conductor";
-import { GameSave } from "../core/gamesave";
-import { cam } from "../core/plugins/features/camera";
-import { playSound } from "../core/plugins/features/sound";
+import { Conductor } from "../Conductor";
+import { cam } from "../core/camera";
+import { GameSave } from "../core/save";
 import { KaplayState } from "../core/scenes";
-import { StateSongSelect } from "../ui/SongSelectScene";
-import { StateChart } from "./chartEditor/EditorState";
+import { playSound } from "../core/sound";
+import { StateChart } from "./editor/EditorState";
 import { ChartEvent } from "./event";
 import { DancerGameObj, makeDancer } from "./objects/dancer";
 import { ChartNote, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
 import { Tally } from "./objects/scoring";
 import { createStrumline, StrumlineGameObj } from "./objects/strumline";
+import { addUI } from "./objects/ui/gameUi";
+import { addPauseUI } from "./objects/ui/pauseUi";
 import { SongContent } from "./song";
-import { addUI } from "./ui/gameUi";
-import { addPauseUI } from "./ui/pauseScreen";
 import "./GameScene";
+import { StateSongSelect } from "../ui/menu/songselect/SongSelectScene";
 
 /** Type to store the parameters for the game scene */
 export type paramsGameScene = {
@@ -29,7 +29,7 @@ export type paramsGameScene = {
 	seekTime?: number;
 
 	/** Wheter the player is coming from the chart editor or from regular gameplay */
-	fromChartEditor: boolean;
+	fromEditor: boolean;
 };
 
 /** Class that holds and manages some important variables in the game scene */
@@ -177,7 +177,7 @@ export class StateGame extends KaplayState {
 
 		tween(cam.pos, center(), 0.1, (p) => cam.pos = p, easings.easeOutExpo);
 		tween(cam.zoom, vec2(1), 0.1, (p) => cam.zoom = p, easings.easeOutExpo);
-		tween(cam.rotation, 0, 0.1, (p) => cam.rotation = p, easings.easeOutExpo);
+		tween(cam.angle, 0, 0.1, (p) => cam.angle = p, easings.easeOutExpo);
 
 		ChartNote.getNotesOnScreen().forEach((noteObj) => {
 			noteObj.destroy();

@@ -1,13 +1,12 @@
 import { appWindow } from "@tauri-apps/api/window";
 import { GameObj, KEventController, Key, Vec2 } from "kaplay";
-import { _GameSave, GameSave } from "../../../core/gamesave";
-import { noteskins } from "../../../core/loader";
-import { playSound, updateMasterVolume } from "../../../core/plugins/features/sound";
-import { juice } from "../../../core/plugins/graphics/juiceComponent";
+import { juice } from "../../../core/juiceComp";
+import { noteskins } from "../../../core/loading/loader";
+import { _GameSave, GameSave } from "../../../core/save";
 import { KaplayState } from "../../../core/scenes";
+import { playSound, updateMasterVolume } from "../../../core/sound";
 import { Move } from "../../../play/objects/dancer";
 import { utils } from "../../../utils";
-import { paramsSongSelect } from "../../SongSelectScene";
 import { StateMenu } from "../MenuScene";
 import { addCheckbox, addNumberItem, addVolumeSlider, tagForCheckbox, tagForNumItem, tagForSlider } from "./optionsUI";
 

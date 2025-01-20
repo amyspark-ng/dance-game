@@ -4,6 +4,7 @@ import { utils } from "../../../utils";
 export interface optionitemComp extends Comp {
 	index: number;
 }
+
 function optionItem(): optionitemComp {
 	return {
 		/** The position they have on the list */

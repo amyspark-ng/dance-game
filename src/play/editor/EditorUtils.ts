@@ -1,8 +1,8 @@
 import { Key } from "kaplay";
-import { gameCursor } from "../../core/plugins/features/gameCursor";
-import { playSound } from "../../core/plugins/features/sound";
+import { gameCursor } from "../../core/cursor";
 import { KaplayState } from "../../core/scenes";
-import { FileManager } from "../../fileManaging";
+import { playSound } from "../../core/sound";
+import { FileManager } from "../../FileManager";
 import { StateMenu } from "../../ui/menu/MenuScene";
 import { utils } from "../../utils";
 import { ChartEvent } from "../event";

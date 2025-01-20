@@ -1,5 +1,5 @@
-import { GameSave } from "../../core/gamesave";
-import { juice } from "../../core/plugins/graphics/juiceComponent";
+import { juice } from "../../core/juiceComp";
+import { GameSave } from "../../core/save";
 import { utils } from "../../utils";
 import { Move } from "../objects/dancer";
 import { INPUT_THRESHOLD, StateGame } from "../PlayState";

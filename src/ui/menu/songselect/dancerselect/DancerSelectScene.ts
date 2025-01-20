@@ -1,8 +1,8 @@
-import { GameSave } from "../../core/gamesave";
-import { dancers } from "../../core/loader";
-import { KaplayState } from "../../core/scenes";
-import { paramsSongSelect, StateSongSelect } from "../../ui/SongSelectScene";
-import { utils } from "../../utils";
+import { dancers } from "../../../../core/loading/loader";
+import { GameSave } from "../../../../core/save";
+import { KaplayState } from "../../../../core/scenes";
+import { utils } from "../../../../utils";
+import { StateSongSelect } from "../SongSelectScene";
 
 export class StateDancerSelect extends KaplayState {
 	SongSelectState: StateSongSelect;

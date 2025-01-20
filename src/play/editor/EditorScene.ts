@@ -1,19 +1,19 @@
 // The actual scene for the chart editor
 import { KEventController } from "kaplay";
-import { Conductor } from "../../conductor.ts";
-import { GameSave } from "../../core/gamesave.ts";
-import { gameCursor } from "../../core/plugins/features/gameCursor";
-import { playMusic, playSound } from "../../core/plugins/features/sound";
-import { KaplayState } from "../../core/scenes";
-import { utils } from "../../utils";
+import { Conductor } from "../../Conductor.ts";
+import { gameCursor } from "../../core/cursor.ts";
+import { GameSave } from "../../core/save.ts";
+import { KaplayState } from "../../core/scenes.ts";
+import { playMusic, playSound } from "../../core/sound.ts";
+import { utils } from "../../utils.ts";
 import { ChartEvent } from "../event.ts";
-import { ChartNote } from "../objects/note";
-import { StateGame } from "../PlayState";
-import { MenuBar } from "./editorMenus";
+import { ChartNote } from "../objects/note.ts";
+import { StateGame } from "../PlayState.ts";
+import { MenuBar } from "./editorMenus.ts";
 import { EditorRenderer, SCROLL_LERP_VALUE } from "./EditorRenderer.ts";
-import { ChartStamp, StateChart } from "./EditorState";
-import { EditorTab } from "./editorTabs";
-import { EditorCommands, EditorUtils } from "./EditorUtils";
+import { ChartStamp, StateChart } from "./EditorState.ts";
+import { EditorTab } from "./editorTabs.ts";
+import { EditorCommands, EditorUtils } from "./EditorUtils.ts";
 
 KaplayState.scene("editor", (ChartState: StateChart) => {
 	// Find a way to comfortably put this back in the constructor
@@ -396,7 +396,7 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 		KaplayState.switchState(
 			new StateGame({
 				dancerName: GameSave.dancer,
-				fromChartEditor: true,
+				fromEditor: true,
 				song: ChartState.song,
 				playbackSpeed: ChartState.params.playbackSpeed,
 				seekTime: ChartState.params.seekTime,
