@@ -1,4 +1,4 @@
-import { KaplayState } from "../../core/scenes/scenes";
+import { KaplayState } from "../../core/scenes/KaplayState";
 
 export class StateCredits extends KaplayState {
 	constructor() {

@@ -3,7 +3,7 @@ import { KEventController } from "kaplay";
 import { Conductor } from "../../Conductor.ts";
 import { gameCursor } from "../../core/cursor.ts";
 import { GameSave } from "../../core/save.ts";
-import { KaplayState } from "../../core/scenes/scenes.ts";
+import { KaplayState } from "../../core/scenes/KaplayState.ts";
 import { Sound } from "../../core/sound.ts";
 import { utils } from "../../utils.ts";
 import { ChartEvent } from "../event.ts";

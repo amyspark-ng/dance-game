@@ -4,7 +4,7 @@ import { cam } from "../core/camera";
 import { gameCursor } from "../core/cursor";
 import { GAME } from "../core/init";
 import { GameSave } from "../core/save";
-import { KaplayState } from "../core/scenes/scenes";
+import { KaplayState } from "../core/scenes/KaplayState";
 import { Sound } from "../core/sound";
 import { utils } from "../utils";
 import { ChartEvent } from "./event";

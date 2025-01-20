@@ -1,5 +1,5 @@
-import { KaplayState } from "../scenes";
-import { Transition } from "./transition";
+import { KaplayState } from "../KaplayState";
+import { Transition } from "./Transition";
 
 export const BlackBarsTransition = new Transition("black", (state: KaplayState) => {
 	const topleft = add([

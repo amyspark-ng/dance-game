@@ -1,6 +1,6 @@
 import { juice } from "../../core/juiceComp";
 import { GameSave } from "../../core/save";
-import { KaplayState } from "../../core/scenes/scenes";
+import { KaplayState } from "../../core/scenes/KaplayState";
 import { paramsEditor, StateChart } from "../../play/editor/EditorState";
 import { SongContent } from "../../play/song";
 import { utils } from "../../utils";

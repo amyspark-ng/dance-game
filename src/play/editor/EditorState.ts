@@ -4,7 +4,7 @@ import { v4 } from "uuid";
 import { Conductor } from "../../Conductor";
 import { dancers, loadedSongs } from "../../core/loading/loader";
 import { GameSave } from "../../core/save";
-import { KaplayState } from "../../core/scenes/scenes";
+import { KaplayState } from "../../core/scenes/KaplayState";
 import { Sound } from "../../core/sound";
 import { FileManager } from "../../FileManager";
 import { utils } from "../../utils";
@@ -17,10 +17,10 @@ import "./EditorScene";
 
 /** The params for the chart editor */
 export type paramsEditor = {
+	/** The song */
 	song: SongContent;
 	playbackSpeed: number;
 	seekTime: number;
-	dancer: string;
 };
 
 /** Is either a note or an event */
@@ -50,7 +50,11 @@ export type stampPropThing = {
 	scale: Vec2;
 };
 
-/** Class that manages every important variable in the chart editor */
+/** Class that manages every important variable in the chart editor
+ * @param song The song you're going to be editing
+ * @param playbackSpeed How fast it will be gooing
+ * @param seekTime The time the scene will start at
+ */
 export class StateChart extends KaplayState {
 	/** Static instance of the statechart */
 	static instance: StateChart = null;
@@ -342,7 +346,6 @@ export class StateChart extends KaplayState {
 		const params: paramsEditor = {
 			playbackSpeed: 1,
 			seekTime: 0,
-			dancer: GameSave.dancer ?? "astri",
 			song: new SongContent(),
 		};
 		params.song.manifest.uuid_DONT_CHANGE = v4();
@@ -352,7 +355,6 @@ export class StateChart extends KaplayState {
 	constructor(params: paramsEditor) {
 		super("editor");
 		StateChart.instance = this;
-		params.dancer = params.dancer ?? "astri";
 		params.playbackSpeed = params.playbackSpeed ?? 1;
 		params.playbackSpeed = Math.abs(clamp(params.playbackSpeed, 0, Infinity));
 		params.seekTime = params.seekTime ?? 0;

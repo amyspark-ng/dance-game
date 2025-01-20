@@ -1,6 +1,5 @@
-import { Key } from "kaplay";
 import { gameCursor } from "../../core/cursor";
-import { KaplayState } from "../../core/scenes/scenes";
+import { KaplayState } from "../../core/scenes/KaplayState";
 import { Sound } from "../../core/sound";
 import { FileManager } from "../../FileManager";
 import { StateMenu } from "../../ui/menu/MenuScene";

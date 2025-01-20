@@ -1,4 +1,4 @@
-import { KaplayState } from "../../core/scenes/scenes";
+import { KaplayState } from "../../core/scenes/KaplayState";
 import { StateSongSelect } from "../../ui/menu/songselect/SongSelectScene";
 import { paramsGameScene, StateGame } from "../PlayState";
 

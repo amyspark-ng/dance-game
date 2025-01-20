@@ -1,5 +1,6 @@
-import { KaplayState } from "../scenes";
+import { KaplayState } from "../KaplayState";
 
+/** Class */
 export class Transition {
 	static onTransitionStart(action: (transitionName: string) => void) {
 		return getTreeRoot().on("transition_start", action);

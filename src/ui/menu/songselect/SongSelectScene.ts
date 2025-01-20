@@ -2,7 +2,7 @@ import { AudioPlay } from "kaplay";
 import { gameCursor } from "../../../core/cursor";
 import { defaultUUIDS, loadedSongs } from "../../../core/loading/loader";
 import { GameSave } from "../../../core/save";
-import { KaplayState } from "../../../core/scenes/scenes";
+import { KaplayState } from "../../../core/scenes/KaplayState";
 import { BlackBarsTransition } from "../../../core/scenes/transitions/blackbar";
 import { Sound } from "../../../core/sound";
 import { FileManager } from "../../../FileManager";

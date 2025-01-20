@@ -1,7 +1,7 @@
 import { Color } from "kaplay";
 // import { allSongCharts } from "../../core/loading/loader"
 import { loadedSongs } from "../../core/loading/loader";
-import { KaplayState } from "../../core/scenes/scenes";
+import { KaplayState } from "../../core/scenes/KaplayState";
 import { Sound } from "../../core/sound";
 import { StateSongSelect } from "../../ui/menu/songselect/SongSelectScene";
 import { utils } from "../../utils";

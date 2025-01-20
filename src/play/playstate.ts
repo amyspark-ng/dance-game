@@ -2,7 +2,7 @@
 import { Conductor } from "../Conductor";
 import { cam } from "../core/camera";
 import { GameSave } from "../core/save";
-import { KaplayState } from "../core/scenes/scenes";
+import { KaplayState } from "../core/scenes/KaplayState";
 import { BlackBarsTransition } from "../core/scenes/transitions/blackbar";
 import { StateSongSelect } from "../ui/menu/songselect/SongSelectScene";
 import { StateChart } from "./editor/EditorState";
@@ -21,8 +21,10 @@ import { Sound } from "../core/sound";
 export type paramsGameScene = {
 	/** The song passed for gameplay */
 	song: SongContent;
+
 	/** The name of the dancer */
 	dancerName: string;
+
 	/** How fast to make the song :smiling_imp: */
 	playbackSpeed?: number;
 
@@ -33,7 +35,13 @@ export type paramsGameScene = {
 	fromEditor: boolean;
 };
 
-/** Class that holds and manages some important variables in the game scene */
+/** Class that holds and manages some important variables in the game scene
+ * @param song The song that you're going to play
+ * @param dancerName The name of the dancer to start as
+ * @param playbackSpeed How fast the song will go
+ * @param seekTime At what time the song will start
+ * @param fromEditor Wheter you're coming from the editor or not
+ */
 export class StateGame extends KaplayState {
 	/** Static instance of the class */
 	static instance: StateGame = null;
@@ -233,7 +241,6 @@ export class StateGame extends KaplayState {
 		this.menuInputEnabled = false;
 		KaplayState.switchState(
 			new StateChart({
-				dancer: GameSave.dancer,
 				playbackSpeed: this.params.playbackSpeed,
 				seekTime: this.conductor.timeInSeconds,
 				song: this.song,

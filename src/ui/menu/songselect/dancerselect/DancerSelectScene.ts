@@ -1,6 +1,6 @@
 import { dancers } from "../../../../core/loading/loader";
 import { GameSave } from "../../../../core/save";
-import { KaplayState } from "../../../../core/scenes/scenes";
+import { KaplayState } from "../../../../core/scenes/KaplayState";
 import { utils } from "../../../../utils";
 import { StateSongSelect } from "../SongSelectScene";
 
