@@ -1,6 +1,6 @@
 import { juice } from "../../core/juiceComp";
 import { GameSave } from "../../core/save";
-import { KaplayState } from "../../core/scenes";
+import { KaplayState } from "../../core/scenes/scenes";
 import { paramsEditor, StateChart } from "../../play/editor/EditorState";
 import { SongContent } from "../../play/song";
 import { utils } from "../../utils";
@@ -93,7 +93,7 @@ KaplayState.scene("menu", (MenuState: StateMenu) => {
 
 		if (option == "songs") {
 			theFunction = () => {
-				KaplayState.switchState(new StateSongSelect({ index: 0 }));
+				KaplayState.switchState(new StateSongSelect(0));
 			};
 		}
 		else if (option == "credits") {

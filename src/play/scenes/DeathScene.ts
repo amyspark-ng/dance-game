@@ -1,4 +1,4 @@
-import { KaplayState } from "../../core/scenes";
+import { KaplayState } from "../../core/scenes/scenes";
 import { StateSongSelect } from "../../ui/menu/songselect/SongSelectScene";
 import { paramsGameScene, StateGame } from "../PlayState";
 
@@ -27,7 +27,7 @@ KaplayState.scene("death", (DeathState: StateDeath) => {
 	]);
 
 	onKeyPress(["backspace", "escape"], () => {
-		KaplayState.switchState(new StateSongSelect({ index: 0 }));
+		KaplayState.switchState(new StateSongSelect(DeathState.GameState.song));
 	});
 
 	onKeyPress("enter", () => {

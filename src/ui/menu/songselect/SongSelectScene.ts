@@ -1,7 +1,8 @@
 import { gameCursor } from "../../../core/cursor";
 import { defaultUUIDS, loadedSongs } from "../../../core/loading/loader";
 import { GameSave } from "../../../core/save";
-import { KaplayState } from "../../../core/scenes";
+import { KaplayState } from "../../../core/scenes/scenes";
+import { BlackBarsTransition } from "../../../core/scenes/transitions/blackbar";
 import { customAudioPlay, playMusic } from "../../../core/sound";
 import { FileManager } from "../../../FileManager";
 import { Scoring } from "../../../play/objects/scoring";
@@ -11,6 +12,9 @@ import { utils } from "../../../utils";
 import { StateMenu } from "../MenuScene";
 import { StateDancerSelect } from "./dancerselect/DancerSelectScene";
 
+/** State for selecting the song to play
+ * @param startAt Can either be a number or a song
+ */
 export class StateSongSelect extends KaplayState {
 	index: number = 0;
 
@@ -37,12 +41,18 @@ export class StateSongSelect extends KaplayState {
 		return getTreeRoot().on("addedCapsule", action);
 	}
 
-	params: paramsSongSelect;
-
-	constructor(params: paramsSongSelect) {
+	constructor(startAt: SongContent | number) {
 		super("songselect");
-		this.params = params;
-		this.params.index = this.params.index ?? 1;
+		if (typeof startAt == "number") {
+			utils.isInRange(startAt, 0, loadedSongs.length - 1);
+			this.index = startAt;
+		}
+		else {
+			if (loadedSongs.includes(startAt)) {
+				const newIndex = loadedSongs.indexOf(startAt);
+				if (newIndex && newIndex > 0) this.index = newIndex;
+			}
+		}
 	}
 }
 
@@ -151,10 +161,6 @@ export function addSongCapsule(curSong: SongContent) {
 }
 
 type songCapsuleObj = ReturnType<typeof addSongCapsule>;
-
-export type paramsSongSelect = {
-	index?: number;
-};
 
 KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 	gameCursor.hide();
@@ -298,16 +304,15 @@ KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 			SongSelectState.songPreview.stop();
 			const currentSongZip = hoveredCapsule.song;
 
-			wait(1, () => {
-				KaplayState.switchState(
-					new StateGame({
-						dancerName: GameSave.dancer,
-						fromEditor: false,
-						song: currentSongZip,
-						playbackSpeed: 1,
-					}),
-				);
-			});
+			KaplayState.switchState(
+				new StateGame({
+					dancerName: GameSave.dancer,
+					fromEditor: false,
+					song: currentSongZip,
+					playbackSpeed: 1,
+				}),
+				BlackBarsTransition,
+			);
 		}
 	});
 

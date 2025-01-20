@@ -1,6 +1,6 @@
 import { dancers } from "../../../../core/loading/loader";
 import { GameSave } from "../../../../core/save";
-import { KaplayState } from "../../../../core/scenes";
+import { KaplayState } from "../../../../core/scenes/scenes";
 import { utils } from "../../../../utils";
 import { StateSongSelect } from "../SongSelectScene";
 
@@ -78,7 +78,7 @@ KaplayState.scene("dancerselect", (DancerSelectState: StateDancerSelect) => {
 	onKeyPress("enter", () => {
 		get(GameSave.dancer)[0].play("victory");
 		GameSave.save();
-		KaplayState.switchState(new StateSongSelect(DancerSelectState.SongSelectState.params));
+		KaplayState.switchState(new StateSongSelect(0));
 	});
 
 	setBackground(BLUE.lighten(60));

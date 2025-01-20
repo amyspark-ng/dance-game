@@ -1,5 +1,6 @@
 import { getCurrent, WebviewWindow } from "@tauri-apps/api/window";
 import { FocusState } from "../ui/FocusScene";
+import { StateSongSelect } from "../ui/menu/songselect/SongSelectScene";
 import { StateTitle } from "../ui/TitleScene";
 import { utils } from "../utils";
 import { setupCamera } from "./camera";
@@ -7,7 +8,7 @@ import { setupCursor } from "./cursor";
 import { curDraggin } from "./drag";
 import { loadAssets, loadingScreen } from "./loading/loader";
 import { GameSave } from "./save";
-import { KaplayState, setupScenes } from "./scenes";
+import { KaplayState, setupScenes } from "./scenes/scenes";
 import { updateMasterVolume } from "./sound";
 import { setupSoundtray } from "./soundtray";
 
@@ -108,4 +109,5 @@ export function INITIAL_SCENE() {
 	// 		seekTime: 0,
 	// 	}),
 	// );
+	KaplayState.switchState(new StateSongSelect(0));
 }

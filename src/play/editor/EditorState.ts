@@ -4,7 +4,7 @@ import { v4 } from "uuid";
 import { Conductor } from "../../Conductor";
 import { dancers, loadedSongs } from "../../core/loading/loader";
 import { GameSave } from "../../core/save";
-import { KaplayState } from "../../core/scenes";
+import { KaplayState } from "../../core/scenes/scenes";
 import { playMusic } from "../../core/sound";
 import { FileManager } from "../../FileManager";
 import { utils } from "../../utils";

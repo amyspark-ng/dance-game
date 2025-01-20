@@ -2,7 +2,7 @@
 import { Conductor } from "../Conductor";
 import { cam } from "../core/camera";
 import { GameSave } from "../core/save";
-import { KaplayState } from "../core/scenes";
+import { KaplayState } from "../core/scenes/scenes";
 import { playSound } from "../core/sound";
 import { StateChart } from "./editor/EditorState";
 import { ChartEvent } from "./event";
@@ -14,6 +14,7 @@ import { addUI } from "./objects/ui/gameUi";
 import { addPauseUI } from "./objects/ui/pauseUi";
 import { SongContent } from "./song";
 import "./GameScene";
+import { BlackBarsTransition } from "../core/scenes/transitions/blackbar";
 import { StateSongSelect } from "../ui/menu/songselect/SongSelectScene";
 
 /** Type to store the parameters for the game scene */
@@ -223,7 +224,7 @@ export class StateGame extends KaplayState {
 	exitMenu() {
 		// let song = getSong(this.songZip.)
 		// let index = song ? allSongCharts.indexOf(song) : 0
-		KaplayState.switchState(new StateSongSelect({ index: 0 }));
+		KaplayState.switchState(new StateSongSelect(this.song), BlackBarsTransition);
 	}
 
 	/** Function to exit to the editor menu from the gamescene */

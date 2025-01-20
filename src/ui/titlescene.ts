@@ -1,5 +1,5 @@
 import { appWindow } from "../core/init";
-import { KaplayState } from "../core/scenes";
+import { KaplayState } from "../core/scenes/scenes";
 import { utils } from "../utils";
 import { StateMenu } from "./menu/MenuScene";
 
