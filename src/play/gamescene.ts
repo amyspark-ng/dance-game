@@ -1,7 +1,6 @@
 import { appWindow } from "@tauri-apps/api/window";
-import { EaseFunc, KEventController, TweenController } from "kaplay";
+import { EaseFunc, KEventController } from "kaplay";
 import { cam } from "../core/camera";
-import { gameCursor } from "../core/cursor";
 import { GAME } from "../core/init";
 import { GameSave } from "../core/save";
 import { KaplayState } from "../core/scenes/KaplayState";
@@ -9,8 +8,8 @@ import { Sound } from "../core/sound";
 import { utils } from "../utils";
 import { ChartEvent } from "./event";
 import { ChartNote, NoteGameObj, notesSpawner, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
-import { addComboText, addJudgement, getClosestNote, Scoring } from "./objects/scoring";
-import { inputHandler, introGo, paramsGameScene, StateGame } from "./PlayState";
+import { addJudgement, getClosestNote, Scoring } from "./objects/scoring";
+import { inputHandler, introGo, StateGame } from "./PlayState";
 import { StateDeath } from "./scenes/DeathScene";
 import { StateResults } from "./scenes/ResultsScene";
 import { SaveScore } from "./song";
@@ -24,8 +23,6 @@ KaplayState.scene("game", (GameState: StateGame) => {
 	notesSpawner(GameState);
 
 	GameState.gameInputEnabled = true;
-	gameCursor.hide();
-
 	// ==== DANCER + UI =====
 	GameState.dancer.onUpdate(() => {
 		if (GameState.dancer.waitForIdle) GameState.dancer.waitForIdle.paused = GameState.paused;
@@ -51,8 +48,6 @@ KaplayState.scene("game", (GameState: StateGame) => {
 	if (!isFocused()) GameState.paused = true;
 
 	onUpdate(() => {
-		// debug.log(GameState.dancer.exists());
-
 		if (GameState.conductor.timeInSeconds >= -(TIME_FOR_STRUM / 2) && !hasPlayedGo) {
 			introGo();
 			hasPlayedGo = true;
@@ -140,10 +135,6 @@ KaplayState.scene("game", (GameState: StateGame) => {
 
 		const judgementText = addJudgement(judgement);
 
-		if (Scoring.tally(GameState.tally).isPerfect()) judgementText.text += "!!";
-		else if (GameState.tally.misses < 1) judgementText.text += "!";
-
-		addComboText(GameState.combo);
 		GameState.dancer.doMove(chartNote.move);
 
 		if (chartNote.length) {
@@ -167,9 +158,6 @@ KaplayState.scene("game", (GameState: StateGame) => {
 		if (harm == false) return;
 		Sound.playSound("missnote");
 		addJudgement("Miss");
-		if (GameState.combo > 0) {
-			addComboText("break");
-		}
 
 		const closestNote = getClosestNote(GameState.song.chart.notes, GameState.conductor.timeInSeconds);
 		const scoreDiff = Scoring.getScorePerDiff(GameState.conductor.timeInSeconds, closestNote);

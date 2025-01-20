@@ -1,5 +1,3 @@
-import { customAudioPlay } from "./core/sound";
-
 /*
 	=== Some explanations about conducting and music ===
 	I had to learn music theory from start, props to flagBearer for teaching some of the code related stuff
@@ -37,9 +35,11 @@ import { customAudioPlay } from "./core/sound";
 	Mostly used in fnf and rhythm games, but it's pretty helpful to code tons of stuff :)
 */
 
+import { AudioPlay } from "kaplay";
+
 /** Options to create a conductor */
 type conductorOpts = {
-	audioPlay: customAudioPlay;
+	audioPlay: AudioPlay;
 	BPM: number;
 	timeSignature: [number, number];
 	offset?: number;
@@ -47,8 +47,8 @@ type conductorOpts = {
 
 /** Manages the stuff related to music and beats */
 export class Conductor {
-	/** The customAudioPlay object of the current song that is playing */
-	audioPlay: customAudioPlay;
+	/** The AudioPlay object of the current song that is playing */
+	audioPlay: AudioPlay;
 
 	/** Is the current time in the song, the same as this.audioPlay.time() i think */
 	timeInSeconds: number = 0;

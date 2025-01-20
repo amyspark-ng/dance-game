@@ -1,5 +1,21 @@
 import { EaseFunc } from "kaplay";
 
+// {
+//     "id": "cam-move",
+//     "time": 0,
+//     "value": {
+//         "duration": 0.15,
+//         "x": 0,
+//         "y": 0,
+//         "zoom": 1,
+//         "angle": 0,
+//         "bopStrength": 1.05,
+//         "easing": [
+//             "linear"
+//         ]
+//     }
+// }
+
 class EventSchema {
 	id: string;
 	name: string;

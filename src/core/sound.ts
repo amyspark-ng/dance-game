@@ -1,27 +1,22 @@
 import { openSync } from "fs";
-import { AudioPlay, AudioPlayOpt, Key, TweenController } from "kaplay";
+import { AudioPlay, AudioPlayOpt, EaseFunc, Key, TweenController } from "kaplay";
 import { utils } from "../utils";
 import { GameSave } from "./save";
 
-const defaultOpts: AudioPlayOpt = {
-	volume: 1,
-	speed: 1,
-	detune: 0,
-	loop: false,
-};
-
+/* Small class that handles some sound related stuff */
 export class Sound {
-	static soundVolume: number = 1;
-	static musicVolume: number = 1;
+	static soundVolume: number = GameSave.sfxVolume * GameSave.volume;
+	static musicVolume: number = GameSave.musicVolume * GameSave.volume;
 
 	static currentSong: AudioPlay = null;
 	static sounds: Set<AudioPlay> = new Set<AudioPlay>();
 
-	static playSound(soundName: string, opts: AudioPlayOpt = defaultOpts): AudioPlay {
-		const audioPlayer = play(soundName, {
-			volume: opts.volume ?? this.soundVolume,
-			...opts,
-		});
+	static playSound(soundName: string, opts?: AudioPlayOpt): AudioPlay {
+		opts = opts ?? {};
+		Sound.soundVolume = GameSave.sfxVolume * GameSave.volume;
+		const audioPlayer = play(soundName, opts);
+		if (opts.volume) audioPlayer.volume = opts.volume;
+		else audioPlayer.volume = Sound.soundVolume;
 		Sound.sounds.add(audioPlayer);
 		audioPlayer.onEnd(() => {
 			Sound.sounds.delete(audioPlayer);
@@ -30,15 +25,17 @@ export class Sound {
 		return audioPlayer;
 	}
 
-	static playMusic(songName: string, opts: AudioPlayOpt = defaultOpts) {
-		const audioPlayer = Sound.playSound(songName, {
-			volume: opts.volume ?? this.musicVolume,
-			...opts,
-		});
+	static playMusic(songName: string, opts?: AudioPlayOpt) {
+		opts = opts ?? {};
+
+		const audioPlayer = play(songName, opts);
+		if (opts.volume) audioPlayer.volume = opts.volume;
+		else audioPlayer.volume = Sound.musicVolume;
 		audioPlayer.onEnd(() => {
 			Sound.currentSong = null;
 		});
-		this.currentSong = audioPlayer;
+
+		Sound.currentSong = audioPlayer;
 		return audioPlayer;
 	}
 
@@ -47,12 +44,38 @@ export class Sound {
 		newVolume = clamp(newVolume, 0, 1);
 		GameSave.volume = newVolume;
 
-		this.soundVolume = GameSave.sfxVolume * GameSave.volume;
-		this.musicVolume = GameSave.musicVolume * GameSave.volume;
+		Sound.soundVolume = GameSave.sfxVolume * GameSave.volume;
+		Sound.musicVolume = GameSave.musicVolume * GameSave.volume;
 
-		this.sounds.forEach((handler) => {
-			handler.volume = this.soundVolume;
+		Sound.sounds.forEach((handler) => {
+			handler.volume = Sound.soundVolume;
 		});
-		this.currentSong.volume = this.musicVolume;
+
+		if (Sound.currentSong) {
+			Sound.currentSong.volume = Sound.musicVolume;
+		}
+	}
+
+	static fadeIn(
+		handler: AudioPlay,
+		volume: number = Sound.soundVolume,
+		duration: number = 0.15,
+		easing: EaseFunc = easings.linear,
+	) {
+		return tween(0, volume, duration, (p) => handler.volume = p, easing);
+	}
+
+	static fadeOut(
+		handler: AudioPlay,
+		volume: number = Sound.soundVolume,
+		duration: number = 0.15,
+		easing: EaseFunc = easings.linear,
+	) {
+		return tween(volume, 0, duration, (p) => handler.volume = p, easing);
+	}
+
+	static pauseScratch(handler: AudioPlay, duration: number = 0.15) {
+		tween(handler.detune, -150, duration / 2, (p) => handler.detune = p);
+		tween(handler.volume, 0, duration, (p) => handler.volume = p);
 	}
 }

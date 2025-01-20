@@ -4,6 +4,9 @@ import { juice } from "./juiceComp";
 import { GameSave } from "./save";
 import { Sound } from "./sound";
 
+/** The detune the volume changes */
+let changeVolTune = 0;
+
 export interface SoundTray {
 	show: (keepAround?: boolean) => void;
 	hide: () => void;
@@ -94,9 +97,6 @@ const getSoundElements = () => get("volElement", { recursive: true });
 export function addSoundTray(opts: addSoundTrayOpt): SoundTray {
 	const soundTrayEvents = new KEventHandler();
 	let waitingThing = wait(0);
-
-	/** The detune the volume changes */
-	let changeVolTune = 0;
 
 	// =====================================
 	//            VOLUME MANAGING
@@ -206,10 +206,10 @@ export function setupSoundtray() {
 				bars.forEach((bar) => bar.bop({ startScale: 1.2, endScale: 1 }));
 			}
 
-			Sound.playSound("volumeChange", { volume: 1 });
+			Sound.playSound("volumeChange", { volume: 1, detune: changeVolTune });
 		}
 		else if (change < 0) {
-			Sound.playSound("volumeChange", { volume: 1 });
+			Sound.playSound("volumeChange", { volume: 1, detune: changeVolTune });
 
 			const bar = getSoundElements().filter((obj) => obj.volume == GameSave.volume)[0];
 

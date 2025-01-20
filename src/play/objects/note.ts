@@ -188,11 +188,13 @@ export function addNote(chartNote: ChartNote, GameState: StateGame, strumline: S
 
 	function addTrail() {
 		const masked = get("masked")[0] as ReturnType<typeof addMasked>;
+		masked.z = noteObj.z - 1;
 
 		const trail = masked.add([
 			pos(noteObj.pos),
 			anchor(noteObj.anchor),
 			opacity(),
+			z(masked.z),
 			{
 				width: NOTE_WIDTH * chartNote.length,
 			},
@@ -270,7 +272,6 @@ export type NoteGameObj = ReturnType<typeof addNote>;
 
 // MF you genius
 /** Crucial function that handles the spawning of notes in the game */
-// TODO: Move this to ChartNote?
 export function notesSpawner(GameState: StateGame) {
 	addMasked();
 

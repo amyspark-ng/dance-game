@@ -9,6 +9,7 @@ import { curDraggin } from "./drag";
 import { loadAssets, loadingScreen } from "./loading/loader";
 import { GameSave } from "./save";
 import { KaplayState, setupScenes } from "./scenes/KaplayState";
+import { Sound } from "./sound";
 import { setupSoundtray } from "./soundtray";
 
 /** Class that handles some variables related to the game as a product */
@@ -46,6 +47,7 @@ onLoading((progress: number) => loadingScreen(progress));
 loadAssets();
 
 onLoad(() => {
+	Sound.changeVolume(GameSave.volume);
 	setupScenes();
 	setupCursor();
 	setupCamera();

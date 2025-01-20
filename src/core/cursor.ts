@@ -51,14 +51,6 @@ export function addCursorObject() {
 			typeMode: false,
 			isHoveringAnObject: false,
 
-			hide() {
-				this.intendedOpa = 0;
-			},
-
-			show() {
-				this.intendedOpa = 1;
-			},
-
 			addAnimCondition(action: () => void) {
 				customBehaviours.push(action);
 			},
@@ -140,6 +132,13 @@ export function addCursorObject() {
 		customBehaviours.forEach((behav) => {
 			behav();
 		});
+
+		if (hoveredObjects.length > 0) {
+			mouse.intendedOpa = 1;
+		}
+		else {
+			mouse.intendedOpa = 0;
+		}
 	});
 
 	mouse.do("default");

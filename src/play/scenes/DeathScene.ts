@@ -32,14 +32,14 @@ KaplayState.scene("death", (DeathState: StateDeath) => {
 
 	onKeyPress("enter", () => {
 		// TODO: Restart button
-		const gameParams: paramsGameScene = {
-			dancerName: DeathState.GameState.params.dancerName,
-			fromEditor: false,
-			song: DeathState.GameState.song,
-			playbackSpeed: DeathState.GameState.params.playbackSpeed,
-			seekTime: DeathState.GameState.params.seekTime,
-		};
-
-		KaplayState.switchState(new StateGame(gameParams));
+		KaplayState.switchState(
+			new StateGame({
+				dancerName: DeathState.GameState.params.dancerName,
+				fromEditor: false,
+				song: DeathState.GameState.song,
+				playbackSpeed: DeathState.GameState.params.playbackSpeed,
+				seekTime: DeathState.GameState.params.seekTime,
+			}),
+		);
 	});
 });

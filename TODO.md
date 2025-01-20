@@ -9,6 +9,7 @@ Refactor some files it kinda is horrendous
 Make camera follow the leading note in a way that it's always in the center of the grid row
 
 # GENERAL
+- FIX soundtray
 - Make cursor animation system even BETTER
 - Add notifications for song loading and other stuff
 - Make better mod system

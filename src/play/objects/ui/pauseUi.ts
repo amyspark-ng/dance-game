@@ -7,7 +7,6 @@ import { DANCER_POS } from "../dancer";
 /** Runs when the game is paused */
 export function addPauseUI() {
 	const GameState = StateGame.instance;
-	let paused: boolean = GameState.paused;
 
 	const baseZ = 100;
 	const baseLerp = 0.5;
@@ -33,7 +32,7 @@ export function addPauseUI() {
 		const baseXpos = 50;
 		buttonObj.onUpdate(() => {
 			const buttonLerp = (baseLerp / 2) * (buttonIndex + 1);
-			if (paused) {
+			if (GameState.paused) {
 				const buttonXPos = baseXpos - (scrollindex == buttonIndex ? 30 : 0);
 				buttonObj.pos.x = lerp(buttonObj.pos.x, buttonXPos, buttonLerp);
 				buttonObj.opacity = lerp(buttonObj.opacity, 1, baseLerp);
@@ -61,7 +60,7 @@ export function addPauseUI() {
 	]);
 
 	blackScreen.onUpdate(() => {
-		blackScreen.opacity = lerp(blackScreen.opacity, paused ? 0.5 : 0, baseLerp);
+		blackScreen.opacity = lerp(blackScreen.opacity, GameState.paused ? 0.5 : 0, baseLerp);
 	});
 
 	// title stuff
@@ -84,7 +83,7 @@ export function addPauseUI() {
 	title.onUpdate(() => {
 		pausedText.pos = lerp(pausedText.pos, title.pos.add(vec2(0, title.height)), baseLerp * 0.9);
 
-		if (paused) {
+		if (GameState.paused) {
 			title.pos = lerp(title.pos, vec2(center().x, 70), baseLerp);
 			title.opacity = lerp(title.opacity, 1, baseLerp);
 		}
@@ -98,6 +97,7 @@ export function addPauseUI() {
 	// buttons
 	const inputManager = add([]);
 	inputManager.onUpdate(() => {
+		if (!GameState.paused) return;
 		if (isKeyPressed("down")) scrollindex = utils.scrollIndex(scrollindex, 1, 3);
 		else if (isKeyPressed("up")) scrollindex = utils.scrollIndex(scrollindex, -1, 3);
 		else if (isKeyPressed("enter")) {
@@ -136,7 +136,7 @@ export function addPauseUI() {
 
 	const fakeDancerPos = vec2(center().x + fakeDancer.width, center().y);
 	fakeDancer.onUpdate(() => {
-		if (paused) {
+		if (GameState.paused) {
 			fakeDancer.pos = lerp(fakeDancer.pos, fakeDancerPos, baseLerp);
 		}
 		else {
@@ -145,7 +145,7 @@ export function addPauseUI() {
 	});
 
 	GameState.dancer.onUpdate(() => {
-		if (paused) {
+		if (GameState.paused) {
 			GameState.dancer.pos = lerp(GameState.dancer.pos, center().scale(1, 2), 0.9);
 			GameState.dancer.scale.x = lerp(GameState.dancer.scale.x, 0, 0.8);
 		}
@@ -155,19 +155,39 @@ export function addPauseUI() {
 		}
 	});
 
-	const tagsToPause = ["judgementObj", "strumlineObj"];
-	GameState.onPauseChange((newPause: boolean) => {
-		paused = newPause;
+	// EVERYTHING THAT IS ABOVE WILL RUN ONLY ONCE
+	// Everything below will run everytime the pause state changes
+	GameState.onPauseChange(() => {
 		Sound.playSound("pauseScratch", {
-			detune: newPause == true ? -150 : 150,
-			volume: GameSave.musicVolume,
+			detune: GameState.paused == true ? -150 : 150,
 			speed: 1,
 		});
-	});
 
-	// get all the objects and filter the ones that have any tag that is included in tagsToPause
-	get("*").filter((obj) => obj.tags.some((tag) => tagsToPause.includes(tag))).forEach((obj) => {
-		obj.paused = paused;
+		// pause scratch sound!
+		// these tweens somehow are spam-proof! good :)
+		// unpaused
+		if (GameState.paused == false) {
+			GameState.conductor.paused = GameState.paused;
+			GameState.conductor.timeInSeconds = GameState.lastTimeOnPause;
+			GameState.conductor.audioPlay.seek(GameState.lastTimeOnPause);
+			tween(Sound.currentSong.detune, 0, 0.15 / 2, (p) => Sound.currentSong.detune = p);
+			Sound.fadeIn(Sound.currentSong, 0.15, Sound.musicVolume);
+		}
+		// paused
+		else {
+			GameState.lastTimeOnPause = GameState.conductor.timeInSeconds;
+			Sound.pauseScratch(Sound.currentSong, 0.15);
+
+			// Waits 0.15 seconds so the audio isn't paused inmediately
+			wait(0.15, () => {
+				GameState.conductor.paused = GameState.paused;
+			});
+		}
+
+		// get all the objects and filter the ones that have any tag that is included in tagsToPause
+		get("game").forEach((obj) => {
+			obj.paused = GameState.paused;
+		});
 	});
 
 	return { blackScreen, title, pausedText, buttons, fakeDancer };

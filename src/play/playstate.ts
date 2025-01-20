@@ -97,8 +97,8 @@ export class StateGame extends KaplayState {
 	/** Private property that manages the game paused state, it's actually getted and setted */
 	private _paused: boolean = false;
 
-	/** Private property that manages the last time the game was paused (for a cool effect) */
-	private lastTimeOnPause: number = 0;
+	/** property that manages the last time the game was paused (for a cool effect) */
+	lastTimeOnPause: number = 0;
 
 	get paused() {
 		return this._paused;
@@ -108,37 +108,7 @@ export class StateGame extends KaplayState {
 	set paused(newPause: boolean) {
 		newPause = newPause ?? !this._paused;
 		this._paused = newPause;
-
-		// these tweens somehow are spam-proof! good :)
-		// unpaused
-		if (this.paused == false) {
-			this.conductor.paused = this.paused;
-			this.conductor.timeInSeconds = this.lastTimeOnPause;
-			this.conductor.audioPlay.seek(this.lastTimeOnPause);
-			tween(this.conductor.audioPlay.detune, 0, 0.15 / 2, (p) => this.conductor.audioPlay.detune = p);
-			tween(
-				this.conductor.audioPlay.volume,
-				GameSave.musicVolume,
-				0.15,
-				(p) => this.conductor.audioPlay.volume = p,
-			);
-		}
-		// paused
-		else {
-			this.lastTimeOnPause = this.conductor.timeInSeconds;
-			tween(this.conductor.audioPlay.detune, -150, 0.15 / 2, (p) => this.conductor.audioPlay.detune = p);
-			tween(this.conductor.audioPlay.volume, 0, 0.15, (p) => this.conductor.audioPlay.volume = p);
-
-			// Waits 15 seconds so the audio isn't paused inmediately
-			wait(0.15, () => {
-				this.conductor.paused = this.paused;
-			});
-		}
-
-		// After half the time the menu is brought up
-		wait(0.15 / 2, () => {
-			getTreeRoot().trigger("pauseChange", this.paused);
-		});
+		getTreeRoot().trigger("pauseChange", this.paused);
 	}
 
 	/** Add score to the tally (animates the ui too)
@@ -230,8 +200,6 @@ export class StateGame extends KaplayState {
 
 	/** Function to exit to the song select menu from the gamescene */
 	exitMenu() {
-		// let song = getSong(this.songZip.)
-		// let index = song ? allSongCharts.indexOf(song) : 0
 		KaplayState.switchState(new StateSongSelect(this.song), BlackBarsTransition);
 	}
 
@@ -271,6 +239,7 @@ export class StateGame extends KaplayState {
 		},
 	};
 
+	/** Think of it as a second constructor */
 	add() {
 		// now that we have the song we can get the scroll speed multiplier and set the playback speed for funzies
 		const speed = this.song.manifest.initial_scrollspeed * GameSave.scrollSpeed;
@@ -279,8 +248,7 @@ export class StateGame extends KaplayState {
 
 		// then we actually setup the conductor and play the song
 		this.conductor = new Conductor({
-			audioPlay: Sound.playSound(`${this.params.song.manifest.uuid_DONT_CHANGE}-audio`, {
-				volume: GameSave.musicVolume,
+			audioPlay: Sound.playMusic(`${this.params.song.manifest.uuid_DONT_CHANGE}-audio`, {
 				speed: this.params.playbackSpeed,
 			}),
 			BPM: this.params.song.manifest.initial_bpm * this.params.playbackSpeed,

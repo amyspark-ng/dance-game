@@ -21,8 +21,6 @@ export class StateSongSelect extends KaplayState {
 
 	menuInputEnabled: boolean = true;
 
-	songPreview: AudioPlay;
-
 	/** Scrolls the index, so scrolling the songs */
 	scroll(change: number, songAmount: number) {
 		this.index = utils.scrollIndex(this.index, change, songAmount);
@@ -42,8 +40,110 @@ export class StateSongSelect extends KaplayState {
 		return getTreeRoot().on("addedCapsule", action);
 	}
 
+	/** Adds a song capsule to the song select scene */
+	static addSongCapsule(curSong: SongContent) {
+		const isAddSong = curSong == null;
+
+		const capsuleContainer = add([
+			opacity(),
+			pos(center().x, center().y),
+			"songCapsule",
+			{
+				width: 0,
+				height: 0,
+				song: curSong,
+				intendedXPos: 0,
+			},
+		]);
+
+		const albumCover = capsuleContainer.add([
+			sprite(!isAddSong ? curSong.manifest.uuid_DONT_CHANGE + "-cover" : "importSongBtn"),
+			pos(),
+			anchor("center"),
+			opacity(),
+			z(0),
+		]);
+		albumCover.pos.x += (barWidth / 2) - 5;
+		albumCover.width = 396;
+		albumCover.height = 396;
+		capsuleContainer.width = albumCover.width;
+		capsuleContainer.height = albumCover.height;
+
+		if (isAddSong) return;
+
+		const cdCase = capsuleContainer.add([
+			sprite("cdCase"),
+			pos(),
+			color(),
+			anchor("center"),
+			opacity(),
+			scale(),
+			z(1),
+		]);
+
+		const capsuleName = capsuleContainer.add([
+			text(curSong.manifest.name, { align: "center" }),
+			pos(),
+			anchor("top"),
+			opacity(),
+		]);
+
+		let songDuration = "0";
+		getSound(`${curSong.manifest.uuid_DONT_CHANGE}-audio`).onLoad((data) => {
+			songDuration = utils.formatTime(data.buf.duration);
+		});
+
+		capsuleContainer.onUpdate(() => {
+			const tally = SaveScore.getHighscore(curSong.manifest.uuid_DONT_CHANGE).tally;
+			let clear = Math.round(Scoring.tally(tally).cleared());
+			if (isNaN(clear)) clear = 0;
+
+			capsuleName.text = `${curSong.manifest.name} (${clear}%)\n${songDuration}`;
+			capsuleName.pos.y = capsuleContainer.height / 2;
+
+			albumCover.opacity = capsuleContainer.opacity;
+			cdCase.opacity = capsuleContainer.opacity;
+			capsuleName.opacity = capsuleContainer.opacity;
+		});
+
+		// if the song has a highscore then add the sticker with the ranking
+		if (GameSave.songsPlayed.some((song) => song.uuid == curSong.manifest.uuid_DONT_CHANGE)) {
+			const tally = SaveScore.getHighscore(curSong.manifest.uuid_DONT_CHANGE).tally;
+			const ranking = Scoring.tally(tally).ranking();
+
+			const maxOffset = 50;
+			const offset = vec2(rand(-maxOffset, maxOffset), rand(-maxOffset, maxOffset));
+			const randAngle = rand(-20, 20);
+			const rankingSticker = capsuleContainer.add([
+				sprite("rank_" + ranking),
+				pos(),
+				rotate(randAngle),
+				anchor("center"),
+				z(3),
+			]);
+
+			rankingSticker.pos = offset;
+		}
+
+		// if song isn't on default songs then it means it's imported from elsewhere
+		if (!defaultUUIDS.includes(curSong.manifest.uuid_DONT_CHANGE)) {
+			const importedSticker = capsuleContainer.add([
+				sprite("importedSong"),
+				pos(),
+				anchor("center"),
+				rotate(rand(-2, 2)),
+				z(3),
+			]);
+		}
+
+		getTreeRoot().trigger("addedCapsule");
+
+		return capsuleContainer;
+	}
+
 	constructor(startAt: SongContent | number) {
 		super("songselect");
+
 		if (typeof startAt == "number") {
 			utils.isInRange(startAt, 0, loadedSongs.length - 1);
 			this.index = startAt;
@@ -60,124 +160,20 @@ export class StateSongSelect extends KaplayState {
 /** Should add this to album cover, just because  */
 const barWidth = 46;
 
-/** Adds a song capsule to the song select scene */
-export function addSongCapsule(curSong: SongContent) {
-	const isAddSong = curSong == null;
-
-	const capsuleContainer = add([
-		opacity(),
-		pos(center().x, center().y),
-		"songCapsule",
-		{
-			width: 0,
-			height: 0,
-			song: curSong,
-			intendedXPos: 0,
-		},
-	]);
-
-	const albumCover = capsuleContainer.add([
-		sprite(!isAddSong ? curSong.manifest.uuid_DONT_CHANGE + "-cover" : "importSongBtn"),
-		pos(),
-		anchor("center"),
-		opacity(),
-		z(0),
-	]);
-	albumCover.pos.x += (barWidth / 2) - 5;
-	albumCover.width = 396;
-	albumCover.height = 396;
-	capsuleContainer.width = albumCover.width;
-	capsuleContainer.height = albumCover.height;
-
-	if (isAddSong) return;
-
-	const cdCase = capsuleContainer.add([
-		sprite("cdCase"),
-		pos(),
-		color(),
-		anchor("center"),
-		opacity(),
-		scale(),
-		z(1),
-	]);
-
-	const capsuleName = capsuleContainer.add([
-		text(curSong.manifest.name, { align: "center" }),
-		pos(),
-		anchor("top"),
-		opacity(),
-	]);
-
-	let songDuration = "0";
-	getSound(`${curSong.manifest.uuid_DONT_CHANGE}-audio`).onLoad((data) => {
-		songDuration = utils.formatTime(data.buf.duration);
-	});
-
-	capsuleContainer.onUpdate(() => {
-		const tally = SaveScore.getHighscore(curSong.manifest.uuid_DONT_CHANGE).tally;
-		let clear = Math.round(Scoring.tally(tally).cleared());
-		if (isNaN(clear)) clear = 0;
-
-		capsuleName.text = `${curSong.manifest.name} (${clear}%)\n${songDuration}`;
-		capsuleName.pos.y = capsuleContainer.height / 2;
-
-		albumCover.opacity = capsuleContainer.opacity;
-		cdCase.opacity = capsuleContainer.opacity;
-		capsuleName.opacity = capsuleContainer.opacity;
-	});
-
-	// if the song has a highscore then add the sticker with the ranking
-	if (GameSave.songsPlayed.some((song) => song.uuid == curSong.manifest.uuid_DONT_CHANGE)) {
-		const tally = SaveScore.getHighscore(curSong.manifest.uuid_DONT_CHANGE).tally;
-		const ranking = Scoring.tally(tally).ranking();
-
-		const maxOffset = 50;
-		const offset = vec2(rand(-maxOffset, maxOffset), rand(-maxOffset, maxOffset));
-		const randAngle = rand(-20, 20);
-		const rankingSticker = capsuleContainer.add([
-			sprite("rank_" + ranking),
-			pos(),
-			rotate(randAngle),
-			anchor("center"),
-			z(3),
-		]);
-
-		rankingSticker.pos = offset;
-	}
-
-	// if song isn't on default songs then it means it's imported from elsewhere
-	if (!defaultUUIDS.includes(curSong.manifest.uuid_DONT_CHANGE)) {
-		const importedSticker = capsuleContainer.add([
-			sprite("importedSong"),
-			pos(),
-			anchor("center"),
-			rotate(rand(-2, 2)),
-			z(3),
-		]);
-	}
-
-	getTreeRoot().trigger("addedCapsule");
-
-	return capsuleContainer;
-}
-
-type songCapsuleObj = ReturnType<typeof addSongCapsule>;
+type songCapsuleObj = ReturnType<typeof StateSongSelect.addSongCapsule>;
 
 KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
-	gameCursor.hide();
 	setBackground(BLUE.lighten(50));
-
-	SongSelectState.songPreview?.stop();
 
 	let songAmount = loadedSongs.length + 1;
 	const LERP_AMOUNT = 0.25;
 
 	loadedSongs.forEach((song, index) => {
-		addSongCapsule(song);
+		StateSongSelect.addSongCapsule(song);
 	});
 
 	// add the song capsule for the extra thing
-	addSongCapsule(null);
+	StateSongSelect.addSongCapsule(null);
 
 	let allCapsules = get("songCapsule", { liveUpdate: true }) as songCapsuleObj[];
 	onUpdate(() => {
@@ -241,7 +237,7 @@ KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 	SongSelectState.onUpdateState(() => {
 		if (!allCapsules[SongSelectState.index]) return;
 		if (!allCapsules[SongSelectState.index].song) {
-			SongSelectState.songPreview?.stop();
+			Sound.currentSong?.stop();
 			return;
 		}
 
@@ -251,12 +247,12 @@ KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 
 		highscoreText.solidValue = Math.floor(tallyScore.tally.score);
 
-		SongSelectState.songPreview?.stop();
-		SongSelectState.songPreview = Sound.playMusic(
+		Sound.currentSong?.stop();
+		Sound.currentSong = Sound.playMusic(
 			allCapsules[SongSelectState.index].song.manifest.uuid_DONT_CHANGE + "-audio",
 		);
-		SongSelectState.songPreview.loop = true;
-		tween(0, GameSave.musicVolume, 0.25, (p) => SongSelectState.songPreview.volume = p);
+		Sound.currentSong.loop = true;
+		Sound.fadeIn(Sound.currentSong, 0.25);
 	});
 
 	onKeyPress("enter", async () => {
@@ -288,7 +284,7 @@ KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 				}
 				// is trying to add a new song
 				else {
-					addSongCapsule(result);
+					StateSongSelect.addSongCapsule(result);
 					SongSelectState.index = newUUIDS.indexOf(result.manifest.uuid_DONT_CHANGE);
 				}
 
@@ -302,7 +298,7 @@ KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 		}
 		else {
 			SongSelectState.menuInputEnabled = false;
-			SongSelectState.songPreview.stop();
+			Sound.currentSong.stop();
 			const currentSongZip = hoveredCapsule.song;
 
 			KaplayState.switchState(
@@ -318,7 +314,7 @@ KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 	});
 
 	function stopPreview() {
-		SongSelectState.songPreview.stop();
+		Sound.currentSong.stop();
 	}
 
 	onKeyPress("tab", () => {

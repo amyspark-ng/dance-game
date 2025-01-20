@@ -37,7 +37,6 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 		});
 	});
 
-	gameCursor.show();
 	EditorUtils.handlers.mouseAnim();
 
 	onUpdate(() => {
