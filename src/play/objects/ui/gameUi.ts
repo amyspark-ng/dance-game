@@ -10,6 +10,7 @@ export function addUI() {
 		text("", { size: size, align: "left" }),
 		pos(padding, height() - size),
 		anchor("left"),
+		fixed(),
 		z(1),
 		{
 			time: 0,
@@ -23,6 +24,7 @@ export function addUI() {
 		text("", { size: size, align: "left" }),
 		pos(padding, height() - size * 2 - padding),
 		anchor("left"),
+		fixed(),
 		z(1),
 		{
 			misses: 0,
@@ -36,6 +38,7 @@ export function addUI() {
 		text("", { size: size, align: "left" }),
 		pos(padding, size),
 		anchor("left"),
+		fixed(),
 		z(1),
 		{
 			health: 0,
@@ -50,6 +53,7 @@ export function addUI() {
 		pos(width(), size),
 		anchor("right"),
 		z(1),
+		fixed(),
 		{
 			score: 0,
 			update() {
@@ -67,6 +71,7 @@ export function addUI() {
 		scale(),
 		timer(),
 		anchor("right"),
+		fixed(),
 		z(1),
 		{
 			value: 0,

@@ -1,4 +1,5 @@
 import { getCurrent, WebviewWindow } from "@tauri-apps/api/window";
+import { StateChart } from "../play/editor/EditorState";
 import { paramsGameScene, StateGame } from "../play/PlayState";
 import { FocusState } from "../ui/FocusScene";
 import { StateSongSelect } from "../ui/menu/songselect/SongSelectScene";
@@ -7,7 +8,7 @@ import { utils } from "../utils";
 import { setupCamera } from "./camera";
 import { setupCursor } from "./cursor";
 import { curDraggin } from "./drag";
-import { loadAssets, loadingScreen } from "./loading/loader";
+import { getSong, loadAssets, loadingScreen } from "./loading/loader";
 import { GameSave } from "./save";
 import { KaplayState, setupScenes } from "./scenes/KaplayState";
 import { Sound } from "./sound";
@@ -110,5 +111,6 @@ export function INITIAL_SCENE() {
 	// 		seekTime: 0,
 	// 	}),
 	// );
-	KaplayState.switchState(new StateSongSelect(0));
+	// KaplayState.switchState(new StateSongSelect(0));
+	KaplayState.switchState(new StateChart({ playbackSpeed: 1, seekTime: 0, song: getSong("bopeebo") }));
 }

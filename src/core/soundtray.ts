@@ -3,13 +3,31 @@ import { juice } from "./juiceComp";
 import { GameSave } from "./save";
 import { Sound } from "./sound";
 
-/**  */
+/**
+ * "The little volume meter that pops down sometimes"
+ *
+ * Only contains the basic behaviour to actually add notes and make it cool you have to create a new class and extend this one
+ * @example
+ * ```ts
+ * 	class CustomSoundTray extends SoundTray {
+ * 		constructor(...) {
+ * 				// here you add all your custom objects that actually do cool things
+ * 		}
+ * 	}
+ * ```
+ *
+ * @param upKeys The keys  to use to increase the volume
+ * @param downKeys The Keys to use to decrease the volume
+ */
 export class SoundTray {
 	static hidden: boolean = true;
 	static upKeys: Key[] = [];
 	static downKeys: Key[] = [];
+	/** Object that handles the behaviour of the soundtray */
 	static managerObj: GameObj<StayComp | TimerComp>;
+	/** The time left for the soundtray to be hidden again */
 	static timeLeft: number = 1;
+	/** Event handler for the onShow and onHide events */
 	static eventHandler = new KEventHandler();
 
 	static show(change: -1 | 1) {
@@ -21,6 +39,7 @@ export class SoundTray {
 	static hide() {
 		SoundTray.eventHandler.trigger("soundtray_hide");
 		SoundTray.hidden = true;
+		GameSave.save();
 	}
 
 	static onShow(action: (change: -1 | 1) => void) {
@@ -38,6 +57,7 @@ export class SoundTray {
 		const manager = add([
 			stay(),
 			timer(),
+			layer("cursor"),
 			{
 				update() {
 					// is being shown
@@ -68,6 +88,9 @@ export class SoundTray {
 	}
 }
 
+/** The custom cool sound tray
+ * @param useColor Wheter to go from green to red (just as test)
+ */
 export class CustomSoundTray extends SoundTray {
 	constructor(upKeys: Key[], downkeys: Key[], useColor: boolean = false) {
 		super(upKeys, downkeys);
@@ -79,11 +102,9 @@ export class CustomSoundTray extends SoundTray {
 			pos(width() / 2, 0),
 			anchor("top"),
 			color(BLACK),
-			stay(),
 			opacity(0.75 * opa),
 			fixed(),
 			z(0),
-			layer("cursor"),
 			scale(),
 			"volElement",
 			"parent",
@@ -104,7 +125,6 @@ export class CustomSoundTray extends SoundTray {
 			fixed(),
 			z(1),
 			opacity(opa),
-			layer("cursor"),
 			"volElement",
 			{
 				update() {
@@ -127,9 +147,7 @@ export class CustomSoundTray extends SoundTray {
 				z(2),
 				scale(),
 				color(useColor ? GREEN.lerp(RED, i / 10) : WHITE),
-				layer("cursor"),
 				fixed(),
-				juice(),
 				timer(),
 				"volElement",
 				"bar",
