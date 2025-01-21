@@ -8,6 +8,7 @@ import { rankings } from "../../play/objects/scoring";
 import { SongContent } from "../../play/song";
 import { utils } from "../../utils";
 import { loadCursor } from "../cursor";
+import { Load } from "./test";
 
 /** Array of zip names to load songs */
 export const defaultSongs = ["bopeebo", "unholy-blight"];
@@ -150,137 +151,138 @@ async function loadContent() {
 
 /** Loads all the assets of the game */
 export async function loadAssets() {
-	loadBean();
-	loadSound("volumeChange", "sounds/volumeChange.wav");
-	loadCursor();
-	loadContent();
+	Load.loadAssets();
+	// loadBean();
+	// loadSound("volumeChange", "sounds/volumeChange.wav");
+	// loadCursor();
+	// loadContent();
 
-	loadSprite("optionsCursor", "sprites/optionsCursor.png");
+	// loadSprite("optionsCursor", "sprites/optionsCursor.png");
 
-	const events = Object.keys(ChartEvent.eventSchema);
-	const eventsSpriteAtlas = {};
-	events.forEach((event, index) => {
-		eventsSpriteAtlas[event] = {
-			width: 52,
-			height: 52,
-			x: 52 * index,
-			y: 0,
-		};
-	});
-	loadSpriteAtlas("sprites/events.png", eventsSpriteAtlas);
+	// const events = Object.keys(ChartEvent.eventSchema);
+	// const eventsSpriteAtlas = {};
+	// events.forEach((event, index) => {
+	// 	eventsSpriteAtlas[event] = {
+	// 		width: 52,
+	// 		height: 52,
+	// 		x: 52 * index,
+	// 		y: 0,
+	// 	};
+	// });
+	// loadSpriteAtlas("sprites/events.png", eventsSpriteAtlas);
 
-	let songRanksAtlasData = {};
-	rankings.forEach((rank, index) => {
-		songRanksAtlasData[`rank_${rank}`] = {
-			width: 130,
-			height: 130,
-			x: 130 * index + 20 * index,
-			y: 0,
-		};
-	});
-
-	loadSpriteAtlas("sprites/songRanks.png", songRanksAtlasData);
-	loadSprite("importedSong", "sprites/imported.png");
-	loadSprite("importSongBtn", "sprites/importSong.png");
-
-	loadSound("new-song-audio", "new-song-audio.ogg");
-
-	loadSound("uiMove", "sounds/uiMove.wav");
-	loadSound("uiSelect", "sounds/uiSelect.wav");
-	loadSound("keyClick", "sounds/keyClick.ogg");
-
-	// # SONG SELECT
-	loadSprite("cdCase", "sprites/songSelect/cdCase.png");
-
-	// # GAMEPLAY
-	loadSound("introGo", "sounds/introgo.mp3");
-	loadSound("lowhealth", "sounds/lowhealth.ogg");
-	loadSound("pauseScratch", "sounds/pauseScratch.mp3");
-	loadSound("missnote", "sounds/missnote.mp3");
-
-	// # RESULTS SCREEN
-	loadSound("drumroll", "sounds/drumroll.mp3");
-
-	// # CHART-EDITOR
-	loadSound("noteAdd", "sounds/chart-editor/noteAdd.mp3");
-	loadSound("noteRemove", "sounds/chart-editor/noteRemove.mp3");
-	loadSound("noteHit", "sounds/chart-editor/noteHit.ogg");
-	loadSound("noteMove", "sounds/chart-editor/noteMove.ogg");
-	loadSound("noteUndo", "sounds/chart-editor/noteUndo.wav");
-	loadSound("noteCopy", "sounds/chart-editor/noteCopy.wav");
-	loadSound("noteStretch", "sounds/chart-editor/noteStretch.ogg");
-	loadSound("noteSnap", "sounds/chart-editor/noteSnap.ogg");
-	loadSound("dialogOpen", "sounds/chart-editor/dialogOpen.ogg");
-	loadSound("eventCog", "sounds/chart-editor/eventCog.wav");
-	loadSound("mouseClick", "sounds/chart-editor/mouseClick.ogg");
-	loadSprite("arrow", "sprites/arrow.png");
-	loadSprite("editorhue", "sprites/hue.png");
-
-	loadFont("robotomono", "robotomono.ttf");
-
-	// loadFont("lambda", "lambda.ttf");
-	// loadFont("lambdao", "lambda.ttf", {
-	// 	outline: {
-	// 		width: 5,
-	// 		color: BLACK,
-	// 	},
+	// let songRanksAtlasData = {};
+	// rankings.forEach((rank, index) => {
+	// 	songRanksAtlasData[`rank_${rank}`] = {
+	// 		width: 130,
+	// 		height: 130,
+	// 		x: 130 * index + 20 * index,
+	// 		y: 0,
+	// 	};
 	// });
 
-	loadNoteSkins();
+	// loadSpriteAtlas("sprites/songRanks.png", songRanksAtlasData);
+	// loadSprite("importedSong", "sprites/imported.png");
+	// loadSprite("importSongBtn", "sprites/importSong.png");
 
-	// Written by MF
-	loadShader(
-		"saturate",
-		null,
-		`
-		uniform float u_time;
-		uniform vec2 u_pos;
-		uniform vec2 u_size;
-		uniform vec3 u_color;
-		
-		vec4 frag(vec2 pos, vec2 uv, vec4 color, sampler2D tex) {
-			vec4 c = def_frag();
-			vec4 col = vec4(u_color/255.0, 1);
-			return (c + vec4(mix(vec3(0), vec3(1), u_time), 0)) * col;
-		}
-	`,
-	);
+	// loadSound("new-song-audio", "new-song-audio.ogg");
 
-	loadShader(
-		"replacecolor",
-		null,
-		`
-		uniform vec3 u_targetcolor;
-		uniform float u_alpha;
+	// loadSound("uiMove", "sounds/uiMove.wav");
+	// loadSound("uiSelect", "sounds/uiSelect.wav");
+	// loadSound("keyClick", "sounds/keyClick.ogg");
 
-		vec4 frag(vec2 pos, vec2 uv, vec4 color, sampler2D tex) {
-			vec4 o_color = texture2D(tex, uv);
-			if (o_color.r > 0.01 && o_color.g < 0.01 && o_color.b < 0.01) return vec4(u_targetcolor / 255., u_alpha);
-			return o_color;
-		}
-	`,
-	);
+	// // # SONG SELECT
+	// loadSprite("cdCase", "sprites/songSelect/cdCase.png");
 
-	// load default songs
-	await load(
-		new Promise(async (resolve, reject) => {
-			try {
-				defaultSongs.forEach(async (folderPath, index) => {
-					folderPath = `songs/${folderPath}`;
-					try {
-						const songFolder = await FileManager.fetchSongFolder(folderPath);
-						await FileManager.loadSongAssets(songFolder);
-					}
-					catch (err) {
-						throw new Error("There was an error loading the default songs");
-					}
+	// // # GAMEPLAY
+	// loadSound("introGo", "sounds/introgo.mp3");
+	// loadSound("lowhealth", "sounds/lowhealth.ogg");
+	// loadSound("pauseScratch", "sounds/pauseScratch.mp3");
+	// loadSound("missnote", "sounds/missnote.mp3");
 
-					if (index == defaultSongs.length - 1) resolve("ok");
-				});
-			}
-			catch (e) {
-				reject(e);
-			}
-		}),
-	);
+	// // # RESULTS SCREEN
+	// loadSound("drumroll", "sounds/drumroll.mp3");
+
+	// // # CHART-EDITOR
+	// loadSound("noteAdd", "sounds/chart-editor/noteAdd.mp3");
+	// loadSound("noteRemove", "sounds/chart-editor/noteRemove.mp3");
+	// loadSound("noteHit", "sounds/chart-editor/noteHit.ogg");
+	// loadSound("noteMove", "sounds/chart-editor/noteMove.ogg");
+	// loadSound("noteUndo", "sounds/chart-editor/noteUndo.wav");
+	// loadSound("noteCopy", "sounds/chart-editor/noteCopy.wav");
+	// loadSound("noteStretch", "sounds/chart-editor/noteStretch.ogg");
+	// loadSound("noteSnap", "sounds/chart-editor/noteSnap.ogg");
+	// loadSound("dialogOpen", "sounds/chart-editor/dialogOpen.ogg");
+	// loadSound("eventCog", "sounds/chart-editor/eventCog.wav");
+	// loadSound("mouseClick", "sounds/chart-editor/mouseClick.ogg");
+	// loadSprite("arrow", "sprites/arrow.png");
+	// loadSprite("editorhue", "sprites/hue.png");
+
+	// loadFont("robotomono", "robotomono.ttf");
+
+	// // loadFont("lambda", "lambda.ttf");
+	// // loadFont("lambdao", "lambda.ttf", {
+	// // 	outline: {
+	// // 		width: 5,
+	// // 		color: BLACK,
+	// // 	},
+	// // });
+
+	// loadNoteSkins();
+
+	// // Written by MF
+	// loadShader(
+	// 	"saturate",
+	// 	null,
+	// 	`
+	// 	uniform float u_time;
+	// 	uniform vec2 u_pos;
+	// 	uniform vec2 u_size;
+	// 	uniform vec3 u_color;
+
+	// 	vec4 frag(vec2 pos, vec2 uv, vec4 color, sampler2D tex) {
+	// 		vec4 c = def_frag();
+	// 		vec4 col = vec4(u_color/255.0, 1);
+	// 		return (c + vec4(mix(vec3(0), vec3(1), u_time), 0)) * col;
+	// 	}
+	// `,
+	// );
+
+	// loadShader(
+	// 	"replacecolor",
+	// 	null,
+	// 	`
+	// 	uniform vec3 u_targetcolor;
+	// 	uniform float u_alpha;
+
+	// 	vec4 frag(vec2 pos, vec2 uv, vec4 color, sampler2D tex) {
+	// 		vec4 o_color = texture2D(tex, uv);
+	// 		if (o_color.r > 0.01 && o_color.g < 0.01 && o_color.b < 0.01) return vec4(u_targetcolor / 255., u_alpha);
+	// 		return o_color;
+	// 	}
+	// `,
+	// );
+
+	// // load default songs
+	// await load(
+	// 	new Promise(async (resolve, reject) => {
+	// 		try {
+	// 			defaultSongs.forEach(async (folderPath, index) => {
+	// 				folderPath = `songs/${folderPath}`;
+	// 				try {
+	// 					const songFolder = await FileManager.fetchSongFolder(folderPath);
+	// 					await FileManager.loadSongAssets(songFolder);
+	// 				}
+	// 				catch (err) {
+	// 					throw new Error("There was an error loading the default songs");
+	// 				}
+
+	// 				if (index == defaultSongs.length - 1) resolve("ok");
+	// 			});
+	// 		}
+	// 		catch (e) {
+	// 			reject(e);
+	// 		}
+	// 	}),
+	// );
 }

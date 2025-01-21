@@ -49,21 +49,21 @@ onLoading((progress: number) => loadingScreen(progress));
 loadAssets();
 
 onLoad(() => {
-	Sound.changeVolume(GameSave.volume);
-	new CustomSoundTray(["+"], ["-"], false);
-	setupScenes();
-	setupCursor();
-	setupCamera();
+	// Sound.changeVolume(GameSave.volume);
+	// new CustomSoundTray(["+"], ["-"], false);
+	// setupScenes();
+	// setupCursor();
+	// setupCamera();
 
-	console.log(`${GAME.AUTHOR}.${GAME.NAME} v: ${GAME.VERSION}`);
+	// console.log(`${GAME.AUTHOR}.${GAME.NAME} v: ${GAME.VERSION}`);
 
-	if (GAME.FEATURE_FOCUS) {
-		if (isFocused()) INITIAL_SCENE();
-		else KaplayState.switchState(new FocusState());
-	}
-	else {
-		INITIAL_SCENE();
-	}
+	// if (GAME.FEATURE_FOCUS) {
+	// 	if (isFocused()) INITIAL_SCENE();
+	// 	else KaplayState.switchState(new FocusState());
+	// }
+	// else {
+	// 	INITIAL_SCENE();
+	// }
 });
 
 utils.runInDesktop(() => {

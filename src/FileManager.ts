@@ -124,43 +124,6 @@ export class FileManager {
 		return { audio: audio, cover: cover, manifest: manifest, chart: chart } as songFolder;
 	}
 
-	/** Load the assets of a song to make it playable
-	 * @param songFolder Receives the contents of a song folder
-	 */
-	static async loadSongAssets(songFolder: songFolder): Promise<SongContent> {
-		// cover
-		const cover64 = URL.createObjectURL(songFolder.cover);
-		await loadSprite(songFolder.manifest.uuid_DONT_CHANGE + "-cover", cover64);
-
-		// audio
-		const arrayBuffer = await songFolder.audio.arrayBuffer();
-		await loadSound(songFolder.manifest.uuid_DONT_CHANGE + "-audio", arrayBuffer);
-
-		const songContent: SongContent = {
-			manifest: songFolder.manifest,
-			chart: songFolder.chart,
-		};
-
-		// songContent
-		const songIsAlreadyLoaded = loadedSongs.find((song) =>
-			song.manifest.uuid_DONT_CHANGE == songContent.manifest.uuid_DONT_CHANGE
-		);
-		const isDefaultSong = defaultUUIDS.includes(songContent.manifest.uuid_DONT_CHANGE);
-
-		if (songIsAlreadyLoaded) {
-			if (isDefaultSong) console.error("You're trying to overwrite a default song, don't do that!");
-			else {
-				console.log("The song you were trying to load is already loaded, will overwrite");
-				loadedSongs[loadedSongs.indexOf(songIsAlreadyLoaded)] = songContent;
-			}
-		}
-		else {
-			loadedSongs.push(songContent);
-		}
-
-		return new Promise((resolve) => resolve(songContent));
-	}
-
 	/** Get the content of a song folder */
 	static async getSongFolderContent(zipFile: File): Promise<songFolder> {
 		const songFolder: songFolder = {} as songFolder;
