@@ -1,4 +1,5 @@
 import { getCurrent, WebviewWindow } from "@tauri-apps/api/window";
+import { paramsGameScene, StateGame } from "../play/PlayState";
 import { FocusState } from "../ui/FocusScene";
 import { StateSongSelect } from "../ui/menu/songselect/SongSelectScene";
 import { StateTitle } from "../ui/TitleScene";
@@ -10,7 +11,7 @@ import { loadAssets, loadingScreen } from "./loading/loader";
 import { GameSave } from "./save";
 import { KaplayState, setupScenes } from "./scenes/KaplayState";
 import { Sound } from "./sound";
-import { setupSoundtray } from "./soundtray";
+import { CustomSoundTray, SoundTray } from "./soundtray";
 
 /** Class that handles some variables related to the game as a product */
 export class GAME {
@@ -48,10 +49,10 @@ loadAssets();
 
 onLoad(() => {
 	Sound.changeVolume(GameSave.volume);
+	new CustomSoundTray(["+"], ["-"], false);
 	setupScenes();
 	setupCursor();
 	setupCamera();
-	setupSoundtray();
 
 	console.log(`${GAME.AUTHOR}.${GAME.NAME} v: ${GAME.VERSION}`);
 
@@ -96,7 +97,7 @@ document.addEventListener("fullscreenchange", (event) => {
 });
 
 export function INITIAL_SCENE() {
-	KaplayState.switchState(new StateTitle());
+	// KaplayState.switchState(new StateTitle());
 	// KaplayState.switchState(
 	// 	new StateChart({ dancer: GameSave.dancer, playbackSpeed: 1, seekTime: 1, song: getSong("bopeebo") }),
 	// );

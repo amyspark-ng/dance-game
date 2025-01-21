@@ -384,7 +384,7 @@ function manageOptionsState(page: number, OptionsState: StateOptions, workThem: 
 		const musicVolume = addVolumeSlider("Music");
 		musicVolume.value = GameSave.musicVolume;
 		const sfxVolume = addVolumeSlider("Sfx");
-		sfxVolume.value = GameSave.sfxVolume;
+		sfxVolume.value = GameSave.soundVolume;
 
 		masterVolume.onUpdate(() => {
 			let blendValue = 0;
@@ -435,13 +435,19 @@ function manageOptionsState(page: number, OptionsState: StateOptions, workThem: 
 					if (hoveredObj.is("Master")) {
 						Sound.changeVolume(hoveredObj.value);
 					}
-					else if (hoveredObj.is("Music")) GameSave.musicVolume = hoveredObj.value;
-					else if (hoveredObj.is("Sfx")) GameSave.sfxVolume = hoveredObj.value;
+					else if (hoveredObj.is("Music")) {
+						// GameSave.soundVolume = hoveredObj.value;
+						// Sound.soundVolume = GameSave.soundVolume * GameSave.volume;
+					}
+					else if (hoveredObj.is("Sfx")) {
+						// GameSave.musicVolume = hoveredObj.value;
+						// Sound.musicVolume = GameSave.musicVolume * GameSave.volume;
+					}
 				}
 
 				if (hoveredObj.is("Master")) hoveredObj.value = GameSave.volume;
 				else if (hoveredObj.is("Music")) hoveredObj.value = GameSave.musicVolume;
-				else if (hoveredObj.is("Sfx")) hoveredObj.value = GameSave.sfxVolume;
+				else if (hoveredObj.is("Sfx")) hoveredObj.value = GameSave.soundVolume;
 
 				const cursorObj = OptionsState.cursorProps.obj;
 				const cursorObjWidth = cursorObj.width * OptionsState.cursorProps.scale.x;

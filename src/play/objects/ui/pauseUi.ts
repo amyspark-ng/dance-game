@@ -171,7 +171,7 @@ export function addPauseUI() {
 			GameState.conductor.timeInSeconds = GameState.lastTimeOnPause;
 			GameState.conductor.audioPlay.seek(GameState.lastTimeOnPause);
 			tween(Sound.currentSong.detune, 0, 0.15 / 2, (p) => Sound.currentSong.detune = p);
-			Sound.fadeIn(Sound.currentSong, 0.15, Sound.musicVolume);
+			Sound.fadeIn(Sound.currentSong, Sound.musicVolume, 0.15);
 		}
 		// paused
 		else {

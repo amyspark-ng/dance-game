@@ -1,224 +1,168 @@
-import { GameObj, KEventController, Key, StayComp, TweenController } from "kaplay";
-import { utils } from "../utils";
+import { GameObj, Key, StayComp, TimerComp } from "kaplay";
 import { juice } from "./juiceComp";
 import { GameSave } from "./save";
 import { Sound } from "./sound";
 
-/** The detune the volume changes */
-let changeVolTune = 0;
+/**  */
+export class SoundTray {
+	static hidden: boolean = true;
+	static upKeys: Key[] = [];
+	static downKeys: Key[] = [];
+	static managerObj: GameObj<StayComp | TimerComp>;
+	static timeLeft: number = 1;
+	static eventHandler = new KEventHandler();
 
-export interface SoundTray {
-	show: (keepAround?: boolean) => void;
-	hide: () => void;
-	onShow?: (action: (changeInVolume: number) => void) => KEventController;
-	/**
-	 * The volume manager object that actually manages most of the sound tray behaviour
-	 */
-	volumeManager: GameObj<StayComp>;
-}
+	static show(change: -1 | 1) {
+		SoundTray.eventHandler.trigger("soundtray_show", change);
+		SoundTray.timeLeft = 1;
+		SoundTray.hidden = false;
+	}
 
-export type addSoundTrayOpt = {
-	upVolumeKey: Key;
-	downVolumeKey: Key;
-	timeForHide: number;
-};
+	static hide() {
+		SoundTray.eventHandler.trigger("soundtray_hide");
+		SoundTray.hidden = true;
+	}
 
-/**
- * Adds all the objects related to the sound tray
- */
-function addSoundElements() {
-	const bg = add([
-		rect(width() / 6, 80, { radius: 3 }),
-		pos(width() / 2, 0),
-		anchor("top"),
-		color(BLACK),
-		stay(),
-		opacity(0.75),
-		fixed(),
-		z(0),
-		layer("cursor"),
-		scale(),
-		"volElement",
-		"parent",
-	]);
+	static onShow(action: (change: -1 | 1) => void) {
+		return SoundTray.eventHandler.on("soundtray_show", action);
+	}
 
-	const volumeText = bg.add([
-		text("VOLUME"),
-		pos(0, bg.height - 12),
-		anchor("center"),
-		scale(0.6),
-		fixed(),
-		z(1),
-		layer("cursor"),
-		"volElement",
-		{
-			update() {
-				if (GameSave.volume > 0) {
-					this.text = `VOLUME ${(Math.round(GameSave.volume * 100))}%`;
-				}
-				else this.text = "MUTED";
-			},
-		},
-	]);
+	static onHide(action: () => void) {
+		return SoundTray.eventHandler.on("soundtray_hide", action);
+	}
 
-	// bars
-	for (let i = 0; i < 10; i++) {
-		bg.add([
-			pos(-67 + i * 15, 30),
-			rect(10, bg.height - 40, { radius: 1 }),
-			opacity(0),
-			anchor("center"),
-			z(2),
-			scale(),
-			layer("cursor"),
-			fixed(),
-			juice(),
+	constructor(upKeys: Key[], downkeys: Key[]) {
+		SoundTray.upKeys = upKeys;
+		SoundTray.downKeys = downkeys;
+
+		const manager = add([
+			stay(),
 			timer(),
-			"volElement",
-			"bar",
 			{
-				volume: parseFloat((0.1 * (i + 1)).toFixed(1)),
 				update() {
-					if (GameSave.volume.toFixed(1) < this.volume.toFixed(1)) this.opacity = 0.1;
-					else this.opacity = 1;
+					// is being shown
+					if (!SoundTray.hidden) {
+						SoundTray.timeLeft -= dt();
+						if (SoundTray.timeLeft <= 0) {
+							SoundTray.hide();
+						}
+					}
+
+					let changeVolTune = map(GameSave.volume, 0, 1, -250, 0);
+
+					if (isKeyPressedRepeat(SoundTray.upKeys[0])) {
+						Sound.changeVolume(GameSave.volume + 0.1);
+						Sound.playSound("volumeChange", { detune: changeVolTune });
+						SoundTray.show(1);
+					}
+					else if (isKeyPressedRepeat(SoundTray.downKeys[0])) {
+						Sound.changeVolume(GameSave.volume - 0.1);
+						Sound.playSound("volumeChange", { detune: changeVolTune });
+						SoundTray.show(-1);
+					}
 				},
 			},
 		]);
+		SoundTray.managerObj = manager;
+		SoundTray.hide();
 	}
 }
 
-const getSoundElements = () => get("volElement", { recursive: true });
+export class CustomSoundTray extends SoundTray {
+	constructor(upKeys: Key[], downkeys: Key[], useColor: boolean = false) {
+		super(upKeys, downkeys);
 
-/**
- * Adds the soundtray, helps you manage the MASTER VOLUME found in {@link GameSave `GameSave`}
- * @param opts
- * @returns SoundTray object
- */
-export function addSoundTray(opts: addSoundTrayOpt): SoundTray {
-	const soundTrayEvents = new KEventHandler();
-	let waitingThing = wait(0);
+		let opa = 1;
 
-	// =====================================
-	//            VOLUME MANAGING
-	// =====================================
-	const volumeManager = add([
-		stay(),
-		{
-			update() {
-				changeVolTune = map(GameSave.volume, 0, 1, -250, 0);
-
-				if (isKeyPressedRepeat(opts.downVolumeKey)) {
-					if (GameSave.volume > 0) {
-						Sound.changeVolume(GameSave.volume - 0.1);
-					}
-
-					soundTrayEvents.trigger("show", -1, false);
-				}
-				else if (isKeyPressedRepeat(opts.upVolumeKey)) {
-					if (GameSave.volume <= 0.9) {
-						Sound.changeVolume(GameSave.volume + 0.1);
-					}
-
-					soundTrayEvents.trigger("show", 1, false);
-				}
+		const bg = SoundTray.managerObj.add([
+			rect(width() / 6, 80, { radius: 3 }),
+			pos(width() / 2, 0),
+			anchor("top"),
+			color(BLACK),
+			stay(),
+			opacity(0.75 * opa),
+			fixed(),
+			z(0),
+			layer("cursor"),
+			scale(),
+			"volElement",
+			"parent",
+			{
+				update() {
+					this.opacity = 0.75 * opa;
+				},
 			},
-		},
-	]);
+		]);
 
-	const ANIM_SPEED = 1;
-	let animTween: TweenController = null;
+		bg.pos.y = -bg.height;
 
-	soundTrayEvents.on("hide", () => {
-		if (getSoundElements().length === 0) return;
-		waitingThing.cancel();
+		bg.add([
+			text("VOLUME"),
+			pos(0, bg.height - 12),
+			anchor("center"),
+			scale(0.6),
+			fixed(),
+			z(1),
+			opacity(opa),
+			layer("cursor"),
+			"volElement",
+			{
+				update() {
+					this.opacity = opa;
+					if (GameSave.volume > 0) {
+						this.text = `VOLUME ${(Math.round(GameSave.volume * 100))}%`;
+					}
+					else this.text = "MUTED";
+				},
+			},
+		]);
 
-		// CUSTOM ANIMATION
-		const parent = getSoundElements().filter(e => e.is("parent"))[0];
+		// bars
+		for (let i = 0; i < 10; i++) {
+			bg.add([
+				pos(-67 + i * 15, 30),
+				rect(10, bg.height - 40, { radius: 1 }),
+				opacity(opa),
+				anchor("center"),
+				z(2),
+				scale(),
+				color(useColor ? GREEN.lerp(RED, i / 10) : WHITE),
+				layer("cursor"),
+				fixed(),
+				juice(),
+				timer(),
+				"volElement",
+				"bar",
+				{
+					volume: parseFloat((0.1 * (i + 1)).toFixed(1)),
+					update() {
+						if (GameSave.volume.toFixed(1) < this.volume.toFixed(1)) this.opacity = 0.1 * opa;
+						else this.opacity = 1 * opa;
+					},
+				},
+			]);
+		}
 
-		animTween?.cancel();
-		animTween = null;
-
-		animTween = tween(parent.pos.y, -parent.height, ANIM_SPEED, (p) => parent.pos.y = p, easings.easeOutQuint);
-		animTween.onEnd(() => {
-			getSoundElements().forEach((e) => e.destroy());
+		const duration = 0.5;
+		SoundTray.onHide(() => {
+			tween(bg.pos.y, -bg.height, duration, (p) => bg.pos.y = p, easings.easeOutQuint);
+			tween(opa, 0, duration, (p) => opa = p, easings.easeOutQuint);
 		});
-	});
 
-	soundTrayEvents.on("show", (change: number, keepAround: boolean) => {
-		if (getSoundElements().length === 0) {
-			addSoundElements();
-			const parent = getSoundElements().filter(e => e.is("parent"))[0];
-			parent.pos.y = -parent.height;
-		}
-
-		waitingThing.cancel();
-
-		animTween?.cancel();
-		animTween = null;
-
-		// CUSTOM ANIMATION
-		const parent = getSoundElements().filter(e => e.is("parent"))[0];
-		animTween = tween(parent.pos.y, 0, ANIM_SPEED, (p) => parent.pos.y = p, easings.easeOutQuint);
-
-		// this has to be outside of the check
-		if (keepAround == false) {
-			// user asked for it to be not hidden
-			waitingThing = wait(opts.timeForHide, () => {
-				soundTrayEvents.trigger("hide");
-			});
-		}
-	});
-
-	return {
-		show: (keepAround: boolean = false) => soundTrayEvents.trigger("show", 0, keepAround),
-		hide: () => soundTrayEvents.trigger("hide", 0),
-		onShow(action) {
-			return soundTrayEvents.on("show", action);
-		},
-		volumeManager: volumeManager,
-	};
-}
-
-/** The soundtray object, if the {@link setupSoundtray `setupSoundtray`} function was not called it'll be null */
-export let soundTray: SoundTray = null;
-
-/**
- * Defines the {@link soundTray `soundTray`} starting the soundTray workings
- */
-export function setupSoundtray() {
-	soundTray = addSoundTray({
-		upVolumeKey: "+" as Key,
-		downVolumeKey: "-",
-		timeForHide: 1.5,
-	});
-
-	// # MANAGES GENERAL BEHAVIOUR
-	soundTray.onShow((change) => {
-		if (change > 0) {
-			const bar = getSoundElements().filter((obj) => obj.volume == GameSave.volume)[0];
-
-			if (bar) {
-				bar.bop({ startScale: 1.2, endScale: 1 });
+		SoundTray.onShow((change) => {
+			const barWithVol = bg.get("bar").find((obj) => obj.volume == GameSave.volume);
+			if (barWithVol) {
+				// upping volume
+				if (change == 1) {
+					tween(vec2(1.25), vec2(1), 0.1, (p) => barWithVol.scale = p);
+				}
+				// lowering volume
+				else if (change == -1) {
+					tween(vec2(0.75), vec2(1), 0.1, (p) => barWithVol.scale = p);
+				}
 			}
-
-			if (GameSave.volume == 1) {
-				const bars = getSoundElements().filter(obj => obj.is("bar"));
-				bars.forEach((bar) => bar.bop({ startScale: 1.2, endScale: 1 }));
-			}
-
-			Sound.playSound("volumeChange", { volume: 1, detune: changeVolTune });
-		}
-		else if (change < 0) {
-			Sound.playSound("volumeChange", { volume: 1, detune: changeVolTune });
-
-			const bar = getSoundElements().filter((obj) => obj.volume == GameSave.volume)[0];
-
-			if (bar) {
-				bar.bop({ startScale: 0.9, endScale: 1 });
-			}
-		}
-		// CHANGE WAS 0, called through show() function
-		else {
-		}
-	});
+			tween(bg.pos.y, 0, duration, (p) => bg.pos.y = p, easings.easeOutQuint);
+			tween(opa, 1, duration, (p) => opa = p, easings.easeOutQuint);
+		});
+	}
 }

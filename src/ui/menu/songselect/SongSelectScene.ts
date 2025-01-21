@@ -252,7 +252,7 @@ KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 			allCapsules[SongSelectState.index].song.manifest.uuid_DONT_CHANGE + "-audio",
 		);
 		Sound.currentSong.loop = true;
-		Sound.fadeIn(Sound.currentSong, 0.25);
+		Sound.fadeIn(Sound.currentSong, Sound.musicVolume, 0.25);
 	});
 
 	onKeyPress("enter", async () => {

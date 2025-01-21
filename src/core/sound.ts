@@ -5,15 +5,19 @@ import { GameSave } from "./save";
 
 /* Small class that handles some sound related stuff */
 export class Sound {
-	static soundVolume: number = GameSave.sfxVolume * GameSave.volume;
+	static soundVolume: number = GameSave.soundVolume * GameSave.volume;
 	static musicVolume: number = GameSave.musicVolume * GameSave.volume;
 
 	static currentSong: AudioPlay = null;
 	static sounds: Set<AudioPlay> = new Set<AudioPlay>();
 
+	static onVolumeChange(action: (newVolume: number) => void) {
+		return getTreeRoot().on("volume_change", action);
+	}
+
 	static playSound(soundName: string, opts?: AudioPlayOpt): AudioPlay {
 		opts = opts ?? {};
-		Sound.soundVolume = GameSave.sfxVolume * GameSave.volume;
+		Sound.soundVolume = GameSave.soundVolume * GameSave.volume;
 		const audioPlayer = play(soundName, opts);
 		if (opts.volume) audioPlayer.volume = opts.volume;
 		else audioPlayer.volume = Sound.soundVolume;
@@ -40,11 +44,12 @@ export class Sound {
 	}
 
 	static changeVolume(newVolume: number) {
+		getTreeRoot().trigger("volume_change", newVolume);
 		newVolume = utils.fixDecimal(newVolume);
 		newVolume = clamp(newVolume, 0, 1);
 		GameSave.volume = newVolume;
 
-		Sound.soundVolume = GameSave.sfxVolume * GameSave.volume;
+		Sound.soundVolume = GameSave.soundVolume * GameSave.volume;
 		Sound.musicVolume = GameSave.musicVolume * GameSave.volume;
 
 		Sound.sounds.forEach((handler) => {
@@ -56,18 +61,30 @@ export class Sound {
 		}
 	}
 
+	/** Fade in an audio play handler
+	 * @param handler The handler
+	 * @param volume The volume
+	 * @param duration The volume
+	 * @param easing The easing
+	 */
 	static fadeIn(
 		handler: AudioPlay,
-		volume: number = Sound.soundVolume,
+		volume: number = Sound.musicVolume,
 		duration: number = 0.15,
 		easing: EaseFunc = easings.linear,
 	) {
 		return tween(0, volume, duration, (p) => handler.volume = p, easing);
 	}
 
+	/** Fade out an audio play handler
+	 * @param handler The handler
+	 * @param volume The volume
+	 * @param duration The volume
+	 * @param easing The easing
+	 */
 	static fadeOut(
 		handler: AudioPlay,
-		volume: number = Sound.soundVolume,
+		volume: number = Sound.musicVolume,
 		duration: number = 0.15,
 		easing: EaseFunc = easings.linear,
 	) {

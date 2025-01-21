@@ -96,7 +96,7 @@ export class FileManager {
 	static async receiveFile(type: "mod" | "audio" | "cover"): Promise<File> {
 		if (type == "mod") inputElement.accept = ".zip";
 		else if (type == "audio") inputElement.accept = ".ogg,.wav,.mp3";
-		else if (type == "cover") inputElement.accept = ".png,.jpg";
+		else if (type == "cover") inputElement.accept = ".png,.jpg,.jpeg";
 		inputElement.click();
 
 		return new Promise((resolve) => {

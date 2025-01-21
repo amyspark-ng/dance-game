@@ -1,3 +1,6 @@
+# LOAD
+- Do the cool load class thing (rework loader.ts)
+    This implies to rework the assets folder (yes i have to do it)
 # GAMEPLAY
 - Fix some objects that don't get paused with the pause screen
 - Playback speed doesn't work at all on gameplay

@@ -44,7 +44,7 @@ const defaultControls: gameControls = {
 /** Holds all the info that should be saved and loaded through sessions */
 export class _GameSave {
 	volume: number = 1;
-	sfxVolume: number = 1;
+	soundVolume: number = 1;
 	musicVolume: number = 1;
 
 	/** Wheter the strumline and lane will be on the top or the bottom (LOL) */
