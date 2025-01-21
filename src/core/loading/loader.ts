@@ -151,7 +151,7 @@ async function loadContent() {
 
 /** Loads all the assets of the game */
 export async function loadAssets() {
-	Load.loadAssets();
+	new Load();
 	// loadBean();
 	// loadSound("volumeChange", "sounds/volumeChange.wav");
 	// loadCursor();
