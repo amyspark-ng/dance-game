@@ -1,4 +1,3 @@
-import { loadedSongs } from "../../core/loading/loader";
 import { GameSave } from "../../core/save";
 import { EditorAction, StateChart } from "./EditorState";
 import { EditorCommands } from "./EditorUtils";
@@ -43,7 +42,7 @@ export class MenuBar {
 			{
 				text: "Save to loaded songs (Ctrl + Shift + M)",
 				action: () => {
-					loadedSongs.push(StateChart.instance.song);
+					// Content.loadedSongs.push(StateChart.instance.song);
 				},
 			},
 			{

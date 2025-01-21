@@ -3,20 +3,12 @@ import JSZip from "jszip";
 import TOML from "smol-toml";
 import { gameCursor } from "./core/cursor";
 import { defaultUUIDS, loadedSongs } from "./core/loading/loader";
-import { SongChart, SongContent, SongManifest } from "./play/song";
+import { SongChart, SongContent, songFolder, SongManifest } from "./play/song";
 
 /** File manager for some stuff of the game */
 export const inputElement = document.createElement("input");
 inputElement.type = "file";
 inputElement.style.display = "none";
-
-/** Holds the content to a song folder */
-type songFolder = {
-	manifest: SongManifest;
-	audio: Blob;
-	cover: Blob;
-	chart: SongChart;
-};
 
 /** This class is a series of "utils" and important functions to manage some of the files that might be related to the content of the game
  *
@@ -107,63 +99,6 @@ export class FileManager {
 				resolve(null);
 			};
 		});
-	}
-
-	/** Fetch a song folder given a path
-	 * @param folderPath The path to the folder
-	 *
-	 * Used mostly for default songs
-	 */
-	static async fetchSongFolder(folderPath: string): Promise<songFolder> {
-		const manifest = await fetch(`${folderPath}/manifest.toml`).then((thing) => thing.text()).then((text) =>
-			TOML.parse(text)
-		) as SongManifest;
-		const chart = await fetch(`${folderPath}/${manifest.chart_file}`).then((thing) => thing.json()) as SongChart;
-		const audio = await fetch(`${folderPath}/${manifest.audio_file}`).then((thing) => thing.blob()) as Blob;
-		const cover = await fetch(`${folderPath}/${manifest.cover_file}`).then((thing) => thing.blob()) as Blob;
-		return { audio: audio, cover: cover, manifest: manifest, chart: chart } as songFolder;
-	}
-
-	/** Get the content of a song folder */
-	static async getSongFolderContent(zipFile: File): Promise<songFolder> {
-		const songFolder: songFolder = {} as songFolder;
-
-		const jsZip = new JSZip();
-		const zipContent = await jsZip.loadAsync(zipFile);
-
-		const manifestFile = zipContent.file("manifest.toml");
-		if (!manifestFile) return new Promise((_, reject) => reject("No manifest file found in zip"));
-		else {
-			const manifestContent = TOML.parse(await manifestFile.async("string"));
-
-			// if the keys don't match
-			if (JSON.stringify(Object.keys(manifestContent)) !== JSON.stringify(Object.keys(new SongManifest()))) {
-				return new Promise((_, reject) => reject("Manifest file has wrong keys"));
-			}
-
-			songFolder.manifest = manifestContent as any;
-		}
-
-		const audio_file = zipContent.file(songFolder.manifest.audio_file);
-		if (!audio_file) {
-			return new Promise((_, reject) => reject("No audio file found in zip or wrong name in manifest"));
-		}
-		else songFolder.audio = await audio_file.async("blob");
-
-		const cover_file = zipContent.file(songFolder.manifest.cover_file);
-		if (!cover_file) {
-			return new Promise((_, reject) => reject("No cover file found in zip or wrong name in manifest"));
-		}
-		else songFolder.cover = await cover_file.async("blob");
-
-		const chart_file = zipContent.file(songFolder.manifest.chart_file);
-		if (!chart_file) {
-			return new Promise((_, reject) => reject("No chart file found in zip or wrong name in manifest"));
-		}
-		else songFolder.chart = JSON.parse(await chart_file.async("string")) as SongChart;
-
-		// this will run at the end because all the foolproof returns have been returned
-		return new Promise((resolve) => resolve(songFolder));
 	}
 
 	/** Convers a sprite to a data url */

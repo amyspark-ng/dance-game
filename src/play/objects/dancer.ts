@@ -1,4 +1,4 @@
-import { Comp, KEventController, TimerController, TweenController, Vec2 } from "kaplay";
+import { Comp, KEventController, SpriteData, TimerController, TweenController, Vec2 } from "kaplay";
 import { juice } from "../../core/juiceComp";
 import { GameSave } from "../../core/save";
 
@@ -108,4 +108,23 @@ export type DancerGameObj = ReturnType<typeof makeDancer>;
 export class DancerFile {
 	dancerName: string;
 	dancerBg: string;
+	static loadByPath(path: string) {
+		const pathPrefix = `content/dancers/${path}/`;
+		const imagePath = `${pathPrefix}${path}.png`;
+		const imageAnimPath = `${pathPrefix}${path}_bg.png`;
+		const backgroundPath = `${pathPrefix}${path}-data.json`;
+		const backgroundAnimPath = `${pathPrefix}${path}_bg-data.png`;
+
+		let imageAnims = {} as SpriteData;
+		let bgAnims = {} as SpriteData;
+		fetch(imageAnimPath).then(async (data) => {
+			imageAnims = await data.json();
+		});
+		fetch(backgroundAnimPath).then(async (data) => {
+			bgAnims = await data.json();
+		});
+
+		loadSprite(`dancer_${path}`, imagePath);
+		loadSprite(`dancerBg_${path}`, backgroundPath);
+	}
 }

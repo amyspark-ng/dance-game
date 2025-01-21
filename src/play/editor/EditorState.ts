@@ -2,7 +2,6 @@
 import { Color, Vec2 } from "kaplay";
 import { v4 } from "uuid";
 import { Conductor } from "../../Conductor";
-import { dancers, loadedSongs } from "../../core/loading/loader";
 import { GameSave } from "../../core/save";
 import { KaplayState } from "../../core/scenes/KaplayState";
 import { Sound } from "../../core/sound";
@@ -14,6 +13,7 @@ import { ChartNote } from "../objects/note";
 import { SongContent } from "../song";
 import { PROP_BIG_SCALE } from "./EditorRenderer";
 import "./EditorScene";
+import { Content } from "../../core/loading/content";
 
 /** The params for the chart editor */
 export type paramsEditor = {
@@ -312,7 +312,7 @@ export class StateChart extends KaplayState {
 
 		// some stuff to remove faulty names from dancer list
 		const dancersInEvents = dancerChangeEvents.map((ev) => ev.value.dancer);
-		const allDancerNames = dancers.map((dancerFiles) => dancerFiles.dancerName);
+		const allDancerNames = Content.loadedDancers.map((dancerFiles) => dancerFiles.dancerName);
 		if (dancersInEvents.some((dancerInEvent) => allDancerNames.includes(dancerInEvent)) == false) {
 			const indexOfFaultyDancer = dancerChangeEvents.findIndex((ev) =>
 				dancersInEvents.some((dancerInEvent) => ev.value.dancer == dancerInEvent)
@@ -368,7 +368,11 @@ export class StateChart extends KaplayState {
 		const oldUUID = params.song.manifest.uuid_DONT_CHANGE;
 
 		// the uuid alreaddy exists
-		if (loadedSongs.map((song) => song.manifest.uuid_DONT_CHANGE).includes(this.song.manifest.uuid_DONT_CHANGE)) {
+		if (
+			Content.loadedSongs.map((song) => song.manifest.uuid_DONT_CHANGE).includes(
+				this.song.manifest.uuid_DONT_CHANGE,
+			)
+		) {
 			this.song.manifest.name = this.song.manifest.name + " (copy)";
 			this.song.manifest.uuid_DONT_CHANGE = v4();
 			// have to reload the audio i don't know how much this would work since this loading takes time so

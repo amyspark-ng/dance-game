@@ -1,6 +1,6 @@
 import { AudioPlay } from "kaplay";
 import { gameCursor } from "../../../core/cursor";
-import { defaultUUIDS, loadedSongs } from "../../../core/loading/loader";
+import { Content } from "../../../core/loading/content";
 import { GameSave } from "../../../core/save";
 import { KaplayState } from "../../../core/scenes/KaplayState";
 import { BlackBarsTransition } from "../../../core/scenes/transitions/blackbar";
@@ -126,7 +126,7 @@ export class StateSongSelect extends KaplayState {
 		}
 
 		// if song isn't on default songs then it means it's imported from elsewhere
-		if (!defaultUUIDS.includes(curSong.manifest.uuid_DONT_CHANGE)) {
+		if (!Content.defaultUUIDS.includes(curSong.manifest.uuid_DONT_CHANGE)) {
 			const importedSticker = capsuleContainer.add([
 				sprite("importedSong"),
 				pos(),
@@ -145,12 +145,12 @@ export class StateSongSelect extends KaplayState {
 		super("songselect");
 
 		if (typeof startAt == "number") {
-			utils.isInRange(startAt, 0, loadedSongs.length - 1);
+			utils.isInRange(startAt, 0, Content.loadedSongs.length - 1);
 			this.index = startAt;
 		}
 		else {
-			if (loadedSongs.includes(startAt)) {
-				const newIndex = loadedSongs.indexOf(startAt);
+			if (Content.loadedSongs.includes(startAt)) {
+				const newIndex = Content.loadedSongs.indexOf(startAt);
 				if (newIndex && newIndex > 0) this.index = newIndex;
 			}
 		}
@@ -165,10 +165,10 @@ type songCapsuleObj = ReturnType<typeof StateSongSelect.addSongCapsule>;
 KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 	setBackground(BLUE.lighten(50));
 
-	let songAmount = loadedSongs.length + 1;
+	let songAmount = Content.loadedSongs.length + 1;
 	const LERP_AMOUNT = 0.25;
 
-	loadedSongs.forEach((song, index) => {
+	Content.loadedSongs.forEach((song, index) => {
 		StateSongSelect.addSongCapsule(song);
 	});
 
@@ -177,7 +177,7 @@ KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 
 	let allCapsules = get("songCapsule", { liveUpdate: true }) as songCapsuleObj[];
 	onUpdate(() => {
-		songAmount = loadedSongs.length + 1;
+		songAmount = Content.loadedSongs.length + 1;
 		allCapsules.forEach((songCapsule, index) => {
 			let opacity = 1;
 
@@ -264,16 +264,16 @@ KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 			const loadingScreen = FileManager.loadingScreen();
 			const gottenFile = await FileManager.receiveFile("mod");
 			if (gottenFile) {
-				const zipContent = await FileManager.getSongFolderContent(gottenFile);
-				const ooldUUIDS = loadedSongs.map((song) => song.manifest.uuid_DONT_CHANGE);
-				const result = await FileManager.loadSongAssets(zipContent);
-				const newUUIDS = loadedSongs.map((song) => song.manifest.uuid_DONT_CHANGE);
-				const overwritesDefault = defaultUUIDS.includes(result.manifest.uuid_DONT_CHANGE);
+				const zipContent = await SongContent.getContentFromFile(gottenFile);
+				const ooldUUIDS = Content.loadedSongs.map((song) => song.manifest.uuid_DONT_CHANGE);
+				const result = await SongContent.loadAssets(zipContent);
+				const newUUIDS = Content.loadedSongs.map((song) => song.manifest.uuid_DONT_CHANGE);
+				const overwritesDefault = Content.defaultUUIDS.includes(result.manifest.uuid_DONT_CHANGE);
 
 				if (ooldUUIDS.includes(result.manifest.uuid_DONT_CHANGE)) {
 					if (!overwritesDefault) {
 						const index = ooldUUIDS.indexOf(result.manifest.uuid_DONT_CHANGE);
-						loadedSongs[index] = result;
+						Content.loadedSongs[index] = result;
 						allCapsules[index].song = result;
 						SongSelectState.index = index;
 					}

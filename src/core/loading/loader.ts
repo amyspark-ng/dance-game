@@ -8,25 +8,7 @@ import { rankings } from "../../play/objects/scoring";
 import { SongContent } from "../../play/song";
 import { utils } from "../../utils";
 import { loadCursor } from "../cursor";
-import { Load } from "./test";
-
-/** Array of zip names to load songs */
-export const defaultSongs = ["bopeebo", "unholy-blight"];
-/** Array of the uuids for the default songs */
-export const defaultUUIDS = [
-	"1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed",
-	"14e1c3e9-b24f-4aaa-8401-d772d8725f51",
-];
-
-/** Array of contents of song zip for the songs loaded */
-export const loadedSongs: SongContent[] = [];
-
-/** Gets a song with the kebab case of its name */
-export function getSong(kebabCase: string) {
-	// returns undefined on unholy-blight because it hasn't been loaded apparently
-	const result = loadedSongs.find((songzip) => utils.kebabCase(songzip.manifest.name) == kebabCase);
-	return result;
-}
+import { Content } from "./content";
 
 /** The loading screen of the game */
 export function loadingScreen(progress: number) {
@@ -53,105 +35,55 @@ export function loadingScreen(progress: number) {
 	});
 }
 
-/** Holds all the dancers in the game */
-export let dancers: DancerFile[] = [];
-/** Holds all the noteskins in the game */
-export let noteskins: string[] = [];
-
-/** Loads the noteskins */
-function loadNoteSkins() {
-	let spriteAtlasData = {};
-
-	let noteSkinTypes = ["P", "T", "A"];
-	let movements = ["up", "down", "left", "right", "trail", "tail"];
-	noteskins = noteSkinTypes;
-
-	let x = 0;
-	let y = 0;
-	let size = 80;
-	noteSkinTypes.forEach((noteSkinType, noteIndex) => {
-		movements.forEach((move, movIndex) => {
-			x = movIndex * size;
-			y = noteIndex * size;
-
-			spriteAtlasData[noteSkinType + "_" + move] = {
-				width: size,
-				height: size,
-				x: x,
-				y: y,
-			};
-		});
-	});
-
-	loadSpriteAtlas("sprites/noteSkins.png", spriteAtlasData);
-}
-
-function loadDancer(dancerName: string, spriteData: LoadSpriteOpt) {
-	loadSprite(`dancer_${dancerName}`, `sprites/dancers/${dancerName}/${dancerName}.png`, spriteData);
-	loadSprite(`bg_${dancerName}`, `sprites/dancers/${dancerName}/bg_${dancerName}.png`);
-
-	// load the background and other stuff here
-}
-
 /** Loads songs, dancers and noteskins */
 async function loadContent() {
-	// LOADS DANCERS
-	const dancersToLoad = {
-		"astri": {
-			sliceX: 5,
-			sliceY: 3,
-			"anims": {
-				"left": 0,
-				"up": 1,
-				"down": 2,
-				"right": 3,
-				"idle": 4,
-				"victory": { "from": 5, "to": 12, "speed": 10 },
-				"miss": 13,
-			},
-		},
-		"astri-blight": {
-			"sliceX": 6,
-			"sliceY": 2,
-			"anims": {
-				"idle": 0,
-				"down": 1,
-				"up": 2,
-				"left": 3,
-				"right": 4,
-				"miss": 5,
-				"victory": { "from": 6, "to": 7, "speed": 10 },
-			},
-		},
-		"gru": {
-			"sliceX": 6,
-			"sliceY": 2,
-			"anims": {
-				"idle": 0,
-				"up": 1,
-				"down": 2,
-				"left": 3,
-				"right": 4,
-				"miss": 5,
-				"victory": { "from": 6, "to": 11, "speed": 10 },
-			},
-		},
-	};
+	// // LOADS DANCERS
+	// const dancersToLoad = {
+	// 	"astri": {},
+	// 	"astri-blight": {
+	// 		"sliceX": 6,
+	// 		"sliceY": 2,
+	// 		"anims": {
+	// 			"idle": 0,
+	// 			"down": 1,
+	// 			"up": 2,
+	// 			"left": 3,
+	// 			"right": 4,
+	// 			"miss": 5,
+	// 			"victory": { "from": 6, "to": 7, "speed": 10 },
+	// 		},
+	// 	},
+	// 	"gru": {
+	// 		"sliceX": 6,
+	// 		"sliceY": 2,
+	// 		"anims": {
+	// 			"idle": 0,
+	// 			"up": 1,
+	// 			"down": 2,
+	// 			"left": 3,
+	// 			"right": 4,
+	// 			"miss": 5,
+	// 			"victory": { "from": 6, "to": 11, "speed": 10 },
+	// 		},
+	// 	},
+	// };
 
-	loadSprite("defaultCover", "sprites/defaultCover.png");
+	// loadSprite("defaultCover", "sprites/defaultCover.png");
 
-	Object.keys(dancersToLoad).forEach((dancer, index) => {
-		dancers[index] = { dancerName: dancer, dancerBg: dancer };
-		loadDancer(dancer, dancersToLoad[dancer]);
-	});
+	// Object.keys(dancersToLoad).forEach((dancer, index) => {
+	// 	dancers[index] = { dancerName: dancer, dancerBg: dancer };
+	// 	loadDancer(dancer, dancersToLoad[dancer]);
+	// });
 
-	// loads noteskins
-	loadNoteSkins();
+	// // loads noteskins
+	// loadNoteSkins();
 }
 
 /** Loads all the assets of the game */
 export async function loadAssets() {
-	new Load();
+	loadRoot("assets/");
+	Content.loadSongs();
+	Content.loadDancers();
 	// loadBean();
 	// loadSound("volumeChange", "sounds/volumeChange.wav");
 	// loadCursor();

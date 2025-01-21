@@ -8,7 +8,7 @@ import { utils } from "../utils";
 import { setupCamera } from "./camera";
 import { setupCursor } from "./cursor";
 import { curDraggin } from "./drag";
-import { getSong, loadAssets, loadingScreen } from "./loading/loader";
+import { loadAssets, loadingScreen } from "./loading/loader";
 import { GameSave } from "./save";
 import { KaplayState, setupScenes } from "./scenes/KaplayState";
 import { Sound } from "./sound";
@@ -112,5 +112,5 @@ export function INITIAL_SCENE() {
 	// 	}),
 	// );
 	// KaplayState.switchState(new StateSongSelect(0));
-	KaplayState.switchState(new StateChart({ playbackSpeed: 1, seekTime: 0, song: getSong("bopeebo") }));
+	// KaplayState.switchState(new StateChart({ playbackSpeed: 1, seekTime: 0, song: getSong("bopeebo") }));
 }

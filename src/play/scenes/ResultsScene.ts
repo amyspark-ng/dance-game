@@ -1,6 +1,5 @@
 import { Color } from "kaplay";
 // import { allSongCharts } from "../../core/loading/loader"
-import { loadedSongs } from "../../core/loading/loader";
 import { KaplayState } from "../../core/scenes/KaplayState";
 import { Sound } from "../../core/sound";
 import { StateSongSelect } from "../../ui/menu/songselect/SongSelectScene";
@@ -154,7 +153,6 @@ KaplayState.scene("results", (ResultsState: StateResults) => {
 	});
 
 	onKeyPress("escape", () => {
-		const indexOfSong = loadedSongs.indexOf(ResultsState.GameState.song);
 		KaplayState.switchState(new StateSongSelect(ResultsState.GameState.song));
 	});
 });

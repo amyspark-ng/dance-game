@@ -1,4 +1,4 @@
-import { dancers } from "../../../../core/loading/loader";
+import { Content } from "../../../../core/loading/content";
 import { GameSave } from "../../../../core/save";
 import { KaplayState } from "../../../../core/scenes/KaplayState";
 import { utils } from "../../../../utils";
@@ -26,6 +26,7 @@ KaplayState.scene("dancerselect", (DancerSelectState: StateDancerSelect) => {
 		return curDancer;
 	}
 
+	const dancers = Content.loadedDancers;
 	/** The index in dancers of the currently selected dancer */
 	let curIndex = dancers.map(dancer => dancer.dancerName).indexOf(GameSave.dancer);
 	const dancerNames = dancers.map(dancer => dancer.dancerName);
