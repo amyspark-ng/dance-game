@@ -1,9 +1,14 @@
 import { Content } from "../../../core/loading/content";
 import { GameSave } from "../../../core/save";
-import { Sound } from "../../../core/sound";
+import { CustomAudioPlay, Sound } from "../../../core/sound";
 import { utils } from "../../../utils";
 import { StateGame } from "../../PlayState";
 import { DANCER_POS } from "../dancer";
+
+function pauseScratch(audio: CustomAudioPlay, duration: number = 0.15) {
+	tween(audio.detune, -150, duration / 2, (p) => audio.detune = p);
+	tween(audio.volume, 0, duration, (p) => audio.volume = p);
+}
 
 /** Runs when the game is paused */
 export function addPauseUI() {
@@ -172,12 +177,12 @@ export function addPauseUI() {
 			GameState.conductor.timeInSeconds = GameState.lastTimeOnPause;
 			GameState.conductor.audioPlay.seek(GameState.lastTimeOnPause);
 			tween(Sound.currentSong.detune, 0, 0.15 / 2, (p) => Sound.currentSong.detune = p);
-			Sound.fadeIn(Sound.currentSong, Sound.musicVolume, 0.15);
+			Sound.currentSong.fadeIn(Sound.musicVolume);
 		}
 		// paused
 		else {
 			GameState.lastTimeOnPause = GameState.conductor.timeInSeconds;
-			Sound.pauseScratch(Sound.currentSong, 0.15);
+			pauseScratch(Sound.currentSong, 0.15);
 
 			// Waits 0.15 seconds so the audio isn't paused inmediately
 			wait(0.15, () => {

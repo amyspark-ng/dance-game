@@ -1,5 +1,4 @@
 import { GameObj, Key, StayComp, TimerComp } from "kaplay";
-import { juice } from "./juiceComp";
 import { GameSave } from "./save";
 import { Sound } from "./sound";
 

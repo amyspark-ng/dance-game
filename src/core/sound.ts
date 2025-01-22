@@ -3,22 +3,36 @@ import { AudioPlay, AudioPlayOpt, EaseFunc, Key, TweenController } from "kaplay"
 import { utils } from "../utils";
 import { GameSave } from "./save";
 
+export interface CustomAudioPlay extends AudioPlay {
+	/** Fade in an audio play handler
+	 * @param newVolume The volume
+	 * @param duration The volume
+	 * @param easing The easing
+	 */
+	fadeIn: (newVolume?: number, duration?: number, easing?: EaseFunc) => TweenController;
+	/** Fade out an audio play handler
+	 * @param duration The volume
+	 * @param easing The easing
+	 */
+	fadeOut: (duration?: number, easing?: EaseFunc) => TweenController;
+}
+
 /* Small class that handles some sound related stuff */
 export class Sound {
 	static soundVolume: number = GameSave.soundVolume * GameSave.volume;
 	static musicVolume: number = GameSave.musicVolume * GameSave.volume;
 
-	static currentSong: AudioPlay = null;
-	static sounds: Set<AudioPlay> = new Set<AudioPlay>();
+	static currentSong: CustomAudioPlay = null;
+	static sounds: Set<CustomAudioPlay> = new Set<CustomAudioPlay>();
 
 	static onVolumeChange(action: (newVolume: number) => void) {
 		return getTreeRoot().on("volume_change", action);
 	}
 
-	static playSound(soundName: string, opts?: AudioPlayOpt): AudioPlay {
+	static playSound(soundName: string, opts?: AudioPlayOpt): CustomAudioPlay {
 		opts = opts ?? {};
 		Sound.soundVolume = GameSave.soundVolume * GameSave.volume;
-		const audioPlayer = play(soundName, opts);
+		const audioPlayer = play(soundName, opts) as CustomAudioPlay;
 		if (opts.volume) audioPlayer.volume = opts.volume;
 		else audioPlayer.volume = Sound.soundVolume;
 		Sound.sounds.add(audioPlayer);
@@ -26,13 +40,21 @@ export class Sound {
 			Sound.sounds.delete(audioPlayer);
 		});
 
+		audioPlayer.fadeIn = (newVolume: number = audioPlayer.volume, duration: number = 0.15, easing: EaseFunc = easings.linear) => {
+			return tween(0, newVolume, duration, (p) => audioPlayer.volume = p, easing);
+		};
+
+		audioPlayer.fadeOut = (duration: number = 0.15, easing: EaseFunc = easings.linear) => {
+			return tween(audioPlayer.volume, 0, duration, (p) => audioPlayer.volume = p, easing);
+		};
+
 		return audioPlayer;
 	}
 
 	static playMusic(songName: string, opts?: AudioPlayOpt) {
 		opts = opts ?? {};
 
-		const audioPlayer = play(songName, opts);
+		const audioPlayer = Sound.playSound(songName, opts);
 		if (opts.volume) audioPlayer.volume = opts.volume;
 		else audioPlayer.volume = Sound.musicVolume;
 		audioPlayer.onEnd(() => {
@@ -59,40 +81,5 @@ export class Sound {
 		if (Sound.currentSong) {
 			Sound.currentSong.volume = Sound.musicVolume;
 		}
-	}
-
-	/** Fade in an audio play handler
-	 * @param handler The handler
-	 * @param volume The volume
-	 * @param duration The volume
-	 * @param easing The easing
-	 */
-	static fadeIn(
-		handler: AudioPlay,
-		volume: number = Sound.musicVolume,
-		duration: number = 0.15,
-		easing: EaseFunc = easings.linear,
-	) {
-		return tween(0, volume, duration, (p) => handler.volume = p, easing);
-	}
-
-	/** Fade out an audio play handler
-	 * @param handler The handler
-	 * @param volume The volume
-	 * @param duration The volume
-	 * @param easing The easing
-	 */
-	static fadeOut(
-		handler: AudioPlay,
-		volume: number = Sound.musicVolume,
-		duration: number = 0.15,
-		easing: EaseFunc = easings.linear,
-	) {
-		return tween(volume, 0, duration, (p) => handler.volume = p, easing);
-	}
-
-	static pauseScratch(handler: AudioPlay, duration: number = 0.15) {
-		tween(handler.detune, -150, duration / 2, (p) => handler.detune = p);
-		tween(handler.volume, 0, duration, (p) => handler.volume = p);
 	}
 }
