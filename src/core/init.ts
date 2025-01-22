@@ -8,6 +8,7 @@ import { utils } from "../utils";
 import { setupCamera } from "./camera";
 import { setupCursor } from "./cursor";
 import { curDraggin } from "./drag";
+import { Content } from "./loading/content";
 import { loadAssets, loadingScreen } from "./loading/loader";
 import { GameSave } from "./save";
 import { KaplayState, setupScenes } from "./scenes/KaplayState";
@@ -98,19 +99,16 @@ document.addEventListener("fullscreenchange", (event) => {
 });
 
 export function INITIAL_SCENE() {
-	KaplayState.switchState(new StateTitle());
+	// KaplayState.switchState(new StateTitle());
 	// KaplayState.switchState(
 	// 	new StateChart({ dancer: GameSave.dancer, playbackSpeed: 1, seekTime: 1, song: getSong("bopeebo") }),
 	// );
-	// KaplayState.switchState(
-	// 	new StateGame({
-	// 		dancerName: GameSave.dancer,
-	// 		fromChartEditor: false,
-	// 		song: getSong("bopeebo"),
-	// 		playbackSpeed: 1,
-	// 		seekTime: 0,
-	// 	}),
-	// );
+	KaplayState.switchState(
+		new StateGame({
+			dancerName: GameSave.dancer,
+			song: Content.getSongByName("bopeebo"),
+		}),
+	);
 	// KaplayState.switchState(new StateSongSelect(0));
 	// KaplayState.switchState(new StateChart({ playbackSpeed: 1, seekTime: 0, song: getSong("bopeebo") }));
 }

@@ -4,7 +4,7 @@ import { Content } from "../../../core/loading/content";
 import { GameSave } from "../../../core/save";
 import { KaplayState } from "../../../core/scenes/KaplayState";
 import { BlackBarsTransition } from "../../../core/scenes/transitions/blackbar";
-import { Sound } from "../../../core/sound";
+import { CustomAudioPlay, Sound } from "../../../core/sound";
 import { FileManager } from "../../../FileManager";
 import { Scoring } from "../../../play/objects/scoring";
 import { StateGame } from "../../../play/PlayState";
@@ -20,6 +20,8 @@ export class StateSongSelect extends KaplayState {
 	index: number = 0;
 
 	menuInputEnabled: boolean = true;
+
+	songPreview: CustomAudioPlay = null;
 
 	/** Scrolls the index, so scrolling the songs */
 	scroll(change: number, songAmount: number) {
@@ -237,7 +239,7 @@ KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 	SongSelectState.onUpdateState(() => {
 		if (!allCapsules[SongSelectState.index]) return;
 		if (!allCapsules[SongSelectState.index].song) {
-			Sound.currentSong?.stop();
+			SongSelectState.songPreview?.stop();
 			return;
 		}
 
@@ -247,12 +249,12 @@ KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 
 		highscoreText.solidValue = Math.floor(tallyScore.tally.score);
 
-		Sound.currentSong?.stop();
-		Sound.currentSong = Sound.playMusic(
+		SongSelectState.songPreview?.stop();
+		SongSelectState.songPreview = Sound.playMusic(
 			allCapsules[SongSelectState.index].song.manifest.uuid_DONT_CHANGE + "-audio",
 		);
-		Sound.currentSong.loop = true;
-		Sound.currentSong.fadeIn(Sound.musicVolume, 0.25);
+		SongSelectState.songPreview.loop = true;
+		SongSelectState.songPreview.fadeIn(Sound.musicVolume, 0.25);
 	});
 
 	onKeyPress("enter", async () => {
@@ -298,7 +300,7 @@ KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 		}
 		else {
 			SongSelectState.menuInputEnabled = false;
-			Sound.currentSong.stop();
+			SongSelectState.songPreview?.stop();
 			const currentSongZip = hoveredCapsule.song;
 
 			KaplayState.switchState(
@@ -314,7 +316,7 @@ KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 	});
 
 	function stopPreview() {
-		Sound.currentSong.stop();
+		SongSelectState.songPreview?.stop();
 	}
 
 	onKeyPress("tab", () => {

@@ -1,11 +1,11 @@
 import { LoadSpriteOpt, SpriteAtlasData } from "kaplay";
 import { ChartEvent } from "../../play/event";
-import { DancerData, Move } from "../../play/objects/dancer";
+import { DancerData, Move, moveAnimsArr } from "../../play/objects/dancer";
 import { NoteskinData } from "../../play/objects/note";
 import { rankings } from "../../play/objects/scoring";
 import { SongContent } from "../../play/song";
 import { utils } from "../../utils";
-import { GameSave } from "../save";
+import { _GameSave, GameSave } from "../save";
 
 export class Content {
 	// SONGS
@@ -20,7 +20,7 @@ export class Content {
 	static loadedSongs: SongContent[] = [];
 
 	static getSongByName(name: string) {
-		Content.loadedSongs.find((song) => utils.kebabCase(song.manifest.name) == name);
+		return Content.loadedSongs.find((song) => utils.kebabCase(song.manifest.name) == name);
 	}
 
 	static async loadSongs() {
@@ -122,22 +122,46 @@ export class Content {
 		this.defaultNoteskins.forEach((data) => {
 			if (!data.spriteData) {
 				const atlasData = {} as SpriteAtlasData;
-				NoteskinData.Moves.forEach((move, index) => {
-					const x = index * 80;
+				moveAnimsArr.forEach((move, index) => {
+					const y = index % 4 * 80;
 					atlasData[`${data.name}_${move}`] = {
 						width: 80,
 						height: 80,
-						x: x,
-						y: 0,
+						x: 0,
+						y,
+					};
+
+					atlasData[`${data.name}_${move}_trail`] = {
+						width: 80,
+						height: 80,
+						x: 80,
+						y,
+					};
+
+					atlasData[`${data.name}_${move}_tail`] = {
+						width: 80,
+						height: 80,
+						x: 160,
+						y,
 					};
 				});
 
+				console.log(atlasData);
 				loadSpriteAtlas(`content/noteskins/${data.name}.png`, atlasData);
 			}
 		});
 	}
-	static getNoteskinSprite(sprite: typeof NoteskinData.Moves[number], noteskin: string = GameSave.noteskin) {
-		return `${noteskin}_${sprite}`;
+
+	// overloads are very cool
+	static getNoteskinSprite(sprite: "tail" | "trail", move: Move, noteskin?: string): string;
+	static getNoteskinSprite(sprite: Move, noteskin?: string): string;
+	static getNoteskinSprite(sprite: typeof NoteskinData.Moves[number], move?: Move, noteskin: string = GameSave.noteskin) {
+		if (sprite == "down" || sprite == "left" || sprite == "right" || sprite == "up") {
+			return `${noteskin}_${sprite}`;
+		}
+		else if (sprite == "tail" || sprite == "trail") {
+			return `${noteskin}_${move}_${sprite}`;
+		}
 	}
 
 	// OTHER STUFF

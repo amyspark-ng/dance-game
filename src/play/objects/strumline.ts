@@ -79,8 +79,13 @@ export function createStrumline() {
 			// has an actual note
 			if (strumlineObj.currentNote) {
 				const colorOfNote = ChartNote.moveToColor(strumlineObj.currentNote.move);
+				const pressScale = strumlineObj.currentNote.move == "down" || strumlineObj.currentNote.move == "up"
+					? PRESS_SCALE.scale(vec2(0.95, 1))
+					: PRESS_SCALE.scale(vec2(1, 0.95));
+				const offset = ChartNote.moveToOffset(strumlineObj.currentNote.move).scale(5);
 				strumlineObj.color = lerp(strumlineObj.color, colorOfNote, 0.5);
-				strumlineObj.scale = lerp(strumlineObj.scale, PRESS_SCALE, 0.5);
+				strumlineObj.scale = lerp(strumlineObj.scale, pressScale, 0.5);
+				strumlineObj.pos = lerp(strumlineObj.pos, STRUM_POS.add(offset), 0.5);
 			}
 			// doesn't have a note, shallow press
 			else {
@@ -94,12 +99,7 @@ export function createStrumline() {
 		else {
 			strumlineObj.color = lerp(strumlineObj.color, STRUMLINE_COLOR, 0.5);
 			strumlineObj.scale = lerp(strumlineObj.scale, vec2(1), 0.5);
-		}
-
-		if (counterForReleasing == undefined) return;
-		if (counterForReleasing > 0) counterForReleasing -= dt();
-		if (counterForReleasing <= 0) {
-			strumlineObj.currentNote = null;
+			strumlineObj.pos = lerp(strumlineObj.pos, STRUM_POS, 0.5);
 		}
 	});
 

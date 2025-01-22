@@ -16,7 +16,7 @@ const libraryOpts = {
 	stretch: false,
 	letterbox: false,
 	maxFPS: 90,
-	font: "robotomono",
+	font: "geo",
 } as KAPLAYOpt;
 
 utils.runInDesktop(() => {

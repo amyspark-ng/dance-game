@@ -22,8 +22,8 @@ export class Sound {
 	static soundVolume: number = GameSave.soundVolume * GameSave.volume;
 	static musicVolume: number = GameSave.musicVolume * GameSave.volume;
 
-	static currentSong: CustomAudioPlay = null;
 	static sounds: Set<CustomAudioPlay> = new Set<CustomAudioPlay>();
+	static musics: Set<CustomAudioPlay> = new Set<CustomAudioPlay>();
 
 	static onVolumeChange(action: (newVolume: number) => void) {
 		return getTreeRoot().on("volume_change", action);
@@ -57,11 +57,11 @@ export class Sound {
 		const audioPlayer = Sound.playSound(songName, opts);
 		if (opts.volume) audioPlayer.volume = opts.volume;
 		else audioPlayer.volume = Sound.musicVolume;
+		this.musics.add(audioPlayer);
 		audioPlayer.onEnd(() => {
-			Sound.currentSong = null;
+			this.musics.delete(audioPlayer);
 		});
 
-		Sound.currentSong = audioPlayer;
 		return audioPlayer;
 	}
 
@@ -78,8 +78,8 @@ export class Sound {
 			handler.volume = Sound.soundVolume;
 		});
 
-		if (Sound.currentSong) {
-			Sound.currentSong.volume = Sound.musicVolume;
-		}
+		Sound.musics.forEach((handler) => {
+			handler.volume = Sound.musicVolume;
+		});
 	}
 }

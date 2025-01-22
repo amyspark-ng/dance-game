@@ -173,21 +173,15 @@ export function addPauseUI() {
 		// these tweens somehow are spam-proof! good :)
 		// unpaused
 		if (GameState.paused == false) {
-			GameState.conductor.paused = GameState.paused;
-			GameState.conductor.timeInSeconds = GameState.lastTimeOnPause;
-			GameState.conductor.audioPlay.seek(GameState.lastTimeOnPause);
-			tween(Sound.currentSong.detune, 0, 0.15 / 2, (p) => Sound.currentSong.detune = p);
-			Sound.currentSong.fadeIn(Sound.musicVolume);
+			tween(-150, 0, 0.15, (p) => GameState.conductor.audioPlay.detune = p, easings.easeOutQuint);
+			GameState.conductor.audioPlay.fadeIn(Sound.musicVolume, 0.15);
 		}
 		// paused
 		else {
-			GameState.lastTimeOnPause = GameState.conductor.timeInSeconds;
-			pauseScratch(Sound.currentSong, 0.15);
-
-			// Waits 0.15 seconds so the audio isn't paused inmediately
-			wait(0.15, () => {
-				GameState.conductor.paused = GameState.paused;
-			});
+			const audioName = GameState.song.manifest.uuid_DONT_CHANGE + "-audio";
+			const songToScratch = Sound.playMusic(audioName);
+			songToScratch.seek(GameState.conductor.timeInSeconds);
+			pauseScratch(songToScratch);
 		}
 
 		// get all the objects and filter the ones that have any tag that is included in tagsToPause

@@ -140,10 +140,10 @@ export function addNote(chartNote: ChartNote, GameState: StateGame, strumline: S
 
 		if (!noteHit.length) return;
 
-		let hasFinishedHolding = false;
+		let noteHasFinished = false;
 		trail.onUpdate(() => {
-			if (trail.pos.x + trail.width < width() / 2 && !hasFinishedHolding) {
-				hasFinishedHolding = true;
+			if (trail.pos.x + trail.width < width() / 2 && !noteHasFinished) {
+				noteHasFinished = true;
 			}
 
 			if (hasMissedNote) {
@@ -153,20 +153,23 @@ export function addNote(chartNote: ChartNote, GameState: StateGame, strumline: S
 
 		const score = Scoring.getScorePerDiff(GameState.conductor.timeInSeconds, chartNote);
 		const stepHitEv = GameState.conductor.onStepHit(() => {
-			// will only run while the note is being held
-			if (hasFinishedHolding) {
+			// will only run while the note is going on
+			if (noteHasFinished) {
 				stepHitEv.cancel();
 				return;
 			}
 
-			GameState.addScore(Math.round(score / 2));
+			// only provide the score if the key is down
+			if (isKeyDown(GameSave.getKeyForMove(noteHit.move))) {
+				GameState.addScore(Math.round(score / 2));
+			}
 		});
 
 		const keyReleaseEv = onKeyRelease(GameSave.getKeyForMove(chartNote.move), () => {
 			strumline.currentNote = null;
 
 			// didn't finish holding, bad
-			if (!hasFinishedHolding) {
+			if (!noteHasFinished) {
 				trail.hidden = true;
 			}
 
@@ -218,31 +221,21 @@ export function addNote(chartNote: ChartNote, GameState: StateGame, strumline: S
 			for (let i = 0; i < chartNote.length; i++) {
 				if (i == 0) {
 					drawSprite({
-						sprite: Content.getNoteskinSprite("trail"),
+						sprite: Content.getNoteskinSprite("trail", chartNote.move),
 						width: NOTE_WIDTH / 2,
 						height: NOTE_WIDTH,
 						anchor: "left",
-						shader: "replacecolor",
 						opacity: trail.opacity,
-						uniform: {
-							"u_targetcolor": ChartNote.moveToColor(chartNote.move),
-							"u_alpha": trail.opacity,
-						},
 					});
 				}
 
 				drawSprite({
 					sprite: (i != chartNote.length - 1)
-						? Content.getNoteskinSprite("trail")
-						: Content.getNoteskinSprite("tail"),
+						? Content.getNoteskinSprite("trail", chartNote.move)
+						: Content.getNoteskinSprite("tail", chartNote.move),
 					pos: vec2(NOTE_WIDTH / 2 + (NOTE_WIDTH * i), 0),
 					anchor: "left",
-					shader: "replacecolor",
 					opacity: trail.opacity,
-					uniform: {
-						"u_targetcolor": ChartNote.moveToColor(chartNote.move),
-						"u_alpha": trail.opacity,
-					},
 				});
 
 				// DEBUGGING purposes

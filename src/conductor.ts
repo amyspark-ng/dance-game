@@ -36,10 +36,11 @@
 */
 
 import { AudioPlay } from "kaplay";
+import { CustomAudioPlay } from "./core/sound";
 
 /** Options to create a conductor */
 type conductorOpts = {
-	audioPlay: AudioPlay;
+	audioPlay: CustomAudioPlay;
 	BPM: number;
 	timeSignature: [number, number];
 	offset?: number;
@@ -48,7 +49,7 @@ type conductorOpts = {
 /** Manages the stuff related to music and beats */
 export class Conductor {
 	/** The AudioPlay object of the current song that is playing */
-	audioPlay: AudioPlay;
+	audioPlay: CustomAudioPlay;
 
 	/** Is the current time in the song, the same as this.audioPlay.time() i think */
 	timeInSeconds: number = 0;

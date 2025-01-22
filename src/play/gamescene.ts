@@ -8,8 +8,9 @@ import { KaplayState } from "../core/scenes/KaplayState";
 import { Sound } from "../core/sound";
 import { utils } from "../utils";
 import { ChartEvent } from "./event";
+import { addJudgement } from "./objects/judgement";
 import { ChartNote, NoteGameObj, notesSpawner, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
-import { addJudgement, getClosestNote, Scoring } from "./objects/scoring";
+import { getClosestNote, Scoring } from "./objects/scoring";
 import { inputHandler, introGo, StateGame } from "./PlayState";
 import { StateDeath } from "./scenes/DeathScene";
 import { StateResults } from "./scenes/ResultsScene";
@@ -42,6 +43,8 @@ KaplayState.scene("game", (GameState: StateGame) => {
 	if (!isFocused()) GameState.paused = true;
 
 	onUpdate(() => {
+		GameState.conductor.paused = GameState.paused;
+
 		if (GameState.conductor.timeInSeconds >= -(TIME_FOR_STRUM / 2) && !hasPlayedGo) {
 			introGo();
 			hasPlayedGo = true;
@@ -82,7 +85,7 @@ KaplayState.scene("game", (GameState: StateGame) => {
 
 	GameState.conductor.onBeatHit((curBeat) => {
 		if (GameState.health <= 25) {
-			Sound.playSound("lowhealth", { detune: curBeat % 2 == 0 ? 0 : 25 });
+			Sound.playSound("lowHealth", { detune: curBeat % 2 == 0 ? 0 : 25 });
 		}
 
 		if (GameState.dancer.getMove() == "idle") {

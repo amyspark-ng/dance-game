@@ -1,6 +1,6 @@
 {
 	"typescript": {
-		"lineWidth": 240,
+		"lineWidth": 180,
 		"trailingCommas": "onlyMultiLine",
 		"indentWidth": 4,
 		"useTabs": true,

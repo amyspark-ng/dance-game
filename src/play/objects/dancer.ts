@@ -3,7 +3,7 @@ import { juice } from "../../core/juiceComp";
 import { Content } from "../../core/loading/content";
 import { GameSave } from "../../core/save";
 
-export const moveAnimsArr = ["up", "down", "left", "right"] as const;
+export const moveAnimsArr = ["left", "down", "up", "right"] as const;
 /** The moves in the gameplay, also handles the note type */
 export type Move = typeof moveAnimsArr[number];
 

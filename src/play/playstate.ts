@@ -24,7 +24,7 @@ export type paramsGameScene = {
 	song: SongContent;
 
 	/** The name of the dancer */
-	dancerName: string;
+	dancerName?: string;
 
 	/** How fast to make the song :smiling_imp: */
 	playbackSpeed?: number;
@@ -33,7 +33,7 @@ export type paramsGameScene = {
 	seekTime?: number;
 
 	/** Wheter the player is coming from the chart editor or from regular gameplay */
-	fromEditor: boolean;
+	fromEditor?: boolean;
 };
 
 /** Class that holds and manages some important variables in the game scene
@@ -279,7 +279,7 @@ export class StateGame extends KaplayState {
 		params.playbackSpeed = params.playbackSpeed ?? 1;
 		params.seekTime = params.seekTime ?? 0;
 		params.dancerName = params.dancerName ?? "astri";
-		params.song = params.song ?? null;
+		params.fromEditor = params.fromEditor ?? false;
 
 		this.params = params;
 		this.song = this.params.song;

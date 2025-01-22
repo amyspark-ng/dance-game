@@ -4,6 +4,7 @@ import { Conductor } from "../../Conductor.ts";
 import { gameCursor } from "../../core/cursor.ts";
 import { GameSave } from "../../core/save.ts";
 import { KaplayState } from "../../core/scenes/KaplayState.ts";
+import { BlackBarsTransition } from "../../core/scenes/transitions/blackbar.ts";
 import { Sound } from "../../core/sound.ts";
 import { utils } from "../../utils.ts";
 import { ChartEvent } from "../event.ts";
@@ -400,6 +401,7 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 				playbackSpeed: ChartState.params.playbackSpeed,
 				seekTime: ChartState.params.seekTime,
 			}),
+			BlackBarsTransition,
 		);
 	});
 

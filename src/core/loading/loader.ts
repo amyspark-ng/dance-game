@@ -64,7 +64,8 @@ export async function loadAssets() {
 
 	// #region SHARED
 	loadCursor();
-	loadFont("robotomono", "shared/fonts/robotomono.ttf");
+	// loadFont("robotomono", "shared/fonts/robotomono.ttf");
+	loadFont("geo", "shared/fonts/geologica.ttf", { outline: { width: 25, color: BLACK }, filter: "nearest" });
 	loadShaderURL("saturate", null, "shared/shaders/saturate.frag"); // Written by MF
 	loadShaderURL("replacecolor", null, "shared/shaders/replacecolor.frag"); // Written by dragoncoder i think
 	loadSprite("ui_arrow", "shared/ui/ui_arrow.png");
