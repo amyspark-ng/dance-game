@@ -1,6 +1,7 @@
 // File that draws all the chart editor stuff
 import { DrawRectOpt, Vec2 } from "kaplay";
 import { gameCursor } from "../../core/cursor";
+import { Content } from "../../core/loading/content";
 import { GameSave } from "../../core/save";
 import { utils } from "../../utils";
 import { ChartNote } from "../objects/note";
@@ -113,7 +114,7 @@ export class EditorRenderer {
 							height: ChartState.SQUARE_SIZE.y,
 							scale: ChartState.stampProps.notes[index].scale,
 							angle: 90 + ChartState.stampProps.notes[index].angle,
-							sprite: GameSave.noteskin + "_" + "trail",
+							sprite: Content.getNoteskinSprite("trail"),
 							pos: vec2(notePosLerped.x, notePosLerped.y + ChartState.SQUARE_SIZE.y / 4),
 							anchor: "center",
 							shader: "replacecolor",
@@ -131,7 +132,7 @@ export class EditorRenderer {
 								height: ChartState.SQUARE_SIZE.y,
 								scale: ChartState.stampProps.notes[index].scale,
 								angle: 90,
-								sprite: GameSave.noteskin + "_" + (i == stamp.length - 1 ? "tail" : "trail"),
+								sprite: Content.getNoteskinSprite(i == stamp.length - 1 ? "tail" : "trail"),
 								pos: vec2(notePosLerped.x, notePosLerped.y + ((i + 1) * ChartState.SQUARE_SIZE.y)),
 								opacity: ChartState.conductor.timeInSeconds >= stamp.time ? 1 : 0.5,
 								anchor: "center",
@@ -151,7 +152,7 @@ export class EditorRenderer {
 					height: ChartState.SQUARE_SIZE.y,
 					scale: ChartState.stampProps[isNote ? "notes" : "events"][index].scale,
 					angle: ChartState.stampProps[isNote ? "notes" : "events"][index].angle,
-					sprite: isNote ? GameSave.noteskin + "_" + stamp.move : stamp.id,
+					sprite: isNote ? Content.getNoteskinSprite(stamp.move) : stamp.id,
 					pos: notePosLerped,
 					opacity: ChartState.conductor.timeInSeconds >= stamp.time ? 1 : 0.5,
 					anchor: "center",
@@ -186,7 +187,7 @@ export class EditorRenderer {
 		// cursor = the square you're hovering over
 		// draws the cursor
 		let theSprite = "";
-		if (ChartState.isInNoteGrid) theSprite = GameSave.noteskin + "_" + ChartState.currentMove;
+		if (ChartState.isInNoteGrid) theSprite = Content.getNoteskinSprite(ChartState.currentMove);
 		else theSprite = ChartState.currentEvent;
 
 		const curColor = ChartState.isInNoteGrid ? ChartNote.moveToColor(ChartState.currentMove) : WHITE;
@@ -217,9 +218,7 @@ export class EditorRenderer {
 			&& (EditorUtils.stamps.find("note", ChartState.hoveredStep) != undefined
 				|| EditorUtils.stamps.trailAtStep(ChartState.hoveredStep));
 		const eventAtStep = ChartState.isInEventGrid
-			&& ChartState.song.chart.events.some((ev) =>
-				Math.round(ChartState.conductor.timeToStep(ev.time)) == ChartState.hoveredStep
-			);
+			&& ChartState.song.chart.events.some((ev) => Math.round(ChartState.conductor.timeToStep(ev.time)) == ChartState.hoveredStep);
 		if (noteAtStep || eventAtStep) return;
 
 		drawSprite({

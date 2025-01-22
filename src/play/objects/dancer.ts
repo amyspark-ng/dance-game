@@ -1,8 +1,9 @@
-import { Comp, KEventController, SpriteData, TimerController, TweenController, Vec2 } from "kaplay";
+import { Comp, KEventController, LoadSpriteOpt, SpriteData, TimerController, TweenController, Vec2 } from "kaplay";
 import { juice } from "../../core/juiceComp";
+import { Content } from "../../core/loading/content";
 import { GameSave } from "../../core/save";
 
-const moveAnimsArr = ["left", "right", "up", "down"] as const;
+export const moveAnimsArr = ["up", "down", "left", "right"] as const;
 /** The moves in the gameplay, also handles the note type */
 export type Move = typeof moveAnimsArr[number];
 
@@ -17,7 +18,7 @@ export function makeDancer(dancerName: string) {
 	let onAnimEndEvent: KEventController = null;
 
 	const dancerObj = make([
-		sprite("dancer_" + dancerName, { anim: "idle" }),
+		sprite(Content.getDancerByName(dancerName).name, { anim: "idle" }),
 		pos(center().x, height()),
 		anchor("bot"),
 		scale(),
@@ -104,27 +105,13 @@ export function makeDancer(dancerName: string) {
 /** The type that a dancer game object would be */
 export type DancerGameObj = ReturnType<typeof makeDancer>;
 
-/** Class that holds some info related to a dancer */
-export class DancerFile {
-	dancerName: string;
-	dancerBg: string;
-	static loadByPath(path: string) {
-		const pathPrefix = `content/dancers/${path}/`;
-		const imagePath = `${pathPrefix}${path}.png`;
-		const imageAnimPath = `${pathPrefix}${path}_bg.png`;
-		const backgroundPath = `${pathPrefix}${path}-data.json`;
-		const backgroundAnimPath = `${pathPrefix}${path}_bg-data.png`;
-
-		let imageAnims = {} as SpriteData;
-		let bgAnims = {} as SpriteData;
-		fetch(imageAnimPath).then(async (data) => {
-			imageAnims = await data.json();
-		});
-		fetch(backgroundAnimPath).then(async (data) => {
-			bgAnims = await data.json();
-		});
-
-		loadSprite(`dancer_${path}`, imagePath);
-		loadSprite(`dancerBg_${path}`, backgroundPath);
+export class DancerData {
+	name: string;
+	animData: LoadSpriteOpt;
+	bgAnimData: LoadSpriteOpt;
+	constructor(name: string, animData?: LoadSpriteOpt, bgAnimData?: LoadSpriteOpt) {
+		this.name = name;
+		this.animData = animData;
+		this.bgAnimData = bgAnimData;
 	}
 }

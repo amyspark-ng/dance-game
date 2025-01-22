@@ -15,6 +15,7 @@ import { addUI } from "./objects/ui/gameUi";
 import { addPauseUI } from "./objects/ui/pauseUi";
 import { SongContent } from "./song";
 import "./GameScene";
+import { Content } from "../core/loading/content";
 import { Sound } from "../core/sound";
 
 /** Type to store the parameters for the game scene */
@@ -163,7 +164,7 @@ export class StateGame extends KaplayState {
 
 			let rotationDirection = choose([-10, 10]);
 			const newdumbnote = add([
-				sprite(GameSave.noteskin + "_" + noteObj.chartNote.move),
+				sprite(Content.getNoteskinSprite(noteObj.chartNote.move)),
 				pos(noteObj.pos),
 				anchor(noteObj.anchor),
 				opacity(noteObj.opacity),

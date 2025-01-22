@@ -1,3 +1,4 @@
+import { Content } from "../../core/loading/content";
 import { KaplayState } from "../../core/scenes/KaplayState";
 import { StateSongSelect } from "../../ui/menu/songselect/SongSelectScene";
 import { paramsGameScene, StateGame } from "../PlayState";
@@ -6,6 +7,7 @@ export class StateDeath extends KaplayState {
 	GameState: StateGame;
 	constructor(GameState: StateGame) {
 		super("death");
+		this.GameState = GameState;
 	}
 }
 
@@ -20,7 +22,7 @@ KaplayState.scene("death", (DeathState: StateDeath) => {
 	]);
 
 	add([
-		sprite("dancer_" + DeathState.GameState.params.dancerName, { anim: "miss" }),
+		sprite(Content.getDancerByName(DeathState.GameState.params.dancerName).name, { anim: "miss" }),
 		pos(center().x - 100, center().y + 50),
 		anchor("center"),
 		scale(0.5),

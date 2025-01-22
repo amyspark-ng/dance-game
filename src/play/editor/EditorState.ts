@@ -208,9 +208,7 @@ export class StateChart extends KaplayState {
 	placeNote(time: number, move: Move) {
 		this.takeSnapshot(`add ${move} note`);
 
-		const noteWithSameTimeButDifferentMove = this.song.chart.notes.find(note =>
-			note.time == time && note.move != move || note.time == time && note.move == move
-		);
+		const noteWithSameTimeButDifferentMove = this.song.chart.notes.find(note => note.time == time && note.move != move || note.time == time && note.move == move);
 		// if there's a note already at that time but a different move, remove it
 		if (noteWithSameTimeButDifferentMove) {
 			this.deleteNote(noteWithSameTimeButDifferentMove);
@@ -312,11 +310,9 @@ export class StateChart extends KaplayState {
 
 		// some stuff to remove faulty names from dancer list
 		const dancersInEvents = dancerChangeEvents.map((ev) => ev.value.dancer);
-		const allDancerNames = Content.loadedDancers.map((dancerFiles) => dancerFiles.dancerName);
+		const allDancerNames = Content.loadedDancers.map((dancerFiles) => dancerFiles.name);
 		if (dancersInEvents.some((dancerInEvent) => allDancerNames.includes(dancerInEvent)) == false) {
-			const indexOfFaultyDancer = dancerChangeEvents.findIndex((ev) =>
-				dancersInEvents.some((dancerInEvent) => ev.value.dancer == dancerInEvent)
-			);
+			const indexOfFaultyDancer = dancerChangeEvents.findIndex((ev) => dancersInEvents.some((dancerInEvent) => ev.value.dancer == dancerInEvent));
 			dancerChangeEvents = utils.removeFromArr(dancersInEvents[indexOfFaultyDancer], dancerChangeEvents);
 		}
 
@@ -367,12 +363,9 @@ export class StateChart extends KaplayState {
 
 		const oldUUID = params.song.manifest.uuid_DONT_CHANGE;
 
+		const uuidAlreadyExists = Content.loadedSongs.map((song) => song.manifest.uuid_DONT_CHANGE).includes(this.song.manifest.uuid_DONT_CHANGE);
 		// the uuid alreaddy exists
-		if (
-			Content.loadedSongs.map((song) => song.manifest.uuid_DONT_CHANGE).includes(
-				this.song.manifest.uuid_DONT_CHANGE,
-			)
-		) {
+		if (uuidAlreadyExists) {
 			this.song.manifest.name = this.song.manifest.name + " (copy)";
 			this.song.manifest.uuid_DONT_CHANGE = v4();
 			// have to reload the audio i don't know how much this would work since this loading takes time so
@@ -390,7 +383,7 @@ export class StateChart extends KaplayState {
 			loadSound(`${this.song.manifest.uuid_DONT_CHANGE}-audio`, newSoundBuffer as any);
 
 			// load default cover
-			FileManager.spriteToDataURL("defaultCover").then((dataurl) => {
+			FileManager.spriteToDataURL("new-song-cover").then((dataurl) => {
 				loadSprite(`${this.song.manifest.uuid_DONT_CHANGE}-cover`, dataurl);
 			});
 		}

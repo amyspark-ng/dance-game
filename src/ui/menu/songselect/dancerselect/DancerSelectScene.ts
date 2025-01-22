@@ -15,7 +15,7 @@ export class StateDancerSelect extends KaplayState {
 KaplayState.scene("dancerselect", (DancerSelectState: StateDancerSelect) => {
 	function addDancerChar(dancerName: string) {
 		const curDancer = add([
-			sprite("dancer_" + dancerName, { anim: "idle" }),
+			sprite(Content.getDancerByName(GameSave.dancer).name, { anim: "idle" }),
 			pos(center().x, center().y),
 			anchor("center"),
 			scale(),
@@ -28,11 +28,11 @@ KaplayState.scene("dancerselect", (DancerSelectState: StateDancerSelect) => {
 
 	const dancers = Content.loadedDancers;
 	/** The index in dancers of the currently selected dancer */
-	let curIndex = dancers.map(dancer => dancer.dancerName).indexOf(GameSave.dancer);
-	const dancerNames = dancers.map(dancer => dancer.dancerName);
+	let curIndex = dancers.map(dancer => dancer.name).indexOf(GameSave.dancer);
+	const dancerNames = dancers.map(dancer => dancer.name);
 
 	const bg = add([
-		sprite("dancer_" + dancers[curIndex].dancerName, {
+		sprite(Content.getDancerByName(dancers[curIndex].name).name, {
 			anim: "idle",
 			tiled: true,
 			width: width(),
@@ -42,17 +42,17 @@ KaplayState.scene("dancerselect", (DancerSelectState: StateDancerSelect) => {
 	]);
 
 	bg.onUpdate(() => {
-		bg.sprite = "dancer_" + dancers[curIndex].dancerName;
+		bg.sprite = Content.getDancerByName(dancers[curIndex].name).name;
 	});
 
 	dancers.forEach((dancer, index) => {
 		let intendedYPos = center().y;
 		let intendedXScale = 1;
 
-		const dancerChar = addDancerChar(dancer.dancerName);
+		const dancerChar = addDancerChar(dancer.name);
 
 		dancerChar.onUpdate(() => {
-			if (dancers[curIndex].dancerName == dancer.dancerName) {
+			if (dancers[curIndex].name == dancer.name) {
 				intendedYPos = center().y;
 				intendedXScale = 1;
 			}

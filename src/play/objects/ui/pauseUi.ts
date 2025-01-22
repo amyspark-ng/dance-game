@@ -1,3 +1,4 @@
+import { Content } from "../../../core/loading/content";
 import { GameSave } from "../../../core/save";
 import { Sound } from "../../../core/sound";
 import { utils } from "../../../utils";
@@ -127,7 +128,7 @@ export function addPauseUI() {
 
 	// dancer
 	const fakeDancer = add([
-		sprite("dancer_" + GameState.params.dancerName, { anim: "idle" }),
+		sprite(Content.getDancerByName(GameState.params.dancerName).name, { anim: "idle" }),
 		pos(center()),
 		z(baseZ),
 		anchor("center"),

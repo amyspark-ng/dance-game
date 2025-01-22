@@ -264,7 +264,7 @@ export class EditorTab {
 
 				arrow.onDraw(() => {
 					drawSprite({
-						sprite: "arrow",
+						sprite: "ui_arrow",
 						pos: vec2(arrow.width / 4, arrow.height / 4),
 						flipX: direction == "right" ? true : false,
 					});
@@ -370,9 +370,7 @@ export class EditorTab {
 
 	/** Find a tab game object by its instance */
 	static findTabByInstance(instance: EditorTab) {
-		return get("editorTab").find((editorTabObj: ReturnType<typeof EditorTab.addEditorTab>) =>
-			editorTabObj.tab == instance
-		);
+		return get("editorTab").find((editorTabObj: ReturnType<typeof EditorTab.addEditorTab>) => editorTabObj.tab == instance);
 	}
 
 	addElements(action: EditorTabElementsAction) {

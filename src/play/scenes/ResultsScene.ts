@@ -1,5 +1,6 @@
 import { Color } from "kaplay";
 // import { allSongCharts } from "../../core/loading/loader"
+import { Content } from "../../core/loading/content";
 import { KaplayState } from "../../core/scenes/KaplayState";
 import { Sound } from "../../core/sound";
 import { StateSongSelect } from "../../ui/menu/songselect/SongSelectScene";
@@ -111,7 +112,7 @@ KaplayState.scene("results", (ResultsState: StateResults) => {
 	});
 
 	const dancer = add([
-		sprite("dancer_" + ResultsState.GameState.params.dancerName),
+		sprite(Content.getDancerByName(ResultsState.GameState.params.dancerName).name),
 		pos(),
 		anchor("bot"),
 		scale(0.8),

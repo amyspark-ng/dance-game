@@ -2,6 +2,7 @@ import { appWindow } from "@tauri-apps/api/window";
 import { EaseFunc, KEventController } from "kaplay";
 import { cam } from "../core/camera";
 import { GAME } from "../core/init";
+import { Content } from "../core/loading/content";
 import { GameSave } from "../core/save";
 import { KaplayState } from "../core/scenes/KaplayState";
 import { Sound } from "../core/sound";
@@ -28,20 +29,13 @@ KaplayState.scene("game", (GameState: StateGame) => {
 		if (GameState.dancer.waitForIdle) GameState.dancer.waitForIdle.paused = GameState.paused;
 	});
 
-	let dancerHasBg = false;
-	getSprite(`bg_` + GameState.params.dancerName).onLoad((data) => {
-		if (data != null) dancerHasBg = true;
-	});
-
-	if (dancerHasBg) {
-		add([
-			sprite("bg_" + GameState.params.dancerName),
-			pos(center()),
-			anchor("center"),
-			layer("background"),
-			z(0),
-		]);
-	}
+	add([
+		sprite(Content.getDancerByName(GameState.params.dancerName).bg),
+		pos(center()),
+		anchor("center"),
+		layer("background"),
+		z(0),
+	]);
 
 	let hasPlayedGo = false;
 
@@ -140,9 +134,7 @@ KaplayState.scene("game", (GameState: StateGame) => {
 		if (chartNote.length) {
 			let keyRelease: KEventController = null;
 
-			const noteObj = get("noteObj", { recursive: true }).find((obj: NoteGameObj) =>
-				obj.chartNote == chartNote
-			) as NoteGameObj;
+			const noteObj = get("noteObj", { recursive: true }).find((obj: NoteGameObj) => obj.chartNote == chartNote) as NoteGameObj;
 			noteObj.opacity = 0;
 
 			keyRelease = onKeyRelease(GameSave.getKeyForMove(chartNote.move), () => {
@@ -156,7 +148,7 @@ KaplayState.scene("game", (GameState: StateGame) => {
 		GameState.dancer.miss();
 
 		if (harm == false) return;
-		Sound.playSound("missnote");
+		Sound.playSound("noteMiss");
 		addJudgement("Miss");
 
 		const closestNote = getClosestNote(GameState.song.chart.notes, GameState.conductor.timeInSeconds);

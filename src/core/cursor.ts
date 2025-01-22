@@ -158,6 +158,6 @@ export function loadCursor() {
 	const doings = ["default", "up", "down", "x", "text", "load"];
 
 	doings.forEach((dongo) => {
-		loadSprite(`cursor_${dongo}`, "sprites/cursor/cursor_" + dongo + ".png");
+		loadSprite(`cursor_${dongo}`, "shared/cursor/cursor_" + dongo + ".png");
 	});
 }

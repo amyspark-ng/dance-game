@@ -230,7 +230,7 @@ export class MenuBar {
 						if (item.text == "hueslider") {
 							menuitem.onDraw(() => {
 								drawSprite({
-									sprite: "editorhue",
+									sprite: "hueSlider",
 								});
 							});
 
@@ -327,9 +327,7 @@ export class MenuBar {
 		});
 
 		onClick(() => {
-			get("menubar").filter((obj) =>
-				!obj.isHovering() && obj.children.length > 0 && !obj.children.some((child) => child.isHovering())
-			).forEach((obj) => {
+			get("menubar").filter((obj) => !obj.isHovering() && obj.children.length > 0 && !obj.children.some((child) => child.isHovering())).forEach((obj) => {
 				obj.removeAll();
 			});
 		});

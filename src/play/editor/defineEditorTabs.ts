@@ -1,4 +1,5 @@
 import { GameObj, PosComp } from "kaplay";
+import { Content } from "../../core/loading/content";
 import { GameSave } from "../../core/save";
 import { FileManager } from "../../FileManager";
 import { utils } from "../../utils";
@@ -19,7 +20,7 @@ export function defineTabs() {
 		const moves: Move[] = ["left", "down", "up", "right"];
 		moves.forEach((move, index) => {
 			const noteObj = editorTabObj.add([
-				sprite(GameSave.noteskin + "_" + move),
+				sprite(Content.getNoteskinSprite(move)),
 				pos(),
 				area(),
 				opacity(),
@@ -113,7 +114,7 @@ export function defineTabs() {
 		dummyDancer.pos = vec2(0, editorTabObj.height - dummyDancer.height / 2 - 30);
 
 		dummyDancer.onUpdate(() => {
-			dummyDancer.sprite = "dancer_" + ChartState.getDancerAtTime();
+			dummyDancer.sprite = Content.getDancerByName(ChartState.getDancerAtTime()).name;
 		});
 
 		const playAnimEV = ChartState.onEvent("play-anim", (ev) => {
@@ -144,9 +145,7 @@ export function defineTabs() {
 		}
 
 		const onBeatHitEv = ChartState.conductor.onBeatHit((curBeat) => {
-			const currentBeatObj = (editorTabObj.get("beatcounter") as ReturnType<typeof addCounterObj>[]).find((obj) =>
-				obj.beat == (curBeat % ChartState.conductor.stepsPerBeat) + 1
-			);
+			const currentBeatObj = (editorTabObj.get("beatcounter") as ReturnType<typeof addCounterObj>[]).find((obj) => obj.beat == (curBeat % ChartState.conductor.stepsPerBeat) + 1);
 
 			tween(vec2(1.3), vec2(1), 0.15, (p) => currentBeatObj.scale = p);
 			if (currentBeatObj.beat == ChartState.conductor.stepsPerBeat) {

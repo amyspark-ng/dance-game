@@ -74,7 +74,7 @@ export class _GameSave {
 	editorHue = 0.696;
 
 	/** The prefix for the noteskin */
-	noteskin: string = "A";
+	noteskin: string = "arrows";
 
 	/** The songs that have been played, check @link {} type for more info */
 	songsPlayed: SaveScore[] = [];

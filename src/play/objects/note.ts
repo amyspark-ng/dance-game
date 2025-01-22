@@ -1,7 +1,9 @@
+import { LoadSpriteOpt } from "kaplay";
+import { Content } from "../../core/loading/content";
 import { GameSave } from "../../core/save";
 import { utils } from "../../utils";
 import { INPUT_THRESHOLD, StateGame } from "../PlayState";
-import { Move } from "./dancer";
+import { Move, moveAnimsArr } from "./dancer";
 import { Scoring } from "./scoring";
 import { StrumlineGameObj } from "./strumline";
 
@@ -73,6 +75,18 @@ export class ChartNote {
 	}
 }
 
+export class NoteskinData {
+	name: string;
+	spriteData: LoadSpriteOpt;
+	static Moves = [...moveAnimsArr, "trail", "tail"] as const;
+	constructor(name: string, spriteData?: LoadSpriteOpt) {
+		this.name = name;
+		this.spriteData = spriteData;
+	}
+}
+
+type NoteskinSprite = typeof NoteskinData.Moves[number];
+
 /** How much time will take for the note to reach the strum */
 export let TIME_FOR_STRUM = 1.25;
 
@@ -98,7 +112,7 @@ export function addNote(chartNote: ChartNote, GameState: StateGame, strumline: S
 	let trail: ReturnType<typeof addTrail> = null;
 
 	const noteObj = add([
-		sprite(GameSave.noteskin + "_" + chartNote.move),
+		sprite(Content.getNoteskinSprite(chartNote.move)),
 		pos(width() + NOTE_WIDTH, strumline.pos.y),
 		anchor("center"),
 		opacity(),
@@ -204,7 +218,7 @@ export function addNote(chartNote: ChartNote, GameState: StateGame, strumline: S
 			for (let i = 0; i < chartNote.length; i++) {
 				if (i == 0) {
 					drawSprite({
-						sprite: GameSave.noteskin + "_" + "trail",
+						sprite: Content.getNoteskinSprite("trail"),
 						width: NOTE_WIDTH / 2,
 						height: NOTE_WIDTH,
 						anchor: "left",
@@ -219,8 +233,8 @@ export function addNote(chartNote: ChartNote, GameState: StateGame, strumline: S
 
 				drawSprite({
 					sprite: (i != chartNote.length - 1)
-						? GameSave.noteskin + "_" + "trail"
-						: GameSave.noteskin + "_" + "tail",
+						? Content.getNoteskinSprite("trail")
+						: Content.getNoteskinSprite("tail"),
 					pos: vec2(NOTE_WIDTH / 2 + (NOTE_WIDTH * i), 0),
 					anchor: "left",
 					shader: "replacecolor",

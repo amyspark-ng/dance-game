@@ -188,10 +188,8 @@ export function checkForNoteHit(move: Move): ChartNote {
 
 	// if time in seconds is in range by input_treshold
 	// to the hit note of any note in the chart
-	if (
-		utils.isInRange(time, closestNote.time - INPUT_THRESHOLD, closestNote.time + INPUT_THRESHOLD)
-		&& closestNote.move == move
-	) {
+	const isNoteInRange = utils.isInRange(time, closestNote.time - INPUT_THRESHOLD, closestNote.time + INPUT_THRESHOLD);
+	if (isNoteInRange && closestNote.move == move) {
 		return closestNote;
 	}
 

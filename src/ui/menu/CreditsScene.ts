@@ -1,4 +1,5 @@
 import { KaplayState } from "../../core/scenes/KaplayState";
+import { StateMenu } from "./MenuScene";
 
 export class StateCredits extends KaplayState {
 	constructor() {
@@ -12,4 +13,6 @@ KaplayState.scene("credits", (CreditsState: StateCredits) => {
 		anchor("center"),
 		pos(center()),
 	]);
+
+	onKeyPress("escape", () => KaplayState.switchState(new StateMenu("credits")));
 });

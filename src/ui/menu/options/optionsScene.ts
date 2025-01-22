@@ -1,5 +1,6 @@
 import { _GameSave, GameSave } from "../../../core/save";
 import { KaplayState } from "../../../core/scenes/KaplayState";
+import { StateMenu } from "../MenuScene";
 
 export class StateOptions extends KaplayState {
 	constructor() {
@@ -20,4 +21,6 @@ KaplayState.scene("options", (OptionsState: StateOptions) => {
 		// just in case
 		GameSave.save();
 	});
+
+	onKeyPress("escape", () => KaplayState.switchState(new StateMenu("options")));
 });

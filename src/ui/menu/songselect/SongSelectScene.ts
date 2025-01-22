@@ -57,7 +57,7 @@ export class StateSongSelect extends KaplayState {
 		]);
 
 		const albumCover = capsuleContainer.add([
-			sprite(!isAddSong ? curSong.manifest.uuid_DONT_CHANGE + "-cover" : "importSongBtn"),
+			sprite(!isAddSong ? curSong.manifest.uuid_DONT_CHANGE + "-cover" : "importSong"),
 			pos(),
 			anchor("center"),
 			opacity(),
@@ -128,7 +128,7 @@ export class StateSongSelect extends KaplayState {
 		// if song isn't on default songs then it means it's imported from elsewhere
 		if (!Content.defaultUUIDS.includes(curSong.manifest.uuid_DONT_CHANGE)) {
 			const importedSticker = capsuleContainer.add([
-				sprite("importedSong"),
+				sprite("imported"),
 				pos(),
 				anchor("center"),
 				rotate(rand(-2, 2)),
