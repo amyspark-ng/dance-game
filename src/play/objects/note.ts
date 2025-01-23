@@ -3,7 +3,7 @@ import { Content } from "../../core/loading/content";
 import { GameSave } from "../../core/save";
 import { utils } from "../../utils";
 import { INPUT_THRESHOLD, StateGame } from "../PlayState";
-import { Move, moveAnimsArr } from "./dancer";
+import { makeDancer, Move, moveAnimsArr } from "./dancer";
 import { Scoring } from "./scoring";
 import { StrumlineGameObj } from "./strumline";
 
@@ -85,8 +85,6 @@ export class NoteskinData {
 	}
 }
 
-type NoteskinSprite = typeof NoteskinData.Moves[number];
-
 /** How much time will take for the note to reach the strum */
 export let TIME_FOR_STRUM = 1.25;
 
@@ -110,6 +108,8 @@ function addMasked() {
 /** Adds a note to the game */
 export function addNote(chartNote: ChartNote, GameState: StateGame, strumline: StrumlineGameObj) {
 	let trail: ReturnType<typeof addTrail> = null;
+	const masked = get("masked")[0] as ReturnType<typeof addMasked>;
+	masked.z = 1;
 
 	const noteObj = add([
 		sprite(Content.getNoteskinSprite(chartNote.move)),
@@ -140,21 +140,20 @@ export function addNote(chartNote: ChartNote, GameState: StateGame, strumline: S
 
 		if (!noteHit.length) return;
 
-		let noteHasFinished = false;
-		trail.onUpdate(() => {
-			if (trail.pos.x + trail.width < width() / 2 && !noteHasFinished) {
-				noteHasFinished = true;
-			}
+		let trailHasFinished = false;
 
-			if (hasMissedNote) {
-				trail.opacity = noteObj.opacity;
+		// trail.parent = masked;
+		// masked.children.push(trail);
+		trail.onUpdate(() => {
+			if (trail.pos.x + trail.width < width() / 2 && !trailHasFinished) {
+				trailHasFinished = true;
 			}
 		});
 
 		const score = Scoring.getScorePerDiff(GameState.conductor.timeInSeconds, chartNote);
 		const stepHitEv = GameState.conductor.onStepHit(() => {
 			// will only run while the note is going on
-			if (noteHasFinished) {
+			if (trailHasFinished) {
 				stepHitEv.cancel();
 				return;
 			}
@@ -169,8 +168,8 @@ export function addNote(chartNote: ChartNote, GameState: StateGame, strumline: S
 			strumline.currentNote = null;
 
 			// didn't finish holding, bad
-			if (!noteHasFinished) {
-				trail.hidden = true;
+			if (!trailHasFinished) {
+				tween(noteObj.opacity, 0, 0.15, (p) => noteObj.opacity = p);
 			}
 
 			keyReleaseEv.cancel();
@@ -204,14 +203,11 @@ export function addNote(chartNote: ChartNote, GameState: StateGame, strumline: S
 	});
 
 	function addTrail() {
-		const masked = get("masked")[0] as ReturnType<typeof addMasked>;
-		masked.z = noteObj.z - 1;
-
-		const trail = masked.add([
+		const trail = add([
 			pos(noteObj.pos),
-			anchor(noteObj.anchor),
+			anchor("left"),
 			opacity(),
-			z(masked.z),
+			z(noteObj.z - 1),
 			{
 				width: NOTE_WIDTH * chartNote.length,
 			},

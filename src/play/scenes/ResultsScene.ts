@@ -26,11 +26,11 @@ KaplayState.scene("results", (ResultsState: StateResults) => {
 	setBackground(RED.lighten(60));
 
 	/** Class that contains a dumb thing for each line in the tally countering */
-	class tallyContainer {
+	type tallyContainer = {
 		title: string;
 		value: number;
 		color: Color;
-	}
+	};
 
 	const tallyThings: tallyContainer[] = [
 		{ title: "score", value: ResultsState.GameState.tally.score, color: WHITE },
@@ -58,7 +58,7 @@ KaplayState.scene("results", (ResultsState: StateResults) => {
 	/** The animations of the dancer according to the ranking you got */
 	const anims = getAnimsAccordingToRanking(ranking);
 
-	const drumroll = Sound.playSound("drumroll", { volume: 1 });
+	const drumroll = Sound.playSound("resultsDrumroll");
 	const durationPerTally = drumroll.duration() / tallyThings.length;
 
 	tallyThings.forEach((tallyT, index) => {

@@ -146,7 +146,6 @@ export class Content {
 					};
 				});
 
-				console.log(atlasData);
 				loadSpriteAtlas(`content/noteskins/${data.name}.png`, atlasData);
 			}
 		});
