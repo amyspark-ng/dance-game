@@ -15,6 +15,7 @@ import { EditorRenderer, SCROLL_LERP_VALUE } from "./EditorRenderer.ts";
 import { ChartStamp, StateChart } from "./EditorState.ts";
 import { EditorTab } from "./editorTabs.ts";
 import { EditorCommands, EditorUtils } from "./EditorUtils.ts";
+import { EditorNote } from "./objects/stamp.ts";
 
 KaplayState.scene("editor", (ChartState: StateChart) => {
 	// Find a way to comfortably put this back in the constructor
@@ -42,6 +43,8 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 
 	onUpdate(() => {
 		// ChartState.bgColor = Color.fromHSL(GameSave.editorHue, 0.45, 0.48);
+		ChartState.notes.forEach((note) => note.update());
+
 		ChartState.bgColor = rgb(92, 50, 172);
 
 		const allStamps = EditorUtils.stamps.concat(ChartState.song.chart.notes, ChartState.song.chart.events);
@@ -118,11 +121,12 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 	/** The main event, draws everything so i don't have to use objects */
 	onDraw(() => {
 		EditorRenderer.trackBackground();
-		EditorRenderer.stamps();
+		// EditorRenderer.stamps();
+		ChartState.notes.forEach((note) => note.draw());
 		EditorRenderer.strumline();
 		EditorRenderer.minimap();
 		EditorRenderer.noteCursor();
-		EditorRenderer.selectSquares();
+		// EditorRenderer.selectSquares();
 		EditorRenderer.selectionBox();
 	});
 
@@ -154,56 +158,60 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 		);
 
 		function noteBehaviour() {
-			let hoveredNote = EditorUtils.stamps.getHovered("note");
+			let hoveredNote = ChartState.notes.find((note) => note.isHovering());
 
 			// there's already a note in that place
 			if (hoveredNote) {
-				// if the note is not already selected
-				if (!ChartState.selectedStamps.includes(hoveredNote)) {
-					// if control is not down then reset the selected notes
-					if (!isKeyDown("control")) ChartState.resetSelectedStamps();
-					ChartState.selectedStamps.push(hoveredNote);
-				}
+				// // if the note is not already selected
+				// if (!ChartState.selectedStamps.includes(hoveredNote)) {
+				// 	// if control is not down then reset the selected notes
+				// 	if (!isKeyDown("control")) ChartState.resetSelectedStamps();
+				// 	ChartState.selectedStamps.push(hoveredNote);
+				// }
 
-				if (hoveredNote.length) {
-					if (ChartState.hoveredStep == Math.round(ChartState.conductor.timeToStep(hoveredNote.time))) {
-						setLeading(hoveredNote);
-					}
-				}
-				else setLeading(hoveredNote);
+				// if (hoveredNote.length) {
+				// 	if (ChartState.hoveredStep == Math.round(ChartState.conductor.timeToStep(hoveredNote.time))) {
+				// 		setLeading(hoveredNote);
+				// 	}
+				// }
+				// else setLeading(hoveredNote);
 			}
 			// there's no note in that place
 			else {
-				if (ChartState.selectedStamps.length > 0) EditorCommands.DeselectAll();
-				hoveredNote = ChartState.placeNote(hoveredTime, ChartState.currentMove);
-				EditorUtils.noteSound(hoveredNote, "Add");
+				hoveredNote = ChartState.placeNote(hoveredTime);
+				EditorUtils.noteSound(hoveredNote.data, "Add");
+				// if (ChartState.selectedStamps.length > 0) EditorCommands.DeselectAll();
+				// hoveredNote = ChartState.placeNote(hoveredTime, ChartState.currentMove);
+				// EditorUtils.noteSound(hoveredNote, "Add");
 
-				setLeading(hoveredNote);
+				// notes.push(new EditorNote(hoveredNote));
 
-				stretchingNoteEV?.cancel();
-				stretchingNoteEV = onMouseMove(() => {
-					let oldLength = hoveredNote.length;
-					const noteLength = Math.floor(
-						(ChartState.hoveredStep)
-							- ChartState.conductor.timeToStep(hoveredNote.time),
-					);
-					hoveredNote.length = noteLength > 0 ? noteLength : undefined;
-					let newLength = hoveredNote.length;
-					if (oldLength != newLength) {
-						const detune = newLength % 2 == 0 ? 0 : 100;
-						Sound.playSound("noteStretch", { detune: detune });
-					}
-				});
+				// setLeading(hoveredNote);
 
-				const releaseEV = onMouseRelease(() => {
-					if (hoveredNote.length) Sound.playSound("noteSnap", { detune: rand(-25, 25) });
-					releaseEV.cancel();
-					stretchingNoteEV?.cancel();
-					stretchingNoteEV = null;
-				});
+				// stretchingNoteEV?.cancel();
+				// stretchingNoteEV = onMouseMove(() => {
+				// 	let oldLength = hoveredNote.length;
+				// 	const noteLength = Math.floor(
+				// 		(ChartState.hoveredStep)
+				// 			- ChartState.conductor.timeToStep(hoveredNote.time),
+				// 	);
+				// 	hoveredNote.length = noteLength > 0 ? noteLength : undefined;
+				// 	let newLength = hoveredNote.length;
+				// 	if (oldLength != newLength) {
+				// 		const detune = newLength % 2 == 0 ? 0 : 100;
+				// 		Sound.playSound("noteStretch", { detune: detune });
+				// 	}
+				// });
+
+				// const releaseEV = onMouseRelease(() => {
+				// 	if (hoveredNote.length) Sound.playSound("noteSnap", { detune: rand(-25, 25) });
+				// 	releaseEV.cancel();
+				// 	stretchingNoteEV?.cancel();
+				// 	stretchingNoteEV = null;
+				// });
 			}
 
-			ChartState.stepForDetune = ChartState.conductor.timeToStep(hoveredNote.time);
+			// ChartState.stepForDetune = ChartState.conductor.timeToStep(hoveredNote.time);
 		}
 
 		function eventBehaviour() {

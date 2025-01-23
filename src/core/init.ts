@@ -103,12 +103,12 @@ export function INITIAL_SCENE() {
 	// KaplayState.switchState(
 	// 	new StateChart({ dancer: GameSave.dancer, playbackSpeed: 1, seekTime: 1, song: getSong("bopeebo") }),
 	// );
-	KaplayState.switchState(
-		new StateGame({
-			dancerName: GameSave.dancer,
-			song: Content.getSongByName("bopeebo"),
-		}),
-	);
+	// KaplayState.switchState(
+	// 	new StateGame({
+	// 		dancerName: GameSave.dancer,
+	// 		song: Content.getSongByName("bopeebo"),
+	// 	}),
+	// );
 	// KaplayState.switchState(new StateSongSelect(0));
-	// KaplayState.switchState(new StateChart({ playbackSpeed: 1, seekTime: 0, song: getSong("bopeebo") }));
+	KaplayState.switchState(new StateChart({ song: Content.getSongByName("bopeebo") }));
 }

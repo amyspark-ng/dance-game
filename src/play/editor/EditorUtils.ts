@@ -79,9 +79,7 @@ export class EditorCommands {
 		const notes = StateChart.instance.song.chart.notes;
 		const events = StateChart.instance.song.chart.events;
 		const allStamps = EditorUtils.stamps.concat(notes, events);
-		StateChart.instance.selectedStamps = allStamps.filter((stamp) =>
-			!StateChart.instance.selectedStamps.includes(stamp)
-		);
+		StateChart.instance.selectedStamps = allStamps.filter((stamp) => !StateChart.instance.selectedStamps.includes(stamp));
 	}
 
 	static Delete(stamps?: ChartStamp[]) {
@@ -219,7 +217,7 @@ export class EditorCommands {
 		StateChart.instance.undo();
 
 		if (oldSongState != StateChart.instance.song) {
-			Sound.playSound("noteUndo", { detune: rand(-50, -25) });
+			Sound.playSound("undo", { detune: rand(-50, -25) });
 		}
 	}
 
@@ -228,7 +226,7 @@ export class EditorCommands {
 		StateChart.instance.redo();
 
 		if (oldSongState != StateChart.instance.song) {
-			Sound.playSound("noteUndo", { detune: rand(25, 50) });
+			Sound.playSound("undo", { detune: rand(25, 50) });
 		}
 	}
 }
@@ -267,9 +265,7 @@ export class EditorUtils {
 			message = `${stringForAction} ${eventsLength} ${moreThanOneEvent ? "events" : "event"}!`;
 		}
 		else if (notesLength > 0 && eventsLength > 0) {
-			message = `${stringForAction} ${notesLength} ${moreThanOneNote ? "notes" : "note"} and ${eventsLength} ${
-				moreThanOneEvent ? "events" : "event"
-			}!`;
+			message = `${stringForAction} ${notesLength} ${moreThanOneNote ? "notes" : "note"} and ${eventsLength} ${moreThanOneEvent ? "events" : "event"}!`;
 		}
 		else if (notesLength == 0 && eventsLength == 0) message = `${stringForAction} nothing!`;
 
@@ -318,9 +314,7 @@ export class EditorUtils {
 	static stamps: stampUtils = {
 		find(stampType: "note" | "event", step: number) {
 			if (stampType == "note") {
-				const note = StateChart.instance.song.chart.notes.find((note) =>
-					Math.round(StateChart.instance.conductor.timeToStep(note.time)) == step
-				);
+				const note = StateChart.instance.song.chart.notes.find((note) => Math.round(StateChart.instance.conductor.timeToStep(note.time)) == step);
 				if (note) return note as ChartNote;
 				else {
 					const longNotes = StateChart.instance.song.chart.notes.filter((note) => note.length != undefined);

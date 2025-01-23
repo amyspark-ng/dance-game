@@ -14,13 +14,14 @@ import { SongContent } from "../song";
 import { PROP_BIG_SCALE } from "./EditorRenderer";
 import "./EditorScene";
 import { Content } from "../../core/loading/content";
+import { EditorEvent, EditorNote } from "./objects/stamp";
 
 /** The params for the chart editor */
 export type paramsEditor = {
 	/** The song */
 	song: SongContent;
-	playbackSpeed: number;
-	seekTime: number;
+	playbackSpeed?: number;
+	seekTime?: number;
 };
 
 /** Is either a note or an event */
@@ -102,11 +103,17 @@ export class StateChart extends KaplayState {
 	/** How much lerp to generally use */
 	LERP = 0.5;
 
+	static LERP = 0.5;
+
 	/** Width and height of every square */
 	SQUARE_SIZE = vec2(52, 52);
 
+	static SQUARE_SIZE = vec2(52, 52);
+
 	/** The initial pos of the first square */
 	INITIAL_POS = vec2(center().x, this.SQUARE_SIZE.y - this.SQUARE_SIZE.y / 2);
+
+	static INITIAL_POS = vec2(center().x, this.SQUARE_SIZE.y - this.SQUARE_SIZE.y / 2);
 
 	/** The current selected move to place a note */
 	currentMove: Move = "up";
@@ -202,29 +209,23 @@ export class StateChart extends KaplayState {
 		tween(1.5, 1, 0.1, (p) => this.cursorScale.x = p);
 	}
 
+	notes: EditorNote[] = [];
+	event: EditorEvent[] = [];
+
 	/** Add a note to the chart
 	 * @returns The added note
 	 */
-	placeNote(time: number, move: Move) {
+	placeNote(time: number, move: Move = this.currentMove) {
 		this.takeSnapshot(`add ${move} note`);
 
-		const noteWithSameTimeButDifferentMove = this.song.chart.notes.find(note => note.time == time && note.move != move || note.time == time && note.move == move);
-		// if there's a note already at that time but a different move, remove it
-		if (noteWithSameTimeButDifferentMove) {
-			this.deleteNote(noteWithSameTimeButDifferentMove);
-		}
+		const editorNote = new EditorNote({ time, move });
+		this.notes.push(editorNote);
+		this.notes.sort((a, b) => b.data.time - a.data.time);
+		this.song.chart.notes[this.notes.indexOf(editorNote)] = editorNote.data;
+		editorNote.selected = true;
+		editorNote.bop();
 
-		// @ts-ignore
-		const newNote: ChartNote = { time: time, move: move };
-		this.song.chart.notes.push(newNote);
-		this.song.chart.events.sort((a, b) => a.time - b.time);
-
-		const indexInNotes = this.song.chart.notes.indexOf(newNote);
-		this.stampProps.notes[indexInNotes] = { scale: vec2(1), angle: 0 };
-		tween(PROP_BIG_SCALE, vec2(1), 0.1, (p) => this.stampProps.notes[indexInNotes].scale = p);
-		this.selectedStamps.push(newNote);
-
-		return newNote;
+		return editorNote;
 	}
 
 	/** Remove a note from the chart
