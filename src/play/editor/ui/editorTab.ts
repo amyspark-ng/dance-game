@@ -1,10 +1,10 @@
 import { KEventController, Vec2 } from "kaplay";
-import { drag } from "../../core/drag";
-import { Sound } from "../../core/sound";
-import { utils } from "../../utils";
-import { defineTabs } from "./defineEditorTabs";
-import { MenuBar, MenuItem } from "./editorMenus";
-import { StateChart } from "./EditorState";
+import { drag } from "../../../core/drag";
+import { Sound } from "../../../core/sound";
+import { utils } from "../../../utils";
+import { StateChart } from "../EditorState";
+import { defineTabs } from "./defineTabs";
+import { MenuBar, MenuItem } from "./menubar";
 
 /** The type for the {@link EditorTab.addElements `addElements()`} function in {@link EditorTab} */
 type EditorTabElementsAction = (editorTabObj: ReturnType<typeof EditorTab.addEditorTab>) => void;

@@ -216,7 +216,6 @@ export class Conductor {
 		this.currentStep = 0;
 		if (opts.offset > 0) this.timeInSeconds = -opts.offset;
 		else this.timeInSeconds = 0;
-		this.audioPlay?.stop();
 
 		onUpdate(() => {
 			this.update();

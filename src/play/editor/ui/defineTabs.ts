@@ -1,13 +1,13 @@
 import { GameObj, PosComp } from "kaplay";
-import { Content } from "../../core/loading/content";
-import { GameSave } from "../../core/save";
-import { FileManager } from "../../FileManager";
-import { utils } from "../../utils";
-import { ChartEvent } from "../event";
-import { makeDancer, Move } from "../objects/dancer";
-import { StateChart } from "./EditorState";
-import { EditorTab } from "./editorTabs";
-import { EditorUtils } from "./EditorUtils";
+import { Content } from "../../../core/loading/content";
+import { GameSave } from "../../../core/save";
+import { FileManager } from "../../../FileManager";
+import { utils } from "../../../utils";
+import { ChartEvent } from "../../event";
+import { makeDancer, Move } from "../../objects/dancer";
+import { StateChart } from "../EditorState";
+import { EditorStamp } from "../objects/stamp";
+import { EditorTab } from "./editorTab";
 
 /** Function that defines the tabs found in the {@link EditorTab} class */
 export function defineTabs() {
@@ -114,10 +114,11 @@ export function defineTabs() {
 		dummyDancer.pos = vec2(0, editorTabObj.height - dummyDancer.height / 2 - 30);
 
 		dummyDancer.onUpdate(() => {
-			dummyDancer.sprite = Content.getDancerByName(ChartState.getDancerAtTime()).name;
+			const dancerAtTime = ChartEvent.handle["change-dancer"](ChartState.conductor.timeInSeconds, ChartState.song.chart.events).dancer;
+			dummyDancer.sprite = Content.getDancerByName(dancerAtTime).name;
 		});
 
-		const playAnimEV = ChartState.onEvent("play-anim", (ev) => {
+		const playAnimEV = ChartEvent.onEvent("play-anim", (ev) => {
 			if (!dummyDancer) return;
 			if (dummyDancer.getAnim(ev.value.anim) == null) {
 				console.warn("Animation not found for dancer: " + ev.value.anim);
@@ -145,7 +146,9 @@ export function defineTabs() {
 		}
 
 		const onBeatHitEv = ChartState.conductor.onBeatHit((curBeat) => {
-			const currentBeatObj = (editorTabObj.get("beatcounter") as ReturnType<typeof addCounterObj>[]).find((obj) => obj.beat == (curBeat % ChartState.conductor.stepsPerBeat) + 1);
+			const currentBeatObj = (editorTabObj.get("beatcounter") as ReturnType<typeof addCounterObj>[]).find((obj) =>
+				obj.beat == (curBeat % ChartState.conductor.stepsPerBeat) + 1
+			);
 
 			tween(vec2(1.3), vec2(1), 0.15, (p) => currentBeatObj.scale = p);
 			if (currentBeatObj.beat == ChartState.conductor.stepsPerBeat) {
@@ -155,8 +158,10 @@ export function defineTabs() {
 			if (dummyDancer.getCurAnim().name == "idle") dummyDancer.moveBop();
 		});
 
-		const onNoteHitEv = ChartState.events.onNoteHit((note) => {
-			dummyDancer.doMove(note.move);
+		const onNoteHitEv = getTreeRoot().on("stampHit", (stamp: EditorStamp) => {
+			if (stamp.is("note")) {
+				dummyDancer.doMove(stamp.data.move);
+			}
 		});
 
 		editorTabObj.onDraw(() => {
@@ -329,7 +334,7 @@ export function defineTabs() {
 		editorTabObj.onUpdate(() => {
 			// the other event thing is so you can deselect the event and still make it work
 			const oldEvent = testEvent;
-			testEvent = ChartState.selectedStamps.find((stamp) => !EditorUtils.stamps.isNote(stamp)) as ChartEvent;
+			// TODO: make this work with the being edited event thing
 			const newEvent = testEvent;
 
 			// this runs whenever the selected event changes
@@ -341,11 +346,11 @@ export function defineTabs() {
 				if (validEvent || notValidEvent) {
 					if (notValidEvent) {
 						currentEvent = undefined;
-						ChartState.input.shortcutEnabled = true;
+						ChartState.shortcutsEnabled = true;
 					}
 					else if (validEvent) {
 						currentEvent = testEvent;
-						ChartState.input.shortcutEnabled = false;
+						ChartState.shortcutsEnabled = false;
 					}
 
 					refreshTabUI(currentEvent);
@@ -370,10 +375,10 @@ export function defineTabs() {
 			if (currentEvent) {
 				const eventStep = ChartState.conductor.timeToStep(currentEvent.time);
 				const stepPos = ChartState.stepToPos(eventStep);
-				stepPos.y -= ChartState.SQUARE_SIZE.y * ChartState.lerpScrollStep;
+				stepPos.y -= StateChart.SQUARE_SIZE.y * ChartState.lerpScrollStep;
 
 				drawLine({
-					p1: vec2(stepPos.x + ChartState.SQUARE_SIZE.x, stepPos.y),
+					p1: vec2(stepPos.x + StateChart.SQUARE_SIZE.x, stepPos.y),
 					p2: vec2(editorTabObj.pos.x - editorTabObj.width / 2, editorTabObj.pos.y - editorTabObj.height / 2),
 					width: 2,
 					opacity: 0.5,

@@ -7,18 +7,21 @@ import { KaplayState } from "../../core/scenes/KaplayState.ts";
 import { BlackBarsTransition } from "../../core/scenes/transitions/blackbar.ts";
 import { Sound } from "../../core/sound.ts";
 import { utils } from "../../utils.ts";
-import { ChartEvent } from "../event.ts";
 import { ChartNote } from "../objects/note.ts";
 import { StateGame } from "../PlayState.ts";
-import { MenuBar } from "./editorMenus.ts";
-import { EditorRenderer, SCROLL_LERP_VALUE } from "./EditorRenderer.ts";
-import { ChartStamp, StateChart } from "./EditorState.ts";
-import { EditorTab } from "./editorTabs.ts";
-import { EditorCommands, EditorUtils } from "./EditorUtils.ts";
-import { EditorNote } from "./objects/stamp.ts";
+import { editorShortcuts } from "./backend/handlers.ts";
+import { StateChart } from "./EditorState.ts";
+import { EventLane, NoteLane } from "./objects/lane.ts";
+import { EditorMinimap } from "./objects/minimap.ts";
+import { EditorSelectionBox } from "./objects/selectionbox.ts";
+import { EditorStamp } from "./objects/stamp.ts";
+import { EditorTab } from "./ui/editorTab.ts";
+import { MenuBar } from "./ui/menubar.ts";
 
 KaplayState.scene("editor", (ChartState: StateChart) => {
 	// Find a way to comfortably put this back in the constructor
+	// apparently has to be here because they rely on the conductor and it is only set after the constructor
+	Sound.musics.forEach((music) => music.stop());
 	ChartState.conductor = new Conductor({
 		audioPlay: Sound.playMusic(`${ChartState.song.manifest.uuid_DONT_CHANGE}-audio`, {
 			speed: ChartState.params.playbackSpeed,
@@ -27,9 +30,18 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 		timeSignature: ChartState.song.manifest.time_signature,
 		offset: 0,
 	});
+	ChartState.conductor.audioPlay?.stop();
 	ChartState.conductor.audioPlay.seek(ChartState.params.seekTime);
 	ChartState.paused = true;
 	ChartState.scrollToStep(ChartState.conductor.timeToStep(ChartState.params.seekTime));
+
+	ChartState.song.chart.notes.forEach((chartNote) => {
+		ChartState.place("note", chartNote);
+	});
+
+	ChartState.song.chart.events.forEach((chartEvent) => {
+		ChartState.place("event", chartEvent);
+	});
 
 	onDraw(() => {
 		drawRect({
@@ -39,52 +51,100 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 		});
 	});
 
-	EditorUtils.handlers.mouseAnim();
+	// EditorUtils.handlers.mouseAnim();
+	ChartState.noteLane = new NoteLane();
+	ChartState.eventLane = new EventLane();
+	ChartState.eventLane.pos = ChartState.noteLane.pos.add(StateChart.SQUARE_SIZE.x, 0);
+	// the ol' switcheroo
+	ChartState.eventLane.darkColor = ChartState.noteLane.lightColor;
+	ChartState.eventLane.lightColor = ChartState.noteLane.darkColor;
+
+	/** The event for stretching a note */
+	let stretchingNoteEV: KEventController = null;
+	ChartState.noteLane.obj.onClick(() => {
+		let hoveredNote = ChartState.notes.find((note) => note.isHovering());
+		// place a new note
+		if (!hoveredNote) {
+			ChartState.takeSnapshot(`add ${move} note`);
+			hoveredNote = ChartState.place("note", { time: ChartState.conductor.stepToTime(ChartState.hoveredStep), move: ChartState.currentMove });
+			hoveredNote.bop();
+			hoveredNote.selected = true;
+
+			stretchingNoteEV?.cancel();
+			stretchingNoteEV = onMouseMove(() => {
+				let oldLength = hoveredNote.data.length;
+				const noteLength = Math.floor(ChartState.hoveredStep - hoveredNote.step);
+				hoveredNote.data.length = noteLength > 0 ? noteLength : undefined;
+				let newLength = hoveredNote.data.length;
+				if (oldLength != newLength) {
+					const detune = newLength % 2 == 0 ? 0 : 100;
+					Sound.playSound("noteStretch", { detune: detune });
+				}
+			});
+
+			const releaseEV = onMouseRelease(() => {
+				if (hoveredNote.data.length) Sound.playSound("noteSnap", { detune: rand(-25, 25) });
+				releaseEV.cancel();
+				stretchingNoteEV?.cancel();
+				stretchingNoteEV = null;
+			});
+		}
+		// existing note
+		else {
+			hoveredNote.selected = true;
+		}
+	});
+
+	ChartState.noteLane.obj.onMousePress("right", () => {
+		if (!ChartState.noteLane.obj.isHovering()) return;
+		ChartState.delete("note");
+	});
+
+	ChartState.eventLane.obj.onClick(() => {
+		let hoveredEvent = ChartState.events.find((ev) => ev.isHovering());
+		if (!hoveredEvent) {
+			hoveredEvent = ChartState.place("event", { time: ChartState.conductor.stepToTime(ChartState.hoveredStep), id: ChartState.currentEvent, value: {} });
+			hoveredEvent.bop();
+			hoveredEvent.selected = true;
+		}
+		else {
+			hoveredEvent.selected = true;
+			ChartState.events.forEach((event) => {
+				if (event.beingEdited == true) event.beingEdited = false;
+			});
+			hoveredEvent.beingEdited = true;
+		}
+	});
+
+	ChartState.eventLane.obj.onMousePress("right", () => {
+		if (!ChartState.eventLane.obj.isHovering()) return;
+		ChartState.delete("event");
+	});
+
+	ChartState.minimap = new EditorMinimap();
+	ChartState.minimap.pos = ChartState.eventLane.pos.add(StateChart.SQUARE_SIZE.x, 0);
+
+	ChartState.selectionBox = new EditorSelectionBox();
 
 	onUpdate(() => {
-		// ChartState.bgColor = Color.fromHSL(GameSave.editorHue, 0.45, 0.48);
-		ChartState.notes.forEach((note) => note.update());
-
 		ChartState.bgColor = rgb(92, 50, 172);
-
-		const allStamps = EditorUtils.stamps.concat(ChartState.song.chart.notes, ChartState.song.chart.events);
-		allStamps.forEach((stamp, index) => {
-			EditorUtils.stamps.fix(stamp);
-
-			const isNote = EditorUtils.stamps.isNote(stamp);
-			if (!ChartState.stampProps[isNote ? "notes" : "events"][index]) {
-				ChartState.stampProps[isNote ? "notes" : "events"][index] = {
-					scale: vec2(1),
-					angle: 0,
-				};
-			}
-		});
-
-		// STAMP PROP
-		ChartState.stampProps["notes"] = ChartState.stampProps["notes"].slice(
-			0,
-			ChartState.song.chart.notes.length,
-		);
-
-		ChartState.stampProps["events"] = ChartState.stampProps["events"].slice(
-			0,
-			ChartState.song.chart.events.length,
-		);
-
-		// TODO: Do stuff for properly animating dancer
-		ChartState.song.chart.events.forEach((ev) => {
-			if (ChartState.conductor.timeInSeconds >= ev.time) {
-				if (ChartState.doneEvents.includes(ev)) return;
-				ChartState.doneEvents.push(ev);
-			}
-			else {
-				ChartState.doneEvents = utils.removeFromArr(ev, ChartState.doneEvents);
-			}
-		});
-
 		ChartState.conductor.paused = ChartState.paused;
 
+		if (isKeyPressed("j")) {
+			debug.log(ChartState.notes.length);
+		}
+
+		// editor stamps update
+		ChartState.notes.forEach((note) => note.update());
+		ChartState.events.forEach((event) => event.update());
+
+		// MOUSE COLOR
+		const currentColor = ChartNote.moveToColor(ChartState.currentMove);
+		const mouseColor = utils.blendColors(WHITE, currentColor, 0.5);
+		gameCursor.color = lerp(gameCursor.color, mouseColor, StateChart.LERP);
+
 		// SCROLL STEP
+		ChartState.lerpScrollStep = lerp(ChartState.lerpScrollStep, ChartState.scrollStep, StateChart.LERP);
 		if (ChartState.paused) {
 			const theTime = ChartState.conductor.stepToTime(ChartState.scrollStep + ChartState.strumlineStep);
 			ChartState.conductor.timeInSeconds = theTime;
@@ -97,274 +157,34 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 			ChartState.scrollStep = Math.round(newStep);
 		}
 
-		ChartState.lerpScrollStep = lerp(ChartState.lerpScrollStep, ChartState.scrollStep, SCROLL_LERP_VALUE);
-
-		// MOUSE COLOR
-		const currentColor = ChartNote.moveToColor(ChartState.currentMove);
-		const mouseColor = utils.blendColors(WHITE, currentColor, 0.5);
-		gameCursor.color = lerp(gameCursor.color, mouseColor, SCROLL_LERP_VALUE);
-
 		// HOVERED STEP
-		ChartState.hoveredStep = ChartState.scrollStep + Math.floor(gameCursor.pos.y / ChartState.SQUARE_SIZE.y);
+		ChartState.hoveredStep = ChartState.scrollStep + Math.floor(gameCursor.pos.y / StateChart.SQUARE_SIZE.y);
 
-		// some handlers
-		EditorUtils.handlers.grid();
-		EditorUtils.handlers.shortcuts();
-		EditorUtils.handlers.selectionBox();
-		EditorUtils.handlers.minimap();
-
-		leftMousePress.paused = !ChartState.input.trackEnabled;
-		rightMousePress.paused = !ChartState.input.trackEnabled;
-		rightMouseDown.paused = !ChartState.input.trackEnabled;
+		ChartState.minimap.update();
+		ChartState.selectionBox.update();
+		editorShortcuts();
 	});
 
 	/** The main event, draws everything so i don't have to use objects */
 	onDraw(() => {
-		EditorRenderer.trackBackground();
-		// EditorRenderer.stamps();
 		ChartState.notes.forEach((note) => note.draw());
-		EditorRenderer.strumline();
-		EditorRenderer.minimap();
-		EditorRenderer.noteCursor();
-		// EditorRenderer.selectSquares();
-		EditorRenderer.selectionBox();
-	});
+		ChartState.events.forEach((event) => event.draw());
+		ChartState.minimap.draw();
+		ChartState.selectionBox.draw();
 
-	/** When a leading note is selected, this gets filled with times of how far every other selected thing was from the new leading note */
-	let differencesToLeading = { notes: [], events: [] };
-	function setLeading(stamp: ChartStamp) {
-		ChartState.selectionBox.leadingStamp = stamp;
+		// TODO: REWORK NOTE CURSOR
 
-		differencesToLeading.notes = ChartState.song.chart.notes.map((note) => {
-			return ChartState.conductor.timeToStep(note.time)
-				- ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time);
+		// # strumlineline
+		const strumlineYPos = StateChart.instance.strumlineStep * StateChart.SQUARE_SIZE.y;
+		drawRect({
+			pos: vec2(center().x, strumlineYPos),
+			anchor: "center",
+			height: 5,
+			radius: 5,
+			color: RED,
+			scale: vec2(StateChart.instance.strumlineScale.x, 1),
+			width: (StateChart.SQUARE_SIZE.x * 3),
 		});
-
-		differencesToLeading.events = ChartState.song.chart.events.map((ev) => {
-			return ChartState.conductor.timeToStep(ev.time)
-				- ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time);
-		});
-	}
-
-	/** The event for stretching a note */
-	let stretchingNoteEV: KEventController = null;
-
-	// Behaviour for placing and selecting notes
-	const leftMousePress = onMousePress("left", () => {
-		/** The current hovered time */
-		const hoveredTime = ChartState.conductor.stepToTime(
-			ChartState.hoveredStep,
-			ChartState.conductor.stepInterval,
-		);
-
-		function noteBehaviour() {
-			let hoveredNote = ChartState.notes.find((note) => note.isHovering());
-
-			// there's already a note in that place
-			if (hoveredNote) {
-				// // if the note is not already selected
-				// if (!ChartState.selectedStamps.includes(hoveredNote)) {
-				// 	// if control is not down then reset the selected notes
-				// 	if (!isKeyDown("control")) ChartState.resetSelectedStamps();
-				// 	ChartState.selectedStamps.push(hoveredNote);
-				// }
-
-				// if (hoveredNote.length) {
-				// 	if (ChartState.hoveredStep == Math.round(ChartState.conductor.timeToStep(hoveredNote.time))) {
-				// 		setLeading(hoveredNote);
-				// 	}
-				// }
-				// else setLeading(hoveredNote);
-			}
-			// there's no note in that place
-			else {
-				hoveredNote = ChartState.placeNote(hoveredTime);
-				EditorUtils.noteSound(hoveredNote.data, "Add");
-				// if (ChartState.selectedStamps.length > 0) EditorCommands.DeselectAll();
-				// hoveredNote = ChartState.placeNote(hoveredTime, ChartState.currentMove);
-				// EditorUtils.noteSound(hoveredNote, "Add");
-
-				// notes.push(new EditorNote(hoveredNote));
-
-				// setLeading(hoveredNote);
-
-				// stretchingNoteEV?.cancel();
-				// stretchingNoteEV = onMouseMove(() => {
-				// 	let oldLength = hoveredNote.length;
-				// 	const noteLength = Math.floor(
-				// 		(ChartState.hoveredStep)
-				// 			- ChartState.conductor.timeToStep(hoveredNote.time),
-				// 	);
-				// 	hoveredNote.length = noteLength > 0 ? noteLength : undefined;
-				// 	let newLength = hoveredNote.length;
-				// 	if (oldLength != newLength) {
-				// 		const detune = newLength % 2 == 0 ? 0 : 100;
-				// 		Sound.playSound("noteStretch", { detune: detune });
-				// 	}
-				// });
-
-				// const releaseEV = onMouseRelease(() => {
-				// 	if (hoveredNote.length) Sound.playSound("noteSnap", { detune: rand(-25, 25) });
-				// 	releaseEV.cancel();
-				// 	stretchingNoteEV?.cancel();
-				// 	stretchingNoteEV = null;
-				// });
-			}
-
-			// ChartState.stepForDetune = ChartState.conductor.timeToStep(hoveredNote.time);
-		}
-
-		function eventBehaviour() {
-			let hoveredEvent = EditorUtils.stamps.getHovered("event");
-
-			// there's already an event in that place
-			if (hoveredEvent) {
-				if (!ChartState.selectedStamps.includes(hoveredEvent)) {
-					if (!isKeyDown("control")) ChartState.resetSelectedStamps();
-					ChartState.selectedStamps.push(hoveredEvent);
-				}
-			}
-			else {
-				ChartState.resetSelectedStamps();
-				hoveredEvent = ChartState.placeEvent(hoveredTime, ChartState.currentEvent);
-				Sound.playSound("noteAdd", { detune: rand(-50, 50) });
-				Sound.playSound("eventCog", { detune: rand(-50, 50) });
-			}
-
-			setLeading(hoveredEvent);
-			ChartState.stepForDetune = ChartState.conductor.timeToStep(hoveredEvent.time);
-		}
-
-		// if it's not on the grid at all simply reset selected notes
-		if (!ChartState.isCursorInGrid) {
-			// if it's not hovering anything clickable, deselect
-			if (
-				!get("hover", { recursive: true }).some((obj) => obj.isHovering())
-				&& !get("editorTab").some((obj) => obj.isHovering)
-			) {
-				EditorCommands.DeselectAll();
-			}
-		}
-		else {
-			if (ChartState.isInNoteGrid) noteBehaviour();
-			else if (ChartState.isInEventGrid) eventBehaviour();
-		}
-	});
-
-	// Resets the detune for moving notes
-	onMouseRelease("left", () => {
-		ChartState.selectionBox.leadingStamp = undefined;
-	});
-
-	// Removing notes
-	const rightMousePress = onMousePress("right", () => {
-		if (!ChartState.isCursorInGrid) return;
-
-		function noteBehaviour() {
-			const note = EditorUtils.stamps.getHovered("note");
-			if (!note) return;
-
-			if (EditorUtils.stamps.trailAtStep(ChartState.hoveredStep)) {
-				// if you click the trail instead of the note it will only remove the trail rather than the note
-				note.length = undefined;
-				Sound.playSound("noteSnap", { detune: -50 });
-			}
-			else {
-				ChartState.deleteNote(note);
-				EditorUtils.noteSound(note, "Remove");
-			}
-		}
-
-		function eventBehaviour() {
-			const hoveredEvent = EditorUtils.stamps.getHovered("event");
-
-			if (!hoveredEvent) return;
-			ChartState.deleteEvent(hoveredEvent);
-			Sound.playSound("noteRemove");
-			Sound.playSound("eventCog", { detune: rand(-50, 50) });
-		}
-
-		if (ChartState.isInNoteGrid) noteBehaviour();
-		else if (ChartState.isInEventGrid) eventBehaviour();
-	});
-
-	// Behaviour for moving notes
-	const rightMouseDown = onMouseDown("left", () => {
-		if (stretchingNoteEV) return;
-		if (!ChartState.selectionBox.leadingStamp) return;
-
-		let oldStepOfLeading = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time);
-		oldStepOfLeading = Math.round(oldStepOfLeading);
-
-		ChartState.selectedStamps.forEach((selectedStamp, index) => {
-			// is the leading stamp
-			if (selectedStamp == ChartState.selectionBox.leadingStamp) {
-				let newStep = ChartState.hoveredStep;
-				newStep = clamp(newStep, 0, ChartState.conductor.totalSteps - 1);
-
-				selectedStamp.time = ChartState.conductor.stepToTime(newStep);
-				ChartState.selectionBox.leadingStamp = selectedStamp;
-			}
-			else {
-				const isNote = EditorUtils.stamps.isNote(selectedStamp);
-
-				const leadingStampStep = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time);
-
-				if (isNote) {
-					const indexInNotes = ChartState.song.chart.notes.indexOf(selectedStamp);
-
-					// this is some big brain code i swear
-					const stepDiff = differencesToLeading.notes[indexInNotes];
-					let newStep = leadingStampStep + stepDiff;
-					newStep = clamp(newStep, 0, ChartState.conductor.totalSteps - 1);
-					selectedStamp.time = ChartState.conductor.stepToTime(newStep);
-				}
-				else {
-					const indexInEvents = ChartState.song.chart.events.indexOf(selectedStamp);
-
-					// this is some big brain code i swear
-					const stepDiff = differencesToLeading.events[indexInEvents];
-					let newStep = leadingStampStep + stepDiff;
-					newStep = clamp(newStep, 0, ChartState.conductor.totalSteps - 1);
-					selectedStamp.time = ChartState.conductor.stepToTime(newStep);
-				}
-			}
-		});
-
-		let newStepOfLeading = ChartState.conductor.timeToStep(ChartState.selectionBox.leadingStamp.time);
-		newStepOfLeading = Math.round(newStepOfLeading);
-
-		if (newStepOfLeading != oldStepOfLeading) {
-			// thinking WAY too hard for a simple sound effect lol!
-			const diff = newStepOfLeading - ChartState.stepForDetune;
-			let baseDetune = 0;
-
-			if (EditorUtils.stamps.isNote(ChartState.selectionBox.leadingStamp)) {
-				baseDetune = Math.abs(EditorUtils.moveToDetune(ChartState.selectionBox.leadingStamp.move)) * 0.5;
-			}
-			else {
-				baseDetune = Object.keys(ChartEvent.eventSchema).indexOf(ChartState.selectionBox.leadingStamp.id)
-					* 10;
-			}
-
-			Sound.playSound("noteMove", { detune: baseDetune * diff });
-		}
-	});
-
-	// Copies the color of a note
-	onMousePress("middle", () => {
-		if (ChartState.isInNoteGrid) {
-			const currentHoveredNote = EditorUtils.stamps.getHovered("note");
-			if (currentHoveredNote && ChartState.currentMove != currentHoveredNote.move) {
-				ChartState.changeMove(currentHoveredNote.move);
-			}
-		}
-		else {
-			const currentHoveredEvent = EditorUtils.stamps.getHovered("event");
-			if (currentHoveredEvent && ChartState.currentEvent != currentHoveredEvent.id) {
-				ChartState.currentEvent = currentHoveredEvent.id as keyof typeof ChartEvent.eventSchema;
-			}
-		}
 	});
 
 	// The scroll event
@@ -394,10 +214,10 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 
 	// Send you to the game
 	onKeyPress("enter", async () => {
-		if (ChartState.inputDisabled) return;
+		if (!ChartState.inputEnabled) return;
 		if (get("textbox", { recursive: true }).some((textbox) => textbox.focused)) return;
 
-		ChartState.inputDisabled = true;
+		ChartState.inputEnabled = false;
 		ChartState.paused = true;
 
 		// transition to scene normally
@@ -415,7 +235,7 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 
 	// Pausing unpausing behaviour
 	onKeyPress("space", () => {
-		if (ChartState.inputDisabled) return;
+		if (!ChartState.inputEnabled) return;
 		ChartState.paused = !ChartState.paused;
 
 		if (ChartState.paused == false) {
@@ -434,8 +254,12 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 
 	// Scrolls the checkerboard
 	ChartState.conductor.onStepHit((currentStep) => {
-		const note = EditorUtils.stamps.find("note", currentStep);
-		if (note) ChartState.events.trigger("notehit", note);
+		const allStamps = EditorStamp.mix(ChartState.notes, ChartState.events);
+		allStamps.forEach((stamp) => {
+			if (stamp.step == currentStep) {
+				getTreeRoot().trigger("stampHit", stamp);
+			}
+		});
 	});
 
 	onSceneLeave(() => {

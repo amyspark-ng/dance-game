@@ -42,6 +42,16 @@ export class ChartEvent {
 	/** The value the event contains, might be an object or something else idk */
 	value: any;
 
+	/** Trigger a kaplay event with the id of one of the game events */
+	static trigger(eventId: keyof typeof ChartEvent.eventSchema) {
+		return getTreeRoot().trigger(eventId);
+	}
+
+	/** Runs when an event with the id of one of the game events is triggered */
+	static onEvent(eventId: keyof typeof ChartEvent.eventSchema, action: (event: ChartEvent) => void) {
+		return getTreeRoot().on(eventId, action);
+	}
+
 	/** All the ids for the events
 	 *
 	 * Is a getter so it can't be accidentally changed
@@ -152,6 +162,9 @@ export class ChartEvent {
 			} as typeof ChartEvent.eventSchema["change-scroll"];
 		},
 		"change-dancer": (curTime: number = 0, evs: ChartEvent[]) => {
+			return {
+				dancer: "astri",
+			} as typeof ChartEvent.eventSchema["change-dancer"];
 		},
 		"play-anim": (curTime: number = 0, evs: ChartEvent[]) => {
 		},

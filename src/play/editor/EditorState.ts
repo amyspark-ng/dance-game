@@ -1,7 +1,7 @@
-// File that stores some of the chart editor behaviour backend
 import { Color, Vec2 } from "kaplay";
 import { v4 } from "uuid";
 import { Conductor } from "../../Conductor";
+import { Content } from "../../core/loading/content";
 import { GameSave } from "../../core/save";
 import { KaplayState } from "../../core/scenes/KaplayState";
 import { Sound } from "../../core/sound";
@@ -11,10 +11,13 @@ import { ChartEvent, eventId } from "../event";
 import { Move } from "../objects/dancer";
 import { ChartNote } from "../objects/note";
 import { SongContent } from "../song";
-import { PROP_BIG_SCALE } from "./EditorRenderer";
+import { editorCommands } from "./backend/commands";
+import { editorUtils } from "./backend/utils";
+import { EventLane, NoteLane } from "./objects/lane";
+import { EditorMinimap } from "./objects/minimap";
+import { EditorSelectionBox } from "./objects/selectionbox";
+import { EditorEvent, EditorNote, EditorStamp } from "./objects/stamp";
 import "./EditorScene";
-import { Content } from "../../core/loading/content";
-import { EditorEvent, EditorNote } from "./objects/stamp";
 
 /** The params for the chart editor */
 export type paramsEditor = {
@@ -27,31 +30,19 @@ export type paramsEditor = {
 /** Is either a note or an event */
 export type ChartStamp = ChartNote | ChartEvent;
 
-export type EditorAction = {
-	shortcut: string;
-	type: "File" | "Edit";
-	action: (ChartState?: StateChart) => void;
-};
-
 /** Class that manages the snapshots of the chart */
 export class ChartSnapshot {
 	song: SongContent;
-	selectedStamps: ChartStamp[] = [];
+	selectedStamps: EditorStamp[] = [];
 	command: string = undefined;
-	constructor(song: SongContent, selectedStamps: ChartStamp[], command?: string) {
+	constructor(song: SongContent, selectedStamps: EditorStamp[], command?: string) {
 		this.song = song;
 		this.selectedStamps = selectedStamps;
 		this.command = command;
 	}
 }
 
-/** Type for handling props of stuff drawing */
-export type stampPropThing = {
-	angle: number;
-	scale: Vec2;
-};
-
-/** Class that manages every important variable in the chart editor
+/** Scene where A LOT of the magic happens, coolest thing ever, scene that allows you to chart the notes and events in a song :)
  * @param song The song you're going to be editing
  * @param playbackSpeed How fast it will be gooing
  * @param seekTime The time the scene will start at
@@ -60,60 +51,47 @@ export class StateChart extends KaplayState {
 	/** Static instance of the statechart */
 	static instance: StateChart = null;
 
+	/** How lerped the scene will be */
+	static LERP = 0.5;
+
+	/** Width and height of every square */
+	static SQUARE_SIZE = vec2(52, 52);
+
+	/** The initial pos of the first square */
+	static INITIAL_POS = vec2(center().x, this.SQUARE_SIZE.y - this.SQUARE_SIZE.y / 2);
+
+	/** Certain functions that can help in some small things */
+	static utils = editorUtils;
+
+	/** Commands you might do to edit or do things with the result file */
+	static commands = editorCommands;
+
+	/** The color of the backgroun (determined by the hue on the game save) */
 	bgColor: Color = rgb(92, 50, 172);
+
+	/** The song that's currently being edited */
 	song: SongContent;
+
+	/** Wheter the state is paused or not */
 	paused: boolean;
+
+	/** The conductor to manage music stuff */
 	conductor: Conductor;
+
+	/** The parameters of the state */
 	params: paramsEditor;
 
-	inputDisabled: boolean = false;
+	/** Wheter you can do anything */
+	inputEnabled: boolean = true;
+
+	/** Wheter you can do shortcuts or not */
+	shortcutsEnabled: boolean = true;
 
 	/** How many steps scrolled */
 	scrollStep: number = 0;
 
 	/** Is ChartState.scrollstep but lerped */
 	lerpScrollStep = 0;
-
-	/** Wheter the selection box is being shown */
-	selectionBox = {
-		/** The note that is the note the other notes move around when you're moving a bunch of notes */
-		leadingStamp: undefined as ChartStamp,
-		/** Wheter the selection box can be triggered */
-		canSelect: false,
-		width: 0,
-		height: 0,
-		/** The position it'll be drawn at (topleft) */
-		pos: vec2(0),
-		/** The last click position (initial pos) */
-		clickPos: vec2(0),
-		points: [vec2(), vec2(), vec2(), vec2()],
-	};
-
-	minimap = {
-		/** Wheter can move the minimap */
-		canMove: false,
-		/** Wheter the minimap is being moved by the minimap controller */
-		isMoving: false,
-		/** The top position of the minimap controller */
-		pos: vec2(width() / 2 + 52 * 2, 25),
-	};
-
-	doneEvents: ChartEvent[] = [];
-
-	/** How much lerp to generally use */
-	LERP = 0.5;
-
-	static LERP = 0.5;
-
-	/** Width and height of every square */
-	SQUARE_SIZE = vec2(52, 52);
-
-	static SQUARE_SIZE = vec2(52, 52);
-
-	/** The initial pos of the first square */
-	INITIAL_POS = vec2(center().x, this.SQUARE_SIZE.y - this.SQUARE_SIZE.y / 2);
-
-	static INITIAL_POS = vec2(center().x, this.SQUARE_SIZE.y - this.SQUARE_SIZE.y / 2);
 
 	/** The current selected move to place a note */
 	currentMove: Move = "up";
@@ -136,18 +114,6 @@ export class StateChart extends KaplayState {
 	/** The scale of the strumline line */
 	strumlineScale = vec2(1);
 
-	/** Scale and angle of all stamps */
-	stampProps = {
-		notes: [] as stampPropThing[],
-		events: [] as stampPropThing[],
-	};
-
-	/** The scale of the cursor */
-	cursorScale = vec2(1);
-
-	/** Array of all the selected things */
-	selectedStamps: ChartStamp[] = [];
-
 	/** Every time you do something, the new state will be pushed to this array */
 	snapshots: ChartSnapshot[] = [];
 
@@ -155,7 +121,12 @@ export class StateChart extends KaplayState {
 	snapshotIndex = 0;
 
 	/** The things currently copied */
-	clipboard: ChartStamp[] = [];
+	clipboard: EditorStamp[] = [];
+
+	/** The currently selected notes and events */
+	get selected() {
+		return EditorStamp.mix(this.notes.filter((note) => note.selected), this.events.filter((event) => event.selected));
+	}
 
 	/** The step that selected note started in before it was moved */
 	stepForDetune = 0;
@@ -163,23 +134,17 @@ export class StateChart extends KaplayState {
 	/** Determines the current time in the song */
 	strumlineStep = 0;
 
-	input = {
-		/** Click to place, click to drag and move, click to delete */
-		trackEnabled: true,
-		/** Ctrl + C, Ctrl + V, Etc */
-		shortcutEnabled: true,
-	};
+	/** Minimap instance to control the time of the song more comfortably */
+	minimap: EditorMinimap;
 
-	/** Object that holds some of the events in the state */
-	events = {
-		trigger(event: "notehit", arg?: any) {
-			return getTreeRoot().trigger(event, arg);
-		},
+	/** Note lane to put notes */
+	noteLane: NoteLane;
 
-		onNoteHit(action: (note: ChartNote) => void) {
-			return getTreeRoot().on("notehit", action);
-		},
-	};
+	/** Event lane to put events */
+	eventLane: EventLane;
+
+	/** Selection box to select notes and stamps */
+	selectionBox: EditorSelectionBox;
 
 	/** Runs when the sound for the soundPlay has changed */
 	updateAudio() {
@@ -196,82 +161,97 @@ export class StateChart extends KaplayState {
 
 	/** Converts a step to a position (a hawk to a) */
 	stepToPos(step: number) {
-		return utils.getPosInGrid(this.INITIAL_POS, step, 0, this.SQUARE_SIZE);
-	}
-
-	/** Unselects any stamp and the detune */
-	resetSelectedStamps() {
+		return utils.getPosInGrid(StateChart.INITIAL_POS, step, 0, StateChart.SQUARE_SIZE);
 	}
 
 	/** Changes the current move */
 	changeMove(newMove: Move) {
 		this.currentMove = newMove;
-		tween(1.5, 1, 0.1, (p) => this.cursorScale.x = p);
 	}
 
+	/** The notes in the editor */
 	notes: EditorNote[] = [];
-	event: EditorEvent[] = [];
 
-	/** Add a note to the chart
-	 * @returns The added note
+	/** The events in the editor */
+	events: EditorEvent[] = [];
+
+	/** Adds a note or event to the Chart
+	 * @param data The ChartNote or ChartEvent to add
+	 * @returns The object (EditorNote or EditorEvent)
 	 */
-	placeNote(time: number, move: Move = this.currentMove) {
-		this.takeSnapshot(`add ${move} note`);
+	place(type: "note", data: ChartNote): EditorNote;
+	place(type: "event", data: ChartEvent): EditorEvent;
+	place(type: "note" | "event", data: ChartNote | ChartEvent) {
+		if (type == "note" && "move" in data) {
+			const editorNote = new EditorNote(data);
+			this.notes.push(editorNote); // pushes to editorNotes array
+			this.notes.sort((a, b) => b.data.time - a.data.time); // sorts the editorNotes array
+			this.song.chart.notes[this.notes.indexOf(editorNote)] = editorNote.data; // pushes to chartNote array
+			this.song.chart.notes.sort((a, b) => b.time - a.time); // sorts the chartNote array
 
-		const editorNote = new EditorNote({ time, move });
-		this.notes.push(editorNote);
-		this.notes.sort((a, b) => b.data.time - a.data.time);
-		this.song.chart.notes[this.notes.indexOf(editorNote)] = editorNote.data;
-		editorNote.selected = true;
-		editorNote.bop();
+			// little effect
+			editorNote.onHit(() => {
+				Sound.playSound("noteHit", { detune: StateChart.utils.moveToDetune(editorNote.data.move) });
+			});
 
-		return editorNote;
+			return editorNote;
+		}
+		else if (type == "event" && "id" in data) {
+			const editorEvent = new EditorEvent(data);
+			this.events.push(editorEvent); // pushes to editorEvents arrray
+			this.events.sort((a, b) => b.data.time - a.data.time); // sorts the editorEvents arrray
+			this.song.chart.events[this.events.indexOf(editorEvent)] = editorEvent.data; // pushes to chartEvents arrary
+			this.song.chart.events.sort((a, b) => b.time - a.time); // sorts the chartEvents array
+
+			editorEvent.onHit(() => {
+				Sound.playSound("noteHit", { detune: Object.keys(ChartEvent.eventSchema).indexOf(editorEvent.data.id) });
+			});
+
+			return editorEvent;
+		}
+		else return undefined as any;
 	}
 
-	/** Remove a note from the chart
-	 * @returns The removed note
+	/** Deletes a note or event of the Chart
+	 * @param stampToDelete The EditorStamp to remove (If one is not passed it will simply remove the hovered one)
+	 * @returns The delete stamp
 	 */
-	deleteNote(noteToRemove: ChartNote): ChartNote {
-		this.takeSnapshot(`delete ${noteToRemove.move} note`);
+	delete(type: "note", stampToDelete?: EditorNote): EditorNote;
+	delete(type: "event", stampToDelete?: EditorEvent): EditorEvent;
+	delete(type: "note" | "event", stampToDelete?: EditorNote | EditorEvent) {
+		if (type == "note") {
+			stampToDelete = stampToDelete ?? this.notes.find((note) => note.isHovering());
+			if (stampToDelete == undefined) return;
+			if (!stampToDelete.is("note")) return;
 
-		const oldNote = this.song.chart.notes.find(note => note == noteToRemove);
-		if (oldNote == undefined) return;
+			this.takeSnapshot(`delete ${stampToDelete.data.move} note`);
+			this.notes.splice(this.notes.indexOf(stampToDelete), 1); // remove from editornotes array
+			this.notes.sort((a, b) => b.data.time - a.data.time); // sorts the editorNotes array
+			this.song.chart.notes.splice(this.song.chart.notes.indexOf(stampToDelete.data), 1); // remove from chartnote array
+			this.song.chart.notes.sort((a, b) => b.time - a.time); // sorts the editorNotes array
+			stampToDelete.destroy();
 
-		this.song.chart.notes = utils.removeFromArr(oldNote, this.song.chart.notes);
-		this.selectedStamps = utils.removeFromArr(oldNote, this.selectedStamps);
+			return stampToDelete;
+		}
+		else if (type == "event") {
+			stampToDelete = stampToDelete ?? this.events.find((event) => event.isHovering());
+			if (stampToDelete == undefined) return;
+			if (!stampToDelete.is("event")) return;
+			this.takeSnapshot(`delete ${stampToDelete.data.id} event`);
+			this.events.splice(this.events.indexOf(stampToDelete), 1); // remove from editorEvent array
+			this.events.sort((a, b) => b.data.time - a.data.time); // sorts the editorEvent array
+			this.song.chart.events.splice(this.song.chart.events.indexOf(stampToDelete.data), 1); // remove from chartEvent array
+			this.song.chart.events.sort((a, b) => b.time - a.time); // sorts the editorEvent array
+			stampToDelete.destroy();
 
-		return oldNote;
-	}
-
-	/** Adds an event to the events array */
-	placeEvent(time: number, id: eventId) {
-		const newEvent: ChartEvent = { time: time, id: id, value: ChartEvent.eventSchema[id] };
-		this.song.chart.events.push(newEvent);
-		// now sort them in time order
-		this.song.chart.events.sort((a, b) => a.time - b.time);
-
-		const indexInEvents = this.song.chart.events.indexOf(newEvent);
-		this.stampProps.events[indexInEvents] = { scale: vec2(1), angle: 0 };
-		tween(PROP_BIG_SCALE, vec2(1), 0.1, (p) => this.stampProps.events[indexInEvents].scale = p);
-		this.selectedStamps.push(newEvent);
-
-		return newEvent;
-	}
-
-	/** Removes an event from the events array */
-	deleteEvent(event: ChartEvent) {
-		const oldEvent = event;
-
-		this.song.chart.events = utils.removeFromArr(oldEvent, this.song.chart.events);
-		this.song.chart.events.sort((a, b) => a.time - b.time);
-
-		this.selectedStamps = utils.removeFromArr(oldEvent, this.selectedStamps);
-		return oldEvent;
+			return stampToDelete;
+		}
+		else return undefined as any;
 	}
 
 	/** Pushes a snapshot of the current state of the chart */
 	takeSnapshot(action?: string) {
-		const snapshot = new ChartSnapshot(this.song, this.selectedStamps, action);
+		const snapshot = new ChartSnapshot(this.song, this.selected, action);
 		// Remove any states ahead of the current index for redo to behave correctly
 		this.snapshots = this.snapshots.slice(0, this.snapshotIndex + 1);
 
@@ -286,7 +266,8 @@ export class StateChart extends KaplayState {
 			this.snapshotIndex--;
 			// Return deep copy of the state
 			const newState: ChartSnapshot = JSON.parse(JSON.stringify(this.snapshots[this.snapshotIndex]));
-			this.selectedStamps = newState.selectedStamps;
+			// TODO: FIX THE SELECTION THING WITH SNAPSHOTS
+			// this.selectedStamps = newState.selectedStamps;
 			this.song = newState.song;
 		}
 
@@ -298,44 +279,11 @@ export class StateChart extends KaplayState {
 		if (this.snapshotIndex < this.snapshots.length - 1) {
 			this.snapshotIndex++;
 			const newState: ChartSnapshot = JSON.parse(JSON.stringify(this.snapshots[this.snapshotIndex])); // Return deep copy of the state
-			this.selectedStamps = newState.selectedStamps;
+			// this.selectedStamps = newState.selectedStamps;
 			this.song = newState.song;
 		}
 
 		return null; // No more states to redo
-	}
-
-	/** Gets the dancer at a current time in the song */
-	getDancerAtTime(time: number = this.conductor.timeInSeconds): string {
-		let dancerChangeEvents = this.song.chart.events.filter((event) => event.id == "change-dancer");
-
-		// some stuff to remove faulty names from dancer list
-		const dancersInEvents = dancerChangeEvents.map((ev) => ev.value.dancer);
-		const allDancerNames = Content.loadedDancers.map((dancerFiles) => dancerFiles.name);
-		if (dancersInEvents.some((dancerInEvent) => allDancerNames.includes(dancerInEvent)) == false) {
-			const indexOfFaultyDancer = dancerChangeEvents.findIndex((ev) => dancersInEvents.some((dancerInEvent) => ev.value.dancer == dancerInEvent));
-			dancerChangeEvents = utils.removeFromArr(dancersInEvents[indexOfFaultyDancer], dancerChangeEvents);
-		}
-
-		if (dancerChangeEvents.length == 0 || time < dancerChangeEvents[0].time) {
-			return GameSave.dancer;
-		}
-
-		for (const event in dancerChangeEvents) {
-			if (dancerChangeEvents[event].time <= time) {
-				return dancerChangeEvents[event].value.dancer;
-			}
-		}
-	}
-
-	/** Triggers an event for the game */
-	triggerEvent(event: keyof typeof ChartEvent.eventSchema, args?: any) {
-		getTreeRoot().trigger(event, args);
-	}
-
-	/** Runs when an event is triggered */
-	onEvent(event: keyof typeof ChartEvent.eventSchema, action: (ev: any) => void) {
-		return getTreeRoot().on(event, action);
 	}
 
 	/** Creates a new song */
@@ -347,6 +295,17 @@ export class StateChart extends KaplayState {
 		};
 		params.song.manifest.uuid_DONT_CHANGE = v4();
 		Object.assign(this, new StateChart(params));
+	}
+
+	/** Downloads the chart for the current song */
+	async downloadChart() {
+		getTreeRoot().trigger("download");
+
+		const SongFolder = await FileManager.writeSongFolder(this.song);
+
+		// downloads the zip
+		downloadBlob(`${this.song.manifest.name}.zip`, SongFolder);
+		debug.log(`${this.song.manifest.name}.zip, DOWNLOADED! :)`);
 	}
 
 	constructor(params: paramsEditor) {
