@@ -6,7 +6,7 @@ import { utils } from "../../../utils";
 import { ChartEvent } from "../../event";
 import { makeDancer, Move } from "../../objects/dancer";
 import { StateChart } from "../EditorState";
-import { EditorStamp } from "../objects/stamp";
+import { EditorEvent, EditorStamp } from "../objects/stamp";
 import { EditorTab } from "./editorTab";
 
 /** Function that defines the tabs found in the {@link EditorTab} class */
@@ -237,12 +237,10 @@ export function defineTabs() {
 
 	EditorTab.tabs.EditEvent.addElements((editorTabObj) => {
 		/** The event that is actually being selected and modified */
-		let currentEvent: ChartEvent = null;
-		/** A copy for getting the event */
-		let testEvent: ChartEvent = null;
+		let currentEvent: EditorEvent = null;
 
 		/** Refreshes the objects in the ui */
-		function refreshTabUI(event: ChartEvent) {
+		function refreshTabUI(event: EditorEvent) {
 			/** This runs to do some work related to ui props */
 			function objAfterwork(obj: GameObj<PosComp | any>, event: ChartEvent, evKey: string, index: number) {
 				function positionObject(obj: GameObj<PosComp | any>, index: number) {
@@ -281,7 +279,7 @@ export function defineTabs() {
 			// # ALL of this will run if the you can there's an actual event
 			editorTabObj.tab.title = "Editing event: ";
 			editorTabObj.add([
-				sprite(currentEvent.id, { width: 25, height: 25 }),
+				sprite(currentEvent.data.id, { width: 25, height: 25 }),
 				pos(),
 				"eventobj",
 				{
@@ -295,19 +293,19 @@ export function defineTabs() {
 			]);
 
 			/** All the properties an an event's value has */
-			const eventProps = Object.keys(event.value);
+			const eventProps = Object.keys(event.data.value);
 			eventProps.forEach((keyofValue: string, index: number) => {
-				const value = event.value[keyofValue];
+				const value = event.data.value[keyofValue];
 				const typeOfValue = typeof value;
-				const defaultValue = ChartEvent.eventSchema[event.id][keyofValue];
+				const defaultValue = ChartEvent.eventSchema[event.data.id][keyofValue];
 
 				if (typeOfValue == "string") {
 					const textbox = EditorTab.ui.addTextbox(editorTabObj, defaultValue);
-					objAfterwork(textbox, event, keyofValue, index);
+					objAfterwork(textbox, event.data, keyofValue, index);
 				}
 				else if (typeOfValue == "boolean") {
 					const checkbox = EditorTab.ui.addCheckbox(editorTabObj, defaultValue);
-					objAfterwork(checkbox, event, keyofValue, index);
+					objAfterwork(checkbox, event.data, keyofValue, index);
 				}
 				else if (typeOfValue == "number") {
 					let increment = 0;
@@ -316,13 +314,13 @@ export function defineTabs() {
 					else increment = 1;
 
 					const scrollable = EditorTab.ui.addScrollable(editorTabObj, defaultValue, null, increment);
-					objAfterwork(scrollable, event, keyofValue, index);
+					objAfterwork(scrollable, event.data, keyofValue, index);
 				}
 				else if (typeOfValue == "object") {
 					if (Array.isArray(value)) {
 						const easingKeys = Object.keys(easings);
 						const scrollable = EditorTab.ui.addScrollable(editorTabObj, defaultValue, easingKeys);
-						objAfterwork(scrollable, event, keyofValue, index);
+						objAfterwork(scrollable, event.data, keyofValue, index);
 					}
 				}
 			});
@@ -333,35 +331,21 @@ export function defineTabs() {
 
 		editorTabObj.onUpdate(() => {
 			// the other event thing is so you can deselect the event and still make it work
-			const oldEvent = testEvent;
-			// TODO: make this work with the being edited event thing
-			const newEvent = testEvent;
+			const oldEvent = currentEvent;
+			currentEvent = ChartState.events.find((event) => event.beingEdited == true);
+			const newEvent = currentEvent;
 
 			// this runs whenever the selected event changes
 			if (oldEvent != newEvent) {
-				// this removes the current event if the event was removed from the array
-				const validEvent = testEvent != undefined;
-				const notValidEvent = testEvent == undefined && !ChartState.song.chart.events.includes(currentEvent);
-
-				if (validEvent || notValidEvent) {
-					if (notValidEvent) {
-						currentEvent = undefined;
-						ChartState.shortcutsEnabled = true;
-					}
-					else if (validEvent) {
-						currentEvent = testEvent;
-						ChartState.shortcutsEnabled = false;
-					}
-
-					refreshTabUI(currentEvent);
-				}
+				// if currentEvent is null or undefined it will clear all the objects
+				refreshTabUI(currentEvent);
 			}
 
 			// sets the size of the tab
 			editorTabObj.width = 300;
 			let theHeight = 0;
 			if (currentEvent) {
-				theHeight = (Object.keys(currentEvent.value).length + 1) * 40;
+				theHeight = (Object.keys(currentEvent.data.value).length + 1) * 40;
 			}
 			else {
 				theHeight = 60;
@@ -373,12 +357,8 @@ export function defineTabs() {
 		// draws a cool line from the event position to the position of the tab so you can know what event is being modified
 		const pointer = onDraw(() => {
 			if (currentEvent) {
-				const eventStep = ChartState.conductor.timeToStep(currentEvent.time);
-				const stepPos = ChartState.stepToPos(eventStep);
-				stepPos.y -= StateChart.SQUARE_SIZE.y * ChartState.lerpScrollStep;
-
 				drawLine({
-					p1: vec2(stepPos.x + StateChart.SQUARE_SIZE.x, stepPos.y),
+					p1: vec2(currentEvent.pos.x + StateChart.SQUARE_SIZE.x, currentEvent.pos.y),
 					p2: vec2(editorTabObj.pos.x - editorTabObj.width / 2, editorTabObj.pos.y - editorTabObj.height / 2),
 					width: 2,
 					opacity: 0.5,

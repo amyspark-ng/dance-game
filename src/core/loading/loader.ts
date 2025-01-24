@@ -39,7 +39,7 @@ export async function loadAssets() {
 	loadSound("noteCopy", "editor/sounds/noteCopy.wav");
 	loadSound("noteHit", "editor/sounds/noteHit.ogg");
 	loadSound("noteMove", "editor/sounds/noteMove.ogg");
-	loadSound("noteRemove", "editor/sounds/noteRemove.mp3");
+	loadSound("noteDelete", "editor/sounds/noteDelete.mp3");
 	loadSound("noteSnap", "editor/sounds/noteSnap.ogg");
 	loadSound("noteStretch", "editor/sounds/noteStretch.ogg");
 	loadSound("undo", "editor/sounds/undo.wav");

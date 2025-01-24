@@ -3,7 +3,6 @@ import { StateChart } from "../EditorState";
 import { EditorStamp } from "./stamp";
 
 export class EditorSelectionBox {
-	leadingStamp: EditorStamp = undefined;
 	canSelect: boolean = false;
 	width: number = 0;
 	height: number = 0;

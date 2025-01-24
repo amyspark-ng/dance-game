@@ -1,10 +1,15 @@
-import { Color, Vec2 } from "kaplay";
+import { Color, KEventController, Vec2 } from "kaplay";
 import { Content } from "../../../core/loading/content";
+import { CustomAudioPlay, Sound } from "../../../core/sound";
 import { utils } from "../../../utils";
 import { ChartEvent } from "../../event";
 import { ChartNote } from "../../objects/note";
 import { StateChart } from "../EditorState";
 
+/** Class for one of the notes or events in a ChartState
+ *
+ * Has many cool little props like selected step sounds, anim utils, etc
+ */
 export class EditorStamp {
 	private _step: number = 0;
 	angle: number = 0;
@@ -16,8 +21,11 @@ export class EditorStamp {
 	type: "note" | "event";
 	data: ChartNote | ChartEvent = null;
 
+	events: KEventController[] = [];
+
 	set step(newStep: number) {
 		this.data.time = StateChart.instance.conductor.stepToTime(newStep);
+		this._step = newStep;
 	}
 
 	get step() {
@@ -26,6 +34,18 @@ export class EditorStamp {
 
 	static mix(notes: EditorNote[], events: EditorEvent[]) {
 		return [...notes, ...events];
+	}
+
+	addSound() {
+		return Sound.playSound("noteAdd");
+	}
+
+	deleteSound() {
+		return Sound.playSound("noteDelete");
+	}
+
+	moveSound() {
+		return Sound.playSound("noteMove");
 	}
 
 	drawSelectSquare(theColor: Color) {
@@ -55,6 +75,7 @@ export class EditorStamp {
 	}
 
 	// function overloading once again saving the day
+	/** Wheter the stamp is a note or an event */
 	is(type: "note"): this is EditorNote;
 	is(type: "event"): this is EditorEvent;
 	is(type: "note" | "event") {
@@ -78,6 +99,7 @@ export class EditorStamp {
 		return tween(this.intendedPos.add(randomOffset), this.intendedPos, 0.15, (p) => this.pos = p);
 	}
 
+	/** The pos the stamp has on screen */
 	get screenPos() {
 		return vec2(
 			this.pos.x - this.width / 2,
@@ -85,48 +107,54 @@ export class EditorStamp {
 		);
 	}
 
+	/** Wheter the stamp is being hovered */
 	isHovering() {
 		const noteRect = new Rect(this.screenPos, this.width, this.height);
 		return noteRect.contains(mousePos());
 	}
 
+	/** Runs when the stamp is clicked */
 	onClick(action: (stamp: EditorStamp) => void) {
 		// makes it so it only runs if it's this one stamp
 		// this is very cool, thank you MF
-		return getTreeRoot().on("stampClick", (stamp: EditorStamp) => {
+		const ev = getTreeRoot().on("stampClick", (stamp: EditorStamp) => {
 			if (stamp == this) {
 				action(stamp);
 			}
 		});
+		this.events.push(ev);
+		return ev;
 	}
 
+	/** Runs when the stamp is hit (on step) */
 	onHit(action: (stamp: EditorStamp) => void) {
-		return getTreeRoot().on("stampHit", (stamp: EditorStamp) => {
+		const ev = getTreeRoot().on("stampHit", (stamp: EditorStamp) => {
 			if (stamp == this) {
 				action(stamp);
 			}
 		});
+		this.events.push(ev);
+		return ev;
 	}
 
+	/** The draw event of the stamp */
 	draw() {
 		return;
 	}
 
+	/** Update the state of the stamp */
 	update() {
 		this.pos = this.intendedPos;
-		this._step = StateChart.instance.conductor.timeToStep(this.data.time);
+		this._step = Math.round(StateChart.instance.conductor.timeToStep(this.data.time));
 
 		if (isMousePressed("left")) {
 			if (this.isHovering()) {
-				if (!this.selected) this.selected = true;
 				getTreeRoot().trigger("stampClick", this);
-			}
-			else {
-				if (this.selected) this.selected = false;
 			}
 		}
 	}
 
+	/** The pos the stamp should be */
 	get intendedPos() {
 		const stampPos = utils.getPosInGrid(StateChart.INITIAL_POS, this.step, 0, vec2(this.width, this.height));
 		stampPos.y -= this.height * StateChart.instance.lerpScrollStep;
@@ -134,8 +162,11 @@ export class EditorStamp {
 		return stampPos;
 	}
 
+	/** Runs when the stamp is removed (has to be called manually duh) */
 	destroy() {
-		getTreeRoot().clearEvents();
+		this.events.forEach((event) => {
+			event.cancel();
+		});
 	}
 
 	constructor(type: "note" | "event") {
@@ -143,8 +174,36 @@ export class EditorStamp {
 	}
 }
 
+/** Class for one of the notes in a ChartState */
 export class EditorNote extends EditorStamp {
 	override data: ChartNote = null;
+
+	override addSound() {
+		const ogSound = super.addSound();
+		ogSound.detune = StateChart.utils.moveToDetune(this.data.move);
+		return ogSound;
+	}
+
+	override deleteSound() {
+		const ogSound = super.deleteSound();
+		ogSound.detune = -StateChart.utils.moveToDetune(this.data.move);
+		return ogSound;
+	}
+
+	stretchSound() {
+		const detune = this.data.length % 2 == 0 ? 0 : 100;
+		Sound.playSound("noteStretch", { detune: detune });
+	}
+
+	snapSound() {
+		return Sound.playSound("noteSnap", { detune: rand(-25, 25) });
+	}
+
+	override moveSound(): CustomAudioPlay {
+		const ogSound = super.moveSound();
+		ogSound.detune = Math.abs(StateChart.utils.moveToDetune(this.data.move)) * 0.5;
+		return ogSound;
+	}
 
 	/** Determines wheter there's a trail at a certain step
 	 * @param step The step to find the trail at
@@ -171,18 +230,6 @@ export class EditorNote extends EditorStamp {
 
 		// actual drawing
 		if (this.data.length) {
-			// this draws the thing below the note
-			// drawSprite({
-			// 	width: this.width / 2,
-			// 	height: this.height,
-			// 	scale: this.scale,
-			// 	angle: 90 + this.angle,
-			// 	sprite: Content.getNoteskinSprite("trail", this.data.move),
-			// 	pos: this.pos,
-			// 	anchor: "center",
-			// 	opacity,
-			// });
-
 			// this runs note.length + 1 because the first one is the one below the actual note
 			for (let i = 0; i < this.data.length; i++) {
 				// this draws the trail || tail
@@ -234,14 +281,40 @@ export class EditorNote extends EditorStamp {
 	}
 }
 
+/** Class for one of the events in a ChartState */
 export class EditorEvent extends EditorStamp {
 	override data: ChartEvent = null;
 	beingEdited: boolean = false;
 
+	override addSound() {
+		Sound.playSound("eventCog", { detune: 10 * Object.keys(ChartEvent.eventSchema).indexOf(this.data.id) });
+		const ogSound = super.addSound();
+		ogSound.detune = rand(-50, 50);
+		return ogSound;
+	}
+
+	override deleteSound() {
+		Sound.playSound("eventCog", { detune: -(10 * Object.keys(ChartEvent.eventSchema).indexOf(this.data.id)) });
+		const ogSound = super.deleteSound();
+		ogSound.detune = rand(-50, 50);
+		return ogSound;
+	}
+
+	editSound(): CustomAudioPlay {
+		const cogSound = Sound.playSound("eventCog");
+		tween(-100, rand(300, 400), cogSound.duration(), (p) => cogSound.detune = p, easings.easeOutExpo);
+		return cogSound;
+	}
+
+	override moveSound(): CustomAudioPlay {
+		const ogSound = super.moveSound();
+		ogSound.detune = Object.keys(ChartEvent.eventSchema).indexOf(this.data.id) * 10;
+		return ogSound;
+	}
+
 	override update(): void {
 		super.update();
 
-		// TODO: Do it so it also works with long notes
 		if (StateChart.instance.conductor.currentStep == this.step) {
 			this.scale = lerp(this.scale, vec2(1.1), 0.5);
 		}

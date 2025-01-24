@@ -56,14 +56,14 @@ export const editorCommands = {
 			else if (stamp.is("event")) ChartState.delete("event", stamp);
 		});
 
-		Sound.playSound("noteRemove", { detune: rand(-50, 50) });
+		Sound.playSound("noteDelete", { detune: rand(-50, 50) });
 
 		// there was an event in there
 		if (stamps.some((stamp) => stamp.is("event"))) {
 			Sound.playSound("eventCog", { detune: rand(-50, 50) });
 		}
 
-		ChartState.stepForDetune = 0;
+		ChartState.lastLeaderStep = 0;
 	},
 
 	Copy(stamps?: EditorStamp[]) {

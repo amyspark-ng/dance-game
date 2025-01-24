@@ -4,8 +4,9 @@
 # CHART EDITOR
 - Fix sometimes the editor opening the incorrect song (opens default for some reason)
 - Import MF's UI plugin
-- Make the note bounce when stepped (also make it work on long notes and events)
 - Make it so the dancer on the corner is also affected by anims like the ones in the events 
+- Make a cute little icon for clipboard
+- Polish note moving and try to find another place where i can put it so it doesn't look so ugly (or maybe not)
 
 # GENERAL
 - Make cursor animation system even BETTER

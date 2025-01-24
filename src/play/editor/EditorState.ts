@@ -128,8 +128,8 @@ export class StateChart extends KaplayState {
 		return EditorStamp.mix(this.notes.filter((note) => note.selected), this.events.filter((event) => event.selected));
 	}
 
-	/** The step that selected note started in before it was moved */
-	stepForDetune = 0;
+	/** The step the selected note started in before it was moved */
+	lastLeaderStep = 0;
 
 	/** Determines the current time in the song */
 	strumlineStep = 0;
@@ -175,6 +175,9 @@ export class StateChart extends KaplayState {
 	/** The events in the editor */
 	events: EditorEvent[] = [];
 
+	/** Stamp that the other stamps move around */
+	leaderStamp: EditorStamp = undefined;
+
 	/** Adds a note or event to the Chart
 	 * @param data The ChartNote or ChartEvent to add
 	 * @returns The object (EditorNote or EditorEvent)
@@ -191,6 +194,7 @@ export class StateChart extends KaplayState {
 
 			// little effect
 			editorNote.onHit(() => {
+				if (this.paused) return;
 				Sound.playSound("noteHit", { detune: StateChart.utils.moveToDetune(editorNote.data.move) });
 			});
 
@@ -204,6 +208,7 @@ export class StateChart extends KaplayState {
 			this.song.chart.events.sort((a, b) => b.time - a.time); // sorts the chartEvents array
 
 			editorEvent.onHit(() => {
+				if (this.paused) return;
 				Sound.playSound("noteHit", { detune: Object.keys(ChartEvent.eventSchema).indexOf(editorEvent.data.id) });
 			});
 
@@ -231,6 +236,7 @@ export class StateChart extends KaplayState {
 			this.song.chart.notes.sort((a, b) => b.time - a.time); // sorts the editorNotes array
 			stampToDelete.destroy();
 
+			if (this.leaderStamp == stampToDelete) this.leaderStamp = undefined;
 			return stampToDelete;
 		}
 		else if (type == "event") {
@@ -244,6 +250,7 @@ export class StateChart extends KaplayState {
 			this.song.chart.events.sort((a, b) => b.time - a.time); // sorts the editorEvent array
 			stampToDelete.destroy();
 
+			if (this.leaderStamp == stampToDelete) this.leaderStamp = undefined;
 			return stampToDelete;
 		}
 		else return undefined as any;
