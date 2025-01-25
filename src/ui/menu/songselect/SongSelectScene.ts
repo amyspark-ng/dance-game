@@ -1,14 +1,14 @@
 import { AudioPlay } from "kaplay";
 import { gameCursor } from "../../../core/cursor";
-import { Content } from "../../../core/loading/content";
 import { GameSave } from "../../../core/save";
 import { KaplayState } from "../../../core/scenes/KaplayState";
 import { BlackBarsTransition } from "../../../core/scenes/transitions/blackbar";
 import { CustomAudioPlay, Sound } from "../../../core/sound";
+import { SongContent } from "../../../data/song";
 import { FileManager } from "../../../FileManager";
 import { Scoring } from "../../../play/objects/scoring";
 import { StateGame } from "../../../play/PlayState";
-import { SaveScore, SongContent } from "../../../play/song";
+import { SaveScore } from "../../../play/song";
 import { utils } from "../../../utils";
 import { StateMenu } from "../MenuScene";
 import { StateDancerSelect } from "./dancerselect/DancerSelectScene";
@@ -128,7 +128,7 @@ export class StateSongSelect extends KaplayState {
 		}
 
 		// if song isn't on default songs then it means it's imported from elsewhere
-		if (!Content.defaultUUIDS.includes(curSong.manifest.uuid_DONT_CHANGE)) {
+		if (!SongContent.defaultUUIDS.includes(curSong.manifest.uuid_DONT_CHANGE)) {
 			const importedSticker = capsuleContainer.add([
 				sprite("imported"),
 				pos(),
@@ -147,12 +147,12 @@ export class StateSongSelect extends KaplayState {
 		super("songselect");
 
 		if (typeof startAt == "number") {
-			utils.isInRange(startAt, 0, Content.loadedSongs.length - 1);
+			utils.isInRange(startAt, 0, SongContent.loaded.length - 1);
 			this.index = startAt;
 		}
 		else {
-			if (Content.loadedSongs.includes(startAt)) {
-				const newIndex = Content.loadedSongs.indexOf(startAt);
+			if (SongContent.loaded.includes(startAt)) {
+				const newIndex = SongContent.loaded.indexOf(startAt);
 				if (newIndex && newIndex > 0) this.index = newIndex;
 			}
 		}
@@ -167,10 +167,10 @@ type songCapsuleObj = ReturnType<typeof StateSongSelect.addSongCapsule>;
 KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 	setBackground(BLUE.lighten(50));
 
-	let songAmount = Content.loadedSongs.length + 1;
+	let songAmount = SongContent.loaded.length + 1;
 	const LERP_AMOUNT = 0.25;
 
-	Content.loadedSongs.forEach((song, index) => {
+	SongContent.loaded.forEach((song, index) => {
 		StateSongSelect.addSongCapsule(song);
 	});
 
@@ -179,7 +179,7 @@ KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 
 	let allCapsules = get("songCapsule", { liveUpdate: true }) as songCapsuleObj[];
 	onUpdate(() => {
-		songAmount = Content.loadedSongs.length + 1;
+		songAmount = SongContent.loaded.length + 1;
 		allCapsules.forEach((songCapsule, index) => {
 			let opacity = 1;
 
@@ -266,29 +266,30 @@ KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 			const loadingScreen = FileManager.loadingScreen();
 			const gottenFile = await FileManager.receiveFile("mod");
 			if (gottenFile) {
-				const zipContent = await SongContent.getContentFromFile(gottenFile);
-				const ooldUUIDS = Content.loadedSongs.map((song) => song.manifest.uuid_DONT_CHANGE);
-				const result = await SongContent.loadAssets(zipContent);
-				const newUUIDS = Content.loadedSongs.map((song) => song.manifest.uuid_DONT_CHANGE);
-				const overwritesDefault = Content.defaultUUIDS.includes(result.manifest.uuid_DONT_CHANGE);
+				// TODO: Redo this :pensive:
+				// const zipContent = await SongContent.getContentFromFile(gottenFile);
+				// const ooldUUIDS = SongContent.loaded.map((song) => song.manifest.uuid_DONT_CHANGE);
+				// const result = await SongContent.loadAssets(zipContent);
+				// const newUUIDS = SongContent.loaded.map((song) => song.manifest.uuid_DONT_CHANGE);
+				// const overwritesDefault = Content.defaultUUIDS.includes(result.manifest.uuid_DONT_CHANGE);
 
-				if (ooldUUIDS.includes(result.manifest.uuid_DONT_CHANGE)) {
-					if (!overwritesDefault) {
-						const index = ooldUUIDS.indexOf(result.manifest.uuid_DONT_CHANGE);
-						Content.loadedSongs[index] = result;
-						allCapsules[index].song = result;
-						SongSelectState.index = index;
-					}
-					else {
-						const index = newUUIDS.indexOf(result.manifest.uuid_DONT_CHANGE);
-						SongSelectState.index = index;
-					}
-				}
-				// is trying to add a new song
-				else {
-					StateSongSelect.addSongCapsule(result);
-					SongSelectState.index = newUUIDS.indexOf(result.manifest.uuid_DONT_CHANGE);
-				}
+				// if (ooldUUIDS.includes(result.manifest.uuid_DONT_CHANGE)) {
+				// 	if (!overwritesDefault) {
+				// 		const index = ooldUUIDS.indexOf(result.manifest.uuid_DONT_CHANGE);
+				// 		SongContent.loaded[index] = result;
+				// 		allCapsules[index].song = result;
+				// 		SongSelectState.index = index;
+				// 	}
+				// 	else {
+				// 		const index = newUUIDS.indexOf(result.manifest.uuid_DONT_CHANGE);
+				// 		SongSelectState.index = index;
+				// 	}
+				// }
+				// // is trying to add a new song
+				// else {
+				// 	StateSongSelect.addSongCapsule(result);
+				// 	SongSelectState.index = newUUIDS.indexOf(result.manifest.uuid_DONT_CHANGE);
+				// }
 
 				SongSelectState.updateState();
 				loadingScreen.cancel();

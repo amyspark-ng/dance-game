@@ -1,12 +1,12 @@
 import { juice } from "../../core/juiceComp";
 import { GameSave } from "../../core/save";
 import { KaplayState } from "../../core/scenes/KaplayState";
+import { SongContent } from "../../data/song";
 import { paramsEditor, StateChart } from "../../play/editor/EditorState";
-import { SongContent } from "../../play/song";
 import { utils } from "../../utils";
 import { StateTitle } from "../TitleScene";
 import { StateCredits } from "./CreditsScene";
-import { StateOptions } from "./options/OptionsScene";
+import { StateOptions } from "./options/optionsScene";
 import { StateSongSelect } from "./songselect/SongSelectScene";
 
 const buttonList = ["songs", "options", "credits", "editor"] as const;
@@ -104,7 +104,7 @@ KaplayState.scene("menu", (MenuState: StateMenu) => {
 		else if (option == "editor") {
 			theFunction = () => {
 				KaplayState.switchState(
-					new StateChart({ dancer: GameSave.dancer, playbackSpeed: 1, seekTime: 0, song: new SongContent() }),
+					new StateChart({ playbackSpeed: 1, seekTime: 0, song: new SongContent() }),
 				);
 			};
 		}

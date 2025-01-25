@@ -1,0 +1,51 @@
+{
+    "sliceX": 3,
+    "sliceY": 8,
+    "anims": {
+        "idle": {
+            "from": 6,
+            "to": 8,
+            "loop": true
+        },
+        "up": {
+            "from": 6,
+            "to": 8,
+            "loop": true
+        },
+        "up_miss": {
+            "from": 9,
+            "to": 10,
+            "loop": true
+        },
+        "left": {
+            "from": 12,
+            "to": 14,
+            "loop": true
+        },
+        "left_miss": {
+            "from": 15,
+            "to": 16,
+            "loop": true
+        },
+        "down": {
+            "from": 0,
+            "to": 1,
+            "loop": true
+        },
+        "down_miss": {
+            "from": 3,
+            "to": 4,
+            "loop": true
+        },
+        "right": {
+            "from": 18,
+            "to": 20,
+            "loop": true
+        },
+        "right_miss": {
+            "from": 21,
+            "to": 22,
+            "loop": true
+        }
+    }
+}

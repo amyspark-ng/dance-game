@@ -1,6 +1,6 @@
-import { Content } from "../../../core/loading/content";
 import { GameSave } from "../../../core/save";
 import { CustomAudioPlay, Sound } from "../../../core/sound";
+import { getDancer } from "../../../data/dancer";
 import { utils } from "../../../utils";
 import { StateGame } from "../../PlayState";
 import { DANCER_POS } from "../dancer";
@@ -133,7 +133,7 @@ export function addPauseUI() {
 
 	// dancer
 	const fakeDancer = add([
-		sprite(Content.getDancerByName(GameState.params.dancerName).name, { anim: "idle" }),
+		sprite(getDancer().spriteName, { anim: "idle" }),
 		pos(center()),
 		z(baseZ),
 		anchor("center"),

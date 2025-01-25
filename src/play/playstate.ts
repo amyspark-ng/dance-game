@@ -4,6 +4,7 @@ import { cam } from "../core/camera";
 import { GameSave } from "../core/save";
 import { KaplayState } from "../core/scenes/KaplayState";
 import { BlackBarsTransition } from "../core/scenes/transitions/blackbar";
+import { Sound } from "../core/sound";
 import { StateSongSelect } from "../ui/menu/songselect/SongSelectScene";
 import { StateChart } from "./editor/EditorState";
 import { ChartEvent } from "./event";
@@ -13,10 +14,9 @@ import { Tally } from "./objects/scoring";
 import { createStrumline, StrumlineGameObj } from "./objects/strumline";
 import { addUI } from "./objects/ui/gameUi";
 import { addPauseUI } from "./objects/ui/pauseUi";
-import { SongContent } from "./song";
 import "./GameScene";
-import { Content } from "../core/loading/content";
-import { Sound } from "../core/sound";
+import { getNoteskinSprite } from "../data/noteskins";
+import { SongContent } from "../data/song";
 
 /** Type to store the parameters for the game scene */
 export type paramsGameScene = {
@@ -164,7 +164,7 @@ export class StateGame extends KaplayState {
 
 			let rotationDirection = choose([-10, 10]);
 			const newdumbnote = add([
-				sprite(Content.getNoteskinSprite(noteObj.chartNote.move)),
+				sprite(getNoteskinSprite(noteObj.chartNote.move)),
 				pos(noteObj.pos),
 				anchor(noteObj.anchor),
 				opacity(noteObj.opacity),
@@ -231,7 +231,7 @@ export class StateGame extends KaplayState {
 			return getTreeRoot().on("notehit", action);
 		},
 		/** Runs when player misses */
-		onMiss(action: (harm: boolean) => void) {
+		onMiss(action: (note: ChartNote) => void) {
 			return getTreeRoot().on("miss", action);
 		},
 		/** Runs when the players selects restart */

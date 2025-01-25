@@ -23,6 +23,21 @@ inputElement.style.display = "none";
  * this function will take as a parameter a {@link songFolder}, this way it can access the files and load it
  */
 export class FileManager {
+	static async getFileAtUrl(url: string) {
+		try {
+			const response = await fetch(url);
+			if (!response.ok) {
+				console.error(`Failed to fetch file at ${url}. Status: ${response.status}`);
+				return null;
+			}
+			return response;
+		}
+		catch (error) {
+			console.error(`An error occurred while fetching the file: ${error}`);
+			return null;
+		}
+	}
+
 	/** Is called for a cool little loading screen when receiving files
 	 *
 	 * Use it in company of the {@link receiveFile} function

@@ -61,7 +61,7 @@ export function createStrumline() {
 								)
 							)
 						) {
-							GameState.events.trigger("miss");
+							GameState.events.trigger("miss", ChartNote);
 						}
 					}
 				}

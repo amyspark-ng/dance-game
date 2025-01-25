@@ -1,5 +1,5 @@
-import { Content } from "../../core/loading/content";
 import { KaplayState } from "../../core/scenes/KaplayState";
+import { getDancer } from "../../data/dancer";
 import { StateSongSelect } from "../../ui/menu/songselect/SongSelectScene";
 import { paramsGameScene, StateGame } from "../PlayState";
 
@@ -22,7 +22,7 @@ KaplayState.scene("death", (DeathState: StateDeath) => {
 	]);
 
 	add([
-		sprite(Content.getDancerByName(DeathState.GameState.params.dancerName).name, { anim: "miss" }),
+		sprite(getDancer().getName(), { anim: "miss" }),
 		pos(center().x - 100, center().y + 50),
 		anchor("center"),
 		scale(0.5),

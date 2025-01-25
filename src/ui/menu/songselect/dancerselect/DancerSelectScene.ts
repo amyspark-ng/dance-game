@@ -1,58 +1,56 @@
-import { Content } from "../../../../core/loading/content";
 import { GameSave } from "../../../../core/save";
 import { KaplayState } from "../../../../core/scenes/KaplayState";
+import { DancerContent, getDancer, getDancerByName } from "../../../../data/dancer";
 import { utils } from "../../../../utils";
 import { StateSongSelect } from "../SongSelectScene";
 
 export class StateDancerSelect extends KaplayState {
-	SongSelectState: StateSongSelect;
-	constructor(songselectstate: StateSongSelect) {
+	constructor() {
 		super("dancerselect");
-		this.SongSelectState = songselectstate;
 	}
 }
 
 KaplayState.scene("dancerselect", (DancerSelectState: StateDancerSelect) => {
 	function addDancerChar(dancerName: string) {
 		const curDancer = add([
-			sprite(Content.getDancerByName(GameSave.dancer).name, { anim: "idle" }),
+			sprite(getDancerByName(dancerName).spriteName),
 			pos(center().x, center().y),
 			anchor("center"),
 			scale(),
 			"dancerChar",
 			dancerName,
+			{
+				data: getDancerByName(dancerName),
+			},
 		]);
+
+		curDancer.play(curDancer.data.getAnim("idle"));
 
 		return curDancer;
 	}
 
-	const dancers = Content.loadedDancers;
-	/** The index in dancers of the currently selected dancer */
-	let curIndex = dancers.map(dancer => dancer.name).indexOf(GameSave.dancer);
-	const dancerNames = dancers.map(dancer => dancer.name);
+	const dancers = DancerContent.loaded;
+	let curIndex = dancers.indexOf(getDancer());
 
 	const bg = add([
-		sprite(Content.getDancerByName(dancers[curIndex].name).name, {
-			anim: "idle",
-			tiled: true,
+		sprite(dancers[curIndex].bgSpriteName, {
 			width: width(),
 			height: height(),
 		}),
-		opacity(0.5),
 	]);
 
 	bg.onUpdate(() => {
-		bg.sprite = Content.getDancerByName(dancers[curIndex].name).name;
+		bg.sprite = getDancer().bgSpriteName;
 	});
 
 	dancers.forEach((dancer, index) => {
 		let intendedYPos = center().y;
 		let intendedXScale = 1;
 
-		const dancerChar = addDancerChar(dancer.name);
+		const dancerChar = addDancerChar(dancer.manifest.name);
 
 		dancerChar.onUpdate(() => {
-			if (dancers[curIndex].name == dancer.name) {
+			if (dancers[curIndex].spriteName == dancer.spriteName) {
 				intendedYPos = center().y;
 				intendedXScale = 1;
 			}
@@ -68,16 +66,16 @@ KaplayState.scene("dancerselect", (DancerSelectState: StateDancerSelect) => {
 
 	onKeyPress("up", () => {
 		curIndex = utils.scrollIndex(curIndex, -1, dancers.length);
-		GameSave.dancer = dancerNames[curIndex];
+		GameSave.dancer = dancers[curIndex].manifest.name;
 	});
 
 	onKeyPress("down", () => {
 		curIndex = utils.scrollIndex(curIndex, 1, dancers.length);
-		GameSave.dancer = dancerNames[curIndex];
+		GameSave.dancer = dancers[curIndex].manifest.name;
 	});
 
 	onKeyPress("enter", () => {
-		get(GameSave.dancer)[0].play("victory");
+		// get(GameSave.dancer)[0].play("victory");
 		GameSave.save();
 		KaplayState.switchState(new StateSongSelect(0));
 	});

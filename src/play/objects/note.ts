@@ -1,6 +1,6 @@
 import { LoadSpriteOpt } from "kaplay";
-import { Content } from "../../core/loading/content";
 import { GameSave } from "../../core/save";
+import { getNoteskinSprite, NoteskinContent } from "../../data/noteskins";
 import { utils } from "../../utils";
 import { INPUT_THRESHOLD, StateGame } from "../PlayState";
 import { makeDancer, Move, moveAnimsArr } from "./dancer";
@@ -75,16 +75,6 @@ export class ChartNote {
 	}
 }
 
-export class NoteskinData {
-	name: string;
-	spriteData: LoadSpriteOpt;
-	static Moves = [...moveAnimsArr, "trail", "tail"] as const;
-	constructor(name: string, spriteData?: LoadSpriteOpt) {
-		this.name = name;
-		this.spriteData = spriteData;
-	}
-}
-
 /** How much time will take for the note to reach the strum */
 export let TIME_FOR_STRUM = 1.25;
 
@@ -112,7 +102,7 @@ export function addNote(chartNote: ChartNote, GameState: StateGame, strumline: S
 	masked.z = 1;
 
 	const noteObj = add([
-		sprite(Content.getNoteskinSprite(chartNote.move)),
+		sprite(getNoteskinSprite(chartNote.move)),
 		pos(width() + NOTE_WIDTH, strumline.pos.y),
 		anchor("center"),
 		opacity(),
@@ -191,7 +181,7 @@ export function addNote(chartNote: ChartNote, GameState: StateGame, strumline: S
 
 		if (conditionsForPassedNote(chartNote)) {
 			hasMissedNote = true;
-			GameState.events.trigger("miss");
+			GameState.events.trigger("miss", chartNote);
 		}
 
 		if (hasMissedNote) {
@@ -217,7 +207,7 @@ export function addNote(chartNote: ChartNote, GameState: StateGame, strumline: S
 			for (let i = 0; i < chartNote.length; i++) {
 				if (i == 0) {
 					drawSprite({
-						sprite: Content.getNoteskinSprite("trail", chartNote.move),
+						sprite: getNoteskinSprite("trail", chartNote.move),
 						width: NOTE_WIDTH / 2,
 						height: NOTE_WIDTH,
 						anchor: "left",
@@ -227,8 +217,8 @@ export function addNote(chartNote: ChartNote, GameState: StateGame, strumline: S
 
 				drawSprite({
 					sprite: (i != chartNote.length - 1)
-						? Content.getNoteskinSprite("trail", chartNote.move)
-						: Content.getNoteskinSprite("tail", chartNote.move),
+						? getNoteskinSprite("trail", chartNote.move)
+						: getNoteskinSprite("tail", chartNote.move),
 					pos: vec2(NOTE_WIDTH / 2 + (NOTE_WIDTH * i), 0),
 					anchor: "left",
 					opacity: trail.opacity,

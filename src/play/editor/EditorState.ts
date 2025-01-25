@@ -1,7 +1,6 @@
 import { Color, Vec2 } from "kaplay";
 import { v4 } from "uuid";
 import { Conductor } from "../../Conductor";
-import { Content } from "../../core/loading/content";
 import { GameSave } from "../../core/save";
 import { KaplayState } from "../../core/scenes/KaplayState";
 import { Sound } from "../../core/sound";
@@ -10,7 +9,6 @@ import { utils } from "../../utils";
 import { ChartEvent, eventId } from "../event";
 import { Move } from "../objects/dancer";
 import { ChartNote } from "../objects/note";
-import { SongContent } from "../song";
 import { editorCommands } from "./backend/commands";
 import { editorUtils } from "./backend/utils";
 import { EventLane, NoteLane } from "./objects/lane";
@@ -18,6 +16,7 @@ import { EditorMinimap } from "./objects/minimap";
 import { EditorSelectionBox } from "./objects/selectionbox";
 import { EditorEvent, EditorNote, EditorStamp } from "./objects/stamp";
 import "./EditorScene";
+import { SongContent } from "../../data/song";
 
 /** The params for the chart editor */
 export type paramsEditor = {
@@ -330,7 +329,7 @@ export class StateChart extends KaplayState {
 
 		const oldUUID = params.song.manifest.uuid_DONT_CHANGE;
 
-		const uuidAlreadyExists = Content.loadedSongs.map((song) => song.manifest.uuid_DONT_CHANGE).includes(this.song.manifest.uuid_DONT_CHANGE);
+		const uuidAlreadyExists = SongContent.loaded.map((song) => song.manifest.uuid_DONT_CHANGE).includes(this.song.manifest.uuid_DONT_CHANGE);
 		// the uuid alreaddy exists
 		if (uuidAlreadyExists) {
 			this.song.manifest.name = this.song.manifest.name + " (copy)";

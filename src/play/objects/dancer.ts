@@ -1,24 +1,28 @@
-import { Comp, KEventController, LoadSpriteOpt, SpriteData, TimerController, TweenController, Vec2 } from "kaplay";
+import { KEventController, TweenController, Vec2 } from "kaplay";
 import { juice } from "../../core/juiceComp";
-import { Content } from "../../core/loading/content";
 import { GameSave } from "../../core/save";
+import { getDancer, getDancerByName } from "../../data/dancer";
 
 export const moveAnimsArr = ["left", "down", "up", "right"] as const;
 /** The moves in the gameplay, also handles the note type */
 export type Move = typeof moveAnimsArr[number];
 
 /** The moves the dancer can make */
-export type MoveAnim = Move | "idle";
+export type DancerAnim = Move | "idle";
 
 /** Time it'll take for the dancer to go back to idleing */
 const TIME_FOR_IDLE = 1;
 
 export const DANCER_POS = vec2(518, 377);
-export function makeDancer(dancerName: string) {
+
+/** Make a base dancer object
+ * @param dancerName the name of the dancer
+ */
+export function makeDancer(dancerName: string = getDancer().manifest.name) {
 	let onAnimEndEvent: KEventController = null;
 
 	const dancerObj = make([
-		sprite(Content.getDancerByName(dancerName).name, { anim: "idle" }),
+		sprite(getDancerByName(dancerName).spriteName),
 		pos(center().x, height()),
 		anchor("bot"),
 		scale(),
@@ -26,19 +30,23 @@ export function makeDancer(dancerName: string) {
 		z(2),
 		"dancerObj",
 		{
+			/** The data of the dancer */
+			data: getDancerByName(dancerName),
 			intendedScale: vec2(1),
 			forcedAnim: false,
 			/** The timer controller for the wait for the idle */
 			waitForIdle: null as KEventController,
+			lastMove: "" as DancerAnim,
 			add() {
 				this.waitForIdle = wait(0);
 			},
 
-			doMove(move: MoveAnim): void {
+			doMove(move: DancerAnim): void {
 				if (this.forcedAnim) return;
 
+				this.lastMove = move;
 				onAnimEndEvent?.cancel();
-				this.play(move);
+				this.play(this.data.getAnim(move));
 
 				if (move != "idle") {
 					this.moveBop();
@@ -77,16 +85,17 @@ export function makeDancer(dancerName: string) {
 			/** Gets the current move
 			 * @warning If it returns undefined it means it's doing other thing
 			 */
-			getMove(): MoveAnim {
-				const curAnimName = this.getCurAnim()?.name;
-				if (moveAnimsArr.includes(curAnimName)) return curAnimName;
-				else return undefined;
+			getMove(): DancerAnim {
+				// console.log(this.getCurAnim().name);
+				// console.log(this.data.animToMove(this.getCurAnim().name));
+				// return this.data.animToMove(this.getCurAnim().name);
+				return this.lastMove;
 			},
 
 			/** miss */
 			miss(): void {
 				if (this.forcedAnim) return;
-				this.play("miss");
+				this.play(this.data.getAnim(this.getMove(), true));
 				this.moveBop();
 
 				this.waitForIdle?.cancel();
@@ -104,14 +113,3 @@ export function makeDancer(dancerName: string) {
 
 /** The type that a dancer game object would be */
 export type DancerGameObj = ReturnType<typeof makeDancer>;
-
-export class DancerData {
-	name: string;
-	animData: LoadSpriteOpt;
-	bgAnimData: LoadSpriteOpt;
-	constructor(name: string, animData?: LoadSpriteOpt, bgAnimData?: LoadSpriteOpt) {
-		this.name = name;
-		this.animData = animData;
-		this.bgAnimData = bgAnimData;
-	}
-}

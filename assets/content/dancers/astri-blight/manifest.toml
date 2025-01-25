@@ -1,0 +1,6 @@
+name = "Astri Blight"
+artist = "DevkyRD"
+sprite_file_path = "astri-blight.png"
+sprite_data_path = "astri-blight-data.json"
+bg_file_path = "astri-blight-bg.png"
+bg_data_path = ""

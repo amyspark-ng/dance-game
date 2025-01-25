@@ -1,0 +1,6 @@
+name = "Starlight"
+artist = "idk"
+sprite_file_path = "starlight.png"
+sprite_data_path = "starlight-data.json"
+bg_file_path = "starlight-bg.png"
+bg_data_path = ""

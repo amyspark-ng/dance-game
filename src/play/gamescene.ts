@@ -2,10 +2,10 @@ import { appWindow } from "@tauri-apps/api/window";
 import { EaseFunc, KEventController } from "kaplay";
 import { cam } from "../core/camera";
 import { GAME } from "../core/init";
-import { Content } from "../core/loading/content";
 import { GameSave } from "../core/save";
 import { KaplayState } from "../core/scenes/KaplayState";
 import { Sound } from "../core/sound";
+import { getDancer } from "../data/dancer";
 import { utils } from "../utils";
 import { ChartEvent } from "./event";
 import { addJudgement } from "./objects/judgement";
@@ -31,7 +31,7 @@ KaplayState.scene("game", (GameState: StateGame) => {
 	});
 
 	add([
-		sprite(Content.getDancerByName(GameState.params.dancerName).bg),
+		sprite(getDancer().bgSpriteName),
 		pos(center()),
 		anchor("center"),
 		layer("background"),
@@ -114,7 +114,7 @@ KaplayState.scene("game", (GameState: StateGame) => {
 		let judgement = Scoring.judgeNote(GameState.conductor.timeInSeconds, chartNote);
 
 		if (judgement == "Miss") {
-			GameState.events.trigger("miss");
+			GameState.events.trigger("miss", chartNote);
 			return;
 		}
 
@@ -147,10 +147,10 @@ KaplayState.scene("game", (GameState: StateGame) => {
 		}
 	});
 
-	GameState.events.onMiss((harm: boolean) => {
+	GameState.events.onMiss((note: ChartNote) => {
+		GameState.dancer.lastMove = note.move;
 		GameState.dancer.miss();
 
-		if (harm == false) return;
 		Sound.playSound("noteMiss");
 		addJudgement("Miss");
 

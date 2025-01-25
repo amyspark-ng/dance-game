@@ -1,6 +1,7 @@
 import { GameObj, PosComp } from "kaplay";
-import { Content } from "../../../core/loading/content";
 import { GameSave } from "../../../core/save";
+import { getDancer, getDancerByName } from "../../../data/dancer";
+import { getNoteskinSprite } from "../../../data/noteskins";
 import { FileManager } from "../../../FileManager";
 import { utils } from "../../../utils";
 import { ChartEvent } from "../../event";
@@ -20,7 +21,7 @@ export function defineTabs() {
 		const moves: Move[] = ["left", "down", "up", "right"];
 		moves.forEach((move, index) => {
 			const noteObj = editorTabObj.add([
-				sprite(Content.getNoteskinSprite(move)),
+				sprite(getNoteskinSprite(move)),
 				pos(),
 				area(),
 				opacity(),
@@ -115,7 +116,7 @@ export function defineTabs() {
 
 		dummyDancer.onUpdate(() => {
 			const dancerAtTime = ChartEvent.handle["change-dancer"](ChartState.conductor.timeInSeconds, ChartState.song.chart.events).dancer;
-			dummyDancer.sprite = Content.getDancerByName(dancerAtTime).name;
+			dummyDancer.sprite = getDancerByName(dancerAtTime).getName();
 		});
 
 		const playAnimEV = ChartEvent.onEvent("play-anim", (ev) => {

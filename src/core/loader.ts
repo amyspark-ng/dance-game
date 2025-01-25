@@ -1,5 +1,10 @@
-import { loadCursor } from "../cursor";
-import { Content } from "./content";
+import { SpriteAtlasData } from "kaplay";
+import { DancerContent } from "../data/dancer";
+import { NoteskinContent } from "../data/noteskins";
+import { SongContent } from "../data/song";
+import { ChartEvent } from "../play/event";
+import { rankings } from "../play/objects/scoring";
+import { loadCursor } from "./cursor";
 
 /** The loading screen of the game */
 export function loadingScreen(progress: number) {
@@ -28,9 +33,35 @@ export function loadingScreen(progress: number) {
 
 /** Loads all the assets of the game */
 export async function loadAssets() {
-	Content.loadSongs();
-	Content.loadDancers();
-	Content.loadNoteskins();
+	SongContent.loadAll();
+	DancerContent.loadAll();
+	NoteskinContent.loadAll();
+
+	let rankData = {};
+	rankings.forEach((rank, index) => {
+		rankData["rank_" + rank] = {
+			width: 130,
+			height: 130,
+			x: 130 * index + 20 * index,
+			y: 0,
+		};
+	});
+	loadSpriteAtlas("game/sprites/songRanks.png", rankData);
+
+	const eventData = {} as SpriteAtlasData;
+	Object.keys(ChartEvent.eventSchema).forEach((id, index) => {
+		// TODO: MAKE IT SO IT WORKS WITH THE GRID
+		const x = index * 52;
+		const y = 0;
+
+		eventData[id] = {
+			width: 52,
+			height: 52,
+			x,
+			y,
+		};
+	});
+	loadSpriteAtlas("editor/sprites/events.png", eventData);
 
 	// #region EDITOR
 	loadSound("dialogOpen", "editor/sounds/dialogOpen.ogg");
@@ -44,7 +75,6 @@ export async function loadAssets() {
 	loadSound("noteStretch", "editor/sounds/noteStretch.ogg");
 	loadSound("undo", "editor/sounds/undo.wav");
 
-	Content.loadEventSprites();
 	loadSprite("hueSlider", "editor/sprites/hueSlider.png");
 	// #endregion EDITOR
 
@@ -59,7 +89,6 @@ export async function loadAssets() {
 	loadSprite("cdCase", "game/sprites/songselect/cdCase.png");
 	loadSprite("imported", "game/sprites/songselect/imported.png");
 	loadSprite("importSong", "game/sprites/songselect/importSong.png");
-	loadSpriteAtlas("game/sprites/songRanks.png", Content.getRankingSpriteAtlas());
 	// #endregion GAME
 
 	// #region SHARED
