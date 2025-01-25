@@ -8,7 +8,7 @@ import { Sound } from "../core/sound";
 import { getDancer } from "../data/dancer";
 import { utils } from "../utils";
 import { ChartEvent } from "./event";
-import { addJudgement } from "./objects/judgement";
+import { updateJudgement } from "./objects/judgement";
 import { ChartNote, NoteGameObj, notesSpawner, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
 import { getClosestNote, Scoring } from "./objects/scoring";
 import { inputHandler, introGo, StateGame } from "./PlayState";
@@ -88,7 +88,7 @@ KaplayState.scene("game", (GameState: StateGame) => {
 			Sound.playSound("lowHealth", { detune: curBeat % 2 == 0 ? 0 : 25 });
 		}
 
-		if (GameState.dancer.getMove() == "idle") {
+		if (GameState.dancer.currentMove == "idle") {
 			GameState.dancer.play("idle");
 			GameState.dancer.moveBop();
 		}
@@ -130,8 +130,9 @@ KaplayState.scene("game", (GameState: StateGame) => {
 
 		if (GameState.health < 100) GameState.health += randi(2, 6);
 
-		const judgementText = addJudgement(judgement);
+		updateJudgement(judgement);
 
+		// this updates last move don't worry
 		GameState.dancer.doMove(chartNote.move);
 
 		if (chartNote.length) {
@@ -148,11 +149,11 @@ KaplayState.scene("game", (GameState: StateGame) => {
 	});
 
 	GameState.events.onMiss((note: ChartNote) => {
-		GameState.dancer.lastMove = note.move;
+		GameState.dancer.currentMove = note.move;
 		GameState.dancer.miss();
 
 		Sound.playSound("noteMiss");
-		addJudgement("Miss");
+		updateJudgement("Miss");
 
 		const closestNote = getClosestNote(GameState.song.chart.notes, GameState.conductor.timeInSeconds);
 		const scoreDiff = Scoring.getScorePerDiff(GameState.conductor.timeInSeconds, closestNote);

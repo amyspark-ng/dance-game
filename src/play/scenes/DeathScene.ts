@@ -1,7 +1,8 @@
 import { KaplayState } from "../../core/scenes/KaplayState";
-import { getDancer } from "../../data/dancer";
+import { getDancer, getDancerByName } from "../../data/dancer";
 import { StateSongSelect } from "../../ui/menu/songselect/SongSelectScene";
-import { paramsGameScene, StateGame } from "../PlayState";
+import { makeDancer } from "../objects/dancer";
+import { StateGame } from "../PlayState";
 
 export class StateDeath extends KaplayState {
 	GameState: StateGame;
@@ -21,12 +22,8 @@ KaplayState.scene("death", (DeathState: StateDeath) => {
 		"deathText",
 	]);
 
-	add([
-		sprite(getDancer().getName(), { anim: "miss" }),
-		pos(center().x - 100, center().y + 50),
-		anchor("center"),
-		scale(0.5),
-	]);
+	const dancer = add(makeDancer(getDancerByName(DeathState.GameState.params.dancerName).manifest.name));
+	dancer.play(dancer.data.getAnim("up", true));
 
 	onKeyPress(["backspace", "escape"], () => {
 		KaplayState.switchState(new StateSongSelect(DeathState.GameState.song));

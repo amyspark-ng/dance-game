@@ -193,7 +193,7 @@ export function addNote(chartNote: ChartNote, GameState: StateGame, strumline: S
 	});
 
 	function addTrail() {
-		const trail = add([
+		const trail = masked.add([
 			pos(noteObj.pos),
 			anchor("left"),
 			opacity(),

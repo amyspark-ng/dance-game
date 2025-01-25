@@ -323,7 +323,7 @@ KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 	onKeyPress("tab", () => {
 		if (!SongSelectState.menuInputEnabled) return;
 		stopPreview();
-		KaplayState.switchState(new StateDancerSelect(SongSelectState));
+		KaplayState.switchState(new StateDancerSelect());
 	});
 
 	onKeyPress("escape", () => {

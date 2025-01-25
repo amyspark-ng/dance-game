@@ -1,5 +1,4 @@
 import { KEventController, TweenController, Vec2 } from "kaplay";
-import { juice } from "../../core/juiceComp";
 import { GameSave } from "../../core/save";
 import { getDancer, getDancerByName } from "../../data/dancer";
 
@@ -18,25 +17,23 @@ export const DANCER_POS = vec2(518, 377);
 /** Make a base dancer object
  * @param dancerName the name of the dancer
  */
-export function makeDancer(dancerName: string = getDancer().manifest.name) {
+export function makeDancer(dancerName: string = getDancer().manifest.name, intendedScale: Vec2 = vec2(1)) {
 	let onAnimEndEvent: KEventController = null;
 
 	const dancerObj = make([
 		sprite(getDancerByName(dancerName).spriteName),
 		pos(center().x, height()),
 		anchor("bot"),
-		scale(),
-		juice(),
+		scale(intendedScale),
 		z(2),
-		"dancerObj",
+		"dancer",
 		{
 			/** The data of the dancer */
 			data: getDancerByName(dancerName),
-			intendedScale: vec2(1),
-			forcedAnim: false,
 			/** The timer controller for the wait for the idle */
 			waitForIdle: null as KEventController,
-			lastMove: "" as DancerAnim,
+			forcedAnim: false,
+			currentMove: "" as DancerAnim,
 			add() {
 				this.waitForIdle = wait(0);
 			},
@@ -44,10 +41,11 @@ export function makeDancer(dancerName: string = getDancer().manifest.name) {
 			doMove(move: DancerAnim): void {
 				if (this.forcedAnim) return;
 
-				this.lastMove = move;
+				this.currentMove = move;
 				onAnimEndEvent?.cancel();
 				this.play(this.data.getAnim(move));
 
+				// probably playing notes or something
 				if (move != "idle") {
 					this.moveBop();
 
@@ -70,32 +68,17 @@ export function makeDancer(dancerName: string = getDancer().manifest.name) {
 
 			/**
 			 * Bops the dancer kinda like a FNF object
-			 * @returns The tween, check juice stretch for more info
+			 * @returns The tween
 			 */
-			moveBop(): TweenController {
-				this.scale.x = this.intendedScale.x;
-				return this.stretch({
-					XorY: "y",
-					startScale: this.intendedScale.y * 0.9,
-					endScale: this.intendedScale.y,
-					theTime: 0.25,
-				});
-			},
-
-			/** Gets the current move
-			 * @warning If it returns undefined it means it's doing other thing
-			 */
-			getMove(): DancerAnim {
-				// console.log(this.getCurAnim().name);
-				// console.log(this.data.animToMove(this.getCurAnim().name));
-				// return this.data.animToMove(this.getCurAnim().name);
-				return this.lastMove;
+			moveBop(duration: number = 0.25): TweenController {
+				this.scale.x = intendedScale.x;
+				return tween(intendedScale.y * 0.9, intendedScale.y, duration, (p) => this.scale.y = p);
 			},
 
 			/** miss */
 			miss(): void {
 				if (this.forcedAnim) return;
-				this.play(this.data.getAnim(this.getMove(), true));
+				this.play(this.data.getAnim(this.currentMove, true));
 				this.moveBop();
 
 				this.waitForIdle?.cancel();

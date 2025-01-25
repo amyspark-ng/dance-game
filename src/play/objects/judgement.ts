@@ -10,7 +10,7 @@ export const judgements = ["Awesome", "Good", "Ehh", "Miss"] as const;
 export type Judgement = typeof judgements[number];
 
 /** Add judgement object */
-export function addJudgement(judgement: Judgement) {
+export function updateJudgement(judgement: Judgement) {
 	function createJudgement() {
 		let timeLeft = 1;
 

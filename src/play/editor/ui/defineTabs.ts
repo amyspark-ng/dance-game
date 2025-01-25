@@ -109,14 +109,12 @@ export function defineTabs() {
 			return counter;
 		}
 
-		const dummyDancer = editorTabObj.add(makeDancer(GameSave.dancer));
-		dummyDancer.intendedScale = vec2(0.5);
-		dummyDancer.scale = dummyDancer.intendedScale;
+		const dummyDancer = editorTabObj.add(makeDancer(GameSave.dancer, vec2(0.5)));
 		dummyDancer.pos = vec2(0, editorTabObj.height - dummyDancer.height / 2 - 30);
 
 		dummyDancer.onUpdate(() => {
-			const dancerAtTime = ChartEvent.handle["change-dancer"](ChartState.conductor.timeInSeconds, ChartState.song.chart.events).dancer;
-			dummyDancer.sprite = getDancerByName(dancerAtTime).getName();
+			// const dancerAtTime = ChartEvent.handle["change-dancer"](ChartState.conductor.timeInSeconds, ChartState.song.chart.events).dancer;
+			// dummyDancer.sprite = getDancerByName(dancerAtTime).spriteName;
 		});
 
 		const playAnimEV = ChartEvent.onEvent("play-anim", (ev) => {
@@ -156,7 +154,7 @@ export function defineTabs() {
 				tween(YELLOW, WHITE, 0.15, (p) => currentBeatObj.color = p);
 			}
 
-			if (dummyDancer.getCurAnim().name == "idle") dummyDancer.moveBop();
+			if (dummyDancer.currentMove == "idle") dummyDancer.moveBop();
 		});
 
 		const onNoteHitEv = getTreeRoot().on("stampHit", (stamp: EditorStamp) => {
