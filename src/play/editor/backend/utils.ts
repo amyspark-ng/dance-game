@@ -23,26 +23,6 @@ export function addFloatyText(texting: string) {
 	return texty;
 }
 
-export function addLogText(texting: string) {
-	const texty = add([
-		text(texting, { align: "left", size: 20 }),
-		pos(),
-		color(BLACK),
-		fixed(),
-		anchor("left"),
-		"logText",
-	]);
-
-	const logTexts = get("logText") as ReturnType<typeof addLogText>[];
-	const index = logTexts.indexOf(texty);
-	texty.pos = vec2(10, height() - texty.height * index - texty.height / 2);
-
-	wait(1, () => {
-		texty.destroy();
-	});
-	return texty;
-}
-
 /** Interface that defins some functions in the stamps section for EditorUtils */
 interface editorUtils {
 	clipboardMessage(action: "copy" | "cut" | "paste", clipboard: EditorStamp[]): string;
@@ -101,7 +81,15 @@ export const editorUtils: editorUtils = {
 			notes,
 			events,
 			toString() {
-				return `${notes.length} ${notes.length > 1 ? "notes" : "note"} and ${events.length} ${events.length > 1 ? "events" : "event"}`;
+				const notesString = `${notes.length} ${notes.length > 1 ? "notes" : "note"}`;
+				const eventsString = `${events.length} ${events.length > 1 ? "events" : "event"}`;
+
+				// only notes
+				if (notes.length > 0 && events.length < 1) return notesString;
+				// only events
+				else if (events.length > 0 && notes.length < 1) return eventsString;
+				// both
+				return `${notesString} and ${eventsString}`;
 			},
 		};
 	},

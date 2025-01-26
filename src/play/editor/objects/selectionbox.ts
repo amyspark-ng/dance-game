@@ -76,7 +76,7 @@ export class EditorSelectionBox {
 
 			// if stamp was collided take a snapshot and actually select them
 			if (stampsCollided.length > 0) {
-				ChartState.takeSnapshot(`selected ${stampsCollided.length} stamps`);
+				ChartState.takeSnapshot(`selected ${StateChart.utils.boxSortStamps(stampsCollided).toString()}`);
 				stampsCollided.forEach((stamp) => {
 					stamp.selected = true;
 					stamp.twitch();

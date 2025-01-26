@@ -90,6 +90,7 @@ export function makeDancer(dancerName: string = getDancer().manifest.name, inten
 		},
 	]);
 
+	dancerObj.play(dancerObj.data.getAnim("idle"));
 	dancerObj.pos = DANCER_POS;
 	return dancerObj;
 }

@@ -51,7 +51,7 @@ export class EditorStamp {
 
 		let heightOfSelect = 0;
 		if (this.is("note")) {
-			heightOfSelect = this.height * (this.data.length ? this.data.length + 1 : 1);
+			heightOfSelect = this.height + this.trailHeight;
 		}
 		else {
 			heightOfSelect = this.height;
@@ -83,7 +83,7 @@ export class EditorStamp {
 
 	/* BOP IT :) */
 	bop() {
-		return tween(vec2(1.4), vec2(1), 0.1, (p) => this.scale = p);
+		// return tween(vec2(1.4), vec2(1), 0.1, (p) => this.scale = p);
 	}
 
 	/* TWIST IT :) */
@@ -92,8 +92,8 @@ export class EditorStamp {
 	}
 
 	/* Twitch it? */
-	twitch() {
-		const randomOffset = vec2(choose([-10, 10]), choose([-10, 10]));
+	twitch(strength = 10) {
+		const randomOffset = vec2(choose([-strength, strength]), choose([-strength, strength]));
 		return tween(this.intendedPos.add(randomOffset), this.intendedPos, 0.15, (p) => this.pos = p);
 	}
 
@@ -107,8 +107,7 @@ export class EditorStamp {
 
 	/** Wheter the stamp is being hovered */
 	isHovering() {
-		const noteRect = new Rect(this.screenPos, this.width, this.height);
-		return noteRect.contains(mousePos());
+		return new Rect(this.screenPos, this.width, this.height).contains(mousePos());
 	}
 
 	/** Runs when the stamp is clicked */
@@ -169,6 +168,17 @@ export class EditorStamp {
 export class EditorNote extends EditorStamp {
 	override data: ChartNote = null;
 
+	get trailHeight() {
+		return this.height * (this.data.length ? this.data.length : 0);
+	}
+
+	/** Wheter the note is hovering
+	 * @param includeTrail Wheter to also think of the trail
+	 */
+	override isHovering(includeTrail = false): boolean {
+		return new Rect(this.screenPos, this.width, this.height + (includeTrail ? this.trailHeight : 0)).contains(mousePos());
+	}
+
 	override addSound() {
 		const ogSound = super.addSound();
 		ogSound.detune = ChartNote.moveToDetune(this.data.move);
@@ -199,7 +209,7 @@ export class EditorNote extends EditorStamp {
 	/** Determines wheter there's a trail at a certain step
 	 * @param step The step to find the trail at
 	 */
-	static trailAtStep(step: number) {
+	static trailAtStep(step: number = StateChart.instance.hoveredStep) {
 		const note = StateChart.utils.find("note", step);
 		if (note) {
 			const noteStep = Math.round(StateChart.instance.conductor.timeToStep(note.data.time));
@@ -257,12 +267,10 @@ export class EditorNote extends EditorStamp {
 	override update() {
 		super.update();
 
-		if (StateChart.instance.conductor.currentStep == this.step) {
+		if (StateChart.instance.scrollStep == this.step || this.data.length && utils.isInRange(StateChart.instance.scrollStep, this.step, this.step + this.data.length)) {
 			this.scale = lerp(this.scale, vec2(1.2), 0.5);
 		}
-		else {
-			this.scale = lerp(this.scale, vec2(1), 0.5);
-		}
+		else this.scale = lerp(this.scale, vec2(1), 0.5);
 	}
 
 	constructor(data: ChartNote) {

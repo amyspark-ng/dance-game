@@ -7,10 +7,10 @@ import { KaplayState } from "../../core/scenes/KaplayState.ts";
 import { BlackBarsTransition } from "../../core/scenes/transitions/blackbar.ts";
 import { Sound } from "../../core/sound.ts";
 import { utils } from "../../utils.ts";
-import { Move } from "../objects/dancer.ts";
 import { ChartNote } from "../objects/note.ts";
 import { StateGame } from "../PlayState.ts";
 import { editorShortcuts } from "./backend/handlers.ts";
+import { mouseControls } from "./backend/mouseControls.ts";
 import { StateChart } from "./EditorState.ts";
 import { EditorLane, EventLane, NoteLane } from "./objects/lane.ts";
 import { EditorMinimap } from "./objects/minimap.ts";
@@ -35,8 +35,8 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 	ChartState.paused = true;
 	ChartState.scrollToStep(ChartState.conductor.timeToStep(ChartState.params.seekTime));
 
-	ChartState.song.chart.notes.forEach((chartNote) => ChartState.placeNote(chartNote));
-	ChartState.song.chart.events.forEach((ChartEvent) => ChartState.placeEvent(ChartEvent));
+	// ChartState.song.chart.notes.forEach((chartNote) => ChartState.placeNote(chartNote));
+	// ChartState.song.chart.events.forEach((ChartEvent) => ChartState.placeEvent(ChartEvent));
 
 	// have to do it here so it draws before everything else
 	onDraw(() => {
@@ -61,168 +61,10 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 	ChartState.eventLane.darkColor = ChartState.noteLane.lightColor;
 	ChartState.eventLane.lightColor = ChartState.noteLane.darkColor;
 
-	wait(3, () => {
-		ChartState.conductor.paused = false;
-	});
-
-	// #region NOTES
-	/** The event for stretching a note */
-	let stretchingNoteEV: KEventController = null;
-	ChartState.noteLane.onClick("left", () => {
-		let hoveredNote = ChartState.notes.find((note) => note.isHovering());
-		// place a new note
-		if (!hoveredNote) {
-			hoveredNote = StateChart.commands.PlaceNote();
-			stretchingNoteEV?.cancel();
-			stretchingNoteEV = onMouseMove(() => {
-				let oldLength = hoveredNote.data.length;
-				const noteLength = Math.floor(ChartState.hoveredStep - hoveredNote.step);
-				hoveredNote.data.length = noteLength > 0 ? noteLength : undefined;
-				let newLength = hoveredNote.data.length;
-				if (oldLength != newLength) {
-					hoveredNote.stretchSound();
-				}
-			});
-
-			const releaseEV = onMouseRelease(() => {
-				if (hoveredNote.data.length) hoveredNote.snapSound();
-				releaseEV.cancel();
-				stretchingNoteEV?.cancel();
-				stretchingNoteEV = null;
-			});
-		}
-		// existing note
-		else {
-			if (!hoveredNote.selected) hoveredNote.selected = true;
-		}
-	});
-
-	ChartState.noteLane.onClick("right", () => {
-		const hoveredNote = ChartState.notes.find((note) => note.isHovering());
-		if (hoveredNote) StateChart.commands.DeleteNote(true, hoveredNote);
-	});
-
-	ChartState.noteLane.onClick("middle", () => {
-		const hovered = ChartState.notes.find((note) => note.isHovering());
-		if (hovered) ChartState.currentMove = hovered.data.move;
-	});
-
-	// #endregion NOTES
-
-	// #region EVENTS
-	ChartState.eventLane.onClick("left", () => {
-		let hoveredEvent = ChartState.events.find((ev) => ev.isHovering());
-		if (!hoveredEvent) {
-			hoveredEvent = StateChart.commands.PlaceEvent(true);
-		}
-		// there's already an event
-		else {
-			if (!hoveredEvent.selected) hoveredEvent.selected = true;
-			// if already selected now edit it
-			else {
-				// goes through any event that is being edited
-				ChartState.events.filter((ev) => ev != hoveredEvent).forEach((event) => {
-					if (event.beingEdited) event.beingEdited = false;
-				});
-
-				if (!hoveredEvent.beingEdited) {
-					hoveredEvent.beingEdited = true;
-					hoveredEvent.editSound();
-				}
-				else {
-					hoveredEvent.twist();
-				}
-			}
-		}
-	});
-
-	ChartState.eventLane.onClick("right", () => {
-		const hoveredEvent = ChartState.events.find((event) => event.isHovering());
-		if (hoveredEvent) {
-			const theEvent = StateChart.commands.DeleteEvent(true, hoveredEvent);
-			hoveredEvent.deleteSound();
-		}
-	});
-
-	ChartState.eventLane.onClick("middle", () => {
-		const hoveredEvent = ChartState.events.find((event) => event.isHovering());
-		if (hoveredEvent) {
-			ChartState.currentEvent = hoveredEvent.data.id;
-		}
-	});
-	// #ENDREGION EVENTS
-
-	let differencesToLeading = { notes: [] as number[], events: [] as number[] };
-	onMousePress("left", () => {
-		// if you're not holding control then let go of all selected notes
-		if (!isKeyDown("control")) {
-			if (ChartState.selected.length > 0) StateChart.commands.DeselectAll();
-		}
-
-		const hoveredStamp = EditorStamp.mix(ChartState.notes, ChartState.events).find((stamp) => stamp.isHovering());
-
-		// found a hovered note, turn it into a leader and make it work
-		if (hoveredStamp) {
-			hoveredStamp.selected = true;
-			ChartState.leaderStamp = hoveredStamp;
-		}
-		else {
-			ChartState.leaderStamp = undefined;
-			ChartState.lastLeaderStep = 0;
-		}
-
-		// recalculate all differences to leading
-		if (!ChartState.leaderStamp) return;
-		differencesToLeading.notes = ChartState.notes.map((note) => {
-			return note.step - ChartState.leaderStamp.step;
-		});
-
-		differencesToLeading.events = ChartState.events.map((event) => {
-			return event.step = ChartState.leaderStamp.step;
-		});
-	});
-
-	onMouseDown("left", () => {
-		if (!(ChartState.noteLane.isHovering() || ChartState.eventLane.isHovering())) return;
-		if (!ChartState.leaderStamp) return;
-
-		let oldTime = ChartState.leaderStamp.data.time;
-
-		// is the actual thing that changes the step of the note
-		ChartState.selected.forEach((stamp) => {
-			// is the leading stamp
-			if (stamp == ChartState.leaderStamp) {
-				ChartState.leaderStamp.step = ChartState.hoveredStep;
-			}
-			// is another stamp
-			else {
-				// this stamp must always be "stepDiff" steps away from leaderStampStep
-				if (stamp.is("note")) {
-					const stepDiff = differencesToLeading.notes[ChartState.notes.indexOf(stamp)];
-					stamp.step = ChartState.leaderStamp.step + stepDiff;
-				}
-				else if (stamp.is("event")) {
-					const stepDiff = differencesToLeading.events[ChartState.events.indexOf(stamp)];
-					stamp.step = ChartState.leaderStamp.step + stepDiff;
-				}
-			}
-		});
-
-		let newTime = ChartState.leaderStamp.data.time;
-
-		if (newTime != oldTime) {
-			// thinking WAY too hard for a simple sound effect lol!
-			const diff = ChartState.conductor.timeToStep(newTime) - ChartState.lastLeaderStep;
-			const theSound = ChartState.leaderStamp.moveSound();
-			theSound.detune *= diff;
-		}
-	});
-
-	onMouseRelease("left", () => {
-		ChartState.leaderStamp = undefined;
-	});
+	mouseControls();
 
 	onUpdate(() => {
+		debug.log(ChartState.hoveredStep);
 		ChartState.bgColor = rgb(92, 50, 172);
 		ChartState.conductor.paused = ChartState.paused;
 
@@ -260,8 +102,6 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 		ChartState.notes.forEach((note) => note.draw());
 		ChartState.events.forEach((event) => event.draw());
 		EditorLane.drawCursor(); // i draw it here so it's above the note selected box
-
-		// TODO: REWORK NOTE CURSOR
 
 		// # strumlineline
 		const strumlineYPos = StateChart.instance.strumlineStep * StateChart.SQUARE_SIZE.y;

@@ -1,12 +1,13 @@
 import { KaplayState } from "../../../core/scenes/KaplayState";
 import { Sound } from "../../../core/sound";
 import { StateMenu } from "../../../ui/menu/MenuScene";
+import { addNotification } from "../../../ui/objects/notification";
 import { ChartEvent, eventId } from "../../event";
 import { Move } from "../../objects/dancer";
 import { ChartNote } from "../../objects/note";
 import { StateChart } from "../EditorState";
 import { EditorEvent, EditorNote, EditorStamp } from "../objects/stamp";
-import { addFloatyText, addLogText } from "./utils";
+import { addFloatyText } from "./utils";
 
 export const editorCommands = {
 	NewChart: () => {
@@ -107,7 +108,7 @@ export const editorCommands = {
 		const ChartState = StateChart.instance;
 		stamps = stamps ?? ChartState.selected;
 		if (stamps.length == 0) return;
-		ChartState.takeSnapshot(`delete ${stamps.length} stamps`);
+		ChartState.takeSnapshot(`deleted ${StateChart.utils.boxSortStamps(stamps).toString()}`);
 
 		stamps.forEach((stamp) => {
 			if (stamp.is("note")) ChartState.deleteNote(stamp);
@@ -140,7 +141,7 @@ export const editorCommands = {
 		const ChartState = StateChart.instance;
 		stamps = stamps ?? StateChart.instance.selected;
 		if (stamps.length == 0) return;
-		ChartState.takeSnapshot(`cut ${stamps.length} stamps`);
+		ChartState.takeSnapshot(`cut ${StateChart.utils.boxSortStamps(stamps).toString()}`);
 
 		// some code from the copy action
 		ChartState.clipboard = stamps;
@@ -159,7 +160,7 @@ export const editorCommands = {
 		if (stamps.length == 0) return;
 
 		// shickiiii
-		ChartState.takeSnapshot(`pasted ${stamps.length} stamps`);
+		ChartState.takeSnapshot(`pasted ${StateChart.utils.boxSortStamps(stamps).toString()}`);
 
 		Sound.playSound("noteCopy", { detune: rand(-50, -25) });
 		addFloatyText(StateChart.utils.clipboardMessage("paste", stamps));
@@ -168,7 +169,7 @@ export const editorCommands = {
 			const newTime = stamp.data.time + ChartState.conductor.stepToTime(ChartState.hoveredStep);
 			const newStep = StateChart.instance.conductor.timeToStep(newTime);
 			if (stamp.is("note")) StateChart.commands.PlaceNote(false, newStep, stamp.data.move);
-			// else if (stamp.is("event")) ChartState.placeEvent({ time: newTime, ...stamp.data });
+			else if (stamp.is("event")) StateChart.commands.PlaceEvent(false, newStep, stamp.data.id);
 			stamp.twist();
 		});
 	},
@@ -180,7 +181,7 @@ export const editorCommands = {
 
 		if (oldSong != newSong) {
 			Sound.playSound("undo", { detune: rand(-50, -25) });
-			addLogText(`undid: "${StateChart.instance.snapshots[StateChart.instance.snapshotIndex].command}"`);
+			addNotification(`undid: "${StateChart.instance.snapshots[StateChart.instance.snapshotIndex].command}"`);
 		}
 	},
 
@@ -191,7 +192,7 @@ export const editorCommands = {
 
 		if (oldSong != newSong) {
 			Sound.playSound("undo", { detune: rand(25, 50) });
-			addLogText(`redid: "${StateChart.instance.snapshots[StateChart.instance.snapshotIndex].command}"`);
+			addNotification(`redid: "${StateChart.instance.snapshots[StateChart.instance.snapshotIndex].command}"`);
 		}
 	},
 };

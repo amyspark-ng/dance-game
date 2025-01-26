@@ -179,12 +179,6 @@ export class StateChart extends KaplayState {
 	/** The events in the editor */
 	events: EditorEvent[] = [];
 
-	/** Stamp that the other stamps move around */
-	leaderStamp: EditorStamp = undefined;
-
-	/** The step the selected note started in before it was moved */
-	lastLeaderStep = 0;
-
 	onNotePlace(action: () => {}) {
 		return getTreeRoot().on("notePlace", action);
 	}
