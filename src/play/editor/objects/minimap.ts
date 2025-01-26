@@ -3,6 +3,17 @@ import { utils } from "../../../utils";
 import { ChartNote } from "../../objects/note";
 import { StateChart } from "../EditorState";
 
+function makeMinimapObj() {
+	return make([
+		pos(),
+		rect(0, 0),
+		area(),
+		opacity(0),
+		anchor("top"),
+		"hover",
+	]);
+}
+
 export class EditorMinimap {
 	pos: Vec2 = vec2();
 	controller = {
@@ -17,9 +28,9 @@ export class EditorMinimap {
 	width: number = StateChart.SQUARE_SIZE.x;
 	isMoving: boolean = false;
 
-	obj: GameObj = null;
+	obj: ReturnType<typeof makeMinimapObj> = null;
 
-	update() {
+	private update() {
 		const ChartState = StateChart.instance;
 		const minLeft = this.pos.x - this.width / 2;
 		const maxRight = this.pos.x + this.width / 2;
@@ -76,7 +87,7 @@ export class EditorMinimap {
 		}
 	}
 
-	draw() {
+	private draw() {
 		const ChartState = StateChart.instance;
 
 		// draws the minimap background
@@ -156,5 +167,23 @@ export class EditorMinimap {
 	}
 
 	constructor() {
+		this.obj = add(makeMinimapObj());
+		this.obj.onUpdate(() => {
+			this.width = StateChart.SQUARE_SIZE.x;
+			this.height = StateChart.SQUARE_SIZE.y * 11;
+
+			this.obj.width = this.width;
+			this.obj.height = this.height;
+			this.obj.pos = this.pos;
+			this.update();
+		});
+
+		const STUPIDTHING = onDraw(() => {
+			this.draw();
+		});
+
+		this.obj.onDestroy(() => {
+			STUPIDTHING.cancel();
+		});
 	}
 }

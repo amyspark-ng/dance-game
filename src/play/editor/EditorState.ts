@@ -16,7 +16,7 @@ import { EditorMinimap } from "./objects/minimap";
 import { EditorSelectionBox } from "./objects/selectionbox";
 import { EditorEvent, EditorNote, EditorStamp } from "./objects/stamp";
 import "./EditorScene";
-import { SongContent } from "../../data/song";
+import { SongContent, SongManifest } from "../../data/song";
 
 /** The params for the chart editor */
 export type paramsEditor = {
@@ -105,10 +105,14 @@ export class StateChart extends KaplayState {
 	isCursorInGrid = false;
 
 	/** Wheter the cursor is in a grid or not */
-	isInNoteGrid = false;
+	get isInNoteLane() {
+		return this.noteLane && this.noteLane.isHovering();
+	}
 
 	/** Wheter the cursor is in the events grid */
-	isInEventGrid = false;
+	get isInEventLane() {
+		return this.eventLane && this.eventLane.isHovering();
+	}
 
 	/** The scale of the strumline line */
 	strumlineScale = vec2(1);
@@ -134,21 +138,21 @@ export class StateChart extends KaplayState {
 	strumlineStep = 0;
 
 	/** Minimap instance to control the time of the song more comfortably */
-	minimap: EditorMinimap;
+	minimap: EditorMinimap = null;
 
 	/** Note lane to put notes */
-	noteLane: NoteLane;
+	noteLane: NoteLane = null;
 
 	/** Event lane to put events */
-	eventLane: EventLane;
+	eventLane: EventLane = null;
 
 	/** Selection box to select notes and stamps */
-	selectionBox: EditorSelectionBox;
+	selectionBox: EditorSelectionBox = null;
 
 	/** Runs when the sound for the soundPlay has changed */
 	updateAudio() {
 		this.conductor.audioPlay.stop();
-		this.conductor.audioPlay = Sound.playMusic(this.song.manifest.uuid_DONT_CHANGE + "-audio");
+		this.conductor.audioPlay = Sound.playMusic(this.song.getAudioName());
 	}
 
 	/** Sets scrollStep to a clamped and rounded value */
@@ -156,11 +160,6 @@ export class StateChart extends KaplayState {
 		newStep = clamp(newStep, 0, this.conductor.totalSteps);
 		newStep = Math.abs(Math.round(newStep));
 		this.scrollStep = newStep;
-	}
-
-	/** Converts a step to a position (a hawk to a) */
-	stepToPos(step: number) {
-		return utils.getPosInGrid(StateChart.INITIAL_POS, step, 0, StateChart.SQUARE_SIZE);
 	}
 
 	/** Changes the current move */
@@ -177,82 +176,60 @@ export class StateChart extends KaplayState {
 	/** Stamp that the other stamps move around */
 	leaderStamp: EditorStamp = undefined;
 
-	/** Adds a note or event to the Chart
-	 * @param data The ChartNote or ChartEvent to add
-	 * @returns The object (EditorNote or EditorEvent)
-	 */
-	place(type: "note", data: ChartNote): EditorNote;
-	place(type: "event", data: ChartEvent): EditorEvent;
-	place(type: "note" | "event", data: ChartNote | ChartEvent) {
-		if (type == "note" && "move" in data) {
-			const editorNote = new EditorNote(data);
-			this.notes.push(editorNote); // pushes to editorNotes array
-			this.notes.sort((a, b) => b.data.time - a.data.time); // sorts the editorNotes array
-			this.song.chart.notes[this.notes.indexOf(editorNote)] = editorNote.data; // pushes to chartNote array
-			this.song.chart.notes.sort((a, b) => b.time - a.time); // sorts the chartNote array
-
-			// little effect
-			editorNote.onHit(() => {
-				if (this.paused) return;
-				Sound.playSound("noteHit", { detune: StateChart.utils.moveToDetune(editorNote.data.move) });
-			});
-
-			return editorNote;
-		}
-		else if (type == "event" && "id" in data) {
-			const editorEvent = new EditorEvent(data);
-			this.events.push(editorEvent); // pushes to editorEvents arrray
-			this.events.sort((a, b) => b.data.time - a.data.time); // sorts the editorEvents arrray
-			this.song.chart.events[this.events.indexOf(editorEvent)] = editorEvent.data; // pushes to chartEvents arrary
-			this.song.chart.events.sort((a, b) => b.time - a.time); // sorts the chartEvents array
-
-			editorEvent.onHit(() => {
-				if (this.paused) return;
-				Sound.playSound("noteHit", { detune: Object.keys(ChartEvent.eventSchema).indexOf(editorEvent.data.id) });
-			});
-
-			return editorEvent;
-		}
-		else return undefined as any;
+	onNotePlace(action: () => {}) {
+		return getTreeRoot().on("notePlace", action);
 	}
 
-	/** Deletes a note or event of the Chart
-	 * @param stampToDelete The EditorStamp to remove (If one is not passed it will simply remove the hovered one)
-	 * @returns The delete stamp
+	/** Adds a noteto the Chart
+	 * @param data The ChartNote
+	 * @returns The object
 	 */
-	delete(type: "note", stampToDelete?: EditorNote): EditorNote;
-	delete(type: "event", stampToDelete?: EditorEvent): EditorEvent;
-	delete(type: "note" | "event", stampToDelete?: EditorNote | EditorEvent) {
-		if (type == "note") {
-			stampToDelete = stampToDelete ?? this.notes.find((note) => note.isHovering());
-			if (stampToDelete == undefined) return;
-			if (!stampToDelete.is("note")) return;
+	placeNote(data: ChartNote) {
+		const editorNote = new EditorNote(data);
+		this.notes.push(editorNote);
+		this.notes.sort((a, b) => b.data.time - a.data.time);
+		this.song.chart.notes.push(editorNote.data);
+		this.song.chart.notes.sort((a, b) => b.time - a.time);
+		return editorNote;
+	}
 
-			this.takeSnapshot(`delete ${stampToDelete.data.move} note`);
-			this.notes.splice(this.notes.indexOf(stampToDelete), 1); // remove from editornotes array
-			this.notes.sort((a, b) => b.data.time - a.data.time); // sorts the editorNotes array
-			this.song.chart.notes.splice(this.song.chart.notes.indexOf(stampToDelete.data), 1); // remove from chartnote array
-			this.song.chart.notes.sort((a, b) => b.time - a.time); // sorts the editorNotes array
-			stampToDelete.destroy();
+	/** Deletes a note of the Chart
+	 * @param note The EditorNote to remove
+	 * @returns The deleted note
+	 */
+	deleteNote(note: EditorNote) {
+		this.notes.splice(this.notes.indexOf(note), 1);
+		this.notes.sort((a, b) => b.data.time - a.data.time);
+		this.song.chart.notes.splice(this.song.chart.notes.indexOf(note.data), 1);
+		this.song.chart.notes.sort((a, b) => b.time - a.time);
+		note.destroy();
+		return note;
+	}
 
-			if (this.leaderStamp == stampToDelete) this.leaderStamp = undefined;
-			return stampToDelete;
-		}
-		else if (type == "event") {
-			stampToDelete = stampToDelete ?? this.events.find((event) => event.isHovering());
-			if (stampToDelete == undefined) return;
-			if (!stampToDelete.is("event")) return;
-			this.takeSnapshot(`delete ${stampToDelete.data.id} event`);
-			this.events.splice(this.events.indexOf(stampToDelete), 1); // remove from editorEvent array
-			this.events.sort((a, b) => b.data.time - a.data.time); // sorts the editorEvent array
-			this.song.chart.events.splice(this.song.chart.events.indexOf(stampToDelete.data), 1); // remove from chartEvent array
-			this.song.chart.events.sort((a, b) => b.time - a.time); // sorts the editorEvent array
-			stampToDelete.destroy();
+	/** Adds an event to the Chart
+	 * @param data The ChartEvent
+	 * @returns The object
+	 */
+	placeEvent(data: ChartEvent) {
+		const editorNote = new EditorEvent(data);
+		this.events.push(editorNote);
+		this.events.sort((a, b) => b.data.time - a.data.time);
+		this.song.chart.events.push(editorNote.data);
+		this.song.chart.events.sort((a, b) => b.time - a.time);
+		return editorNote;
+	}
 
-			if (this.leaderStamp == stampToDelete) this.leaderStamp = undefined;
-			return stampToDelete;
-		}
-		else return undefined as any;
+	/** Deletes an event of the Chart
+	 * @param event The EditorEvent to remove
+	 * @returns The deleted event
+	 */
+	deleteEvent(event: EditorEvent) {
+		this.events.splice(this.events.indexOf(event), 1);
+		this.events.sort((a, b) => b.data.time - a.data.time);
+		this.song.chart.events.splice(this.song.chart.events.indexOf(event.data), 1);
+		this.song.chart.events.sort((a, b) => b.time - a.time);
+		event.destroy();
+		return event;
 	}
 
 	/** Pushes a snapshot of the current state of the chart */
@@ -316,45 +293,53 @@ export class StateChart extends KaplayState {
 
 	constructor(params: paramsEditor) {
 		super("editor");
-		StateChart.instance = this;
-		params.playbackSpeed = params.playbackSpeed ?? 1;
-		params.playbackSpeed = Math.abs(clamp(params.playbackSpeed, 0, Infinity));
-		params.seekTime = params.seekTime ?? 0;
-		params.seekTime = Math.abs(clamp(params.seekTime, 0, Infinity));
-		params.song = params.song ?? new SongContent();
-		this.params = params;
 
-		// Creates a deep copy of the song so it doesn't overwrite the current song
-		this.song = JSON.parse(JSON.stringify(this.params.song));
+		// this will run once you actually enter the editor scene
+		const sceneEnterEv = onSceneLeave((name) => {
+			sceneEnterEv.cancel();
+			if (name != "editor") return;
 
-		const oldUUID = params.song.manifest.uuid_DONT_CHANGE;
+			StateChart.instance = this;
+			params.playbackSpeed = params.playbackSpeed ?? 1;
+			params.playbackSpeed = Math.abs(clamp(params.playbackSpeed, 0, Infinity));
+			params.seekTime = params.seekTime ?? 0;
+			params.seekTime = Math.abs(clamp(params.seekTime, 0, Infinity));
+			params.song = params.song ?? new SongContent();
+			this.params = params;
 
-		const uuidAlreadyExists = SongContent.loaded.map((song) => song.manifest.uuid_DONT_CHANGE).includes(this.song.manifest.uuid_DONT_CHANGE);
-		// the uuid alreaddy exists
-		if (uuidAlreadyExists) {
-			this.song.manifest.name = this.song.manifest.name + " (copy)";
-			this.song.manifest.uuid_DONT_CHANGE = v4();
-			// have to reload the audio i don't know how much this would work since this loading takes time so
-			const soundBuffer = getSound(`${oldUUID}-audio`).data.buf;
-			loadSound(`${this.song.manifest.uuid_DONT_CHANGE}-audio`, soundBuffer as any);
+			this.song = utils.deepClone(this.params.song);
 
-			// also have to reload the cover this sucks
-			FileManager.spriteToDataURL(`${oldUUID}-cover`).then((dataurl) => {
-				loadSprite(`${this.song.manifest.uuid_DONT_CHANGE}-cover`, dataurl);
-			});
-		}
-		else {
-			// load default sound
-			const newSoundBuffer = getSound("new-song-audio").data.buf;
-			loadSound(`${this.song.manifest.uuid_DONT_CHANGE}-audio`, newSoundBuffer as any);
+			const oldUUID = params.song.manifest.uuid_DONT_CHANGE;
 
-			// load default cover
-			FileManager.spriteToDataURL("new-song-cover").then((dataurl) => {
-				loadSprite(`${this.song.manifest.uuid_DONT_CHANGE}-cover`, dataurl);
-			});
-		}
+			const uuidAlreadyExists = SongContent.loaded.map((song) => song.manifest.uuid_DONT_CHANGE).includes(this.song.manifest.uuid_DONT_CHANGE);
+			// the uuid alreaddy exists
+			if (uuidAlreadyExists) {
+				this.song.manifest.name = this.song.manifest.name + " (copy)";
+				this.song.manifest.uuid_DONT_CHANGE = v4();
+				// have to reload the audio i don't know how much this would work since this loading takes time so
+				const soundBuffer = getSound(`${oldUUID}-audio`).data.buf;
+				loadSound(this.song.getAudioName(), soundBuffer as any);
 
-		this.snapshotIndex = 0;
-		this.snapshots = [JSON.parse(JSON.stringify(this))];
+				// also have to reload the cover this sucks
+				FileManager.spriteToDataURL(`${oldUUID}-cover`).then((dataurl) => {
+					loadSprite(this.song.getCoverName(), dataurl);
+				});
+			}
+			else {
+				// load default sound
+				const newSoundBuffer = getSound("new-song-audio").data.buf;
+				loadSound(this.song.getAudioName(), newSoundBuffer as any);
+
+				// load default cover
+				FileManager.spriteToDataURL("new-song-cover").then((dataurl) => {
+					loadSprite(this.song.getCoverName(), dataurl);
+				});
+			}
+
+			// # CONDUCTOR
+
+			this.snapshotIndex = 0;
+			this.snapshots = [JSON.parse(JSON.stringify(this))];
+		});
 	}
 }

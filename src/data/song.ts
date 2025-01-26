@@ -11,10 +11,11 @@ type SongAssets = {
 };
 
 export class SongManifest {
-	/** The path the manifest is found at */
+	/** Prefix path the manifest was found at */
 	path: string;
+
 	/** Name of the song */
-	name: string = "Someone";
+	name: string = "Song name";
 	/** Artist of the song */
 	artist: string = "Someone else";
 	/** Charter of the song */
@@ -34,24 +35,32 @@ export class SongManifest {
 	/** The path/url of the cover file */
 	cover_file: string;
 
+	get steps_per_beat() {
+		return this.time_signature[0];
+	}
+
+	set steps_per_beat(val: number) {
+		this.time_signature[0] = val;
+	}
+
+	get beats_per_measure() {
+		return this.time_signature[1];
+	}
+
+	set beats_per_measure(val: number) {
+		this.time_signature[1] = val;
+	}
+
 	getPath(path: string) {
 		return this.path + "/" + path;
 	}
 
-	constructor(tomlRecord?: Record<string, TomlPrimitive>, path?: string) {
-		if (tomlRecord) {
-			Object.keys(tomlRecord).forEach((key) => {
-				if (tomlRecord[key] == "" || tomlRecord[key] == "undefined" || tomlRecord[key] == "" || tomlRecord[key] == "null") {
-					this[key] = undefined;
-				}
-				else {
-					this[key] = tomlRecord[key];
-				}
-			});
-		}
-		if (path) {
-			this.path = path;
-		}
+	assignFromTOML(tomlRecord: Record<string, TomlPrimitive>) {
+		Object.keys(tomlRecord).forEach((key) => {
+			if (!(tomlRecord[key] == "undefined" || tomlRecord[key] == "")) {
+				this[key] = tomlRecord[key];
+			}
+		});
 	}
 }
 
@@ -86,8 +95,13 @@ export class SongContent {
 	 */
 	static async fetchManifestFromPath(path: string): Promise<SongManifest> {
 		const stringedTOML = await (await fetch(path + "/manifest.toml")).text();
-		const TOMLm = TOML.parse(stringedTOML);
-		return new Promise((resolve) => resolve(new SongManifest(TOMLm, path)));
+		const manifestContent = TOML.parse(stringedTOML);
+
+		const manifest = new SongManifest();
+		manifest.path = path;
+		manifest.assignFromTOML(manifestContent);
+
+		return new Promise((resolve) => resolve(manifest));
 	}
 
 	/** Parses manifest data to Assets
@@ -155,12 +169,12 @@ export class SongContent {
 
 	static defaultUUIDS: string[] = [
 		"1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed",
-		"14e1c3e9-b24f-4aaa-8401-d772d8725f51",
+		// "14e1c3e9-b24f-4aaa-8401-d772d8725f51",
 	];
 
 	static defaultPaths: string[] = [
 		"content/songs/bopeebo",
-		"content/songs/unholy-blight",
+		// "content/songs/unholy-blight",
 	];
 
 	static loaded: SongContent[] = [];

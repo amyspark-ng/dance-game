@@ -1,4 +1,4 @@
-import { Color, KEventController, Vec2 } from "kaplay";
+import { Color, Vec2 } from "kaplay";
 import { CustomAudioPlay, Sound } from "../../../core/sound";
 import { getNoteskinSprite } from "../../../data/noteskins";
 import { utils } from "../../../utils";
@@ -11,7 +11,6 @@ import { StateChart } from "../EditorState";
  * Has many cool little props like selected step sounds, anim utils, etc
  */
 export class EditorStamp {
-	private _step: number = 0;
 	angle: number = 0;
 	width: number = StateChart.SQUARE_SIZE.x;
 	height: number = StateChart.SQUARE_SIZE.y;
@@ -21,15 +20,14 @@ export class EditorStamp {
 	type: "note" | "event";
 	data: ChartNote | ChartEvent = null;
 
-	events: KEventController[] = [];
+	events = new KEventHandler();
 
 	set step(newStep: number) {
 		this.data.time = StateChart.instance.conductor.stepToTime(newStep);
-		this._step = newStep;
 	}
 
 	get step() {
-		return this._step;
+		return Math.round(StateChart.instance.conductor.timeToStep(this.data.time));
 	}
 
 	static mix(notes: EditorNote[], events: EditorEvent[]) {
@@ -117,24 +115,20 @@ export class EditorStamp {
 	onClick(action: (stamp: EditorStamp) => void) {
 		// makes it so it only runs if it's this one stamp
 		// this is very cool, thank you MF
-		const ev = getTreeRoot().on("stampClick", (stamp: EditorStamp) => {
+		return this.events.on("stampClick", (stamp: EditorStamp) => {
 			if (stamp == this) {
 				action(stamp);
 			}
 		});
-		this.events.push(ev);
-		return ev;
 	}
 
 	/** Runs when the stamp is hit (on step) */
 	onHit(action: (stamp: EditorStamp) => void) {
-		const ev = getTreeRoot().on("stampHit", (stamp: EditorStamp) => {
+		return this.events.on("stampHit", (stamp: EditorStamp) => {
 			if (stamp == this) {
 				action(stamp);
 			}
 		});
-		this.events.push(ev);
-		return ev;
 	}
 
 	/** The draw event of the stamp */
@@ -145,7 +139,6 @@ export class EditorStamp {
 	/** Update the state of the stamp */
 	update() {
 		this.pos = this.intendedPos;
-		this._step = Math.round(StateChart.instance.conductor.timeToStep(this.data.time));
 
 		if (isMousePressed("left")) {
 			if (this.isHovering()) {
@@ -164,9 +157,7 @@ export class EditorStamp {
 
 	/** Runs when the stamp is removed (has to be called manually duh) */
 	destroy() {
-		this.events.forEach((event) => {
-			event.cancel();
-		});
+		this.events.clear();
 	}
 
 	constructor(type: "note" | "event") {

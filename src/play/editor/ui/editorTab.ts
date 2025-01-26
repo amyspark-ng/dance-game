@@ -331,7 +331,7 @@ export class EditorTab {
 				outline(2, EditorTab.ui.BODY_OUTLINE),
 				"hover",
 				{
-					value: text,
+					value: text as string,
 				},
 			]);
 

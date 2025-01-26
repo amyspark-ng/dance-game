@@ -1,10 +1,7 @@
 import { getCurrent, WebviewWindow } from "@tauri-apps/api/window";
+import { getSongByName } from "../data/song";
 import { StateChart } from "../play/editor/EditorState";
-import { StateGame } from "../play/PlayState";
 import { FocusState } from "../ui/FocusScene";
-import { StateDancerSelect } from "../ui/menu/songselect/dancerselect/DancerSelectScene";
-import { StateSongSelect } from "../ui/menu/songselect/SongSelectScene";
-import { StateTitle } from "../ui/TitleScene";
 import { utils } from "../utils";
 import { setupCamera } from "./camera";
 import { setupCursor } from "./cursor";
@@ -100,10 +97,10 @@ document.addEventListener("fullscreenchange", (event) => {
 
 export function INITIAL_SCENE() {
 	// KaplayState.switchState(new StateTitle());
-	KaplayState.switchState(new StateDancerSelect());
-	// KaplayState.switchState(
-	// 	new StateChart({ dancer: GameSave.dancer, playbackSpeed: 1, seekTime: 1, song: getSong("bopeebo") }),
-	// );
+	// KaplayState.switchState(new StateDancerSelect());
+	KaplayState.switchState(
+		new StateChart({ song: getSongByName("Bopeebo") }),
+	);
 	// KaplayState.switchState(
 	// 	new StateGame({
 	// 		dancerName: GameSave.dancer,

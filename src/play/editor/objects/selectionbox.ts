@@ -105,5 +105,13 @@ export class EditorSelectionBox {
 	}
 
 	constructor() {
+		const obj = add([]);
+		obj.onUpdate(() => {
+			this.update();
+		});
+
+		obj.onDraw(() => {
+			this.draw();
+		});
 	}
 }

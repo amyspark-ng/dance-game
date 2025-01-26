@@ -33,6 +33,7 @@ export function loadingScreen(progress: number) {
 
 /** Loads all the assets of the game */
 export async function loadAssets() {
+	loadBean();
 	SongContent.loadAll();
 	DancerContent.loadAll();
 	NoteskinContent.loadAll();

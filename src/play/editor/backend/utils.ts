@@ -41,6 +41,9 @@ interface editorUtils {
 
 	/** The condition for being able to render something */
 	renderingConditions(yPos: number, square_size?: Vec2): boolean;
+
+	/** Converts a step to a position (a hawk to a) */
+	stepToPos(step: number): Vec2;
 }
 
 export const editorUtils: editorUtils = {
@@ -106,5 +109,9 @@ export const editorUtils: editorUtils = {
 
 	renderingConditions(yPos: number, square_size = StateChart.SQUARE_SIZE) {
 		return utils.isInRange(yPos, -square_size.y, height() + square_size.y);
+	},
+
+	stepToPos(step: number) {
+		return utils.getPosInGrid(StateChart.INITIAL_POS, step, 0, StateChart.SQUARE_SIZE);
 	},
 };

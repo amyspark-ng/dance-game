@@ -2,7 +2,6 @@ import audioBufferToBlob from "audiobuffer-to-blob";
 import JSZip from "jszip";
 import TOML from "smol-toml";
 import { gameCursor } from "./core/cursor";
-import { SongContent, songFolder } from "./play/song";
 
 /** File manager for some stuff of the game */
 export const inputElement = document.createElement("input");

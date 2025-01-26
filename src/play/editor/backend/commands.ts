@@ -29,8 +29,8 @@ export const editorCommands = {
 
 	DeselectAll: () => {
 		StateChart.instance.selected.forEach((stamp) => {
-			if (stamp.is("note")) StateChart.instance.delete("note", stamp);
-			else if (stamp.is("event")) StateChart.instance.delete("event", stamp);
+			// if (stamp.is("note")) StateChart.instance.delete("note", stamp);
+			// else if (stamp.is("event")) StateChart.instance.delete("event", stamp);
 
 			// @ts-ignore
 			// TODO: Figure out why this doesn't work??
@@ -45,15 +45,15 @@ export const editorCommands = {
 		allStamps.forEach((stamp) => stamp.selected = !stamp.selected);
 	},
 
-	Delete(stamps?: EditorStamp[]) {
+	DeleteMultiple(stamps?: EditorStamp[]) {
 		const ChartState = StateChart.instance;
 		stamps = stamps ?? ChartState.selected;
 		if (stamps.length == 0) return;
 		ChartState.takeSnapshot(`delete ${stamps.length} stamps`);
 
 		stamps.forEach((stamp) => {
-			if (stamp.is("note")) ChartState.delete("note", stamp);
-			else if (stamp.is("event")) ChartState.delete("event", stamp);
+			// if (stamp.is("note")) ChartState.delete("note", stamp);
+			// else if (stamp.is("event")) ChartState.delete("event", stamp);
 		});
 
 		Sound.playSound("noteDelete", { detune: rand(-50, 50) });
@@ -62,8 +62,6 @@ export const editorCommands = {
 		if (stamps.some((stamp) => stamp.is("event"))) {
 			Sound.playSound("eventCog", { detune: rand(-50, 50) });
 		}
-
-		ChartState.lastLeaderStep = 0;
 	},
 
 	Copy(stamps?: EditorStamp[]) {
@@ -93,8 +91,8 @@ export const editorCommands = {
 		Sound.playSound("noteCopy", { detune: rand(0, 25) });
 
 		stamps.forEach((stamp) => {
-			if (stamp.is("note")) ChartState.delete("note", stamp);
-			else if (stamp.is("event")) ChartState.delete("event", stamp);
+			// if (stamp.is("note")) ChartState.delete("note", stamp);
+			// else if (stamp.is("event")) ChartState.delete("event", stamp);
 		});
 	},
 
@@ -112,8 +110,8 @@ export const editorCommands = {
 		stamps.forEach((stamp) => {
 			const newTime = stamp.data.time + ChartState.conductor.stepToTime(ChartState.hoveredStep);
 
-			if (stamp.is("note")) ChartState.place("note", { time: newTime, ...stamp.data });
-			else if (stamp.is("event")) ChartState.place("event", { time: newTime, ...stamp.data });
+			// if (stamp.is("note")) ChartState.place("note", { time: newTime, ...stamp.data });
+			// else if (stamp.is("event")) ChartState.place("event", { time: newTime, ...stamp.data });
 			stamp.twist();
 		});
 	},

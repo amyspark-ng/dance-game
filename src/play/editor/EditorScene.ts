@@ -1,5 +1,4 @@
 // The actual scene for the chart editor
-import { timeStamp } from "console";
 import { KEventController } from "kaplay";
 import { Conductor } from "../../Conductor.ts";
 import { gameCursor } from "../../core/cursor.ts";
@@ -8,11 +7,12 @@ import { KaplayState } from "../../core/scenes/KaplayState.ts";
 import { BlackBarsTransition } from "../../core/scenes/transitions/blackbar.ts";
 import { Sound } from "../../core/sound.ts";
 import { utils } from "../../utils.ts";
+import { Move } from "../objects/dancer.ts";
 import { ChartNote } from "../objects/note.ts";
 import { StateGame } from "../PlayState.ts";
 import { editorShortcuts } from "./backend/handlers.ts";
 import { StateChart } from "./EditorState.ts";
-import { EventLane, NoteLane } from "./objects/lane.ts";
+import { EditorLane, EventLane, NoteLane } from "./objects/lane.ts";
 import { EditorMinimap } from "./objects/minimap.ts";
 import { EditorSelectionBox } from "./objects/selectionbox.ts";
 import { EditorStamp } from "./objects/stamp.ts";
@@ -20,11 +20,10 @@ import { EditorTab } from "./ui/editorTab.ts";
 import { MenuBar } from "./ui/menubar.ts";
 
 KaplayState.scene("editor", (ChartState: StateChart) => {
-	// Find a way to comfortably put this back in the constructor
-	// apparently has to be here because they rely on the conductor and it is only set after the constructor
+	// This has to run after the asset reloading
 	Sound.musics.forEach((music) => music.stop());
 	ChartState.conductor = new Conductor({
-		audioPlay: Sound.playMusic(`${ChartState.song.manifest.uuid_DONT_CHANGE}-audio`, {
+		audioPlay: Sound.playMusic(ChartState.song.getAudioName(), {
 			speed: ChartState.params.playbackSpeed,
 		}),
 		BPM: ChartState.song.manifest.initial_bpm * ChartState.params.playbackSpeed,
@@ -36,13 +35,8 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 	ChartState.paused = true;
 	ChartState.scrollToStep(ChartState.conductor.timeToStep(ChartState.params.seekTime));
 
-	ChartState.song.chart.notes.forEach((chartNote) => {
-		ChartState.place("note", chartNote);
-	});
-
-	ChartState.song.chart.events.forEach((chartEvent) => {
-		ChartState.place("event", chartEvent);
-	});
+	ChartState.song.chart.notes.forEach((chartNote) => ChartState.placeNote(chartNote));
+	ChartState.song.chart.events.forEach((ChartEvent) => ChartState.placeEvent(ChartEvent));
 
 	// have to do it here so it draws before everything else
 	onDraw(() => {
@@ -53,23 +47,33 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 		});
 	});
 
-	// EditorUtils.handlers.mouseAnim();
-	ChartState.noteLane = new NoteLane();
+	// TODO: Figure out why i can't put it on constructor (scene change thing, stay isn't working)
+	ChartState.noteLane = new NoteLane("any");
+
 	ChartState.eventLane = new EventLane();
 	ChartState.eventLane.pos = ChartState.noteLane.pos.add(StateChart.SQUARE_SIZE.x, 0);
+
+	ChartState.minimap = new EditorMinimap();
+	ChartState.minimap.pos = ChartState.eventLane.pos.add(StateChart.SQUARE_SIZE.x, 0);
+
+	ChartState.selectionBox = new EditorSelectionBox();
 	// the ol' switcheroo
 	ChartState.eventLane.darkColor = ChartState.noteLane.lightColor;
 	ChartState.eventLane.lightColor = ChartState.noteLane.darkColor;
 
+	wait(3, () => {
+		ChartState.conductor.paused = false;
+	});
+
 	// #region NOTES
 	/** The event for stretching a note */
 	let stretchingNoteEV: KEventController = null;
-	ChartState.noteLane.obj.onClick(() => {
+	ChartState.noteLane.onClick("left", () => {
 		let hoveredNote = ChartState.notes.find((note) => note.isHovering());
 		// place a new note
 		if (!hoveredNote) {
 			ChartState.takeSnapshot(`add ${move} note`);
-			hoveredNote = ChartState.place("note", { time: ChartState.conductor.stepToTime(ChartState.hoveredStep), move: ChartState.currentMove });
+			hoveredNote = ChartState.placeNote({ time: ChartState.conductor.stepToTime(ChartState.hoveredStep), move: ChartState.currentMove });
 			hoveredNote.selected = true;
 			hoveredNote.bop();
 			hoveredNote.addSound();
@@ -98,26 +102,26 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 		}
 	});
 
-	ChartState.noteLane.obj.onMousePress("right", () => {
-		if (!ChartState.noteLane.obj.isHovering()) return;
-		const theNote = ChartState.delete("note");
-		if (theNote) {
-			theNote.deleteSound();
+	ChartState.noteLane.onClick("right", () => {
+		const hoveredNote = ChartState.notes.find((note) => note.isHovering());
+		if (hoveredNote) {
+			ChartState.deleteNote(hoveredNote);
+			hoveredNote.bop();
+			hoveredNote.deleteSound();
 		}
 	});
 
-	ChartState.noteLane.obj.onMousePress("middle", () => {
-		if (!ChartState.noteLane.obj.isHovering()) return;
+	ChartState.noteLane.onClick("middle", () => {
 		const hovered = ChartState.notes.find((note) => note.isHovering());
 		if (hovered) ChartState.currentMove = hovered.data.move;
 	});
 	// #endregion NOTES
 
 	// #region EVENTS
-	ChartState.eventLane.obj.onClick(() => {
+	ChartState.eventLane.onClick("left", () => {
 		let hoveredEvent = ChartState.events.find((ev) => ev.isHovering());
 		if (!hoveredEvent) {
-			hoveredEvent = ChartState.place("event", { time: ChartState.conductor.stepToTime(ChartState.hoveredStep), id: ChartState.currentEvent, value: {} });
+			hoveredEvent = ChartState.placeEvent({ time: ChartState.conductor.stepToTime(ChartState.hoveredStep), id: ChartState.currentEvent, value: {} });
 			hoveredEvent.selected = true;
 			hoveredEvent.bop();
 			hoveredEvent.addSound();
@@ -144,16 +148,14 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 		}
 	});
 
-	ChartState.eventLane.obj.onMousePress("right", () => {
-		if (!ChartState.eventLane.obj.isHovering()) return;
-		const theEvent = ChartState.delete("event");
+	ChartState.eventLane.onClick("right", () => {
+		const theEvent = ChartState.deleteEvent(ChartState.events.find((ev) => ev.isHovering));
 		if (theEvent) {
 			theEvent.deleteSound();
 		}
 	});
 
-	ChartState.eventLane.obj.onMousePress("middle", () => {
-		if (!ChartState.eventLane.obj.isHovering()) return;
+	ChartState.eventLane.onClick("middle", () => {
 		const hoveredEvent = ChartState.events.find((event) => event.isHovering());
 		if (hoveredEvent) {
 			ChartState.currentEvent = hoveredEvent.data.id;
@@ -162,7 +164,7 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 	// #ENDREGION EVENTS
 
 	let differencesToLeading = { notes: [] as number[], events: [] as number[] };
-	onMousePress("left", () => {
+	onClick("left", () => {
 		// if you're not holding control then let go of all selected notes
 		if (!isKeyDown("control")) {
 			if (!EditorStamp.mix(ChartState.notes, ChartState.events).some((note) => note.isHovering())) {
@@ -194,7 +196,7 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 	});
 
 	onMouseDown("left", () => {
-		if (!(ChartState.noteLane.obj.isHovering() || ChartState.eventLane.obj.isHovering())) return;
+		if (!(ChartState.noteLane.isHovering() || ChartState.eventLane.isHovering())) return;
 		if (!ChartState.leaderStamp) return;
 
 		let oldTime = ChartState.leaderStamp.data.time;
@@ -233,15 +235,7 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 		ChartState.leaderStamp = undefined;
 	});
 
-	ChartState.minimap = new EditorMinimap();
-	ChartState.minimap.pos = ChartState.eventLane.pos.add(StateChart.SQUARE_SIZE.x, 0);
-
-	ChartState.selectionBox = new EditorSelectionBox();
-
 	onUpdate(() => {
-		if (ChartState.leaderStamp) {
-			// debug.log(ChartState.leaderNote.step);
-		}
 		ChartState.bgColor = rgb(92, 50, 172);
 		ChartState.conductor.paused = ChartState.paused;
 
@@ -270,17 +264,15 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 
 		// HOVERED STEP
 		ChartState.hoveredStep = ChartState.scrollStep + Math.floor(gameCursor.pos.y / StateChart.SQUARE_SIZE.y);
+		ChartState.conductor.BPM = ChartState.song.manifest.initial_bpm;
 
-		ChartState.minimap.update();
-		ChartState.selectionBox.update();
 		editorShortcuts();
 	});
 
 	onDraw(() => {
 		ChartState.notes.forEach((note) => note.draw());
 		ChartState.events.forEach((event) => event.draw());
-		ChartState.minimap.draw();
-		ChartState.selectionBox.draw();
+		EditorLane.drawCursor(); // i draw it here so it's above the note selected box
 
 		// TODO: REWORK NOTE CURSOR
 

@@ -1,6 +1,5 @@
 import { GameObj, PosComp } from "kaplay";
 import { GameSave } from "../../../core/save";
-import { getDancer, getDancerByName } from "../../../data/dancer";
 import { getNoteskinSprite } from "../../../data/noteskins";
 import { FileManager } from "../../../FileManager";
 import { utils } from "../../../utils";
@@ -371,7 +370,7 @@ export function defineTabs() {
 	});
 
 	EditorTab.tabs.SongInfo.addElements((editorTabObj) => {
-		type songField = { name: string; type: string; direction: string; };
+		type songField = { name: string; type: string; direction: keyof typeof ChartState.song.manifest; };
 
 		const fields: songField[] = [
 			{ name: "Song name", type: "string", direction: "name" },
@@ -379,33 +378,31 @@ export function defineTabs() {
 			{ name: "Charter name", type: "string", direction: "charter" },
 			{ name: "BPM", type: "number", direction: "initial_bpm" },
 			{ name: "Scroll speed", type: "number", direction: "initial_scrollspeed" },
-			{ name: "Steps per beat", type: "number", direction: "time_signature[0]" },
-			{ name: "Beats per measure", type: "number", direction: "time_signature[1]" },
+			{ name: "Steps per beat", type: "number", direction: "steps_per_beat" },
+			{ name: "Beats per measure", type: "number", direction: "beats_per_measure" },
 			{ name: "Cover path", type: "function", direction: "cover_file" },
 			{ name: "Audio path", type: "function", direction: "audio_file" },
 		];
 		editorTabObj.width = 600;
 		editorTabObj.height = 40 * fields.length + 20;
 
-		fields.forEach((field, index) => {
+		fields.forEach((field, idx) => {
 			const title = editorTabObj.add([
 				text(field.name + ": ", { size: 30, align: "right" }),
 				pos(),
 				anchor("topright"),
 			]);
 
-			let object = null as any;
+			let object = null as
+				| ReturnType<typeof EditorTab.ui.addTextbox>
+				| ReturnType<typeof EditorTab.ui.addCheckbox>
+				| ReturnType<typeof EditorTab.ui.addButton>
+				| ReturnType<typeof EditorTab.ui.addScrollable>;
 
 			let initialValue = ChartState.song.manifest[field.direction];
-			if (!initialValue) {
-				// this means it's the time signature one
-				const direction = field.direction.split("[")[0];
-				const index = parseInt(field.direction.split("[")[1].split("]")[0]);
-				initialValue = ChartState.song.manifest[direction][index];
-			}
 
 			if (field.type == "string") {
-				object = EditorTab.ui.addTextbox(editorTabObj, initialValue);
+				object = EditorTab.ui.addTextbox(editorTabObj, String(initialValue));
 			}
 			else if (field.type == "number") {
 				const increase = field.direction.includes("scrollspeed")
@@ -414,7 +411,7 @@ export function defineTabs() {
 				object = EditorTab.ui.addScrollable(editorTabObj, initialValue, null, increase);
 			}
 			else if (field.type == "function") {
-				object = EditorTab.ui.addButton(editorTabObj, initialValue, async () => {
+				object = EditorTab.ui.addButton(editorTabObj, String(initialValue), async () => {
 					const loading = FileManager.loadingScreen();
 					let file: File = null;
 					if (field.direction == "cover_file") file = await FileManager.receiveFile("cover");
@@ -444,22 +441,14 @@ export function defineTabs() {
 			else return;
 
 			title.pos.x = 10;
-			title.pos.y = 10 + (editorTabObj.getTopLeft().y) + 40 * index;
+			title.pos.y = 10 + (editorTabObj.getTopLeft().y) + 40 * idx;
 
 			object.pos.y = title.pos.y;
 			object.pos.x = 10;
 
 			title.onUpdate(() => {
-				if (field.direction.includes("[")) {
-					const direction = field.direction.split("[")[0];
-					const index = parseInt(field.direction.split("[")[1].split("]")[0]);
-					const value = ChartState.song.manifest[direction][index];
-
-					ChartState.song.manifest[direction][index] = object.value;
-				}
-				else {
-					ChartState.song.manifest[field.direction] = object.value;
-				}
+				// @ts-ignore
+				ChartState.song.manifest[field.direction] = object.value;
 			});
 		});
 
