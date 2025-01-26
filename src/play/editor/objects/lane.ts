@@ -111,7 +111,7 @@ export class EditorLane {
 		const isInEventLane = StateChart.instance.isInEventLane;
 		if (!(isInNotelane || isInEventLane)) return;
 
-		const stepThing = StateChart.utils.stepToPos(StateChart.instance.hoveredStep);
+		const stepThing = StateChart.utils.stepToPos(StateChart.instance.hoveredStep - StateChart.instance.scrollStep);
 		if (isInEventLane) this.cursorPos = stepThing.add(StateChart.SQUARE_SIZE.x, 0);
 		else this.cursorPos = stepThing;
 		this.lerpCursorPos = lerp(this.lerpCursorPos, this.cursorPos, 0.5);

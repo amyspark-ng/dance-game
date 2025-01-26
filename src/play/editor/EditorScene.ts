@@ -72,12 +72,7 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 		let hoveredNote = ChartState.notes.find((note) => note.isHovering());
 		// place a new note
 		if (!hoveredNote) {
-			ChartState.takeSnapshot(`add ${move} note`);
-			hoveredNote = ChartState.placeNote({ time: ChartState.conductor.stepToTime(ChartState.hoveredStep), move: ChartState.currentMove });
-			hoveredNote.selected = true;
-			hoveredNote.bop();
-			hoveredNote.addSound();
-
+			hoveredNote = StateChart.commands.PlaceNote();
 			stretchingNoteEV?.cancel();
 			stretchingNoteEV = onMouseMove(() => {
 				let oldLength = hoveredNote.data.length;
@@ -98,43 +93,39 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 		}
 		// existing note
 		else {
-			hoveredNote.selected = true;
+			if (!hoveredNote.selected) hoveredNote.selected = true;
 		}
 	});
 
 	ChartState.noteLane.onClick("right", () => {
 		const hoveredNote = ChartState.notes.find((note) => note.isHovering());
-		if (hoveredNote) {
-			ChartState.deleteNote(hoveredNote);
-			hoveredNote.bop();
-			hoveredNote.deleteSound();
-		}
+		if (hoveredNote) StateChart.commands.DeleteNote(true, hoveredNote);
 	});
 
 	ChartState.noteLane.onClick("middle", () => {
 		const hovered = ChartState.notes.find((note) => note.isHovering());
 		if (hovered) ChartState.currentMove = hovered.data.move;
 	});
+
 	// #endregion NOTES
 
 	// #region EVENTS
 	ChartState.eventLane.onClick("left", () => {
 		let hoveredEvent = ChartState.events.find((ev) => ev.isHovering());
 		if (!hoveredEvent) {
-			hoveredEvent = ChartState.placeEvent({ time: ChartState.conductor.stepToTime(ChartState.hoveredStep), id: ChartState.currentEvent, value: {} });
-			hoveredEvent.selected = true;
-			hoveredEvent.bop();
-			hoveredEvent.addSound();
+			hoveredEvent = StateChart.commands.PlaceEvent(true);
 		}
 		// there's already an event
 		else {
+			if (!hoveredEvent.selected) hoveredEvent.selected = true;
 			// if already selected now edit it
-			if (hoveredEvent.selected) {
+			else {
+				// goes through any event that is being edited
 				ChartState.events.filter((ev) => ev != hoveredEvent).forEach((event) => {
-					if (event.beingEdited == true) event.beingEdited = false;
+					if (event.beingEdited) event.beingEdited = false;
 				});
 
-				if (hoveredEvent.beingEdited == false) {
+				if (!hoveredEvent.beingEdited) {
 					hoveredEvent.beingEdited = true;
 					hoveredEvent.editSound();
 				}
@@ -142,16 +133,14 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 					hoveredEvent.twist();
 				}
 			}
-			else {
-				hoveredEvent.selected = true;
-			}
 		}
 	});
 
 	ChartState.eventLane.onClick("right", () => {
-		const theEvent = ChartState.deleteEvent(ChartState.events.find((ev) => ev.isHovering));
-		if (theEvent) {
-			theEvent.deleteSound();
+		const hoveredEvent = ChartState.events.find((event) => event.isHovering());
+		if (hoveredEvent) {
+			const theEvent = StateChart.commands.DeleteEvent(true, hoveredEvent);
+			hoveredEvent.deleteSound();
 		}
 	});
 
@@ -164,27 +153,25 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 	// #ENDREGION EVENTS
 
 	let differencesToLeading = { notes: [] as number[], events: [] as number[] };
-	onClick("left", () => {
+	onMousePress("left", () => {
 		// if you're not holding control then let go of all selected notes
 		if (!isKeyDown("control")) {
-			if (!EditorStamp.mix(ChartState.notes, ChartState.events).some((note) => note.isHovering())) {
-				ChartState.selected.forEach((stamp) => stamp.selected = false);
-			}
+			if (ChartState.selected.length > 0) StateChart.commands.DeselectAll();
 		}
 
-		const hoveredNote = EditorStamp.mix(ChartState.notes, ChartState.events).find((stamp) => stamp.isHovering());
+		const hoveredStamp = EditorStamp.mix(ChartState.notes, ChartState.events).find((stamp) => stamp.isHovering());
 
 		// found a hovered note, turn it into a leader and make it work
-		if (hoveredNote) {
-			hoveredNote.selected = true;
-			ChartState.leaderStamp = hoveredNote;
-			ChartState.lastLeaderStep = hoveredNote.step;
+		if (hoveredStamp) {
+			hoveredStamp.selected = true;
+			ChartState.leaderStamp = hoveredStamp;
 		}
 		else {
 			ChartState.leaderStamp = undefined;
 			ChartState.lastLeaderStep = 0;
 		}
 
+		// recalculate all differences to leading
 		if (!ChartState.leaderStamp) return;
 		differencesToLeading.notes = ChartState.notes.map((note) => {
 			return note.step - ChartState.leaderStamp.step;

@@ -64,7 +64,7 @@ export class MenuBar {
 			},
 			{
 				text: "Delete (Backspace)",
-				action: () => StateChart.commands.Delete(),
+				action: () => StateChart.commands.DeleteMultiple(),
 			},
 			{
 				text: "Copy (Ctrl + C)",

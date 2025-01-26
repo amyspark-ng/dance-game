@@ -31,12 +31,18 @@ export type ChartStamp = ChartNote | ChartEvent;
 
 /** Class that manages the snapshots of the chart */
 export class ChartSnapshot {
+	/** The content of the song at the moment the snapshot was taking */
 	song: SongContent;
-	selectedStamps: EditorStamp[] = [];
+	/** Notes at time */
+	notes: EditorNote[];
+	/** Events at time */
+	events: EditorEvent[];
+	/** The command you were goinge to execute in the moment the snapshot was taken */
 	command: string = undefined;
-	constructor(song: SongContent, selectedStamps: EditorStamp[], command?: string) {
-		this.song = song;
-		this.selectedStamps = selectedStamps;
+	constructor(ChartState: StateChart, command: string) {
+		this.song = ChartState.song;
+		this.notes = ChartState.notes;
+		this.events = ChartState.events;
 		this.command = command;
 	}
 }
@@ -96,7 +102,7 @@ export class StateChart extends KaplayState {
 	currentMove: Move = "up";
 
 	/** The current selected event */
-	currentEvent: keyof typeof ChartEvent.eventSchema = "change-scroll";
+	currentEvent: eventId = "change-scroll";
 
 	/** The step that is currently being hovered */
 	hoveredStep = 0;
@@ -117,11 +123,14 @@ export class StateChart extends KaplayState {
 	/** The scale of the strumline line */
 	strumlineScale = vec2(1);
 
-	/** Every time you do something, the new state will be pushed to this array */
+	/** Contains an array of certain snapshots of every "state" the scene has been in
+	 *
+	 * All elements in this array are deep copies!!
+	 */
 	snapshots: ChartSnapshot[] = [];
 
-	/** Current index of the current snapshot blah */
-	snapshotIndex = 0;
+	/** The index of the current snapshot in the scene */
+	snapshotIndex: number = 0;
 
 	/** The things currently copied */
 	clipboard: EditorStamp[] = [];
@@ -130,9 +139,6 @@ export class StateChart extends KaplayState {
 	get selected() {
 		return EditorStamp.mix(this.notes.filter((note) => note.selected), this.events.filter((event) => event.selected));
 	}
-
-	/** The step the selected note started in before it was moved */
-	lastLeaderStep = 0;
 
 	/** Determines the current time in the song */
 	strumlineStep = 0;
@@ -175,6 +181,9 @@ export class StateChart extends KaplayState {
 
 	/** Stamp that the other stamps move around */
 	leaderStamp: EditorStamp = undefined;
+
+	/** The step the selected note started in before it was moved */
+	lastLeaderStep = 0;
 
 	onNotePlace(action: () => {}) {
 		return getTreeRoot().on("notePlace", action);
@@ -232,41 +241,49 @@ export class StateChart extends KaplayState {
 		return event;
 	}
 
-	/** Pushes a snapshot of the current state of the chart */
-	takeSnapshot(action?: string) {
-		const snapshot = new ChartSnapshot(this.song, this.selected, action);
+	/** Takes a snapshot before doing an action */
+	takeSnapshot(action: string) {
+		// debug.log(`did action ${action} at index ${this.snapshotIndex}`);
+		const snapshot = new ChartSnapshot(this, action);
 		// Remove any states ahead of the current index for redo to behave correctly
 		this.snapshots = this.snapshots.slice(0, this.snapshotIndex + 1);
-
 		// Add new state as a deep copy to avoid reference issues
-		this.snapshots.push(JSON.parse(JSON.stringify(snapshot)));
+		this.snapshots.push(utils.deepClone(snapshot));
 		this.snapshotIndex++;
+		return snapshot;
 	}
 
-	/** Undos the song and selected notes to latest snapshot */
+	/** Reverts state to latest snapshot
+	 * @returns Returns the new state
+	 */
 	undo() {
 		if (this.snapshotIndex > 0) {
 			this.snapshotIndex--;
-			// Return deep copy of the state
-			const newState: ChartSnapshot = JSON.parse(JSON.stringify(this.snapshots[this.snapshotIndex]));
-			// TODO: FIX THE SELECTION THING WITH SNAPSHOTS
-			// this.selectedStamps = newState.selectedStamps;
-			this.song = newState.song;
+
+			const previousState = this.snapshots[this.snapshotIndex];
+			this.song = previousState.song;
+			this.notes = previousState.notes;
+			this.events = previousState.events;
+
+			return this;
 		}
 
-		return null; // No more states to undo
+		return null;
 	}
 
 	/** Redoes the song and selected notes to latest snapshot */
 	redo() {
 		if (this.snapshotIndex < this.snapshots.length - 1) {
 			this.snapshotIndex++;
-			const newState: ChartSnapshot = JSON.parse(JSON.stringify(this.snapshots[this.snapshotIndex])); // Return deep copy of the state
-			// this.selectedStamps = newState.selectedStamps;
-			this.song = newState.song;
+			const nextState = this.snapshots[this.snapshotIndex];
+			this.song = nextState.song;
+			this.notes = nextState.notes;
+			this.events = nextState.events;
+
+			return this;
 		}
 
-		return null; // No more states to redo
+		return null;
 	}
 
 	/** Creates a new song */
@@ -335,11 +352,6 @@ export class StateChart extends KaplayState {
 					loadSprite(this.song.getCoverName(), dataurl);
 				});
 			}
-
-			// # CONDUCTOR
-
-			this.snapshotIndex = 0;
-			this.snapshots = [JSON.parse(JSON.stringify(this))];
 		});
 	}
 }

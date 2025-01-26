@@ -142,7 +142,7 @@ export class EditorStamp {
 
 		if (isMousePressed("left")) {
 			if (this.isHovering()) {
-				getTreeRoot().trigger("stampClick", this);
+				this.events.trigger("stampClick", this);
 			}
 		}
 	}
@@ -171,13 +171,13 @@ export class EditorNote extends EditorStamp {
 
 	override addSound() {
 		const ogSound = super.addSound();
-		ogSound.detune = StateChart.utils.moveToDetune(this.data.move);
+		ogSound.detune = ChartNote.moveToDetune(this.data.move);
 		return ogSound;
 	}
 
 	override deleteSound() {
 		const ogSound = super.deleteSound();
-		ogSound.detune = -StateChart.utils.moveToDetune(this.data.move);
+		ogSound.detune = -ChartNote.moveToDetune(this.data.move);
 		return ogSound;
 	}
 
@@ -192,7 +192,7 @@ export class EditorNote extends EditorStamp {
 
 	override moveSound(): CustomAudioPlay {
 		const ogSound = super.moveSound();
-		ogSound.detune = Math.abs(StateChart.utils.moveToDetune(this.data.move)) * 0.5;
+		ogSound.detune = Math.abs(ChartNote.moveToDetune(this.data.move)) * 0.5;
 		return ogSound;
 	}
 

@@ -1,5 +1,3 @@
-// Function overloading is pretty cool pretty powerful for this specific case :)
-
 import { Vec2 } from "kaplay";
 import { utils } from "../../../utils";
 import { Move } from "../../objects/dancer";
@@ -25,10 +23,28 @@ export function addFloatyText(texting: string) {
 	return texty;
 }
 
+export function addLogText(texting: string) {
+	const texty = add([
+		text(texting, { align: "left", size: 20 }),
+		pos(),
+		color(BLACK),
+		fixed(),
+		anchor("left"),
+		"logText",
+	]);
+
+	const logTexts = get("logText") as ReturnType<typeof addLogText>[];
+	const index = logTexts.indexOf(texty);
+	texty.pos = vec2(10, height() - texty.height * index - texty.height / 2);
+
+	wait(1, () => {
+		texty.destroy();
+	});
+	return texty;
+}
+
 /** Interface that defins some functions in the stamps section for EditorUtils */
 interface editorUtils {
-	moveToDetune(move: Move): -50 | -100 | 100 | 50;
-
 	clipboardMessage(action: "copy" | "cut" | "paste", clipboard: EditorStamp[]): string;
 
 	/** Gets the closest stamp at a certain step
@@ -44,44 +60,15 @@ interface editorUtils {
 
 	/** Converts a step to a position (a hawk to a) */
 	stepToPos(step: number): Vec2;
+
+	/** Given an array of stamps, it will sort them in boxes and return the notes and events array */
+	boxSortStamps(stamps: EditorStamp[]): { notes: EditorNote[]; events: EditorEvent[]; toString(): string; };
 }
 
 export const editorUtils: editorUtils = {
-	moveToDetune(move: Move) {
-		switch (move) {
-			case "left":
-				return -50;
-			case "down":
-				return -100;
-			case "up":
-				return 100;
-			case "right":
-				return 50;
-		}
-	},
-
 	clipboardMessage(action: "copy" | "cut" | "paste", clipboard: EditorStamp[]) {
-		let message = "";
-
-		const notesLength = clipboard.filter((stamp) => stamp.is("note")).length;
-		const eventsLength = clipboard.filter((stamp) => stamp.is("event")).length;
-		const moreThanOneNote = notesLength > 1;
-		const moreThanOneEvent = eventsLength > 1;
-
 		const stringForAction = action == "copy" ? "Copied" : action == "cut" ? "Cut" : "Pasted";
-
-		if (notesLength > 0 && eventsLength == 0) {
-			message = `${stringForAction} ${notesLength} ${moreThanOneNote ? "notes" : "note"}!`;
-		}
-		else if (notesLength == 0 && eventsLength > 0) {
-			message = `${stringForAction} ${eventsLength} ${moreThanOneEvent ? "events" : "event"}!`;
-		}
-		else if (notesLength > 0 && eventsLength > 0) {
-			message = `${stringForAction} ${notesLength} ${moreThanOneNote ? "notes" : "note"} and ${eventsLength} ${moreThanOneEvent ? "events" : "event"}!`;
-		}
-		else if (notesLength == 0 && eventsLength == 0) message = `${stringForAction} nothing!`;
-
-		return message;
+		return stringForAction + " " + StateChart.utils.boxSortStamps(clipboard).toString() + "!";
 	},
 
 	find(stampType: "note" | "event", step: number) {
@@ -105,6 +92,18 @@ export const editorUtils: editorUtils = {
 			}) as EditorEvent;
 		}
 		else return undefined as any;
+	},
+
+	boxSortStamps(stamps: EditorStamp[]) {
+		const notes = stamps.filter((stamp) => stamp.is("note"));
+		const events = stamps.filter((stamp) => stamp.is("event"));
+		return {
+			notes,
+			events,
+			toString() {
+				return `${notes.length} ${notes.length > 1 ? "notes" : "note"} and ${events.length} ${events.length > 1 ? "events" : "event"}`;
+			},
+		};
 	},
 
 	renderingConditions(yPos: number, square_size = StateChart.SQUARE_SIZE) {

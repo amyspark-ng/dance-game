@@ -62,6 +62,20 @@ export class ChartNote {
 		}
 	}
 
+	/** Converts a move to a detune */
+	static moveToDetune(move: Move) {
+		switch (move) {
+			case "left":
+				return -50;
+			case "down":
+				return -100;
+			case "up":
+				return 100;
+			case "right":
+				return 50;
+		}
+	}
+
 	/** Get the position of a note at a given time */
 	static getPosAtTime(time: number, note: ChartNote, strumlineXpos: number) {
 		let mapValue = (time - ChartNote.spawnTime(note)) / TIME_FOR_STRUM;

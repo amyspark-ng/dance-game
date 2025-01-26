@@ -44,7 +44,7 @@ export const editorShortcuts = () => {
 	// #endregion MOVES
 
 	// #region COMMANDS
-	if (isKeyPressed("backspace")) StateChart.commands.Delete();
+	if (isKeyPressed("backspace")) StateChart.commands.DeleteMultiple();
 
 	// all the control commands
 	if (!isKeyDown("control")) return;

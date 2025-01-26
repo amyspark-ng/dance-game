@@ -62,22 +62,25 @@ export class EditorSelectionBox {
 				this.height,
 			);
 
-			const oldSelectStamps = ChartState.selected;
+			const stampsCollided: EditorStamp[] = [];
 
+			// goes through each stamp and checks if the box has collided with them
 			EditorStamp.mix(ChartState.notes, ChartState.events).forEach((stamp) => {
 				const stampRect = new Rect(stamp.pos.sub(stamp.width / 2, stamp.height / 2), stamp.width, stamp.height);
 				if (stamp.is("note") && stamp.data.length) stampRect.height += stamp.height * stamp.data.length;
 
 				if (boxRect.collides(stampRect)) {
-					stamp.selected = true;
-					stamp.twitch();
+					stampsCollided.push(stamp);
 				}
 			});
 
-			const newSelectStamps = ChartState.selected;
-
-			if (oldSelectStamps != newSelectStamps) {
-				ChartState.takeSnapshot(`select ${newSelectStamps.length} notes`);
+			// if stamp was collided take a snapshot and actually select them
+			if (stampsCollided.length > 0) {
+				ChartState.takeSnapshot(`selected ${stampsCollided.length} stamps`);
+				stampsCollided.forEach((stamp) => {
+					stamp.selected = true;
+					stamp.twitch();
+				});
 			}
 
 			this.lastClickPos = vec2(0, 0);

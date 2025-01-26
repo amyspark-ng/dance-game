@@ -43,12 +43,12 @@ export class ChartEvent {
 	value: any;
 
 	/** Trigger a kaplay event with the id of one of the game events */
-	static trigger(eventId: keyof typeof ChartEvent.eventSchema) {
+	static trigger(eventId: eventId) {
 		return getTreeRoot().trigger(eventId);
 	}
 
 	/** Runs when an event with the id of one of the game events is triggered */
-	static onEvent(eventId: keyof typeof ChartEvent.eventSchema, action: (event: ChartEvent) => void) {
+	static onEvent(eventId: eventId, action: (event: ChartEvent) => void) {
 		return getTreeRoot().on(eventId, action);
 	}
 

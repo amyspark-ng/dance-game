@@ -3,7 +3,7 @@ import { GameSave } from "../../../core/save";
 import { getNoteskinSprite } from "../../../data/noteskins";
 import { FileManager } from "../../../FileManager";
 import { utils } from "../../../utils";
-import { ChartEvent } from "../../event";
+import { ChartEvent, eventId } from "../../event";
 import { makeDancer, Move } from "../../objects/dancer";
 import { StateChart } from "../EditorState";
 import { EditorEvent, EditorStamp } from "../objects/stamp";
@@ -47,7 +47,7 @@ export function defineTabs() {
 	});
 
 	EditorTab.tabs.Events.addElements((editorTabObj) => {
-		const allEvents = Object.keys(ChartEvent.eventSchema) as (keyof typeof ChartEvent.eventSchema)[];
+		const allEvents = Object.keys(ChartEvent.eventSchema) as (eventId)[];
 
 		const theHeight = (Math.floor(allEvents.length / 4) * 65)
 			+ (allEvents.length % 4 != 0 ? 65 : 0);

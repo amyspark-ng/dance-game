@@ -2,6 +2,7 @@ import { DrawRectOpt, GameObj, Vec2 } from "kaplay";
 import { utils } from "../../../utils";
 import { ChartNote } from "../../objects/note";
 import { StateChart } from "../EditorState";
+import { EditorStamp } from "./stamp";
 
 function makeMinimapObj() {
 	return make([
@@ -21,6 +22,7 @@ export class EditorMinimap {
 		opacity: 0.5,
 		height: StateChart.SQUARE_SIZE.y,
 	};
+
 	/** How big a note is depending on the amount of total steps */
 	sizeOfNote: Vec2 = vec2();
 	canMove: boolean = false;
@@ -100,7 +102,7 @@ export class EditorMinimap {
 		});
 
 		const selectColor = BLUE.lighten(30);
-		const stamps = [...ChartState.notes, ...ChartState.events];
+		const stamps = EditorStamp.mix(ChartState.notes, ChartState.events);
 		stamps.forEach((stamp) => {
 			let xPos = this.pos.x;
 			if (stamp.is("note")) xPos -= this.sizeOfNote.x;
