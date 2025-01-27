@@ -1,21 +1,36 @@
 import { KaplayState } from "../../../core/scenes/KaplayState";
 import { Sound } from "../../../core/sound";
+import { SongContent } from "../../../data/song";
+import { FileManager } from "../../../FileManager";
 import { StateMenu } from "../../../ui/menu/MenuScene";
 import { addNotification } from "../../../ui/objects/notification";
 import { ChartEvent, eventId } from "../../event";
 import { Move } from "../../objects/dancer";
-import { ChartNote } from "../../objects/note";
 import { StateChart } from "../EditorState";
 import { EditorEvent, EditorNote, EditorStamp } from "../objects/stamp";
 import { addFloatyText } from "./utils";
 
 export const editorCommands = {
 	NewChart: () => {
-		StateChart.instance.createNewSong();
+		StateChart.instance.changeSong(new SongContent());
 	},
 
-	OpenChart: () => {
-		debug.log("wip");
+	OpenChart: async () => {
+		const loading = FileManager.loadingScreen();
+		const songFile = await FileManager.receiveFile("mod");
+		if (!songFile) {
+			loading.cancel();
+			return;
+		}
+
+		const assets = await SongContent.parseFromFile(songFile);
+		const content = await SongContent.load(assets);
+
+		// if it's on the default ones i have to create a copy, won't do that for now because im lazy
+		// if (SongContent.defaultUUIDS.includes(content.manifest.uuid_DONT_CHANGE))
+
+		StateChart.instance.changeSong(content);
+		loading.cancel();
 	},
 
 	SaveChart: () => {

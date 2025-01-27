@@ -1,9 +1,6 @@
-import { Conductor } from "../../Conductor.ts";
 import { gameCursor } from "../../core/cursor.ts";
 import { KaplayState } from "../../core/scenes/KaplayState.ts";
-import { Sound } from "../../core/sound.ts";
 import { utils } from "../../utils.ts";
-import { ChartEvent } from "../event.ts";
 import { ChartNote } from "../objects/note.ts";
 import { editorShortcuts } from "./backend/handlers.ts";
 import { keyboardControls } from "./backend/keyboardControls.ts";

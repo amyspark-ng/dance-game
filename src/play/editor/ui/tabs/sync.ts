@@ -3,7 +3,6 @@ import { utils } from "../../../../utils";
 import { ChartEvent } from "../../../event";
 import { makeDancer } from "../../../objects/dancer";
 import { StateChart } from "../../EditorState";
-import { EditorStamp } from "../../objects/stamp";
 import { EditorTab } from "../editorTab";
 
 export function defineSyncTab() {
@@ -45,6 +44,7 @@ export function defineSyncTab() {
 			rect(1024 * 0.25, 576 * 0.25, { fill: false }),
 			outline(5, YELLOW.lighten(50)),
 			anchor("center"),
+			scale(),
 			pos(),
 		]);
 
@@ -53,6 +53,7 @@ export function defineSyncTab() {
 		previewCameraSquare.onUpdate(() => {
 			const camValue = ChartEvent.handle["cam-move"](ChartState.conductor.timeInSeconds, eventsData);
 			previewCameraSquare.pos = vec2(camValue.x, camValue.y);
+			previewCameraSquare.scale = vec2(1 / camValue.zoom);
 		});
 
 		dummyDancer.onUpdate(() => {

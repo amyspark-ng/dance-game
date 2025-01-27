@@ -105,7 +105,7 @@ export function makeNumberStepper(defaultValue: number, increaseValue: number) {
 
 	textbox.onDraw(() => {
 		drawText({
-			text: Array.isArray(obj.value) ? obj.value[0] : obj.value.toString(),
+			text: obj.value.toString(),
 			anchor: "center",
 			align: "center",
 			pos: vec2(textbox.width / 2, textbox.height / 2),

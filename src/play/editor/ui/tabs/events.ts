@@ -14,7 +14,7 @@ export function defineEventTab() {
 		function refreshTabUI(event: EditorEvent) {
 			if (!event) {
 				tabObj.tab.title = "Edit event";
-				tabObj.get("ui").forEach((obj) => obj.destroy());
+				tabObj.get("*").forEach((obj) => obj.destroy());
 				return;
 			}
 

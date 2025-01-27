@@ -1,7 +1,6 @@
 import { Color, Vec2 } from "kaplay";
 import { v4 } from "uuid";
 import { Conductor } from "../../Conductor";
-import { GameSave } from "../../core/save";
 import { KaplayState } from "../../core/scenes/KaplayState";
 import { Sound } from "../../core/sound";
 import { SongContent, SongManifest } from "../../data/song";
@@ -175,11 +174,6 @@ export class StateChart extends KaplayState {
 		this.scrollStep = newStep;
 	}
 
-	/** Changes the current move */
-	changeMove(newMove: Move) {
-		this.currentMove = newMove;
-	}
-
 	/** The notes in the editor */
 	notes: EditorNote[] = [];
 
@@ -193,10 +187,12 @@ export class StateChart extends KaplayState {
 	placeNote(data: ChartNote) {
 		const editorNote = new EditorNote(data);
 		this.notes.push(editorNote);
-		this.song.chart.notes.push(editorNote.data);
+
+		// this happens in the start
+		if (!this.song.chart.notes.includes(data)) this.song.chart.notes.push(data);
 
 		editorNote.onHit(() => {
-			Sound.playSound("noteHit", { detune: ChartNote.moveToDetune(editorNote.data.move) + rand(10, 20) });
+			Sound.playSound("noteHit", { detune: ChartNote.moveToDetune(data.move) + rand(10, 20) });
 		});
 
 		return editorNote;
@@ -207,8 +203,8 @@ export class StateChart extends KaplayState {
 	 * @returns The deleted note
 	 */
 	deleteNote(note: EditorNote) {
-		this.notes.splice(this.notes.indexOf(note), 1);
-		this.song.chart.notes.splice(this.song.chart.notes.indexOf(note.data), 1);
+		this.notes = utils.removeFromArr(note, this.notes);
+		this.song.chart.notes = utils.removeFromArr(note.data, this.song.chart.notes);
 		note.destroy();
 		return note;
 	}
@@ -220,7 +216,8 @@ export class StateChart extends KaplayState {
 	placeEvent(data: ChartEvent) {
 		const editorEvent = new EditorEvent(data);
 		this.events.push(editorEvent);
-		this.song.chart.events.push(editorEvent.data);
+		// this happens in the start
+		if (!this.song.chart.events.includes(data)) this.song.chart.events.push(data);
 
 		editorEvent.onHit(() => {
 			Sound.playSound("noteHit", { detune: Object.keys(ChartEvent.eventSchema).indexOf(data.id) + rand(10, 20) });
@@ -234,8 +231,8 @@ export class StateChart extends KaplayState {
 	 * @returns The deleted event
 	 */
 	deleteEvent(event: EditorEvent) {
-		this.events.splice(this.events.indexOf(event), 1);
-		this.song.chart.events.splice(this.song.chart.events.indexOf(event.data), 1);
+		this.events = utils.removeFromArr(event, this.events);
+		this.song.chart.events = utils.removeFromArr(event.data, this.song.chart.notes);
 		event.destroy();
 		return event;
 	}
@@ -285,25 +282,23 @@ export class StateChart extends KaplayState {
 		return null;
 	}
 
-	/** Creates a new song */
-	createNewSong() {
-		const params: paramsEditor = {
-			playbackSpeed: 1,
-			seekTime: 0,
-			song: new SongContent(),
-		};
-		params.song.manifest.uuid_DONT_CHANGE = v4();
-		Object.assign(this, new StateChart(params));
+	/** Changes the current song, removes notes and adds the new ones */
+	changeSong(content: SongContent) {
+		this.notes.forEach((note) => this.deleteNote(note));
+		this.events.forEach((event) => this.deleteEvent(event));
+		this.song = content;
+
+		this.song.chart.notes.forEach((note) => this.placeNote(note));
+		this.song.chart.events.forEach((event) => this.placeEvent(event));
 	}
 
 	/** Downloads the chart for the current song */
 	async downloadChart() {
 		getTreeRoot().trigger("download");
 
-		const SongFolder = await FileManager.writeSongZip(this.song);
-
 		// downloads the zip
-		downloadBlob(`${this.song.manifest.name}.zip`, SongFolder);
+		const songBlob = await this.song.writeToBlob();
+		downloadBlob(`${this.song.manifest.name}.zip`, songBlob);
 		debug.log(`${this.song.manifest.name}.zip, DOWNLOADED! :)`);
 	}
 

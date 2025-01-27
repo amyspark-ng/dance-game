@@ -1,3 +1,5 @@
+import audioBufferToBlob from "audiobuffer-to-blob";
+import JSZip from "jszip";
 import TOML, { TomlPrimitive } from "smol-toml";
 import { FileManager } from "../FileManager";
 import { ChartEvent } from "../play/event";
@@ -60,21 +62,13 @@ export class SongManifest {
 /** The content of the chart file */
 export class SongChart {
 	/** Array of chart notes */
-	notes: ChartNote[];
+	notes: ChartNote[] = [];
 	/** Array of chart events */
-	events: ChartEvent[];
+	events: ChartEvent[] = [];
 
-	constructor(param?: SongChart) {
-		Object.assign(this, {
-			notes: [
-				{ time: 1, move: "up" },
-			],
-			events: [],
-		});
-
-		if (param) {
-			Object.assign(this, param);
-		}
+	constructor(notes: ChartNote[] = [], events: ChartEvent[] = []) {
+		this.notes = notes;
+		this.events = events;
 	}
 }
 
@@ -101,8 +95,8 @@ export class SongContent {
 	 * The next step is pass it through {@link load()}
 	 */
 	static async parseFromManifest(manifest: SongManifest, path: string): Promise<SongAssets> {
-		const endData: SongAssets = {} as any;
-		endData.manifest = manifest;
+		const assets: SongAssets = {} as any;
+		assets.manifest = manifest;
 
 		function getPath(otherPath: string) {
 			return path + "/" + otherPath;
@@ -112,21 +106,47 @@ export class SongContent {
 		const cover = await FileManager.getFileAtUrl(getPath(manifest.cover_file));
 		const chart = await FileManager.getFileAtUrl(getPath(manifest.chart_file));
 
-		if (audio) endData.audio = await audio.blob().then((thing) => thing.arrayBuffer());
-		if (cover) endData.cover = await cover.blob().then((thing) => URL.createObjectURL(thing));
-		if (chart) endData.chart = JSON.parse(await chart.blob().then((thing) => thing.text()));
+		if (audio) assets.audio = await audio.blob().then((thing) => thing.arrayBuffer());
+		if (cover) assets.cover = await cover.blob().then((thing) => URL.createObjectURL(thing));
+		if (chart) assets.chart = JSON.parse(await chart.blob().then((thing) => thing.text()));
 
-		return new Promise((resolve) => resolve(endData));
+		return new Promise((resolve) => resolve(assets));
 	}
 
+	/** Parses file data to Assets
+	 *
+	 * The next step is pass it through {@link load()}
+	 */
 	static async parseFromFile(file: File): Promise<SongAssets> {
-		return new Promise((resolve) => resolve({} as SongAssets));
+		const jsZip = new JSZip();
+		const zipFile = await jsZip.loadAsync(file);
+
+		const manifestFile = zipFile.file("manifest.toml");
+		const manifest = new SongManifest();
+		manifest.assignFromTOML(TOML.parse(await manifestFile.async("string")));
+
+		const assets: SongAssets = {} as any;
+		assets.manifest = manifest;
+
+		const audio = await zipFile.file(manifest.audio_file).async("arraybuffer");
+		const cover = await zipFile.file(manifest.cover_file).async("blob");
+		const chart = await zipFile.file(manifest.chart_file).async("text");
+
+		console.log(chart);
+		console.log(JSON.parse(chart));
+		console.log(Array.isArray(JSON.parse(chart).notes));
+
+		if (audio) assets.audio = audio;
+		if (cover) assets.cover = URL.createObjectURL(cover);
+		if (chart) assets.chart = JSON.parse(chart);
+
+		return new Promise((resolve) => resolve(assets));
 	}
 
 	static async load(assets: SongAssets): Promise<SongContent> {
 		await loadSound(assets.manifest.uuid_DONT_CHANGE + "-audio", assets.audio);
 		await loadSprite(assets.manifest.uuid_DONT_CHANGE + "-cover", assets.cover);
-		const content = new SongContent({ chart: assets.chart, manifest: assets.manifest } as SongContent);
+		const content = new SongContent(assets.chart, assets.manifest);
 		return new Promise((resolve) => resolve(content));
 	}
 
@@ -180,6 +200,41 @@ export class SongContent {
 	/** The content of the chart.json in the zip */
 	chart: SongChart = new SongChart();
 
+	/** Will return a blob to download a zip with the song */
+	async writeToBlob(): Promise<Blob> {
+		/** This is the folder where everything will be stored */
+		const zipFolder = new JSZip();
+
+		// chart
+		this.manifest.chart_file = this.manifest.name + "-chart.json";
+		zipFolder.file(this.manifest.chart_file, JSON.stringify(this.chart));
+
+		// manifest
+		zipFolder.file("manifest.toml", TOML.stringify(this.manifest));
+
+		// cover
+		const defaultCover = "sprites/defaultCover.png";
+		let pathToCover: string = undefined;
+		const cover = await getSprite(this.manifest.uuid_DONT_CHANGE + "-cover");
+		if (!cover) pathToCover = defaultCover;
+		else pathToCover = await FileManager.spriteToDataURL(this.manifest.uuid_DONT_CHANGE + "-cover");
+		const imageBlob = await fetch(pathToCover).then((r) => r.blob());
+		zipFolder.file(this.manifest.cover_file, imageBlob);
+
+		// audio
+		const defaultAudio = "audio/new-song-audio.ogg";
+		const audio = await getSound(this.manifest.uuid_DONT_CHANGE + "-audio");
+		let audioBlob = await fetch(defaultAudio).then((r) => r.blob());
+		if (!audio) audioBlob = await fetch(defaultAudio).then((r) => r.blob());
+		else {
+			const blob = audioBufferToBlob(audio.buf);
+			audioBlob = blob;
+		}
+		zipFolder.file(this.manifest.audio_file, audioBlob);
+
+		return zipFolder.generateAsync({ type: "blob" });
+	}
+
 	getAudioName() {
 		return this.manifest.uuid_DONT_CHANGE + "-audio";
 	}
@@ -188,8 +243,9 @@ export class SongContent {
 		return this.manifest.uuid_DONT_CHANGE + "-cover";
 	}
 
-	constructor(instance?: SongContent) {
-		if (instance) Object.assign(this, instance);
+	constructor(chart: SongChart = new SongChart(), manifest: SongManifest = new SongManifest()) {
+		this.chart = chart;
+		this.manifest = manifest;
 	}
 }
 

@@ -1,9 +1,4 @@
-import audioBufferToBlob from "audiobuffer-to-blob";
-import JSZip from "jszip";
-import TOML from "smol-toml";
 import { gameCursor } from "./core/cursor";
-import { SongContent, SongManifest } from "./data/song";
-import { utils } from "./utils";
 
 /** File manager for some stuff of the game */
 export const inputElement = document.createElement("input");
@@ -131,39 +126,5 @@ export class FileManager {
 
 		const dataURL = canvas.toDataURL();
 		return dataURL;
-	}
-
-	/** Will return a blob to download a zip with the song */
-	static async writeSongZip(songContent: SongContent): Promise<Blob> {
-		/** This is the folder where everything will be stored */
-		const zipFolder = new JSZip();
-
-		// chart
-		zipFolder.file(songContent.manifest.chart_file, JSON.stringify(songContent.chart));
-
-		// manifest
-		zipFolder.file("manifest.toml", TOML.stringify(songContent.manifest));
-
-		// cover
-		const defaultCover = "sprites/defaultCover.png";
-		let pathToCover: string = undefined;
-		const cover = await getSprite(songContent.manifest.uuid_DONT_CHANGE + "-cover");
-		if (!cover) pathToCover = defaultCover;
-		else pathToCover = await FileManager.spriteToDataURL(songContent.manifest.uuid_DONT_CHANGE + "-cover");
-		const imageBlob = await fetch(pathToCover).then((r) => r.blob());
-		zipFolder.file(songContent.manifest.cover_file, imageBlob);
-
-		// audio
-		const defaultAudio = "audio/new-song-audio.ogg";
-		const audio = await getSound(songContent.manifest.uuid_DONT_CHANGE + "-audio");
-		let audioBlob = await fetch(defaultAudio).then((r) => r.blob());
-		if (!audio) audioBlob = await fetch(defaultAudio).then((r) => r.blob());
-		else {
-			const blob = audioBufferToBlob(audio.buf);
-			audioBlob = blob;
-		}
-		zipFolder.file(songContent.manifest.audio_file, audioBlob);
-
-		return zipFolder.generateAsync({ type: "blob" });
 	}
 }
