@@ -11,9 +11,6 @@ type SongAssets = {
 };
 
 export class SongManifest {
-	/** Prefix path the manifest was found at */
-	path: string;
-
 	/** Name of the song */
 	name: string = "Song name";
 	/** Artist of the song */
@@ -49,10 +46,6 @@ export class SongManifest {
 
 	set beats_per_measure(val: number) {
 		this.time_signature[1] = val;
-	}
-
-	getPath(path: string) {
-		return this.path + "/" + path;
 	}
 
 	assignFromTOML(tomlRecord: Record<string, TomlPrimitive>) {
@@ -98,7 +91,6 @@ export class SongContent {
 		const manifestContent = TOML.parse(stringedTOML);
 
 		const manifest = new SongManifest();
-		manifest.path = path;
 		manifest.assignFromTOML(manifestContent);
 
 		return new Promise((resolve) => resolve(manifest));
@@ -108,13 +100,17 @@ export class SongContent {
 	 *
 	 * The next step is pass it through {@link load()}
 	 */
-	static async parseFromManifest(manifest: SongManifest): Promise<SongAssets> {
+	static async parseFromManifest(manifest: SongManifest, path: string): Promise<SongAssets> {
 		const endData: SongAssets = {} as any;
 		endData.manifest = manifest;
 
-		const audio = await FileManager.getFileAtUrl(manifest.getPath(manifest.audio_file));
-		const cover = await FileManager.getFileAtUrl(manifest.getPath(manifest.cover_file));
-		const chart = await FileManager.getFileAtUrl(manifest.getPath(manifest.chart_file));
+		function getPath(otherPath: string) {
+			return path + "/" + otherPath;
+		}
+
+		const audio = await FileManager.getFileAtUrl(getPath(manifest.audio_file));
+		const cover = await FileManager.getFileAtUrl(getPath(manifest.cover_file));
+		const chart = await FileManager.getFileAtUrl(getPath(manifest.chart_file));
 
 		if (audio) endData.audio = await audio.blob().then((thing) => thing.arrayBuffer());
 		if (cover) endData.cover = await cover.blob().then((thing) => URL.createObjectURL(thing));
@@ -144,7 +140,7 @@ export class SongContent {
 					SongContent.defaultPaths.forEach(async (path, index) => {
 						try {
 							const manifest = await SongContent.fetchManifestFromPath(path);
-							const assets = await SongContent.parseFromManifest(manifest);
+							const assets = await SongContent.parseFromManifest(manifest, path);
 							const content = await SongContent.load(assets);
 							SongContent.loaded.push(content);
 						}

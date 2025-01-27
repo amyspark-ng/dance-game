@@ -1,9 +1,10 @@
+import { getFocused } from "../../../ui/objects/uiElementComp";
 import { StateChart } from "../EditorState";
 
 export const editorShortcuts = () => {
 	const ChartState = StateChart.instance;
 	// if shortcuts disabled return (don't do anything)
-	if (!ChartState.shortcutsEnabled) return;
+	if (getFocused()) return;
 
 	// #region SCROLLING
 	let stepsToScroll = 0;

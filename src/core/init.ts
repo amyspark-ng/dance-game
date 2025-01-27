@@ -1,7 +1,7 @@
 import { getCurrent, WebviewWindow } from "@tauri-apps/api/window";
 import { getSongByName } from "../data/song";
 import { StateChart } from "../play/editor/EditorState";
-import { FocusState } from "../ui/FocusScene";
+import { FocusState } from "../ui/scenes/FocusScene";
 import { utils } from "../utils";
 import { setupCamera } from "./camera";
 import { setupCursor } from "./cursor";

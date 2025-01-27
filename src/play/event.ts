@@ -76,18 +76,10 @@ export class ChartEvent {
 			const previousEV = ChartEvent.getAtTime(
 				"cam-move",
 				evs,
-				currentEV.time - 1 / 100,
+				currentEV.time - dt(),
 			);
 
-			// let lerpV = mapc(
-			// 	curTime,
-			// 	0, // min range value
-			// 	5, // max range value
-			// 	100, // min result value
-			// 	300, // max result value
-			// );
-
-			let lerpV = mapc(
+			let lerpV = map(
 				curTime,
 				currentEV.time,
 				currentEV.time + currentEV.value.duration,
@@ -95,13 +87,16 @@ export class ChartEvent {
 				1,
 			);
 
+			if (isNaN(lerpV)) {
+				lerpV = 0;
+			}
+
 			const theEasing = easings[currentEV.value.easing[0]] as EaseFunc;
-			// debug.log(Object.values(easings).includes(theEasing) ? "the function does exists!" : "you messed up");
 			const easedLerpV = theEasing(lerpV);
 
 			const newPos = lerp(
-				vec2(center().x + previousEV.value.x, center().y + previousEV.value.y),
-				vec2(center().x + currentEV.value.x, center().y + currentEV.value.y),
+				vec2(previousEV.value.x, previousEV.value.y),
+				vec2(currentEV.value.x, currentEV.value.y),
 				easedLerpV,
 			);
 
@@ -123,7 +118,7 @@ export class ChartEvent {
 				easedLerpV,
 			);
 
-			return {
+			const endData = {
 				angle: newAngle,
 				x: newPos.x,
 				y: newPos.y,
@@ -132,6 +127,10 @@ export class ChartEvent {
 				duration: currentEV.value.duration,
 				easing: currentEV.value.easing,
 			} as typeof ChartEvent.eventSchema["cam-move"];
+
+			// console.log(endData);
+
+			return endData;
 		},
 		"change-scroll": (curTime: number = 0, evs: ChartEvent[]) => {
 			const currentEV = ChartEvent.getAtTime("change-scroll", evs, curTime);
@@ -172,16 +171,16 @@ export class ChartEvent {
 
 	/** Get the current event at a given time
 	 * @param id The id of the event
-	 * @param arr The array of events to comb through
+	 * @param events The array of events to comb through
 	 * @param time The current time
 	 */
-	static getAtTime(id: eventId | "any", arr: ChartEvent[], time: number): ChartEvent {
-		let events = arr;
+	static getAtTime(id: eventId | "any", events: ChartEvent[], time: number): ChartEvent {
 		if (id != "any") events = events.filter((ev) => ev.id == id);
 
 		// if no events or
 		// if the time is below the first event return a default
 		if (!events || !events[0] || time < events[0].time) {
+			if (id == "any") return null;
 			return { id: id, time: 0, value: ChartEvent.eventSchema[id] } as ChartEvent;
 		}
 

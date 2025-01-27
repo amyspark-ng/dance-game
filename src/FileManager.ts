@@ -2,6 +2,8 @@ import audioBufferToBlob from "audiobuffer-to-blob";
 import JSZip from "jszip";
 import TOML from "smol-toml";
 import { gameCursor } from "./core/cursor";
+import { SongContent, SongManifest } from "./data/song";
+import { utils } from "./utils";
 
 /** File manager for some stuff of the game */
 export const inputElement = document.createElement("input");
@@ -132,7 +134,7 @@ export class FileManager {
 	}
 
 	/** Will return a blob to download a zip with the song */
-	static async writeSongFolder(songContent: SongContent): Promise<Blob> {
+	static async writeSongZip(songContent: SongContent): Promise<Blob> {
 		/** This is the folder where everything will be stored */
 		const zipFolder = new JSZip();
 

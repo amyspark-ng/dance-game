@@ -64,10 +64,14 @@ export class Conductor {
 	beatInterval: number = 0;
 
 	/** Is the top (0) number of the timeSignature, how many steps are in a beat */
-	stepsPerBeat: number = 0;
+	get stepsPerBeat() {
+		return this.timeSignature[0];
+	}
 
 	/** Is the bottom (1) number of the timeSignature, how many beats are in a measure */
-	beatsPerMeasure: number = 0;
+	get beatsPerMeasure() {
+		return this.timeSignature[1];
+	}
 
 	/** The time in steps */
 	stepTime: number = 0;
@@ -135,8 +139,6 @@ export class Conductor {
 	/** Changes the time signature */
 	changeTimeSignature(newTm: [number, number]) {
 		this.timeSignature = newTm;
-		this.stepsPerBeat = newTm[0];
-		this.beatsPerMeasure = newTm[1];
 	}
 
 	/** Update function that should run onUpdate so the conductor gets updated */

@@ -102,7 +102,7 @@ export class StateChart extends KaplayState {
 	currentMove: Move = "up";
 
 	/** The current selected event */
-	currentEvent: eventId = "change-scroll";
+	currentEvent: eventId = "cam-move";
 
 	/** The step that is currently being hovered */
 	hoveredStep = 0;
@@ -295,7 +295,7 @@ export class StateChart extends KaplayState {
 	async downloadChart() {
 		getTreeRoot().trigger("download");
 
-		const SongFolder = await FileManager.writeSongFolder(this.song);
+		const SongFolder = await FileManager.writeSongZip(this.song);
 
 		// downloads the zip
 		downloadBlob(`${this.song.manifest.name}.zip`, SongFolder);

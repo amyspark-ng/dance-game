@@ -1,15 +1,11 @@
-// The actual scene for the chart editor
-import { KEventController } from "kaplay";
 import { Conductor } from "../../Conductor.ts";
 import { gameCursor } from "../../core/cursor.ts";
-import { GameSave } from "../../core/save.ts";
 import { KaplayState } from "../../core/scenes/KaplayState.ts";
-import { BlackBarsTransition } from "../../core/scenes/transitions/blackbar.ts";
 import { Sound } from "../../core/sound.ts";
 import { utils } from "../../utils.ts";
 import { ChartNote } from "../objects/note.ts";
-import { StateGame } from "../PlayState.ts";
 import { editorShortcuts } from "./backend/handlers.ts";
+import { keyboardControls } from "./backend/keyboardControls.ts";
 import { mouseControls } from "./backend/mouseControls.ts";
 import { StateChart } from "./EditorState.ts";
 import { EditorLane, EventLane, NoteLane } from "./objects/lane.ts";
@@ -62,9 +58,9 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 	ChartState.eventLane.lightColor = ChartState.noteLane.darkColor;
 
 	mouseControls();
+	keyboardControls();
 
 	onUpdate(() => {
-		debug.log(ChartState.hoveredStep);
 		ChartState.bgColor = rgb(92, 50, 172);
 		ChartState.conductor.paused = ChartState.paused;
 
@@ -94,6 +90,7 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 		// HOVERED STEP
 		ChartState.hoveredStep = ChartState.scrollStep + Math.floor(gameCursor.pos.y / StateChart.SQUARE_SIZE.y);
 		ChartState.conductor.BPM = ChartState.song.manifest.initial_bpm;
+		ChartState.conductor.timeSignature = ChartState.song.manifest.time_signature;
 
 		editorShortcuts();
 	});
@@ -139,41 +136,6 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 			// scroll step
 			ChartState.scrollToStep(ChartState.scrollStep + scrollPlus);
 		}
-	});
-
-	// Send you to the game
-	onKeyPress("enter", async () => {
-		if (!ChartState.inputEnabled) return;
-		if (get("textbox", { recursive: true }).some((textbox) => textbox.focused)) return;
-
-		ChartState.inputEnabled = false;
-		ChartState.paused = true;
-
-		// transition to scene normally
-		KaplayState.switchState(
-			new StateGame({
-				dancerName: GameSave.dancer,
-				fromEditor: true,
-				song: ChartState.song,
-				playbackSpeed: ChartState.params.playbackSpeed,
-				seekTime: ChartState.params.seekTime,
-			}),
-			BlackBarsTransition,
-		);
-	});
-
-	// Pausing unpausing behaviour
-	onKeyPress("space", () => {
-		if (!ChartState.inputEnabled) return;
-		ChartState.paused = !ChartState.paused;
-
-		if (ChartState.paused == false) {
-			ChartState.conductor.audioPlay.seek(ChartState.conductor.timeInSeconds);
-		}
-	});
-
-	onKeyPress("escape", () => {
-		// openExitDialog();
 	});
 
 	// makes the strumline BOP

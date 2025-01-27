@@ -4,7 +4,7 @@ import { KaplayState } from "../../core/scenes/KaplayState";
 import { SongContent } from "../../data/song";
 import { paramsEditor, StateChart } from "../../play/editor/EditorState";
 import { utils } from "../../utils";
-import { StateTitle } from "../TitleScene";
+import { StateTitle } from "../scenes/TitleScene";
 import { StateCredits } from "./CreditsScene";
 import { StateOptions } from "./options/optionsScene";
 import { StateSongSelect } from "./songselect/SongSelectScene";

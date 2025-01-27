@@ -55,8 +55,8 @@ KaplayState.scene("game", (GameState: StateGame) => {
 			GameState.conductor.timeInSeconds,
 			GameState.song.chart.events,
 		);
-		cam.pos.x = camThing.x;
-		cam.pos.y = camThing.y;
+		cam.pos.x = center().x + camThing.x;
+		cam.pos.y = center().y + camThing.y;
 		cam.angle = camThing.angle;
 		cam.zoom = vec2(camThing.zoom);
 
