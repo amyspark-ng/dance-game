@@ -134,6 +134,7 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 		allStamps.forEach((stamp) => {
 			if (stamp.step == currentStep) {
 				stamp.events.trigger("stampHit", stamp);
+				ChartState.editorEvents.trigger("stampHit", stamp);
 			}
 		});
 	});

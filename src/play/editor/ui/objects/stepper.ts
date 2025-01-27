@@ -120,14 +120,15 @@ export function makeNumberStepper(defaultValue: number, increaseValue: number) {
 }
 
 export function makeEnumStepper(defaultValue: string, options: string[]) {
-	let theWidth = formatText({ text: "AAAAA", size: 20 }).width;
+	let theWidth = formatText({ text: options.reduce((a, b) => a.length > b.length ? a : b), size: 20 }).width;
 
 	let index = options.indexOf(defaultValue);
 
 	const obj = make([
-		rect(0, 0),
+		rect(0, 0, { fill: false }),
 		pos(),
 		ui(),
+		anchor("left"),
 		{
 			value: defaultValue,
 		},
@@ -229,6 +230,7 @@ export function makeEnumStepper(defaultValue: string, options: string[]) {
 		});
 	});
 
+	obj.height = textbox.height;
 	obj.width = leftArrow.width + textbox.width + rightArrow.width;
 
 	return obj;

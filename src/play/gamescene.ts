@@ -87,21 +87,21 @@ KaplayState.scene("game", (GameState: StateGame) => {
 			GameState.dancer.moveBop();
 		}
 
-		// const camMoveEV = ChartEvent.getAtTime(
-		// 	"cam-move",
-		// 	GameState.song.chart.events,
-		// 	GameState.conductor.timeInSeconds,
-		// );
+		const camMoveEV = ChartEvent.getAtTime(
+			"cam-move",
+			GameState.song.chart.events,
+			GameState.conductor.timeInSeconds,
+		);
 
-		// if (camMoveEV) {
-		// const easingFunc = easings[camMoveEV.value.easing[0]] as EaseFunc;
-		// cam.bop(
-		// 	vec2(camMoveEV.value.bopStrength),
-		// 	vec2(1),
-		// 	camMoveEV.value.duration,
-		// 	easingFunc,
-		// );
-		// }
+		if (camMoveEV) {
+			const easingFunc = utils.getEasingByIndex(camMoveEV.value.easing) as EaseFunc;
+			cam.bop(
+				vec2(camMoveEV.value.bop_strength),
+				vec2(1),
+				camMoveEV.value.duration,
+				easingFunc,
+			);
+		}
 	});
 
 	GameState.events.onNoteHit((chartNote: ChartNote) => {

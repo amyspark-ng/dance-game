@@ -1,6 +1,3 @@
-import { GameObj, PosComp } from "kaplay";
-import { utils } from "../../../../utils";
-import { ChartEvent, eventId } from "../../../event";
 import { StateChart } from "../../EditorState";
 import { EditorEvent } from "../../objects/stamp";
 import { EditorTab } from "../editorTab";
@@ -15,88 +12,50 @@ export function defineEventTab() {
 
 		/** Refreshes the objects in the ui */
 		function refreshTabUI(event: EditorEvent) {
-			/** This runs to do some work related to ui props */
-			function objAfterwork(obj: GameObj<PosComp | any>, event: ChartEvent, evKey: string, index: number) {
-				function positionObject(obj: GameObj<PosComp | any>, index: number) {
-					const initialPos = vec2(tabObj.getTopLeft().x, tabObj.getTopLeft().y);
-					obj.pos = vec2(initialPos.x + 15, initialPos.y + 15 + index * 40);
-				}
-
-				obj.use("eventobj");
-				obj.value = event.value[evKey];
-				obj.onUpdate(() => {
-					positionObject(obj, index);
-					event.value[evKey] = obj.value;
-				});
-
-				obj.onDraw(() => {
-					drawText({
-						text: utils.unIdText(evKey),
-						size: 20,
-						pos: vec2(obj.width + 10, 10),
-					});
-				});
-			}
-
-			tabObj.get("eventobj").forEach((obj) => obj.destroy());
-
 			if (!event) {
-				tabObj.add([
-					text("No event", { size: 25, align: "center" }),
-					anchor("center"),
-					"eventobj",
-				]);
 				tabObj.tab.title = "Edit event";
+				tabObj.get("ui").forEach((obj) => obj.destroy());
 				return;
 			}
 
 			// # ALL of this will run if the you can there's an actual event
-			tabObj.tab.title = "Editing event: ";
-			tabObj.add([
-				sprite(currentEvent.data.id, { width: 25, height: 25 }),
-				pos(),
-				"eventobj",
-				{
-					update() {
-						this.pos = vec2(
-							tabObj.getTopLeft().x + formatText({ text: tabObj.tab.title, size: 25 }).width,
-							tabObj.getTopLeft().y - 30,
-						);
-					},
-				},
-			]);
+			tabObj.tab.title = `Editing ${event.data.id}`;
 
 			/** All the properties an an event's value has */
-			const eventProps = Object.keys(event.data.value);
-			eventProps.forEach((keyofValue: string, index: number) => {
-				const value = event.data.value[keyofValue];
-				const typeOfValue = typeof value;
-				const defaultValue = ChartEvent.eventSchema[event.data.id][keyofValue];
-
-				if (typeOfValue == "string") {
-					const textbox = tabObj.add(makeTextbox(defaultValue));
-					objAfterwork(textbox, event.data, keyofValue, index);
-				}
-				else if (typeOfValue == "boolean") {
-					const checkbox = tabObj.add(makeCheckbox(defaultValue));
-					objAfterwork(checkbox, event.data, keyofValue, index);
-				}
-				else if (typeOfValue == "number") {
-					let increment = 0;
-					if (keyofValue == "speed" || keyofValue == "zoom" || keyofValue == "strength") increment = 0.1;
-					else if (keyofValue == "x" || keyofValue == "y" || keyofValue == "angle") increment = 10;
-					else increment = 1;
-
-					const scrollable = tabObj.add(makeNumberStepper(defaultValue, increment));
-					objAfterwork(scrollable, event.data, keyofValue, index);
-				}
-				else if (typeOfValue == "object") {
-					if (Array.isArray(value)) {
-						const easingKeys = Object.keys(easings);
-						const scrollable = tabObj.add(makeEnumStepper(defaultValue, easingKeys));
-						objAfterwork(scrollable, event.data, keyofValue, index);
+			const props = Object.keys(event.data.value);
+			props.forEach((key: string, index: number) => {
+				const type = typeof event.data.value[key];
+				if (type == "number") {
+					if (key == "easing") {
+						const currentEasing = Object.keys(easings)[event.data.value["easing"]];
+						const stepper = tabObj.add(makeEnumStepper(currentEasing, Object.keys(easings)));
+						stepper.onChange(() => event.data.value["easing"] = Object.keys(easings).indexOf(stepper.value));
+						return;
 					}
+
+					const stepper = tabObj.add(makeNumberStepper(event.data.value[key], 1));
+					stepper.onChange(() => event.data.value[key] = stepper.value);
 				}
+				else if (type == "boolean") {
+					const checkbox = tabObj.add(makeCheckbox(event.data.value[key]));
+					checkbox.onChange(() => event.data.value[key] = checkbox.value);
+				}
+				else if (type == "string") {
+					const textbox = tabObj.add(makeTextbox(event.data.value[key]));
+					textbox.onChange(() => event.data.value[key] = textbox.value);
+				}
+			});
+
+			tabObj.get("ui").forEach((obj, index) => {
+				const initial_pos = vec2(tabObj.getTopLeft().x + 10, -tabObj.height * 2.5);
+
+				const title = tabObj.add([
+					pos(initial_pos.x, initial_pos.y + (obj.height * 1.5) * index),
+					text(Object.keys(event.data.value)[index], { size: 20 }),
+				]);
+
+				obj.pos.x = title.pos.x + title.width + 15;
+				obj.pos.y = title.pos.y;
 			});
 		}
 
@@ -125,7 +84,7 @@ export function defineEventTab() {
 				theHeight = 60;
 			}
 
-			tabObj.height = lerp(tabObj.height, theHeight, 0.8);
+			tabObj.height = lerp(tabObj.height, theHeight, 0.9);
 		});
 
 		// draws a cool line from the event position to the position of the tab so you can know what event is being modified
@@ -137,6 +96,18 @@ export function defineEventTab() {
 					width: 2,
 					opacity: 0.5,
 				});
+
+				// @ts-ignore
+				if (currentEvent.data.value.duration) {
+					// draw how long the event is
+					drawLine({
+						p1: vec2(currentEvent.pos.x, currentEvent.pos.y),
+						// @ts-ignore
+						p2: vec2(currentEvent.pos.x, currentEvent.pos.y + StateChart.SQUARE_SIZE.x * StateChart.instance.conductor.timeToStep(currentEvent.data.value.duration)),
+						width: 2,
+						opacity: 0.5,
+					});
+				}
 			}
 		});
 

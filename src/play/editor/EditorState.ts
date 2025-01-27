@@ -141,6 +141,12 @@ export class StateChart extends KaplayState {
 		return EditorStamp.mix(this.notes.filter((note) => note.selected), this.events.filter((event) => event.selected));
 	}
 
+	editorEvents = new KEventHandler();
+
+	onStampHit(action: (stamp: EditorStamp) => void) {
+		return this.editorEvents.on("stampHit", action);
+	}
+
 	/** Determines the current time in the song */
 	strumlineStep = 0;
 
@@ -327,8 +333,9 @@ export class StateChart extends KaplayState {
 		StateChart.instance = this;
 		params.playbackSpeed = params.playbackSpeed ?? 1;
 		params.playbackSpeed = Math.abs(clamp(params.playbackSpeed, 0, Infinity));
-		params.seekTime = params.seekTime ?? 0;
-		params.seekTime = Math.abs(clamp(params.seekTime, 0, Infinity));
+
+		params.seekTime = Math.abs(params.seekTime) ?? 0;
+		if (params.seekTime < 0) params.seekTime = 0;
 		params.song = params.song ?? new SongContent();
 		this.params = params;
 

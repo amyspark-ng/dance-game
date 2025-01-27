@@ -1,3 +1,13 @@
+import { CustomAudioPlay } from "./core/sound";
+
+/** Options to create a conductor */
+type conductorOpts = {
+	audioPlay: CustomAudioPlay;
+	BPM: number;
+	timeSignature: [number, number];
+	offset?: number;
+};
+
 /*
 	=== Some explanations about conducting and music ===
 	I had to learn music theory from start, props to flagBearer for teaching some of the code related stuff
@@ -35,19 +45,10 @@
 	Mostly used in fnf and rhythm games, but it's pretty helpful to code tons of stuff :)
 */
 
-import { AudioPlay } from "kaplay";
-import { CustomAudioPlay } from "./core/sound";
-
-/** Options to create a conductor */
-type conductorOpts = {
-	audioPlay: CustomAudioPlay;
-	BPM: number;
-	timeSignature: [number, number];
-	offset?: number;
-};
-
 /** Manages the stuff related to music and beats */
 export class Conductor {
+	events = new KEventHandler();
+
 	/** The AudioPlay object of the current song that is playing */
 	audioPlay: CustomAudioPlay;
 
@@ -176,34 +177,34 @@ export class Conductor {
 			}
 
 			if (oldBeat != this.currentBeat) {
-				this.trigger("beat", this.currentStep);
+				this.trigger("beat", this.currentBeat);
 			}
 		}
 	}
 
 	/** Trigger an event */
 	private trigger(event: "start" | "beat" | "step" | "measure", ...args: any) {
-		return getTreeRoot().trigger(event, args);
+		return this.events.trigger(event, args);
 	}
 
 	/** Runs when the conductor starts playing (time in seconds is greater than 0) */
 	onStart(action: () => void) {
-		return getTreeRoot().on("start", action);
+		return this.events.on("start", action);
 	}
 
 	/** Runs when the conductor's beat changes */
 	onBeatHit(action: (curBeat: number) => void) {
-		return getTreeRoot().on("beat", action);
+		return this.events.on("beat", action);
 	}
 
 	/** Runs when the conductor's step changes */
 	onStepHit(action: (curStep: number) => void) {
-		return getTreeRoot().on("step", action);
+		return this.events.on("step", action);
 	}
 
 	/** Runs when the conductor's measure changes */
 	onMeasureHit(action: (curMeasure: number) => void) {
-		return getTreeRoot().on("measure", action);
+		return this.events.on("measure", action);
 	}
 
 	constructor(opts: conductorOpts) {

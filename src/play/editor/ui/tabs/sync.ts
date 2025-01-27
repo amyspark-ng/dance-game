@@ -31,7 +31,7 @@ export function defineSyncTab() {
 			return counter;
 		}
 
-		const dummyDancer = editorTabObj.add(makeDancer(GameSave.dancer, vec2(0.5)));
+		const dummyDancer = editorTabObj.add(makeDancer(GameSave.dancer, vec2(0.25)));
 		dummyDancer.pos = vec2(0, editorTabObj.height - dummyDancer.height / 2 - 30);
 
 		editorTabObj.add([
@@ -60,27 +60,27 @@ export function defineSyncTab() {
 			// dummyDancer.sprite = getDancerByName(dancerAtTime).spriteName;
 		});
 
-		const playAnimEV = ChartEvent.onEvent("play-anim", (ev) => {
-			if (!dummyDancer) return;
-			if (dummyDancer.getAnim(ev.value.anim) == null) {
-				console.warn("Animation not found for dancer: " + ev.value.anim);
-				return;
-			}
+		const playAnimEV = ChartEvent.onEvent("play-anim", (ev: ChartEvent<"play-anim">) => {
+			// if (!dummyDancer) return;
+			// if (dummyDancer.getAnim(ev.value.anim) == null) {
+			// 	console.warn("Animation not found for dancer: " + ev.value.anim);
+			// 	return;
+			// }
 
-			dummyDancer.forcedAnim = ev.value.force;
+			// dummyDancer.forcedAnim = ev.value.force;
 
-			// @ts-ignore
-			const animSpeed = dummyDancer.getAnim(ev.value.anim)?.speed;
-			dummyDancer.play(ev.value.anim, {
-				speed: animSpeed * ev.value.speed,
-				loop: true,
-				pingpong: ev.value.ping_pong,
-			});
-			dummyDancer.onAnimEnd((animEnded) => {
-				if (animEnded != ev.value.anim) return;
-				dummyDancer.forcedAnim = false;
-				dummyDancer.doMove("idle");
-			});
+			// // @ts-ignore
+			// const animSpeed = dummyDancer.getAnim(ev.value.anim)?.speed;
+			// dummyDancer.play(ev.value.anim, {
+			// 	speed: animSpeed * ev.value.speed,
+			// 	loop: true,
+			// 	pingpong: ev.value.ping_pong,
+			// });
+			// dummyDancer.onAnimEnd((animEnded) => {
+			// 	if (animEnded != ev.value.anim) return;
+			// 	dummyDancer.forcedAnim = false;
+			// 	dummyDancer.doMove("idle");
+			// });
 		});
 
 		for (let i = 0; i < ChartState.conductor.stepsPerBeat; i++) {
@@ -100,7 +100,7 @@ export function defineSyncTab() {
 			if (dummyDancer.currentMove == "idle") dummyDancer.moveBop();
 		});
 
-		const onNoteHitEv = getTreeRoot().on("stampHit", (stamp: EditorStamp) => {
+		const onNoteHitEv = ChartState.onStampHit((stamp) => {
 			if (stamp.is("note")) {
 				dummyDancer.doMove(stamp.data.move);
 			}
