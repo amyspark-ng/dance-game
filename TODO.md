@@ -7,6 +7,7 @@
 - Fix sometimes the editor opening the incorrect song (opens default for some reason)
 - Import MF's UI plugin
 - Make it so the dancer on the corner is also affected by anims like the ones in the events 
+- If the event is being edited, draw a line that shows how long it will go for
 
 # GENERAL
 - Make cursor animation system even BETTER

@@ -3,6 +3,7 @@ import { gameCursor } from "../../core/cursor.ts";
 import { KaplayState } from "../../core/scenes/KaplayState.ts";
 import { Sound } from "../../core/sound.ts";
 import { utils } from "../../utils.ts";
+import { ChartEvent } from "../event.ts";
 import { ChartNote } from "../objects/note.ts";
 import { editorShortcuts } from "./backend/handlers.ts";
 import { keyboardControls } from "./backend/keyboardControls.ts";
@@ -16,24 +17,9 @@ import { EditorTab } from "./ui/editorTab.ts";
 import { MenuBar } from "./ui/menubar.ts";
 
 KaplayState.scene("editor", (ChartState: StateChart) => {
-	// This has to run after the asset reloading
-	Sound.musics.forEach((music) => music.stop());
-	ChartState.conductor = new Conductor({
-		audioPlay: Sound.playMusic(ChartState.song.getAudioName(), {
-			speed: ChartState.params.playbackSpeed,
-		}),
-		BPM: ChartState.song.manifest.initial_bpm * ChartState.params.playbackSpeed,
-		timeSignature: ChartState.song.manifest.time_signature,
-		offset: 0,
-	});
-	ChartState.conductor.audioPlay?.stop();
-	ChartState.conductor.audioPlay.seek(ChartState.params.seekTime);
-	ChartState.paused = true;
-	ChartState.scrollToStep(ChartState.conductor.timeToStep(ChartState.params.seekTime));
+	ChartState.add();
 
-	// ChartState.song.chart.notes.forEach((chartNote) => ChartState.placeNote(chartNote));
-	// ChartState.song.chart.events.forEach((ChartEvent) => ChartState.placeEvent(ChartEvent));
-
+	// BE CAREFUL TO PUT IT BEFORE the drawing of other things like lane and minimap
 	// have to do it here so it draws before everything else
 	onDraw(() => {
 		drawRect({
@@ -43,7 +29,6 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 		});
 	});
 
-	// TODO: Figure out why i can't put it on constructor (scene change thing, stay isn't working)
 	ChartState.noteLane = new NoteLane("any");
 
 	ChartState.eventLane = new EventLane();
@@ -148,7 +133,7 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 		const allStamps = EditorStamp.mix(ChartState.notes, ChartState.events);
 		allStamps.forEach((stamp) => {
 			if (stamp.step == currentStep) {
-				getTreeRoot().trigger("stampHit", stamp);
+				stamp.events.trigger("stampHit", stamp);
 			}
 		});
 	});

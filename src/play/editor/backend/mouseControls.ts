@@ -139,6 +139,7 @@ export function mouseControls() {
 			if (stretchingNoteEV) return;
 			// if not enough notes and you haven't moved then don't do nothing
 			if (ChartState.selected.length < 2 && ChartState.hoveredStep == startingStep) return;
+			if (!hoveredStamp) return;
 
 			let oldTime = ChartState.conductor.stepToTime(hoveredStamp.step);
 

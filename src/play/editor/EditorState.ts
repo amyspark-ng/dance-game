@@ -4,7 +4,9 @@ import { Conductor } from "../../Conductor";
 import { GameSave } from "../../core/save";
 import { KaplayState } from "../../core/scenes/KaplayState";
 import { Sound } from "../../core/sound";
+import { SongContent, SongManifest } from "../../data/song";
 import { FileManager } from "../../FileManager";
+import { addNotification } from "../../ui/objects/notification";
 import { utils } from "../../utils";
 import { ChartEvent, eventId } from "../event";
 import { Move } from "../objects/dancer";
@@ -16,7 +18,6 @@ import { EditorMinimap } from "./objects/minimap";
 import { EditorSelectionBox } from "./objects/selectionbox";
 import { EditorEvent, EditorNote, EditorStamp } from "./objects/stamp";
 import "./EditorScene";
-import { SongContent, SongManifest } from "../../data/song";
 
 /** The params for the chart editor */
 export type paramsEditor = {
@@ -179,10 +180,6 @@ export class StateChart extends KaplayState {
 	/** The events in the editor */
 	events: EditorEvent[] = [];
 
-	onNotePlace(action: () => {}) {
-		return getTreeRoot().on("notePlace", action);
-	}
-
 	/** Adds a noteto the Chart
 	 * @param data The ChartNote
 	 * @returns The object
@@ -190,9 +187,12 @@ export class StateChart extends KaplayState {
 	placeNote(data: ChartNote) {
 		const editorNote = new EditorNote(data);
 		this.notes.push(editorNote);
-		this.notes.sort((a, b) => b.data.time - a.data.time);
 		this.song.chart.notes.push(editorNote.data);
-		this.song.chart.notes.sort((a, b) => b.time - a.time);
+
+		editorNote.onHit(() => {
+			Sound.playSound("noteHit", { detune: ChartNote.moveToDetune(editorNote.data.move) + rand(10, 20) });
+		});
+
 		return editorNote;
 	}
 
@@ -202,9 +202,7 @@ export class StateChart extends KaplayState {
 	 */
 	deleteNote(note: EditorNote) {
 		this.notes.splice(this.notes.indexOf(note), 1);
-		this.notes.sort((a, b) => b.data.time - a.data.time);
 		this.song.chart.notes.splice(this.song.chart.notes.indexOf(note.data), 1);
-		this.song.chart.notes.sort((a, b) => b.time - a.time);
 		note.destroy();
 		return note;
 	}
@@ -214,12 +212,15 @@ export class StateChart extends KaplayState {
 	 * @returns The object
 	 */
 	placeEvent(data: ChartEvent) {
-		const editorNote = new EditorEvent(data);
-		this.events.push(editorNote);
-		this.events.sort((a, b) => b.data.time - a.data.time);
-		this.song.chart.events.push(editorNote.data);
-		this.song.chart.events.sort((a, b) => b.time - a.time);
-		return editorNote;
+		const editorEvent = new EditorEvent(data);
+		this.events.push(editorEvent);
+		this.song.chart.events.push(editorEvent.data);
+
+		editorEvent.onHit(() => {
+			Sound.playSound("noteHit", { detune: Object.keys(ChartEvent.eventSchema).indexOf(data.id) + rand(10, 20) });
+		});
+
+		return editorEvent;
 	}
 
 	/** Deletes an event of the Chart
@@ -228,9 +229,7 @@ export class StateChart extends KaplayState {
 	 */
 	deleteEvent(event: EditorEvent) {
 		this.events.splice(this.events.indexOf(event), 1);
-		this.events.sort((a, b) => b.data.time - a.data.time);
 		this.song.chart.events.splice(this.song.chart.events.indexOf(event.data), 1);
-		this.song.chart.events.sort((a, b) => b.time - a.time);
 		event.destroy();
 		return event;
 	}
@@ -302,50 +301,63 @@ export class StateChart extends KaplayState {
 		debug.log(`${this.song.manifest.name}.zip, DOWNLOADED! :)`);
 	}
 
+	add() {
+		// This has to run after the asset reloading
+		Sound.musics.forEach((music) => music.stop());
+		this.conductor = new Conductor({
+			audioPlay: Sound.playMusic(this.song.getAudioName(), {
+				speed: this.params.playbackSpeed,
+			}),
+			BPM: this.song.manifest.initial_bpm * this.params.playbackSpeed,
+			timeSignature: this.song.manifest.time_signature,
+			offset: 0,
+		});
+		this.conductor.audioPlay?.stop();
+		this.conductor.audioPlay.seek(this.params.seekTime);
+		this.paused = true;
+		this.scrollToStep(this.conductor.timeToStep(this.params.seekTime));
+
+		this.song.chart.notes.forEach((chartNote) => this.placeNote(chartNote));
+		this.song.chart.events.forEach((ChartEvent) => this.placeEvent(ChartEvent));
+	}
+
 	constructor(params: paramsEditor) {
 		super("editor");
 
-		// this will run once you actually enter the editor scene
-		const sceneEnterEv = onSceneLeave((name) => {
-			sceneEnterEv.cancel();
-			if (name != "editor") return;
+		StateChart.instance = this;
+		params.playbackSpeed = params.playbackSpeed ?? 1;
+		params.playbackSpeed = Math.abs(clamp(params.playbackSpeed, 0, Infinity));
+		params.seekTime = params.seekTime ?? 0;
+		params.seekTime = Math.abs(clamp(params.seekTime, 0, Infinity));
+		params.song = params.song ?? new SongContent();
+		this.params = params;
 
-			StateChart.instance = this;
-			params.playbackSpeed = params.playbackSpeed ?? 1;
-			params.playbackSpeed = Math.abs(clamp(params.playbackSpeed, 0, Infinity));
-			params.seekTime = params.seekTime ?? 0;
-			params.seekTime = Math.abs(clamp(params.seekTime, 0, Infinity));
-			params.song = params.song ?? new SongContent();
-			this.params = params;
+		// it's a default song, you can't overwrite it, make a copy
+		if (SongContent.defaultUUIDS.includes(this.params.song.manifest.uuid_DONT_CHANGE)) {
+			// TODO: There's a case where you'll need the default content, what is it?
 
 			this.song = utils.deepClone(this.params.song);
-
+			this.song.manifest.name = this.song.manifest.name + " (copy)";
+			this.song.manifest.uuid_DONT_CHANGE = v4();
 			const oldUUID = params.song.manifest.uuid_DONT_CHANGE;
 
-			const uuidAlreadyExists = SongContent.loaded.map((song) => song.manifest.uuid_DONT_CHANGE).includes(this.song.manifest.uuid_DONT_CHANGE);
-			// the uuid alreaddy exists
-			if (uuidAlreadyExists) {
-				this.song.manifest.name = this.song.manifest.name + " (copy)";
-				this.song.manifest.uuid_DONT_CHANGE = v4();
-				// have to reload the audio i don't know how much this would work since this loading takes time so
-				const soundBuffer = getSound(`${oldUUID}-audio`).data.buf;
-				loadSound(this.song.getAudioName(), soundBuffer as any);
+			// reload assets
 
-				// also have to reload the cover this sucks
-				FileManager.spriteToDataURL(`${oldUUID}-cover`).then((dataurl) => {
-					loadSprite(this.song.getCoverName(), dataurl);
-				});
-			}
-			else {
-				// load default sound
-				const newSoundBuffer = getSound("new-song-audio").data.buf;
-				loadSound(this.song.getAudioName(), newSoundBuffer as any);
+			// have to reload the audio i don't know how much this would work since this loading takes time so
+			const soundBuffer = getSound(`${oldUUID}-audio`).data.buf;
+			loadSound(this.song.getAudioName(), soundBuffer as any);
 
-				// load default cover
-				FileManager.spriteToDataURL("new-song-cover").then((dataurl) => {
-					loadSprite(this.song.getCoverName(), dataurl);
-				});
-			}
-		});
+			// also have to reload the cover this sucks
+			FileManager.spriteToDataURL(`${oldUUID}-cover`).then((dataurl) => {
+				loadSprite(this.song.getCoverName(), dataurl);
+			});
+
+			addNotification(`Editing: ${this.song.manifest.name}`, 3);
+		}
+		// overwrite it for all i care!!
+		else {
+			this.song = this.params.song;
+			addNotification(`[warning]WARNING[/warning]: You'll be overwriting ${this.song.manifest.name}`, 5);
+		}
 	}
 }

@@ -51,21 +51,15 @@ KaplayState.scene("game", (GameState: StateGame) => {
 		}
 
 		// HANDLE CAM
-		const camThing = ChartEvent.handle["cam-move"](
+		const camValue = ChartEvent.handle["cam-move"](
 			GameState.conductor.timeInSeconds,
 			GameState.song.chart.events,
 		);
-		cam.pos.x = center().x + camThing.x;
-		cam.pos.y = center().y + camThing.y;
-		cam.angle = camThing.angle;
-		cam.zoom = vec2(camThing.zoom);
 
-		// HANDLE SCROLL SPEED
-		const scrollSpeedThing = ChartEvent.handle["change-scroll"](
-			GameState.conductor.timeInSeconds,
-			GameState.song.chart.events,
-		);
-		setTimeForStrum(1.25 / scrollSpeedThing.speed / GameSave.scrollSpeed);
+		cam.pos.x = center().x + camValue.x;
+		cam.pos.y = center().y + camValue.y;
+		cam.angle = camValue.angle;
+		cam.zoom = vec2(camValue.zoom);
 
 		// OTHER STUFF
 		inputHandler(GameState);
@@ -93,21 +87,21 @@ KaplayState.scene("game", (GameState: StateGame) => {
 			GameState.dancer.moveBop();
 		}
 
-		const camMoveEV = ChartEvent.getAtTime(
-			"cam-move",
-			GameState.song.chart.events,
-			GameState.conductor.timeInSeconds,
-		);
+		// const camMoveEV = ChartEvent.getAtTime(
+		// 	"cam-move",
+		// 	GameState.song.chart.events,
+		// 	GameState.conductor.timeInSeconds,
+		// );
 
-		if (camMoveEV) {
-			const easingFunc = easings[camMoveEV.value.easing[0]] as EaseFunc;
-			cam.bop(
-				vec2(camMoveEV.value.bopStrength),
-				vec2(1),
-				camMoveEV.value.duration,
-				easingFunc,
-			);
-		}
+		// if (camMoveEV) {
+		// const easingFunc = easings[camMoveEV.value.easing[0]] as EaseFunc;
+		// cam.bop(
+		// 	vec2(camMoveEV.value.bopStrength),
+		// 	vec2(1),
+		// 	camMoveEV.value.duration,
+		// 	easingFunc,
+		// );
+		// }
 	});
 
 	GameState.events.onNoteHit((chartNote: ChartNote) => {
@@ -190,5 +184,9 @@ KaplayState.scene("game", (GameState: StateGame) => {
 
 	utils.runInDesktop(() => {
 		appWindow.setTitle(GAME.NAME + " - " + GameState.params.song.manifest.name);
+	});
+
+	onSceneLeave(() => {
+		cam.reset();
 	});
 });

@@ -10,6 +10,8 @@ interface cameraInterface {
 
 	/** Bops the camera using the zoom */
 	bop(startScale: Vec2, endScale: Vec2, time?: number, easing?: EaseFunc): TweenController;
+
+	reset(duration?: number, easing?: EaseFunc): void;
 }
 
 /** The game's camera  */
@@ -30,6 +32,12 @@ export function setupCamera() {
 			time = time ?? 0.5;
 			easing = easing ?? easings.easeOutQuad;
 			return tween(startScale, endScale, time, (p) => cam.zoom = p, easing);
+		},
+
+		reset(duration: number = 0, easing: EaseFunc = easings.linear) {
+			tween(cam.zoom, vec2(1), duration, (p) => cam.zoom = p, easing);
+			tween(cam.angle, 0, duration, (p) => cam.angle = p, easing);
+			tween(cam.pos, center(), duration, (p) => cam.pos = p, easing);
 		},
 	};
 

@@ -282,5 +282,32 @@
             "move": "up"
         }
     ],
-    "events": []
+    "events": [
+        {
+            "time": 3,
+            "id": "cam-move",
+            "value": {
+                "duration": 1,
+                "x": 100,
+                "y": 0,
+                "zoom": 1,
+                "angle": 0,
+                "easing": 5,
+                "bop_strength": 1
+            }
+        },
+        {
+            "time": 10,
+            "id": "cam-move",
+            "value": {
+                "duration": 1,
+                "x": 0,
+                "y": 0,
+                "zoom": 1,
+                "angle": 0,
+                "easing": 5,
+                "bop_strength": 1
+            }
+        }
+    ]
 }

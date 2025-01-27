@@ -3,16 +3,16 @@
  * @param time? How long the text will be around for (default: 1)
  * @param type? Wheter it's just announcement, error or success (will determine color)
  */
-export function addNotification(textToShow: string, time: number = 1, type: "error" | "success" | "regular" = "regular") {
+export function addNotification(textToShow: string, time: number = 1) {
 	const format = formatText({ text: textToShow, size: 20, align: "left" });
-
-	let splitted = textToShow.split(":");
-	textToShow = `[${type}]${splitted[0]}:[/${type}] ${splitted[1]}`;
 
 	let opacity = 1;
 
 	const texty = add([
 		pos(),
+		stay(),
+		z(9999999),
+		timer(),
 		"logText",
 	]);
 
@@ -36,6 +36,9 @@ export function addNotification(textToShow: string, time: number = 1, type: "err
 				"success": {
 					color: GREEN,
 				},
+				"warning": {
+					color: YELLOW,
+				},
 			},
 			anchor: "left",
 			opacity: opacity,
@@ -49,9 +52,8 @@ export function addNotification(textToShow: string, time: number = 1, type: "err
 	const intendedPos = vec2(10, height() - format.height - (format.height * 1.75) * index);
 	texty.pos.y = intendedPos.y;
 
-	tween(texty.pos.x, intendedPos.x, 0.15, (p) => texty.pos.x = p, easings.easeOutQuint);
-
-	tween(opacity, 0, 1.5, (p) => opacity = p).onEnd(() => {
+	texty.tween(texty.pos.x, intendedPos.x, 0.15, (p) => texty.pos.x = p, easings.easeOutQuint);
+	texty.tween(opacity, 0, time, (p) => opacity = p).onEnd(() => {
 		texty.destroy();
 	});
 

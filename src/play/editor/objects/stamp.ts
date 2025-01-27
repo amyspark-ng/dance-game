@@ -78,7 +78,7 @@ export class EditorStamp {
 	is(type: "event"): this is EditorEvent;
 	is(type: "note" | "event") {
 		if (type == "note") return "move" in this.data;
-		else if (type == "event") return "id" in this.data;
+		else return "id" in this.data;
 	}
 
 	/* BOP IT :) */
@@ -277,6 +277,11 @@ export class EditorNote extends EditorStamp {
 		super("note");
 		this.data = data;
 		this.update();
+
+		// console.log(this.data.time);
+		// console.log(this.step);
+		// if (this.is("note")) console.log(this.data.move);
+		// // else if (this.is("event")) console.log(this.data.id);
 	}
 }
 

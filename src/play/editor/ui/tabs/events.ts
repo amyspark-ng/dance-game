@@ -132,7 +132,7 @@ export function defineEventTab() {
 		const pointer = onDraw(() => {
 			if (currentEvent) {
 				drawLine({
-					p1: vec2(currentEvent.pos.x + StateChart.SQUARE_SIZE.x, currentEvent.pos.y),
+					p1: vec2(currentEvent.pos.x, currentEvent.pos.y),
 					p2: vec2(tabObj.pos.x - tabObj.width / 2, tabObj.pos.y - tabObj.height / 2),
 					width: 2,
 					opacity: 0.5,

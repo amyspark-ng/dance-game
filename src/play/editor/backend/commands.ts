@@ -44,9 +44,6 @@ export const editorCommands = {
 
 		// do some other things :)
 		if (doSound) note.addSound();
-		note.onHit(() => {
-			Sound.playSound("noteHit", { detune: ChartNote.moveToDetune(note.data.move) + rand(10, 20) });
-		});
 
 		return note;
 	},
@@ -76,9 +73,6 @@ export const editorCommands = {
 
 		// do some other things :)
 		if (doSound) event.addSound();
-		event.onHit(() => {
-			Sound.playSound("noteHit", { detune: Object.keys(ChartEvent.eventSchema).indexOf(id) + rand(10, 20) });
-		});
 
 		return event;
 	},

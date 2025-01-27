@@ -28,6 +28,7 @@ export function addPauseUI() {
 			anchor("left"),
 			opacity(0.5),
 			z(baseZ + 2),
+			fixed(),
 			"pauseButton",
 			{
 				index: buttonIndex,
@@ -61,6 +62,7 @@ export function addPauseUI() {
 		anchor("center"),
 		color(BLACK),
 		opacity(),
+		fixed(),
 		z(baseZ),
 		"blackScreen",
 	]);
@@ -74,6 +76,7 @@ export function addPauseUI() {
 		text(GameState.song.manifest.name, { size: 60, align: "center" }),
 		pos(),
 		anchor("center"),
+		fixed(),
 		opacity(),
 		z(baseZ),
 	]);
@@ -82,6 +85,7 @@ export function addPauseUI() {
 		text("(paused)", { size: title.textSize - 10, align: "center" }),
 		pos(),
 		anchor("center"),
+		fixed(),
 		opacity(),
 		z(baseZ),
 	]);
@@ -136,6 +140,7 @@ export function addPauseUI() {
 		sprite(getDancer().spriteName, { anim: "idle" }),
 		pos(center()),
 		z(baseZ),
+		fixed(),
 		anchor("center"),
 		"pauseDancer",
 	]);

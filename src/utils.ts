@@ -187,4 +187,8 @@ export class utils {
 
 		return cloneObj as typeof obj;
 	}
+
+	static getEasingByIndex(idx: number) {
+		return easings[Object.keys(easings)[idx]];
+	}
 }
