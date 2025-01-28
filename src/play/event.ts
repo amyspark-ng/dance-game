@@ -1,4 +1,5 @@
 import { EaseFunc } from "kaplay";
+import { cloneDeep } from "lodash";
 import { utils } from "../utils";
 
 const defaultEventSchema = {
@@ -31,23 +32,23 @@ export class ChartEvent<T extends eventId = eventId> {
 	 * Is a getter so it can't be accidentally changed
 	 */
 	static get eventSchema() {
-		return defaultEventSchema;
+		return cloneDeep(defaultEventSchema);
 	}
 
 	static handle = {
 		"cam-move": (curTime: number = 0, evs: ChartEvent[]) => {
 			const currentEV = ChartEvent.getAtTime(
 				"cam-move",
-				evs,
 				curTime,
+				evs,
 			);
 
 			if (!currentEV) return defaultEventSchema["cam-move"];
 
 			const previousEV = ChartEvent.getAtTime(
 				"cam-move",
-				evs,
 				currentEV.time - dt(),
+				evs,
 			) ?? new ChartEvent("cam-move");
 
 			let lerpV = mapc(
@@ -96,8 +97,8 @@ export class ChartEvent<T extends eventId = eventId> {
 			};
 		},
 		"change-scroll": (curTime: number = 0, evs: ChartEvent[]) => {
-			const currentEV = ChartEvent.getAtTime("change-scroll", evs, curTime);
-			const previousEV = ChartEvent.getAtTime("change-scroll", evs, curTime);
+			const currentEV = ChartEvent.getAtTime("change-scroll", curTime, evs);
+			const previousEV = ChartEvent.getAtTime("change-scroll", curTime, evs);
 
 			let lerpV = mapc(
 				curTime,
@@ -120,7 +121,7 @@ export class ChartEvent<T extends eventId = eventId> {
 			return {
 				duration: currentEV.value.duration,
 				easing: currentEV.value.easing,
-				speed: currentEV.value.speed,
+				speed: newSpeed,
 			} as typeof defaultEventSchema["change-scroll"];
 		},
 		"change-dancer": (curTime: number = 0, evs: ChartEvent[]) => {
@@ -137,11 +138,10 @@ export class ChartEvent<T extends eventId = eventId> {
 	 * @param events The array of events to comb through
 	 * @param time The current time
 	 */
-	static getAtTime<T extends eventId>(id: T, events: ChartEvent[], time: number): ChartEvent<T> {
-		// if no events or
+	static getAtTime<T extends eventId>(id: T, time: number, events: ChartEvent[]): ChartEvent<T> {
 		// if the time is below the first event return a default
-		if (!events || !events[0] || time < events[0].time) {
-			return undefined;
+		if (!events[0] || time < events[0].time) {
+			return new ChartEvent(id);
 		}
 
 		// otherwise do the thing to know

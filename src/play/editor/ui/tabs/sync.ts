@@ -1,3 +1,5 @@
+import { EaseFunc } from "kaplay";
+import { cam } from "../../../../core/camera";
 import { GameSave } from "../../../../core/save";
 import { utils } from "../../../../utils";
 import { ChartEvent } from "../../../event";
@@ -52,6 +54,7 @@ export function defineSyncTab() {
 		const eventsData = ChartState.events.map((ev) => ev.data);
 
 		previewCameraSquare.onUpdate(() => {
+			const evntAtTIme = ChartEvent.getAtTime("cam-move", ChartState.conductor.timeInSeconds, eventsData);
 			const camValue = ChartEvent.handle["cam-move"](ChartState.conductor.timeInSeconds, eventsData);
 			previewCameraSquare.pos = vec2(camValue.x, camValue.y);
 			previewCameraSquare.scale = vec2(1 / camValue.zoom);
@@ -99,6 +102,22 @@ export function defineSyncTab() {
 			tween(vec2(1.3), vec2(1), 0.15, (p) => currentBeatObj.scale = p);
 			if (currentBeatObj.beat == ChartState.conductor.stepsPerBeat) {
 				tween(YELLOW, WHITE, 0.15, (p) => currentBeatObj.color = p);
+			}
+
+			const camMoveEV = ChartEvent.getAtTime(
+				"cam-move",
+				ChartState.conductor.timeInSeconds,
+				ChartState.song.chart.events,
+			);
+
+			if (camMoveEV) {
+				const easingFunc = utils.getEasingByIndex(camMoveEV.value.easing) as EaseFunc;
+				cam.bop(
+					vec2(camMoveEV.value.bop_strength),
+					vec2(1),
+					camMoveEV.value.duration,
+					easingFunc,
+				);
 			}
 
 			if (dummyDancer.currentMove == "idle") dummyDancer.moveBop();

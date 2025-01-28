@@ -1,4 +1,4 @@
-import { Color, Vec2 } from "kaplay";
+import { Color, EaseFunc, Vec2 } from "kaplay";
 
 type coolFormatNumberOpt = {
 	/**
@@ -164,31 +164,7 @@ export class utils {
 		return utils.caseWord(text.replace("_", " ").replace("-", " "), "upper");
 	}
 
-	static deepClone(obj: any, theMap = new WeakMap()) {
-		if (obj instanceof Date) return new Date(obj);
-		if (obj instanceof RegExp) return new RegExp(obj);
-
-		if (theMap.has(obj)) {
-			return theMap.get(obj);
-		}
-
-		const allDesc = Object.getOwnPropertyDescriptors(obj);
-		const cloneObj = Object.create(Object.getPrototypeOf(obj), allDesc);
-
-		theMap.set(obj, cloneObj);
-
-		for (const key of Reflect.ownKeys(obj)) {
-			const value = obj[key];
-
-			cloneObj[key] = value instanceof Object && typeof value !== "function"
-				? utils.deepClone(value, theMap)
-				: value;
-		}
-
-		return cloneObj as typeof obj;
-	}
-
-	static getEasingByIndex(idx: number) {
+	static getEasingByIndex(idx: number): EaseFunc {
 		return easings[Object.keys(easings)[idx]];
 	}
 }

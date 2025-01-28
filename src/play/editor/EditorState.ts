@@ -1,4 +1,5 @@
 import { Color, Vec2 } from "kaplay";
+import { cloneDeep } from "lodash";
 import { v4 } from "uuid";
 import { Conductor } from "../../Conductor";
 import { KaplayState } from "../../core/scenes/KaplayState";
@@ -147,7 +148,7 @@ export class StateChart extends KaplayState {
 	}
 
 	/** Determines the current time in the song */
-	strumlineStep = 0;
+	strumlineStep = 1;
 
 	/** Minimap instance to control the time of the song more comfortably */
 	minimap: EditorMinimap = null;
@@ -244,7 +245,7 @@ export class StateChart extends KaplayState {
 		// Remove any states ahead of the current index for redo to behave correctly
 		this.snapshots = this.snapshots.slice(0, this.snapshotIndex + 1);
 		// Add new state as a deep copy to avoid reference issues
-		this.snapshots.push(utils.deepClone(snapshot));
+		this.snapshots.push(cloneDeep(snapshot));
 		this.snapshotIndex++;
 		return snapshot;
 	}
@@ -339,7 +340,8 @@ export class StateChart extends KaplayState {
 		if (SongContent.defaultUUIDS.includes(this.params.song.manifest.uuid_DONT_CHANGE)) {
 			// TODO: There's a case where you'll need the default content, what is it?
 
-			this.song = utils.deepClone(this.params.song);
+			this.song = cloneDeep(this.params.song);
+
 			this.song.manifest.name = this.song.manifest.name + " (copy)";
 			this.song.manifest.uuid_DONT_CHANGE = v4();
 			const oldUUID = params.song.manifest.uuid_DONT_CHANGE;

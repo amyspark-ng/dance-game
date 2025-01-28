@@ -25,6 +25,7 @@ export function defineEventTab() {
 			const props = Object.keys(event.data.value);
 			props.forEach((key: string, index: number) => {
 				const type = typeof event.data.value[key];
+				const initial = event.data.value[key];
 				if (type == "number") {
 					if (key == "easing") {
 						const currentEasing = Object.keys(easings)[event.data.value["easing"]];
@@ -33,15 +34,15 @@ export function defineEventTab() {
 						return;
 					}
 
-					const stepper = tabObj.add(makeNumberStepper(event.data.value[key], 1));
+					const stepper = tabObj.add(makeNumberStepper(initial, 1));
 					stepper.onChange(() => event.data.value[key] = stepper.value);
 				}
 				else if (type == "boolean") {
-					const checkbox = tabObj.add(makeCheckbox(event.data.value[key]));
+					const checkbox = tabObj.add(makeCheckbox(initial));
 					checkbox.onChange(() => event.data.value[key] = checkbox.value);
 				}
 				else if (type == "string") {
-					const textbox = tabObj.add(makeTextbox(event.data.value[key]));
+					const textbox = tabObj.add(makeTextbox(initial));
 					textbox.onChange(() => event.data.value[key] = textbox.value);
 				}
 			});

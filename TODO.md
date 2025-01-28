@@ -9,6 +9,7 @@
 - Playback speed doesn't work at all on gameplay
 
 # CHART EDITOR
+- Make New Chart work
 - Do editor cooler save functon
 - Figure out why sometimes when adding a long note it will add another one below
 - Add beat numbers again

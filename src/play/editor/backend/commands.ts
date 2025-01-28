@@ -1,3 +1,4 @@
+import { cloneDeep } from "lodash";
 import { KaplayState } from "../../../core/scenes/KaplayState";
 import { Sound } from "../../../core/sound";
 import { SongContent } from "../../../data/song";
@@ -170,7 +171,7 @@ export const editorCommands = {
 	Paste(stamps?: EditorStamp[]) {
 		const ChartState = StateChart.instance;
 		stamps = stamps ?? ChartState.clipboard;
-		stamps = utils.deepClone(stamps);
+		stamps = cloneDeep(stamps);
 		if (stamps.length == 0) return;
 
 		// shickiiii
@@ -192,9 +193,6 @@ export const editorCommands = {
 			else if (stamp.is("event")) StateChart.commands.PlaceEvent(false, newStep, stamp.data.id);
 			stamp.twist();
 		});
-
-		console.log(ogSteps);
-		console.log(stamps.map((s) => s.step));
 
 		return stamps;
 	},

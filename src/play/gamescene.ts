@@ -61,6 +61,9 @@ KaplayState.scene("game", (GameState: StateGame) => {
 		cam.angle = camValue.angle;
 		cam.zoom = vec2(camValue.zoom);
 
+		// debug.log(ChartEvent.getAtTime("cam-move", GameState.song.chart.events, GameState.conductor.timeInSeconds).value.x);
+		// debug.log(camValue.x);
+
 		// OTHER STUFF
 		inputHandler(GameState);
 		GameState.gameUI.missesText.misses = GameState.tally.misses;

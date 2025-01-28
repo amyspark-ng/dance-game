@@ -1,6 +1,7 @@
 import audioBufferToBlob from "audiobuffer-to-blob";
 import JSZip from "jszip";
 import TOML, { TomlPrimitive } from "smol-toml";
+import { v4 } from "uuid";
 import { FileManager } from "../FileManager";
 import { ChartEvent } from "../play/event";
 import { ChartNote } from "../play/objects/note";
@@ -26,7 +27,7 @@ export class SongManifest {
 	/** The time signature of the song */
 	time_signature: [number, number] = [4, 4];
 	/** The UUID (universally unique identifier) of the song, please don't change */
-	uuid_DONT_CHANGE: string;
+	uuid_DONT_CHANGE: string = v4();
 	/** The path/url of the chart file */
 	chart_file: string;
 	/** The path/url of the audio file */

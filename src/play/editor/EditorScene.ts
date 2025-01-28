@@ -1,3 +1,4 @@
+import { cam } from "../../core/camera.ts";
 import { gameCursor } from "../../core/cursor.ts";
 import { KaplayState } from "../../core/scenes/KaplayState.ts";
 import { utils } from "../../utils.ts";
@@ -15,6 +16,7 @@ import { MenuBar } from "./ui/menubar.ts";
 
 KaplayState.scene("editor", (ChartState: StateChart) => {
 	ChartState.add();
+	cam.reset();
 
 	// BE CAREFUL TO PUT IT BEFORE the drawing of other things like lane and minimap
 	// have to do it here so it draws before everything else

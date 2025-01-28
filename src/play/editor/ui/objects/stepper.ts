@@ -30,11 +30,15 @@ export function makeNumberStepper(defaultValue: number, increaseValue: number) {
 		const brighterColor = EditorTab.ui.BODY.lighten(50);
 
 		function updateValue() {
-			if (direction == "left" && obj.value > 1) obj.value -= increaseValue;
-			else obj.value += increaseValue;
+			let increase = increaseValue;
+
+			if (isKeyDown("shift")) increase = increaseValue / 10;
+			else increase = increaseValue;
+			if (direction == "left" && obj.value > 1) obj.value -= increase;
+			else obj.value += increase;
 
 			// has decimal place
-			if (Math.round(obj.value) != obj.value) obj.value = parseFloat(obj.value.toFixed(1));
+			obj.value = parseFloat(obj.value.toFixed(1));
 			obj.trigger("change");
 		}
 

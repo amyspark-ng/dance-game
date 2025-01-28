@@ -277,11 +277,6 @@ export class EditorNote extends EditorStamp {
 		super("note");
 		this.data = data;
 		this.update();
-
-		// console.log(this.data.time);
-		// console.log(this.step);
-		// if (this.is("note")) console.log(this.data.move);
-		// // else if (this.is("event")) console.log(this.data.id);
 	}
 }
 
@@ -334,11 +329,11 @@ export class EditorEvent extends EditorStamp {
 		const opacity = StateChart.instance.conductor.timeInSeconds >= this.data.time ? 1 : 0.5;
 		// this draws the actual stamp (event or note)
 		drawSprite({
+			sprite: this.data.id ?? "hueSlider",
 			width: this.width,
 			height: this.height,
 			scale: this.scale,
 			angle: this.angle,
-			sprite: this.data.id,
 			pos: this.pos,
 			anchor: "center",
 			opacity,

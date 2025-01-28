@@ -25,7 +25,7 @@ export class GAME {
 
 	// FEATURES
 	/** Wheter the game should get you to the focus scene if the canvas isn't focused at start */
-	static FEATURE_FOCUS = false;
+	static FEATURE_FOCUS = true;
 }
 
 /** The window (in case you're using desktop) */
