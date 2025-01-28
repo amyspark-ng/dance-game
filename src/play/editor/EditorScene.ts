@@ -127,6 +127,7 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 
 	// Scrolls the checkerboard
 	ChartState.conductor.onStepHit((currentStep) => {
+		if (ChartState.paused) return;
 		const allStamps = EditorStamp.mix(ChartState.notes, ChartState.events);
 		allStamps.forEach((stamp) => {
 			if (stamp.step == currentStep) {

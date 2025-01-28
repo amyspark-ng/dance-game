@@ -4,6 +4,7 @@ import { SongContent } from "../../../data/song";
 import { FileManager } from "../../../FileManager";
 import { StateMenu } from "../../../ui/menu/MenuScene";
 import { addNotification } from "../../../ui/objects/notification";
+import { utils } from "../../../utils";
 import { ChartEvent, eventId } from "../../event";
 import { Move } from "../../objects/dancer";
 import { StateChart } from "../EditorState";
@@ -31,6 +32,7 @@ export const editorCommands = {
 
 		StateChart.instance.changeSong(content);
 		loading.cancel();
+		addNotification(`Editor: Editing ${content.manifest.name}`);
 	},
 
 	SaveChart: () => {
@@ -144,6 +146,8 @@ export const editorCommands = {
 			stamp.twist();
 			stamp.bop();
 		});
+
+		return stamps;
 	},
 
 	Cut(stamps?: EditorStamp[]) {
@@ -166,6 +170,7 @@ export const editorCommands = {
 	Paste(stamps?: EditorStamp[]) {
 		const ChartState = StateChart.instance;
 		stamps = stamps ?? ChartState.clipboard;
+		stamps = utils.deepClone(stamps);
 		if (stamps.length == 0) return;
 
 		// shickiiii
@@ -174,13 +179,24 @@ export const editorCommands = {
 		Sound.playSound("noteCopy", { detune: rand(-50, -25) });
 		addFloatyText(StateChart.utils.clipboardMessage("paste", stamps));
 
-		stamps.forEach((stamp) => {
-			const newTime = stamp.data.time + ChartState.conductor.stepToTime(ChartState.hoveredStep);
-			const newStep = StateChart.instance.conductor.timeToStep(newTime);
+		// sorts them timely
+		stamps.sort((b, a) => b.data.time - a.data.time);
+		const ogSteps = stamps.map((stamp) => stamp.step);
+		stamps.forEach((stamp, index) => {
+			if (stamp.step == stamps[0].step) stamp.step = 0; // if the stamp is at the lowest step turn it to 0
+			else stamp.step = stamps[index].step - ogSteps[0]; // if not, get the difference to the lowest
+
+			// this turns them to low value range, which i can sum hoveredStep to, then it will work :)
+			const newStep = stamp.step + ChartState.hoveredStep;
 			if (stamp.is("note")) StateChart.commands.PlaceNote(false, newStep, stamp.data.move);
 			else if (stamp.is("event")) StateChart.commands.PlaceEvent(false, newStep, stamp.data.id);
 			stamp.twist();
 		});
+
+		console.log(ogSteps);
+		console.log(stamps.map((s) => s.step));
+
+		return stamps;
 	},
 
 	Undo: () => {

@@ -132,10 +132,6 @@ export class SongContent {
 		const cover = await zipFile.file(manifest.cover_file).async("blob");
 		const chart = await zipFile.file(manifest.chart_file).async("text");
 
-		console.log(chart);
-		console.log(JSON.parse(chart));
-		console.log(Array.isArray(JSON.parse(chart).notes));
-
 		if (audio) assets.audio = audio;
 		if (cover) assets.cover = URL.createObjectURL(cover);
 		if (chart) assets.chart = JSON.parse(chart);

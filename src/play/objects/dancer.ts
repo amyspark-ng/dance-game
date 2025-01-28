@@ -26,6 +26,7 @@ export function makeDancer(dancerName: string = getDancer().manifest.name, inten
 		anchor("bot"),
 		scale(intendedScale),
 		z(2),
+		rotate(),
 		"dancer",
 		{
 			/** The data of the dancer */
@@ -33,7 +34,7 @@ export function makeDancer(dancerName: string = getDancer().manifest.name, inten
 			/** The timer controller for the wait for the idle */
 			waitForIdle: null as KEventController,
 			forcedAnim: false,
-			currentMove: "" as DancerAnim,
+			currentMove: "idle" as DancerAnim,
 			add() {
 				this.waitForIdle = wait(0);
 			},

@@ -46,6 +46,7 @@ export function defineSyncTab() {
 			anchor("center"),
 			scale(),
 			pos(),
+			rotate(),
 		]);
 
 		const eventsData = ChartState.events.map((ev) => ev.data);
@@ -54,6 +55,8 @@ export function defineSyncTab() {
 			const camValue = ChartEvent.handle["cam-move"](ChartState.conductor.timeInSeconds, eventsData);
 			previewCameraSquare.pos = vec2(camValue.x, camValue.y);
 			previewCameraSquare.scale = vec2(1 / camValue.zoom);
+			previewCameraSquare.angle = camValue.angle;
+			dummyDancer.angle = camValue.angle;
 		});
 
 		dummyDancer.onUpdate(() => {

@@ -290,6 +290,7 @@ export class StateChart extends KaplayState {
 
 		this.song.chart.notes.forEach((note) => this.placeNote(note));
 		this.song.chart.events.forEach((event) => this.placeEvent(event));
+		this.updateAudio();
 	}
 
 	/** Downloads the chart for the current song */
