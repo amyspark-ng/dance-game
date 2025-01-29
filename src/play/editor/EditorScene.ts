@@ -145,4 +145,6 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 
 	MenuBar.setup();
 	EditorTab.setup();
+	EditorTab.tabs.Events.visible = true;
+	EditorTab.tabs.Events.pos = center();
 });

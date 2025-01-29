@@ -100,15 +100,15 @@ document.addEventListener("fullscreenchange", (event) => {
 export function INITIAL_SCENE() {
 	// KaplayState.switchState(new StateTitle());
 	// KaplayState.switchState(new StateDancerSelect());
-	// KaplayState.switchState(
-	// 	new StateChart({ song: getSongByName("Bopeebo") }),
-	// );
 	KaplayState.switchState(
-		new StateGame({
-			dancerName: GameSave.dancer,
-			song: getSongByName("Bopeebo"),
-		}),
+		new StateChart({ song: getSongByName("Bopeebo") }),
 	);
+	// KaplayState.switchState(
+	// 	new StateGame({
+	// 		dancerName: GameSave.dancer,
+	// 		song: getSongByName("Bopeebo"),
+	// 	}),
+	// );
 	// KaplayState.switchState(new StateSongSelect(0));
 	// KaplayState.switchState(new StateChart({ song: Content.getSongByName("bopeebo") }));
 }

@@ -84,8 +84,8 @@ export const editorCommands = {
 	 */
 	PlaceEvent(doSound: boolean = true, step: number = StateChart.instance.hoveredStep, id: eventId = StateChart.instance.currentEvent) {
 		StateChart.instance.takeSnapshot(`added ${id} event`);
-		const defaultValue = ChartEvent.eventSchema[id];
-		const event = StateChart.instance.placeEvent({ time: StateChart.instance.conductor.stepToTime(step), id, value: defaultValue });
+		const defaultValue = ChartEvent.getDefault(id);
+		const event = StateChart.instance.placeEvent({ time: StateChart.instance.conductor.stepToTime(step), id, data: defaultValue });
 		event.selected = true;
 		event.bop();
 

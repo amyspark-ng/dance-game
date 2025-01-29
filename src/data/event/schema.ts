@@ -2,21 +2,20 @@
 // The data of an event is the object that holds its properties
 // Every property in that data is called value
 
-// TODO: Figure out the use of these
-// TODO: Finish the rest of the descriptions
-// type baseDataValue = { label: string; description: string; };
-// type numberDataValue = { type: "number"; range: [number, number]; default: number; };
-// type booleanDataValue = { type: "boolean"; default: boolean; };
-// type stringDataValue = { type: "string"; default: string; };
-// type enumDataValue = { type: "enum"; options: string[]; default: string; };
+type baseDataValue = { label: string; description: string; };
+type numberDataValue = { type: "number"; range: [number, number]; default: number; };
+type booleanDataValue = { type: "boolean"; default: boolean; };
+type stringDataValue = { type: "string"; default: string; };
+type enumDataValue = { type: "enum"; options: string[]; default: string; };
 
-// /** The type for any of the values in an event's data */
-// type eventValue = baseDataValue & (numberDataValue | booleanDataValue | stringDataValue | enumDataValue);
+/** The type for any of the values in an event's data */
+export type eventValue = baseDataValue & (numberDataValue | booleanDataValue | stringDataValue | enumDataValue);
 
 const allEasingKeys = Object.keys(easings);
+// TODO: Finish the rest of the descriptions
 
 /** The object that contains the information for all of the game's events */
-const eventsSchema = {
+const EventSchema = {
 	// this is an event's schema
 	"change-speed": {
 		// each of these is a value
@@ -27,10 +26,10 @@ const eventsSchema = {
 	},
 
 	"cam-move": {
-		"x": { label: "X", type: "number", default: 0, range: [-Infinity, Infinity] },
-		"y": { label: "Y", type: "number", default: 0, range: [-Infinity, Infinity] },
-		"duration": { label: "Duration", type: "number", default: 0, range: [-Infinity, Infinity] },
-		"easing": { label: "Easing", type: "enum", default: "linear", options: allEasingKeys },
+		"x": { label: "X", description: "How fart to the right", type: "number", default: 0, range: [-Infinity, Infinity] },
+		"y": { label: "Y", description: "How far to the bottom", type: "number", default: 0, range: [-Infinity, Infinity] },
+		"duration": { label: "Duration", description: "How long will it take", type: "number", default: 0, range: [-Infinity, Infinity] },
+		"easing": { label: "Easing", description: "What easing function to use", type: "enum", default: "linear", options: allEasingKeys },
 	},
 
 	"play-anim": {
@@ -45,4 +44,4 @@ const eventsSchema = {
 	},
 };
 
-export default eventsSchema;
+export default EventSchema;

@@ -1,12 +1,12 @@
-import eventsSchema from "./schema";
+import EventSchema from "./schema";
 
 /** Stringed type for any of the ids in the event schema */
-export type eventId = keyof typeof eventsSchema;
+export type eventId = keyof typeof EventSchema;
 
 /** A type schema for all the event defaults */
 export type EventDataDefaults = {
-	[K in keyof typeof eventsSchema]: {
-		[V in keyof typeof eventsSchema[K]]: typeof eventsSchema[K][V] extends { default: infer D; } ? D : never;
+	[K in keyof typeof EventSchema]: {
+		[V in keyof typeof EventSchema[K]]: typeof EventSchema[K][V] extends { default: infer D; } ? D : never;
 	};
 };
 
@@ -28,8 +28,8 @@ export class ChartEvent<T extends eventId = eventId> {
 	/** Gets the default values of an event's data */
 	static getDefault<T extends eventId = eventId>(id: eventId): EventDataDefaults[T] {
 		const obj = {} as EventDataDefaults[T];
-		Object.keys(eventsSchema[id]).forEach((key) => {
-			obj[key] = eventsSchema[id][key].default;
+		Object.keys(EventSchema[id]).forEach((key) => {
+			obj[key] = EventSchema[id][key].default;
 		});
 
 		return obj;
@@ -63,7 +63,7 @@ export class ChartEvent<T extends eventId = eventId> {
 	/** The data the event contains */
 	data: EventDataDefaults[T];
 
-	constructor(id: T, data?: EventDataDefaults[T]) {
+	constructor(id?: T, data?: EventDataDefaults[T]) {
 		this.id = id;
 		this.data = data ?? ChartEvent.getDefault(this.id);
 	}

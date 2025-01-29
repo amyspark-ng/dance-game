@@ -1,6 +1,6 @@
 import { SpriteAtlasData } from "kaplay";
 import { DancerContent } from "../data/dancer";
-import { ChartEvent } from "../data/event/event";
+import EventSchema from "../data/event/schema";
 import { NoteskinContent } from "../data/noteskins";
 import { SongContent } from "../data/song";
 import { rankings } from "../play/objects/scoring";
@@ -50,7 +50,7 @@ export async function loadAssets() {
 	loadSpriteAtlas("game/sprites/songRanks.png", rankData);
 
 	const eventData = {} as SpriteAtlasData;
-	Object.keys(ChartEvent.eventSchema).forEach((id, index) => {
+	Object.keys(EventSchema).forEach((id, index) => {
 		// TODO: MAKE IT SO IT WORKS WITH THE GRID
 		const x = index * 52;
 		const y = 0;

@@ -1,6 +1,7 @@
 import { Color, Vec2 } from "kaplay";
 import { CustomAudioPlay, Sound } from "../../../core/sound";
 import { ChartEvent } from "../../../data/event/event";
+import EventSchema from "../../../data/event/schema";
 import { getNoteskinSprite } from "../../../data/noteskins";
 import { utils } from "../../../utils";
 import { ChartNote } from "../../objects/note";
@@ -286,14 +287,14 @@ export class EditorEvent extends EditorStamp {
 	beingEdited: boolean = false;
 
 	override addSound() {
-		Sound.playSound("eventCog", { detune: 10 * Object.keys(ChartEvent.eventSchema).indexOf(this.data.id) });
+		Sound.playSound("eventCog", { detune: 10 * Object.keys(EventSchema).indexOf(this.data.id) });
 		const ogSound = super.addSound();
 		ogSound.detune = rand(-50, 50);
 		return ogSound;
 	}
 
 	override deleteSound() {
-		Sound.playSound("eventCog", { detune: -(10 * Object.keys(ChartEvent.eventSchema).indexOf(this.data.id)) });
+		Sound.playSound("eventCog", { detune: -(10 * Object.keys(EventSchema).indexOf(this.data.id)) });
 		const ogSound = super.deleteSound();
 		ogSound.detune = rand(-50, 50);
 		return ogSound;
@@ -307,7 +308,7 @@ export class EditorEvent extends EditorStamp {
 
 	override moveSound(): CustomAudioPlay {
 		const ogSound = super.moveSound();
-		ogSound.detune = Object.keys(ChartEvent.eventSchema).indexOf(this.data.id) * 10;
+		ogSound.detune = Object.keys(EventSchema).indexOf(this.data.id) * 10;
 		return ogSound;
 	}
 
@@ -349,8 +350,8 @@ export class EditorEvent extends EditorStamp {
 	constructor(data: ChartEvent) {
 		super("event");
 		this.data = data;
-		if (!this.data.value || Object.keys(this.data.value).length == 0) {
-			this.data.value = ChartEvent.eventSchema[data.id];
+		if (!this.data.data || Object.keys(this.data.data).length == 0) {
+			this.data.data = ChartEvent.getDefault(this.data.id);
 		}
 		this.update();
 	}

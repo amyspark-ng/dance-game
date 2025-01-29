@@ -3,9 +3,9 @@ import { FileManager } from "../../../../FileManager";
 import { ui, uiComp } from "../../../../ui/objects/uiElementComp";
 import { StateChart } from "../../EditorState";
 import { EditorTab } from "../editorTab";
-import makeButton from "../objects/button";
-import { makeNumberStepper } from "../objects/stepper";
-import makeTextbox from "../objects/textbox";
+import makeButton from "../elements/button";
+import { makeNumberStepper } from "../elements/stepper";
+import makeTextbox from "../elements/textbox";
 
 export function defineSongMetadataTab() {
 	const ChartState = StateChart.instance;

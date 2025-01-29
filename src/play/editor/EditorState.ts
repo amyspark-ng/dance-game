@@ -5,7 +5,8 @@ import { Conductor } from "../../Conductor";
 import { KaplayState } from "../../core/scenes/KaplayState";
 import { Sound } from "../../core/sound";
 import { ChartEvent, eventId } from "../../data/event/event";
-import { SongContent, SongManifest } from "../../data/song";
+import EventSchema from "../../data/event/schema";
+import { SongContent } from "../../data/song";
 import { FileManager } from "../../FileManager";
 import { addNotification } from "../../ui/objects/notification";
 import { utils } from "../../utils";
@@ -221,7 +222,7 @@ export class StateChart extends KaplayState {
 		if (!this.song.chart.events.includes(data)) this.song.chart.events.push(data);
 
 		editorEvent.onHit(() => {
-			Sound.playSound("noteHit", { detune: Object.keys(ChartEvent.eventSchema).indexOf(data.id) + rand(10, 20) });
+			Sound.playSound("noteHit", { detune: Object.keys(EventSchema).indexOf(data.id) + rand(10, 20) });
 		});
 
 		return editorEvent;
@@ -328,11 +329,14 @@ export class StateChart extends KaplayState {
 		super("editor");
 
 		StateChart.instance = this;
+
 		params.playbackSpeed = params.playbackSpeed ?? 1;
 		params.playbackSpeed = Math.abs(clamp(params.playbackSpeed, 0, Infinity));
 
 		params.seekTime = Math.abs(params.seekTime) ?? 0;
 		if (params.seekTime < 0) params.seekTime = 0;
+		else if (isNaN(params.seekTime)) params.seekTime = 0;
+
 		params.song = params.song ?? new SongContent();
 		this.params = params;
 

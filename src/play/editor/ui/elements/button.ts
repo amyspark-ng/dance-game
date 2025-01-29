@@ -1,7 +1,7 @@
 import { ui } from "../../../../ui/objects/uiElementComp";
 import { EditorTab } from "../editorTab";
 
-export default function makeButton(text: string, action: () => void) {
+export default function makeButton(text: string) {
 	const button = make([
 		rect(30, 30, { radius: 2 }),
 		pos(),
@@ -31,10 +31,6 @@ export default function makeButton(text: string, action: () => void) {
 	button.onDestroy(() => drawEv.cancel());
 
 	button.onUpdate(async () => {
-		if (isMouseReleased("left") && button.isHovering()) {
-			action();
-		}
-
 		if (isMouseDown("left") && button.isHovering()) button.color = brighterColor;
 		else button.color = regularColor;
 

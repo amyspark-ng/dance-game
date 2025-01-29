@@ -1,5 +1,6 @@
 import { Transition } from "./transitions/Transition";
 
+// TODO: REDO IT, i don't like the idea of doing new State() now :(, just find a way to type them with the parameters i guess
 const sceneDefinitions: Record<string, (state: KaplayState) => void> = {};
 
 /** Class to handle the scenes/states of the game
