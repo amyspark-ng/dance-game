@@ -6,15 +6,15 @@ import { GameSave } from "../core/save";
 import { KaplayState } from "../core/scenes/KaplayState";
 import { Sound } from "../core/sound";
 import { getDancer } from "../data/dancer";
+import { ChartEvent } from "../data/event/event";
 import { utils } from "../utils";
-import { ChartEvent } from "./event";
 import { updateJudgement } from "./objects/judgement";
 import { ChartNote, NoteGameObj, notesSpawner, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
 import { getClosestNote, Scoring } from "./objects/scoring";
 import { inputHandler, introGo, StateGame } from "./PlayState";
+import { SaveScore } from "./savescore";
 import { StateDeath } from "./scenes/DeathScene";
 import { StateResults } from "./scenes/ResultsScene";
-import { SaveScore } from "./song";
 
 KaplayState.scene("game", (GameState: StateGame) => {
 	GameState.add();

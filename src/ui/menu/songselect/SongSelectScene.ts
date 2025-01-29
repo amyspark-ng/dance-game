@@ -8,7 +8,7 @@ import { SongContent } from "../../../data/song";
 import { FileManager } from "../../../FileManager";
 import { Scoring } from "../../../play/objects/scoring";
 import { StateGame } from "../../../play/PlayState";
-import { SaveScore } from "../../../play/song";
+import { SaveScore } from "../../../play/savescore";
 import { utils } from "../../../utils";
 import { StateMenu } from "../MenuScene";
 import { StateDancerSelect } from "./dancerselect/DancerSelectScene";

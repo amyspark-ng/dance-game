@@ -3,8 +3,8 @@ import JSZip from "jszip";
 import TOML, { TomlPrimitive } from "smol-toml";
 import { v4 } from "uuid";
 import { FileManager } from "../FileManager";
-import { ChartEvent } from "../play/event";
 import { ChartNote } from "../play/objects/note";
+import { ChartEvent } from "./event/event";
 
 type SongAssets = {
 	manifest: SongManifest;

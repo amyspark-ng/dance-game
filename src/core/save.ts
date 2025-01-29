@@ -1,6 +1,6 @@
 import { Key } from "kaplay";
 import { Move } from "../play/objects/dancer";
-import { SaveScore } from "../play/song";
+import { SaveScore } from "../play/savescore";
 import { GAME } from "./init";
 
 /** Function to manage some merging of gamesaves */

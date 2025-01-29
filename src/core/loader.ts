@@ -1,8 +1,8 @@
 import { SpriteAtlasData } from "kaplay";
 import { DancerContent } from "../data/dancer";
+import { ChartEvent } from "../data/event/event";
 import { NoteskinContent } from "../data/noteskins";
 import { SongContent } from "../data/song";
-import { ChartEvent } from "../play/event";
 import { rankings } from "../play/objects/scoring";
 import { loadCursor } from "./cursor";
 

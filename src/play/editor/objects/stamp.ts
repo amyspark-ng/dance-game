@@ -1,8 +1,8 @@
 import { Color, Vec2 } from "kaplay";
 import { CustomAudioPlay, Sound } from "../../../core/sound";
+import { ChartEvent } from "../../../data/event/event";
 import { getNoteskinSprite } from "../../../data/noteskins";
 import { utils } from "../../../utils";
-import { ChartEvent } from "../../event";
 import { ChartNote } from "../../objects/note";
 import { StateChart } from "../EditorState";
 

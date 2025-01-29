@@ -1,12 +1,12 @@
 import { cloneDeep } from "lodash";
 import { KaplayState } from "../../../core/scenes/KaplayState";
 import { Sound } from "../../../core/sound";
+import { ChartEvent, eventId } from "../../../data/event/event";
 import { SongContent } from "../../../data/song";
 import { FileManager } from "../../../FileManager";
 import { StateMenu } from "../../../ui/menu/MenuScene";
 import { addNotification } from "../../../ui/objects/notification";
 import { utils } from "../../../utils";
-import { ChartEvent, eventId } from "../../event";
 import { Move } from "../../objects/dancer";
 import { StateChart } from "../EditorState";
 import { EditorEvent, EditorNote, EditorStamp } from "../objects/stamp";

@@ -1,8 +1,8 @@
 import { EaseFunc } from "kaplay";
 import { cam } from "../../../../core/camera";
 import { GameSave } from "../../../../core/save";
+import { ChartEvent } from "../../../../data/event/event";
 import { utils } from "../../../../utils";
-import { ChartEvent } from "../../../event";
 import { makeDancer } from "../../../objects/dancer";
 import { StateChart } from "../../EditorState";
 import { EditorTab } from "../editorTab";
