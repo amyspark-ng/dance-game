@@ -157,6 +157,7 @@ export function makeEnumStepper(defaultValue: string, options: string[]) {
 			if (direction == "left") index = utils.scrollIndex(index, 1, options.length);
 			else index = utils.scrollIndex(index, -1, options.length);
 			obj.value = options[index];
+			obj.trigger("change");
 		}
 
 		arrow.onUpdate(() => {

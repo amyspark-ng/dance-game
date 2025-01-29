@@ -28,19 +28,20 @@ const EventSchema = {
 	"cam-move": {
 		"x": { label: "X", description: "How fart to the right", type: "number", default: 0, range: [-Infinity, Infinity] },
 		"y": { label: "Y", description: "How far to the bottom", type: "number", default: 0, range: [-Infinity, Infinity] },
+		"angle": { label: "Angle", description: "How much to spin it", type: "number", default: 0, range: [-Infinity, Infinity] },
 		"duration": { label: "Duration", description: "How long will it take", type: "number", default: 0, range: [-Infinity, Infinity] },
 		"easing": { label: "Easing", description: "What easing function to use", type: "enum", default: "linear", options: allEasingKeys },
 	},
 
 	"play-anim": {
-		"anim": { label: "Animation", type: "string", default: "idle" },
-		"speed": { label: "Speed", type: "number", default: 1, range: [-Infinity, Infinity] },
-		"force": { label: "Forced", type: "boolean", default: false },
-		"pingpong": { label: "Ping-Pong", type: "boolean", default: false },
+		"anim": { label: "Animation", description: "What animation to play", type: "string", default: "idle" },
+		"speed": { label: "Speed", description: "How fast will it be", type: "number", default: 1, range: [-Infinity, Infinity] },
+		"force": { label: "Forced", description: "Wheter to override any other", type: "boolean", default: false },
+		"pingpong": { label: "Ping-Pong", description: "Wheter it should go back to the start after finishing", type: "boolean", default: false },
 	},
 
 	"change-dancer": {
-		"dancer": { label: "Dancer", type: "enum", options: ["astri"], default: "astri" },
+		"dancer": { label: "Dancer", description: "What dancer to change to", type: "enum", options: ["Astri"], default: "astri" },
 	},
 };
 

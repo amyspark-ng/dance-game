@@ -2,7 +2,7 @@ import { Vec2 } from "kaplay";
 import { MenuBar, MenuItem } from "./menubar";
 import addTab from "./tabs/baseTab";
 import eventTab from "./tabs/eventTab";
-import { syncTab } from "./tabs/sync";
+import { syncTab } from "./tabs/syncTab";
 
 /** Class to handle the tabs found in the {@link MenuBar.bars `TopMenuButton.buttons`} TopMenu (for the chart editor) */
 export class EditorTab {
@@ -43,11 +43,13 @@ export class EditorTab {
 	/** Function that handles the addition for all the editor tabs in the chart editor */
 	static setup() {
 		const arrayOfItems: MenuItem[] = [];
-		Object.values(EditorTab.tabs).forEach((tabInstance) => {
+		Object.values(EditorTab.tabs).forEach((tabInstance, index) => {
 			arrayOfItems.push({
 				text: tabInstance.title,
+				checked: false,
 				action: () => {
 					tabInstance.visible = !tabInstance.visible;
+					arrayOfItems[index].checked = tabInstance.visible;
 				},
 			});
 		});

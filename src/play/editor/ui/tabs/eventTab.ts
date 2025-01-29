@@ -1,5 +1,6 @@
 import { GameObj, Vec2 } from "kaplay";
 import EventSchema, { eventValue } from "../../../../data/event/schema";
+import { uiComp } from "../../../../ui/objects/uiElementComp";
 import { StateChart } from "../../EditorState";
 import { EditorEvent } from "../../objects/stamp";
 import { EditorTab } from "../editorTab";
@@ -30,7 +31,7 @@ function eventTab() {
 			const schema = EventSchema[currentEvent.data.id][dataKey] as eventValue;
 			const value = currentEvent.data.data[dataKey];
 
-			let obj: GameObj = null;
+			let obj: GameObj<uiComp | { width: number; height: number; value: any; }> = null;
 			if (schema.type == "number") obj = tab.add(makeNumberStepper(value, 1));
 			else if (schema.type == "boolean") obj = tab.add(makeCheckbox(value));
 			else if (schema.type == "string") obj = tab.add(makeTextbox(value));

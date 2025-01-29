@@ -1,4 +1,4 @@
-import { GameObj, Vec2 } from "kaplay";
+import { CompList, Vec2 } from "kaplay";
 import { drag } from "../../../../core/drag";
 import { EditorTab } from "../editorTab";
 
@@ -9,7 +9,7 @@ function addTab(data: EditorTab) {
 	const tab = add([
 		anchor("topleft"),
 		pos(),
-		rect(10, 10, { radius: [0, 0, 20, 20] }),
+		rect(10, 10, { radius: [0, 0, 10, 10] }),
 		color(EditorTab.BODY_COLOR),
 		drag(),
 		"editorTab",
@@ -17,8 +17,6 @@ function addTab(data: EditorTab) {
 			data: data,
 			updateLayout(padding: offsetForSizing = defaultOffset, spacing: offsetForSizing = defaultOffset) {
 				return [vec2()];
-			},
-			addUI(label: string, obj: GameObj) {
 			},
 		},
 	]);
@@ -29,14 +27,18 @@ function addTab(data: EditorTab) {
 
 		const positions = [];
 
-		const children = tab.get("ui");
+		const children = tab.get("ui").sort((a, b) => a.id - b.id);
 		children.forEach((child, index) => {
 			// debug.log("size:" + vec2(child.width, child.height));
+			// debug.log(`id: ${child.id} has tags ${child.tags}`);
 
-			const childHeight = child.height + spacing.top;
+			const childHeight = child.height + spacing.bottom;
 			tab.height += childHeight;
 			if (child.pos) {
-				child.pos.y = padding.top + spacing.top + (childHeight * index);
+				if (children[index - 1]) {
+					child.pos.y = children[index - 1].pos.y + children[index - 1].height + spacing.bottom;
+				}
+				else child.pos.y = padding.top;
 				child.pos.x = padding.left;
 				positions[index] = vec2(child.pos);
 			}
@@ -53,7 +55,7 @@ function addTab(data: EditorTab) {
 	const header = tab.add([
 		pos(0, -30),
 		area(),
-		rect(0, 30, { radius: [20, 20, 0, 0] }),
+		rect(0, 30, { radius: [10, 10, 0, 0] }),
 		color(EditorTab.HEADER_COLOR),
 	]);
 

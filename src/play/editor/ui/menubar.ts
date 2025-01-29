@@ -11,6 +11,8 @@ export type MenuItem = {
 	text: string;
 	action: () => void;
 	extraCode?: (itemObj: ReturnType<typeof MenuBar.makeMenuItem>) => void;
+} & {
+	checked?: boolean;
 };
 
 /** Class to handle the menu bars in the chart editor (File, Edit, View) */
@@ -226,44 +228,6 @@ export class MenuBar {
 							);
 						});
 
-						if (item.text == "hueslider") {
-							menuitem.onDraw(() => {
-								drawSprite({
-									sprite: "hueSlider",
-								});
-							});
-
-							let hue = GameSave.editorHue;
-
-							menuitem.onUpdate(() => {
-								GameSave.editorHue = lerp(GameSave.editorHue, hue, 0.8);
-							});
-
-							menuitem.onClick(() => {
-								hue = mapc(
-									mousePos().x,
-									menuitem.screenPos().x,
-									menuitem.screenPos().x + menuitem.width,
-									0,
-									1,
-								);
-								GameSave.save();
-							});
-
-							menuitem.onDraw(() => {
-								drawLine({
-									p1: vec2(map(GameSave.editorHue, 0, 1, 0, menuitem.width), 0),
-									p2: vec2(
-										map(GameSave.editorHue, 0, 1, 0, menuitem.width),
-										menuitem.height,
-									),
-									width: 2,
-									color: BLACK,
-								});
-							});
-							return;
-						}
-
 						menuitem.onClick(() => {
 							if (menuitem.off) return;
 							bar.removeAll();
@@ -277,6 +241,7 @@ export class MenuBar {
 						if (hasShortcut) {
 							itemtext = itemtext.replace(shortcut, "");
 						}
+
 						menuitem.onDraw(() => {
 							drawText({
 								text: itemtext,
@@ -303,6 +268,32 @@ export class MenuBar {
 									color: BLACK,
 									size: TEXT_SIZE,
 								});
+							}
+
+							// checkbox stuff
+							if (menuitem.item.checked != undefined) {
+								const posOfSquare = vec2(menuitem.width - 5, 12.5);
+								drawRect({
+									width: 20,
+									height: 20,
+									fill: false,
+									pos: posOfSquare,
+									anchor: "right",
+									outline: {
+										color: BLACK,
+										width: 2,
+									},
+								});
+
+								if (menuitem.item.checked == true) {
+									drawRect({
+										width: 16,
+										height: 16,
+										color: BLACK,
+										pos: vec2(posOfSquare.x - 2, posOfSquare.y),
+										anchor: "right",
+									});
+								}
 							}
 						});
 
