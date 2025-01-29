@@ -1,7 +1,7 @@
 import { cloneDeep } from "lodash";
 import { KaplayState } from "../../../core/scenes/KaplayState";
 import { Sound } from "../../../core/sound";
-import { ChartEvent, eventId } from "../../../data/event/event";
+import { ChartEvent, EventDataDefaults, eventId } from "../../../data/event/event";
 import { SongContent } from "../../../data/song";
 import { FileManager } from "../../../FileManager";
 import { StateMenu } from "../../../ui/menu/MenuScene";
@@ -82,10 +82,15 @@ export const editorCommands = {
 	 * @param step? The step to place the event in
 	 * @param move The move the event will be
 	 */
-	PlaceEvent(doSound: boolean = true, step: number = StateChart.instance.hoveredStep, id: eventId = StateChart.instance.currentEvent) {
+	PlaceEvent<T extends eventId = eventId>(
+		doSound: boolean = true,
+		step: number = StateChart.instance.hoveredStep,
+		id: eventId = StateChart.instance.currentEvent,
+		data?: EventDataDefaults[T],
+	) {
 		StateChart.instance.takeSnapshot(`added ${id} event`);
-		const defaultValue = ChartEvent.getDefault(id);
-		const event = StateChart.instance.placeEvent({ time: StateChart.instance.conductor.stepToTime(step), id, data: defaultValue });
+		data = data ?? ChartEvent.getDefault(id);
+		const event = StateChart.instance.placeEvent({ time: StateChart.instance.conductor.stepToTime(step), id, data: data });
 		event.selected = true;
 		event.bop();
 
@@ -148,6 +153,8 @@ export const editorCommands = {
 			stamp.bop();
 		});
 
+		console.log(stamps);
+
 		return stamps;
 	},
 
@@ -190,7 +197,7 @@ export const editorCommands = {
 			// this turns them to low value range, which i can sum hoveredStep to, then it will work :)
 			const newStep = stamp.step + ChartState.hoveredStep;
 			if (stamp.is("note")) StateChart.commands.PlaceNote(false, newStep, stamp.data.move);
-			else if (stamp.is("event")) StateChart.commands.PlaceEvent(false, newStep, stamp.data.id);
+			else if (stamp.is("event")) StateChart.commands.PlaceEvent(false, newStep, stamp.data.id, stamp.data.data);
 			stamp.twist();
 		});
 

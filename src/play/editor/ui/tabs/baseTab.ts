@@ -1,6 +1,6 @@
 import { CompList, Vec2 } from "kaplay";
 import { drag } from "../../../../core/drag";
-import { EditorTab } from "../editorTab";
+import { EditorTab } from "../tabs";
 
 type offsetForSizing = { left: number; right: number; top: number; bottom: number; };
 const defaultOffset: offsetForSizing = { left: 10, right: 10, top: 10, bottom: 10 };
@@ -75,6 +75,23 @@ function addTab(data: EditorTab) {
 
 	header.onClick(() => {
 		tab.pick();
+	});
+
+	// adding the x
+	const x = header.add([
+		text("x", { size: 25 }),
+		pos(0, 0),
+		area(),
+		"hover",
+		{
+			update() {
+				this.pos.x = header.width - this.width;
+			},
+		},
+	]);
+
+	x.onClick(() => {
+		tab.data.visible = false;
 	});
 
 	header.onMouseRelease(() => {

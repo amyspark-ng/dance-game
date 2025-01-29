@@ -1,7 +1,7 @@
 import { getNoteskinSprite } from "../../../../data/noteskins";
 import { Move } from "../../../objects/dancer";
 import { StateChart } from "../../EditorState";
-import { EditorTab } from "../editorTab";
+import { EditorTab } from "../tabs";
 
 export function defineNotesTab() {
 	EditorTab.tabs.Notes.addElements((editorTabObj) => {

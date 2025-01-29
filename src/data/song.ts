@@ -5,6 +5,35 @@ import { v4 } from "uuid";
 import { FileManager } from "../FileManager";
 import { ChartNote } from "../play/objects/note";
 import { ChartEvent } from "./event/event";
+import { eventValue } from "./event/schema";
+
+export const songSchema = {
+	"name": { label: "Name", description: "The name of the song", type: "string", default: "Song name" },
+	"artist": { label: "Artist", description: "Who made the song", type: "string", default: "Someone else" },
+	"charter": { label: "Charter", description: "Who charted the song (probably you)", type: "string", default: "Another person" },
+	"initial_bpm": { label: "Initial BPM", description: "The initial bpm of the song", type: "number", default: 100, range: [-Infinity, Infinity] },
+	"initial_scrollspeed": { label: "Scroll-Speed", description: "The initial scrollspeed of the song", type: "number", default: 1, range: [-Infinity, Infinity] },
+	"steps_per_beat": { label: "Steps per beat", description: "The steps per beat (top number of time signature)", type: "number", default: 4, range: [-Infinity, Infinity] },
+	"beats_per_measure": {
+		label: "Beats per measure",
+		description: "The beats per measure (bottom number of time signature)",
+		type: "number",
+		default: 4,
+		range: [-Infinity, Infinity],
+	},
+	"cover_file": {
+		label: "Cover path",
+		description: "The path to the cover",
+		type: "action",
+		default: "song-cover.png",
+	},
+	"audio_file": {
+		label: "Audio path",
+		description: "The path to the audio",
+		type: "action",
+		default: "song-audio.ogg",
+	},
+};
 
 type SongAssets = {
 	manifest: SongManifest;

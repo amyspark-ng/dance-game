@@ -1,5 +1,5 @@
 import { ui } from "../../../../ui/objects/uiElementComp";
-import { EditorTab } from "../editorTab";
+import { EditorTab } from "../tabs";
 
 export default function makeButton(text: string) {
 	const button = make([

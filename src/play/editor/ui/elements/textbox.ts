@@ -1,6 +1,6 @@
 import { KEventController } from "kaplay";
 import { ui } from "../../../../ui/objects/uiElementComp";
-import { EditorTab } from "../editorTab";
+import { EditorTab } from "../tabs";
 
 export default function makeTextbox(defaultValue: string, textCondition?: (ch: string) => boolean) {
 	if (!textCondition) {

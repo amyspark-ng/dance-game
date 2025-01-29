@@ -33,7 +33,6 @@ export class ChartEvent<T extends eventId = eventId> {
 		});
 
 		return obj;
-		s;
 	}
 
 	/** Get the current event at a given time

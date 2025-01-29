@@ -5,7 +5,7 @@ import EventHandler from "../../../../data/event/handler";
 import { utils } from "../../../../utils";
 import { DANCER_POS, makeDancer } from "../../../objects/dancer";
 import { StateChart } from "../../EditorState";
-import { EditorTab } from "../editorTab";
+import { EditorTab } from "../tabs";
 import addTab from "./baseTab";
 
 export function syncTab() {

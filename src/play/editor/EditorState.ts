@@ -234,7 +234,7 @@ export class StateChart extends KaplayState {
 	 */
 	deleteEvent(event: EditorEvent) {
 		this.events = utils.removeFromArr(event, this.events);
-		this.song.chart.events = utils.removeFromArr(event.data, this.song.chart.notes);
+		this.song.chart.events = utils.removeFromArr(event.data, this.song.chart.events);
 		event.destroy();
 		return event;
 	}

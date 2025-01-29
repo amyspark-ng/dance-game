@@ -15,8 +15,8 @@ export class EditorSelectionBox {
 
 		if (isMousePressed("left")) {
 			const canSelect = !get("hover", { recursive: true }).some((obj) => obj.isHovering())
+				&& !get("drag", { recursive: true }).some((obj) => obj.dragging)
 				&& !ChartState.isCursorInGrid
-				&& !get("editorTab").some((obj) => obj.isHovering)
 				&& !ChartState.minimap.canMove;
 
 			this.canSelect = canSelect;

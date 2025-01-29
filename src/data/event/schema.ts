@@ -7,9 +7,10 @@ type numberDataValue = { type: "number"; range: [number, number]; default: numbe
 type booleanDataValue = { type: "boolean"; default: boolean; };
 type stringDataValue = { type: "string"; default: string; };
 type enumDataValue = { type: "enum"; options: string[]; default: string; };
+type actionDataValue = { type: "action"; default: string; };
 
 /** The type for any of the values in an event's data */
-export type eventValue = baseDataValue & (numberDataValue | booleanDataValue | stringDataValue | enumDataValue);
+export type eventValue = baseDataValue & (numberDataValue | booleanDataValue | stringDataValue | enumDataValue | actionDataValue);
 
 const allEasingKeys = Object.keys(easings);
 // TODO: Finish the rest of the descriptions

@@ -11,8 +11,8 @@ import { EditorLane, EventLane, NoteLane } from "./objects/lane.ts";
 import { EditorMinimap } from "./objects/minimap.ts";
 import { EditorSelectionBox } from "./objects/selectionbox.ts";
 import { EditorStamp } from "./objects/stamp.ts";
-import { EditorTab } from "./ui/editorTab.ts";
 import { MenuBar } from "./ui/menubar.ts";
+import { EditorTab } from "./ui/tabs.ts";
 
 KaplayState.scene("editor", (ChartState: StateChart) => {
 	ChartState.add();
@@ -145,8 +145,4 @@ KaplayState.scene("editor", (ChartState: StateChart) => {
 
 	MenuBar.setup();
 	EditorTab.setup();
-	EditorTab.tabs.Sync.visible = true;
-	EditorTab.tabs.Sync.pos = center();
-	// EditorTab.tabs.Events.visible = true;
-	// EditorTab.tabs.Events.pos = center();
 });

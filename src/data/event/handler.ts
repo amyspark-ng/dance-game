@@ -14,6 +14,8 @@ const EventHandler = {
 		const currentEv = ChartEvent.getAtTime("cam-move", time, events);
 		const previousEV = ChartEvent.getAtTime("cam-move", currentEv.time - 0.05, events);
 
+		// console.log(currentEv);
+
 		let lerpValue = mapc(time, currentEv.time, currentEv.time + currentEv.data.duration, 0, 1);
 		if (isNaN(lerpValue)) lerpValue = 0;
 		const easeFunc = easings[currentEv.data.easing] as EaseFunc;

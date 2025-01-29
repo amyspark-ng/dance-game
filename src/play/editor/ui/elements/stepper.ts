@@ -1,6 +1,6 @@
 import { ui } from "../../../../ui/objects/uiElementComp";
 import { utils } from "../../../../utils";
-import { EditorTab } from "../editorTab";
+import { EditorTab } from "../tabs";
 
 export function makeNumberStepper(defaultValue: number, increaseValue: number) {
 	let theWidth = formatText({ text: "AAAAA", size: 20 }).width;

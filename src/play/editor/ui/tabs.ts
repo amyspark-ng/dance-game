@@ -2,6 +2,7 @@ import { Vec2 } from "kaplay";
 import { MenuBar, MenuItem } from "./menubar";
 import addTab from "./tabs/baseTab";
 import eventTab from "./tabs/eventTab";
+import { songTab } from "./tabs/songTab";
 import { syncTab } from "./tabs/syncTab";
 
 /** Class to handle the tabs found in the {@link MenuBar.bars `TopMenuButton.buttons`} TopMenu (for the chart editor) */
@@ -20,7 +21,7 @@ export class EditorTab {
 
 	/** Is a static object that holds all of the tabs in the view {@link MenuBar `TopMenuButton`} */
 	static tabs = {
-		"SongInfo": new EditorTab("Song info"),
+		"SongInfo": new EditorTab("Song info", songTab),
 		"Sync": new EditorTab("Sync", syncTab),
 		"Notes": new EditorTab("Notes"),
 		"Events": new EditorTab("Events", eventTab),

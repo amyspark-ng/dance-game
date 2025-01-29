@@ -3,10 +3,10 @@ import EventSchema, { eventValue } from "../../../../data/event/schema";
 import { uiComp } from "../../../../ui/objects/uiElementComp";
 import { StateChart } from "../../EditorState";
 import { EditorEvent } from "../../objects/stamp";
-import { EditorTab } from "../editorTab";
 import makeCheckbox from "../elements/checkbox";
 import { makeEnumStepper, makeNumberStepper } from "../elements/stepper";
 import makeTextbox from "../elements/textbox";
+import { EditorTab } from "../tabs";
 import addTab from "./baseTab";
 
 function eventTab() {
@@ -20,9 +20,13 @@ function eventTab() {
 		if (!currentEvent) {
 			tab.add([
 				text("No event", { size: 20 }),
+				pos(),
 				"ui",
 				"label",
 			]);
+
+			EditorTab.tabs.Events.title = "Events";
+			tab.updateLayout();
 			return;
 		}
 

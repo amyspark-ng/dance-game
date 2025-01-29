@@ -2,7 +2,7 @@ import { Vec2 } from "kaplay";
 import { getNoteskinSprite } from "../../../data/noteskins";
 import { Move } from "../../objects/dancer";
 import { ChartNote } from "../../objects/note";
-import { StateChart } from "../EditorState";
+import { ChartSnapshot, StateChart } from "../EditorState";
 
 function makeLaneObj() {
 	return make([
@@ -159,6 +159,24 @@ export class NoteLane extends EditorLane {
 
 	override draw() {
 		super.draw();
+
+		for (let i = 0; i < StateChart.instance.conductor.totalSteps; i++) {
+			if (i % StateChart.instance.conductor.stepsPerBeat == 0) {
+				const newPos = StateChart.utils.stepToPos(i);
+				newPos.y -= StateChart.SQUARE_SIZE.y * StateChart.instance.lerpScrollStep;
+
+				if (StateChart.utils.renderingConditions(newPos.y)) {
+					// the beat text
+					drawText({
+						text: `${i / StateChart.instance.conductor.stepsPerBeat}`,
+						color: WHITE,
+						size: StateChart.SQUARE_SIZE.x / 2,
+						anchor: "center",
+						pos: vec2(newPos.x - StateChart.SQUARE_SIZE.x, newPos.y),
+					});
+				}
+			}
+		}
 	}
 
 	constructor(move: Move | "any") {
