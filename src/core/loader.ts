@@ -51,9 +51,8 @@ export async function loadAssets() {
 
 	const eventData = {} as SpriteAtlasData;
 	Object.keys(EventSchema).forEach((id, index) => {
-		// TODO: MAKE IT SO IT WORKS WITH THE GRID
-		const x = index * 52;
-		const y = 0;
+		const x = (index % 4) * 52;
+		const y = Math.floor(index / 4) * 52;
 
 		eventData[id] = {
 			width: 52,

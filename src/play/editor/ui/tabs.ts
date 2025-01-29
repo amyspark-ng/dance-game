@@ -2,6 +2,8 @@ import { Vec2 } from "kaplay";
 import { MenuBar, MenuItem } from "./menubar";
 import addTab from "./tabs/baseTab";
 import eventTab from "./tabs/eventTab";
+import { notesTab } from "./tabs/notesTab";
+import { panelTab } from "./tabs/panelTab";
 import { songTab } from "./tabs/songTab";
 import { syncTab } from "./tabs/syncTab";
 
@@ -23,8 +25,9 @@ export class EditorTab {
 	static tabs = {
 		"SongInfo": new EditorTab("Song info", songTab),
 		"Sync": new EditorTab("Sync", syncTab),
-		"Notes": new EditorTab("Notes"),
+		"Notes": new EditorTab("Notes", notesTab),
 		"Events": new EditorTab("Events", eventTab),
+		"Panel": new EditorTab("All events", panelTab),
 	};
 
 	static HEADER_COLOR = rgb(30, 29, 36);
