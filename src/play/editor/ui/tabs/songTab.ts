@@ -19,7 +19,7 @@ export function songTab() {
 		const value = ChartState.song.manifest[key];
 
 		let obj: GameObj<any> = null;
-		if (schema.type == "number") obj = tab.add(makeNumberStepper(value, 1));
+		if (schema.type == "number") obj = tab.add(makeNumberStepper(value));
 		else if (schema.type == "boolean") obj = tab.add(makeCheckbox(value));
 		else if (schema.type == "string") obj = tab.add(makeTextbox(value));
 		else if (schema.type == "enum") obj = tab.add(makeEnumStepper(value, schema.options));

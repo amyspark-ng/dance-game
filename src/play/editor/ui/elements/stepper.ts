@@ -2,7 +2,7 @@ import { ui } from "../../../../ui/objects/uiElementComp";
 import { utils } from "../../../../utils";
 import { EditorTab } from "../tabs";
 
-export function makeNumberStepper(defaultValue: number, increaseValue: number) {
+export function makeNumberStepper(initial: number, range: [number, number] = [-Infinity, Infinity]) {
 	let theWidth = formatText({ text: "AAAAA", size: 20 }).width;
 
 	const obj = make([
@@ -10,7 +10,7 @@ export function makeNumberStepper(defaultValue: number, increaseValue: number) {
 		pos(),
 		ui(),
 		{
-			value: defaultValue,
+			value: initial,
 		},
 	]);
 
@@ -30,12 +30,12 @@ export function makeNumberStepper(defaultValue: number, increaseValue: number) {
 		const brighterColor = EditorTab.ui.BODY.lighten(50);
 
 		function updateValue() {
-			let increase = increaseValue;
+			let increase = 1;
+			if (isKeyDown("shift")) increase = 1 / 10;
+			else increase = 1;
 
-			if (isKeyDown("shift")) increase = increaseValue / 10;
-			else increase = increaseValue;
-			if (direction == "left" && obj.value > 1) obj.value -= increase;
-			else obj.value += increase;
+			if (direction == "left") obj.value -= increase;
+			else if (direction == "right") obj.value += increase;
 
 			// has decimal place
 			obj.value = parseFloat(obj.value.toFixed(1));

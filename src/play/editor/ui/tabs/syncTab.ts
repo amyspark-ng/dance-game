@@ -1,4 +1,3 @@
-import { GameSave } from "../../../../core/save";
 import { getDancer } from "../../../../data/dancer";
 import { ChartEvent } from "../../../../data/event/event";
 import EventHandler from "../../../../data/event/handler";
@@ -88,6 +87,22 @@ export function syncTab() {
 
 	const playAnimEV = ChartEvent.onEvent("play-anim", (ev: ChartEvent<"play-anim">) => {
 		dancer.play(ev.data.anim);
+	});
+
+	ChartState.conductor.onStepHit((curStep) => {
+		const camValue = EventHandler["cam-move"](ChartState.conductor.timeInSeconds, ChartState.song.chart.events);
+		if (curStep % (Math.round(ChartState.conductor.stepsPerBeat / camValue.bop_rate)) == 0) {
+			// handling zoom
+			tween(
+				camValue.zoom * camValue.bop_strength,
+				camValue.zoom,
+				ChartState.conductor.stepInterval,
+				(p) => {
+					camSquare.scale = vec2(1 / p);
+				},
+				easings[camValue.easing],
+			);
+		}
 	});
 
 	const onBeatHitEv = ChartState.conductor.onBeatHit((curBeat) => {

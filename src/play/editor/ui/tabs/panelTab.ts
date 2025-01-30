@@ -22,7 +22,8 @@ export function panelTab() {
 		});
 
 		event.onUpdate(() => {
-			event.opacity = lerp(event.opacity, event.isHovering() ? 0.8 : 0.5, 0.5);
+			if (StateChart.instance.currentEvent == key) event.opacity = lerp(event.opacity, 1, 0.5);
+			else event.opacity = lerp(event.opacity, event.isHovering() ? 0.8 : 0.5, 0.5);
 		});
 
 		event.width = 60;

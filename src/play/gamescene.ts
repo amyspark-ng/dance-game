@@ -7,6 +7,7 @@ import { KaplayState } from "../core/scenes/KaplayState";
 import { Sound } from "../core/sound";
 import { getDancer } from "../data/dancer";
 import { ChartEvent } from "../data/event/event";
+import EventHandler from "../data/event/handler";
 import { utils } from "../utils";
 import { updateJudgement } from "./objects/judgement";
 import { ChartNote, NoteGameObj, notesSpawner, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
@@ -51,7 +52,7 @@ KaplayState.scene("game", (GameState: StateGame) => {
 		}
 
 		// HANDLE CAM
-		const camValue = ChartEvent.handle["cam-move"](
+		const camValue = EventHandler["cam-move"](
 			GameState.conductor.timeInSeconds,
 			GameState.song.chart.events,
 		);
@@ -59,10 +60,6 @@ KaplayState.scene("game", (GameState: StateGame) => {
 		cam.pos.x = center().x + camValue.x;
 		cam.pos.y = center().y + camValue.y;
 		cam.angle = camValue.angle;
-		cam.zoom = vec2(camValue.zoom);
-
-		// debug.log(ChartEvent.getAtTime("cam-move", GameState.song.chart.events, GameState.conductor.timeInSeconds).value.x);
-		// debug.log(camValue.x);
 
 		// OTHER STUFF
 		inputHandler(GameState);
@@ -80,6 +77,22 @@ KaplayState.scene("game", (GameState: StateGame) => {
 		}
 	});
 
+	GameState.conductor.onStepHit((curStep) => {
+		const camValue = EventHandler["cam-move"](GameState.conductor.timeInSeconds, GameState.song.chart.events);
+		if (curStep % (Math.round(GameState.conductor.stepsPerBeat / camValue.bop_rate)) == 0) {
+			// handling zoom
+			tween(
+				camValue.zoom * camValue.bop_strength,
+				camValue.zoom,
+				GameState.conductor.stepInterval,
+				(p) => {
+					cam.zoom = vec2(p);
+				},
+				easings[camValue.easing],
+			);
+		}
+	});
+
 	GameState.conductor.onBeatHit((curBeat) => {
 		if (GameState.health <= 25) {
 			Sound.playSound("lowHealth", { detune: curBeat % 2 == 0 ? 0 : 25 });
@@ -88,22 +101,6 @@ KaplayState.scene("game", (GameState: StateGame) => {
 		if (GameState.dancer.currentMove == "idle") {
 			GameState.dancer.play("idle");
 			GameState.dancer.moveBop();
-		}
-
-		const camMoveEV = ChartEvent.getAtTime(
-			"cam-move",
-			GameState.song.chart.events,
-			GameState.conductor.timeInSeconds,
-		);
-
-		if (camMoveEV) {
-			const easingFunc = utils.getEasingByIndex(camMoveEV.value.easing) as EaseFunc;
-			cam.bop(
-				vec2(camMoveEV.value.bop_strength),
-				vec2(1),
-				camMoveEV.value.duration,
-				easingFunc,
-			);
 		}
 	});
 

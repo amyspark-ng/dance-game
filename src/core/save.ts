@@ -53,10 +53,10 @@ export class _GameSave {
 	scrollSpeed: number = 1;
 
 	/** The dancer the player is using (to dance) */
-	dancer: string = "astri";
+	dancer: string = "Astri";
 
 	/** The dancers the player can use */
-	unlockedDancers: string[] = ["astri"];
+	unlockedDancers: string[] = ["Astri"];
 
 	/** (static) property that holds the default controls for the game
 	 *

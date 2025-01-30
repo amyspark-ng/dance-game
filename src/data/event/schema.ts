@@ -13,7 +13,6 @@ type actionDataValue = { type: "action"; default: string; };
 export type eventValue = baseDataValue & (numberDataValue | booleanDataValue | stringDataValue | enumDataValue | actionDataValue);
 
 const allEasingKeys = Object.keys(easings);
-// TODO: Finish the rest of the descriptions
 
 /** The object that contains the information for all of the game's events */
 const EventSchema = {
@@ -26,10 +25,17 @@ const EventSchema = {
 		"easing": { label: "Easing", description: "What easing function to use", type: "enum", default: "linear", options: allEasingKeys },
 	},
 
+	"bpm-change": {
+		"bpm": { label: "BPM", description: "What bpm to change to", type: "number", default: 100, range: [-Infinity, Infinity] },
+	},
+
 	"cam-move": {
 		"x": { label: "X", description: "How fart to the right", type: "number", default: 0, range: [-Infinity, Infinity] },
 		"y": { label: "Y", description: "How far to the bottom", type: "number", default: 0, range: [-Infinity, Infinity] },
 		"angle": { label: "Angle", description: "How much to spin it", type: "number", default: 0, range: [-Infinity, Infinity] },
+		"zoom": { label: "Zoom", description: "How much zoom", type: "number", default: 1, range: [-Infinity, Infinity] },
+		"bop_strength": { label: "Bop strength", description: "How strong will the beat zoom be", type: "number", default: 1, range: [-Infinity, Infinity] },
+		"bop_rate": { label: "Bops per beat", description: "Zooms per beat", type: "number", default: 1, range: [-Infinity, Infinity] },
 		"duration": { label: "Duration", description: "How long will it take", type: "number", default: 0, range: [-Infinity, Infinity] },
 		"easing": { label: "Easing", description: "What easing function to use", type: "enum", default: "linear", options: allEasingKeys },
 	},

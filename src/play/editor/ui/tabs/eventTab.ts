@@ -36,7 +36,7 @@ function eventTab() {
 			const value = currentEvent.data.data[dataKey];
 
 			let obj: GameObj<uiComp | { width: number; height: number; value: any; }> = null;
-			if (schema.type == "number") obj = tab.add(makeNumberStepper(value, 1));
+			if (schema.type == "number") obj = tab.add(makeNumberStepper(value, schema.range));
 			else if (schema.type == "boolean") obj = tab.add(makeCheckbox(value));
 			else if (schema.type == "string") obj = tab.add(makeTextbox(value));
 			else if (schema.type == "enum") obj = tab.add(makeEnumStepper(value, schema.options));

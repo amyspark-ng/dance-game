@@ -41,6 +41,7 @@ export class ChartEvent<T extends eventId = eventId> {
 	 * @param time The current time
 	 */
 	static getAtTime<T extends eventId>(id: T, time: number, events: ChartEvent[]): ChartEvent<T> {
+		events = events.filter((ev) => ev.id == id);
 		// if the time is below the first event return a default
 		if (!events[0] || time < events[0].time) {
 			return new ChartEvent(id);
