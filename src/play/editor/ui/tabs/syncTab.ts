@@ -51,6 +51,7 @@ export function syncTab() {
 		camSquare.pos.x = camSquare.width / 2 + camValue.x;
 		camSquare.pos.y = camSquare.height / 2 + camValue.y;
 		camSquare.angle = camValue.angle;
+		camSquare.scale = vec2(1 / camValue.zoom);
 
 		dancer.angle = camSquare.angle;
 	});
@@ -89,16 +90,16 @@ export function syncTab() {
 		dancer.play(ev.data.anim);
 	});
 
-	ChartState.conductor.onStepHit((curStep) => {
+	const onStepHitEv = ChartState.conductor.onStepHit((curStep) => {
 		const camValue = EventHandler["cam-move"](ChartState.conductor.timeInSeconds, ChartState.song.chart.events);
 		if (curStep % (Math.round(ChartState.conductor.stepsPerBeat / camValue.bop_rate)) == 0) {
 			// handling zoom
 			tween(
-				camValue.zoom * camValue.bop_strength,
+				camValue.bop_strength,
 				camValue.zoom,
 				ChartState.conductor.stepInterval,
 				(p) => {
-					camSquare.scale = vec2(1 / p);
+					camSquare.scale = vec2(1 / p).scale(camSquare.scale);
 				},
 				easings[camValue.easing],
 			);
@@ -177,6 +178,7 @@ export function syncTab() {
 	tab.onDestroy(() => {
 		playAnimEV.cancel();
 		onBeatHitEv.cancel();
+		onStepHitEv.cancel();
 		onNoteHitEv.cancel();
 	});
 

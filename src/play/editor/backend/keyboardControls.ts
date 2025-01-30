@@ -23,7 +23,7 @@ export function keyboardControls() {
 				fromEditor: true,
 				song: ChartState.song,
 				playbackSpeed: ChartState.params.playbackSpeed,
-				seekTime: ChartState.params.seekTime,
+				seekTime: ChartState.conductor.timeInSeconds,
 			}),
 			BlackBarsTransition,
 		);

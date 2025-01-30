@@ -94,8 +94,7 @@ export class DancerContent {
 							DancerContent.loaded.push(content);
 						}
 						catch (err) {
-							console.log("Error in path: " + path);
-							throw new Error("There was an error loading the default dancers");
+							throw new Error("There was an error loading the default dancers", { cause: "Idk: " + path });
 						}
 
 						if (index == DancerContent.defaultPaths.length - 1) resolve("ok");

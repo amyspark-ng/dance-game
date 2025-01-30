@@ -6,16 +6,13 @@ import { GameSave } from "../core/save";
 import { KaplayState } from "../core/scenes/KaplayState";
 import { Sound } from "../core/sound";
 import { getDancer } from "../data/dancer";
-import { ChartEvent } from "../data/event/event";
 import EventHandler from "../data/event/handler";
 import { utils } from "../utils";
 import { updateJudgement } from "./objects/judgement";
 import { ChartNote, NoteGameObj, notesSpawner, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
 import { getClosestNote, Scoring } from "./objects/scoring";
 import { inputHandler, introGo, StateGame } from "./PlayState";
-import { SaveScore } from "./savescore";
 import { StateDeath } from "./scenes/DeathScene";
-import { StateResults } from "./scenes/ResultsScene";
 
 KaplayState.scene("game", (GameState: StateGame) => {
 	GameState.add();
@@ -40,6 +37,7 @@ KaplayState.scene("game", (GameState: StateGame) => {
 	]);
 
 	let hasPlayedGo = false;
+	let timeToFinishSong = false;
 
 	if (!isFocused()) GameState.paused = true;
 
@@ -49,6 +47,18 @@ KaplayState.scene("game", (GameState: StateGame) => {
 		if (GameState.conductor.timeInSeconds >= -(TIME_FOR_STRUM / 2) && !hasPlayedGo) {
 			introGo();
 			hasPlayedGo = true;
+		}
+
+		if (GameState.song.chart.notes.length > 2) {
+			if (
+				GameState.conductor.timeInSeconds >= GameState.song.chart.notes[GameState.song.chart.notes.length - 1].time
+				&& GameState.conductor.timeInSeconds + 5 < GameState.conductor.audioPlay.duration() && !timeToFinishSong
+			) {
+				timeToFinishSong = true;
+				tween(GameState.conductor.audioPlay.volume, 0, 5, (p) => GameState.conductor.audioPlay.volume = p).onEnd(() => {
+					GameState.finishSong();
+				});
+			}
 		}
 
 		// HANDLE CAM
@@ -133,7 +143,7 @@ KaplayState.scene("game", (GameState: StateGame) => {
 			let keyRelease: KEventController = null;
 
 			const noteObj = get("noteObj", { recursive: true }).find((obj: NoteGameObj) => obj.chartNote == chartNote) as NoteGameObj;
-			noteObj.opacity = 0;
+			if (noteObj) noteObj.opacity = 0;
 
 			keyRelease = onKeyRelease(GameSave.getKeyForMove(chartNote.move), () => {
 				keyRelease.cancel();
@@ -146,7 +156,7 @@ KaplayState.scene("game", (GameState: StateGame) => {
 		GameState.dancer.currentMove = note.move;
 		GameState.dancer.miss();
 
-		Sound.playSound("noteMiss");
+		// Sound.playSound("noteMiss");
 		updateJudgement("Miss");
 
 		const closestNote = getClosestNote(GameState.song.chart.notes, GameState.conductor.timeInSeconds);
@@ -174,12 +184,7 @@ KaplayState.scene("game", (GameState: StateGame) => {
 
 	// END SONG
 	GameState.conductor.audioPlay.onEnd(() => {
-		const songSaveScore = new SaveScore();
-		songSaveScore.uuid = GameState.params.song.manifest.uuid_DONT_CHANGE;
-		songSaveScore.tally = GameState.tally;
-		GameSave.songsPlayed.push(songSaveScore);
-		GameSave.save();
-		KaplayState.switchState(new StateResults(GameState));
+		GameState.finishSong();
 	});
 
 	utils.runInDesktop(() => {

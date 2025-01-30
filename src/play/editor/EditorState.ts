@@ -342,14 +342,14 @@ export class StateChart extends KaplayState {
 		// downloads the zip
 		const songBlob = await this.song.writeToBlob();
 		downloadBlob(`${this.song.manifest.name}.zip`, songBlob);
-		debug.log(`${this.song.manifest.name}.zip, DOWNLOADED! :)`);
+		addNotification(`EDITOR: ${this.song.manifest.name}.zip, DOWNLOADED! :)`);
 	}
 
 	add() {
 		// This has to run after the asset reloading
 		Sound.musics.forEach((music) => music.stop());
 		this.conductor = new Conductor({
-			audioPlay: Sound.playMusic(this.params.song.getAudioName(), {
+			audioPlay: Sound.playMusic("new-song-audio", {
 				speed: this.params.playbackSpeed,
 			}),
 			BPM: this.params.song.manifest.initial_bpm * this.params.playbackSpeed,

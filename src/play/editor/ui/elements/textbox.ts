@@ -26,15 +26,13 @@ export default function makeTextbox(defaultValue: string, textCondition?: (ch: s
 	let onCharInputEV: KEventController = null;
 	let onBackspace: KEventController = null;
 
+	function updateValue() {
+		if (seeValue.length == 0) textbox.value = defaultValue;
+		else textbox.value = seeValue;
+		textbox.trigger("change");
+	}
+
 	textbox.onUpdate(() => {
-		if (seeValue.length == 0) {
-			seeValue = "";
-			textbox.value = defaultValue;
-		}
-		else {
-			textbox.value = seeValue;
-			seeValue = textbox.value;
-		}
 		if (textbox.focused) textbox.outline.color = EditorTab.ui.ACCENT;
 		else textbox.outline.color = EditorTab.ui.BODY_OUTLINE;
 	});
@@ -46,18 +44,18 @@ export default function makeTextbox(defaultValue: string, textCondition?: (ch: s
 				if (textCondition(ch)) {
 					if (isKeyDown("shift")) ch = ch.toLocaleUpperCase();
 					seeValue += ch;
-					textbox.trigger("change");
+					updateValue();
 				}
 			});
 
 			onBackspace = textbox.onKeyPressRepeat("backspace", () => {
 				if (seeValue.length - 1 >= 0) seeValue = textbox.value.toString().slice(0, -1);
-				textbox.trigger("change");
+				updateValue();
 			});
 
 			const onEnter = textbox.onKeyPress("enter", () => {
+				updateValue();
 				textbox.focused = false;
-				if (seeValue.length == 0) seeValue = defaultValue;
 				onCharInputEV?.cancel();
 				onBackspace?.cancel();
 				onEnter.cancel();
@@ -77,7 +75,7 @@ export default function makeTextbox(defaultValue: string, textCondition?: (ch: s
 				width: 1,
 				height: 18,
 				color: WHITE,
-				opacity: Math.round(time()) % 2 == 0 ? 1 : 0,
+				opacity: Math.round(time()) % 1 == 0 ? 1 : 0,
 				pos: vec2(formatText({ text: seeValue, size: 20 }).width + 7, 7),
 			});
 		}

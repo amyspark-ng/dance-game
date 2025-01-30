@@ -227,12 +227,14 @@ export class SongContent {
 	}
 
 	static defaultUUIDS: string[] = [
-		"1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed",
+		"1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed", // bopeebo
+		"be4c3897-5e37-4f93-81ab-e5262dbe11a5", // secret
 		// "14e1c3e9-b24f-4aaa-8401-d772d8725f51",
 	];
 
 	static defaultPaths: string[] = [
 		"content/songs/bopeebo",
+		"content/songs/secret",
 		// "content/songs/unholy-blight",
 	];
 

@@ -112,14 +112,14 @@ KaplayState.scene("results", (ResultsState: StateResults) => {
 	});
 
 	const dancer = add([
-		sprite(getDancer().getName()),
+		sprite(getDancer().spriteName),
 		pos(),
 		anchor("bot"),
 		scale(0.8),
 		z(1),
 	]);
 
-	dancer.play(anims.initial, { loop: true });
+	dancer.play(getDancer().getAnim("up"));
 
 	const clearObj = add([
 		text("0%", { align: "center", size: 65 }),

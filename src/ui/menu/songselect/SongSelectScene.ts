@@ -10,6 +10,7 @@ import { Scoring } from "../../../play/objects/scoring";
 import { StateGame } from "../../../play/PlayState";
 import { SaveScore } from "../../../play/savescore";
 import { utils } from "../../../utils";
+import { addNotification } from "../../objects/notification";
 import { StateMenu } from "../MenuScene";
 import { StateDancerSelect } from "./dancerselect/DancerSelectScene";
 
@@ -59,7 +60,7 @@ export class StateSongSelect extends KaplayState {
 		]);
 
 		const albumCover = capsuleContainer.add([
-			sprite(!isAddSong ? curSong.manifest.uuid_DONT_CHANGE + "-cover" : "importSong"),
+			sprite(!isAddSong ? curSong.getCoverName() : "importSong"),
 			pos(),
 			anchor("center"),
 			opacity(),
@@ -72,6 +73,10 @@ export class StateSongSelect extends KaplayState {
 		capsuleContainer.height = albumCover.height;
 
 		if (isAddSong) return;
+
+		albumCover.onUpdate(() => {
+			albumCover.sprite = capsuleContainer.song.getCoverName();
+		});
 
 		const cdCase = capsuleContainer.add([
 			sprite("cdCase"),
@@ -90,6 +95,7 @@ export class StateSongSelect extends KaplayState {
 			opacity(),
 		]);
 
+		// TODO: make it so it thinks on the law that if there's no note at the end it just ends
 		let songDuration = "0";
 		getSound(`${curSong.manifest.uuid_DONT_CHANGE}-audio`).onLoad((data) => {
 			songDuration = utils.formatTime(data.buf.duration);
@@ -250,9 +256,7 @@ KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 		highscoreText.solidValue = Math.floor(tallyScore.tally.score);
 
 		SongSelectState.songPreview?.stop();
-		SongSelectState.songPreview = Sound.playMusic(
-			allCapsules[SongSelectState.index].song.manifest.uuid_DONT_CHANGE + "-audio",
-		);
+		SongSelectState.songPreview = Sound.playMusic(allCapsules[SongSelectState.index].song.getAudioName());
 		SongSelectState.songPreview.loop = true;
 		SongSelectState.songPreview.fadeIn(Sound.musicVolume, 0.25);
 	});
@@ -265,37 +269,65 @@ KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 		if (hoveredCapsule.song == null) {
 			const loadingScreen = FileManager.loadingScreen();
 			const gottenFile = await FileManager.receiveFile("mod");
-			if (gottenFile) {
-				// TODO: Redo this :pensive:
-				// const zipContent = await SongContent.getContentFromFile(gottenFile);
-				// const ooldUUIDS = SongContent.loaded.map((song) => song.manifest.uuid_DONT_CHANGE);
-				// const result = await SongContent.loadAssets(zipContent);
-				// const newUUIDS = SongContent.loaded.map((song) => song.manifest.uuid_DONT_CHANGE);
-				// const overwritesDefault = Content.defaultUUIDS.includes(result.manifest.uuid_DONT_CHANGE);
 
-				// if (ooldUUIDS.includes(result.manifest.uuid_DONT_CHANGE)) {
-				// 	if (!overwritesDefault) {
-				// 		const index = ooldUUIDS.indexOf(result.manifest.uuid_DONT_CHANGE);
-				// 		SongContent.loaded[index] = result;
-				// 		allCapsules[index].song = result;
-				// 		SongSelectState.index = index;
-				// 	}
-				// 	else {
-				// 		const index = newUUIDS.indexOf(result.manifest.uuid_DONT_CHANGE);
-				// 		SongSelectState.index = index;
-				// 	}
-				// }
-				// // is trying to add a new song
-				// else {
-				// 	StateSongSelect.addSongCapsule(result);
-				// 	SongSelectState.index = newUUIDS.indexOf(result.manifest.uuid_DONT_CHANGE);
-				// }
+			if (gottenFile) {
+				const assets = await SongContent.parseFromFile(gottenFile);
+				const content = await SongContent.load(assets);
+
+				// is trying to overwrite deafult, not!!
+				if (SongContent.defaultUUIDS.includes(content.manifest.uuid_DONT_CHANGE)) {
+					addNotification("[error]ERROR:[/error] The song you were trying to load overwrites a default song", 5);
+					loadingScreen.cancel();
+					return;
+				}
+
+				/** Wheter the UUID is already on loaded but not on default */
+				const overwritingExtra = SongContent.loaded.map((content) => content.manifest.uuid_DONT_CHANGE).includes(content.manifest.uuid_DONT_CHANGE)
+					&& !SongContent.defaultUUIDS.includes(content.manifest.uuid_DONT_CHANGE);
+
+				const overwritingDefault = SongContent.defaultUUIDS.includes(content.manifest.uuid_DONT_CHANGE);
+
+				if (overwritingDefault) {
+					addNotification("[error]ERROR:[/error] The song you were trying to load overwrites a default song", 5);
+					SongSelectState.index = allCapsules.indexOf(allCapsules.find((capsule) => capsule.song.manifest.uuid_DONT_CHANGE == content.manifest.uuid_DONT_CHANGE));
+					SongSelectState.updateState();
+					loadingScreen.cancel();
+					return;
+				}
+				else if (overwritingExtra) {
+					const capsule = allCapsules.find((capsule) => capsule.song.manifest.uuid_DONT_CHANGE == content.manifest.uuid_DONT_CHANGE);
+					if (!capsule) {
+						addNotification("[warning]Warning:[/warning] Tried to overwrite an extra song but failed", 5);
+						loadingScreen.cancel();
+						return;
+					}
+
+					const indexOfSong = SongContent.loaded.indexOf(SongContent.loaded.find((song) => song.manifest.uuid_DONT_CHANGE == content.manifest.uuid_DONT_CHANGE));
+					SongContent.loaded[indexOfSong] = capsule.song;
+
+					addNotification(`[warning]Warning:[/warning] Overwrote "${capsule.song.manifest.name}" by "${content.manifest.name}" since they have the same UUID`, 5);
+					allCapsules[allCapsules.indexOf(capsule)].song = content;
+					SongSelectState.index = allCapsules.indexOf(capsule);
+					SongSelectState.updateState();
+
+					loadingScreen.cancel();
+					return;
+				}
+				else {
+					// some weird case??
+				}
+
+				// if you got here it's because you're not overwriting a song, you're adding a totally new one
+				SongContent.loaded.push(content);
+				const capsule = StateSongSelect.addSongCapsule(content);
+				let index = allCapsules.indexOf(capsule);
+				if (index == -1) index = 0;
+				SongSelectState.index = index;
 
 				SongSelectState.updateState();
 				loadingScreen.cancel();
 			}
 			else {
-				console.error("Never received the mod zip");
 				loadingScreen.cancel();
 			}
 		}

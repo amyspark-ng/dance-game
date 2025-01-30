@@ -17,6 +17,8 @@ import { addPauseUI } from "./objects/ui/pauseUi";
 import "./GameScene";
 import { getNoteskinSprite } from "../data/noteskins";
 import { SongContent } from "../data/song";
+import { SaveScore } from "./savescore";
+import { StateResults } from "./scenes/ResultsScene";
 
 /** Type to store the parameters for the game scene */
 export type paramsGameScene = {
@@ -125,6 +127,15 @@ export class StateGame extends KaplayState {
 	/** Runs when the game has been paused or unpaused (mainly for the pause ui) */
 	onPauseChange(action: (newPause: boolean) => void) {
 		return getTreeRoot().on("pauseChange", action);
+	}
+
+	finishSong() {
+		const songSaveScore = new SaveScore();
+		songSaveScore.uuid = this.params.song.manifest.uuid_DONT_CHANGE;
+		songSaveScore.tally = this.tally;
+		GameSave.songsPlayed.push(songSaveScore);
+		GameSave.save();
+		KaplayState.switchState(new StateResults(this));
 	}
 
 	/** Restarts the song */
