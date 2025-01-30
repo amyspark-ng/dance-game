@@ -40,7 +40,7 @@ export function songTab() {
 				if (file) {
 					// cover
 					const base64 = FileManager.ImageToBase64(file);
-					await loadSprite(ChartState.song.manifest.uuid_DONT_CHANGE + "-cover", base64);
+					await loadSprite(ChartState.song.getCoverName(), base64);
 					const theButton = tab.get("ui").find((obj) => obj.value == ChartState.song.manifest.cover_file);
 					if (theButton) theButton.value = file.name;
 					obj.trigger("change");
@@ -55,10 +55,7 @@ export function songTab() {
 				const loading = FileManager.loadingScreen();
 				let file: File = await FileManager.receiveFile("audio");
 
-				await loadSound(
-					ChartState.song.manifest.uuid_DONT_CHANGE + "-audio",
-					await file.arrayBuffer(),
-				);
+				await loadSound(ChartState.song.getAudioName(), await file.arrayBuffer());
 				ChartState.updateAudio();
 				loading.cancel();
 				const theButton = tab.get("ui").find((obj) => obj.value == ChartState.song.manifest.audio_file);

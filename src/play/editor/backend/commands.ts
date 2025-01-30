@@ -6,15 +6,16 @@ import { SongContent } from "../../../data/song";
 import { FileManager } from "../../../FileManager";
 import { StateMenu } from "../../../ui/menu/MenuScene";
 import { addNotification } from "../../../ui/objects/notification";
-import { utils } from "../../../utils";
 import { Move } from "../../objects/dancer";
 import { StateChart } from "../EditorState";
 import { EditorEvent, EditorNote, EditorStamp } from "../objects/stamp";
 import { addFloatyText } from "./utils";
 
 export const editorCommands = {
-	NewChart: () => {
-		StateChart.instance.changeSong(new SongContent());
+	NewChart: async () => {
+		const loading = FileManager.loadingScreen();
+		await StateChart.instance.changeSong(new SongContent());
+		loading.cancel();
 	},
 
 	OpenChart: async () => {
@@ -152,8 +153,6 @@ export const editorCommands = {
 			stamp.twist();
 			stamp.bop();
 		});
-
-		console.log(stamps);
 
 		return stamps;
 	},

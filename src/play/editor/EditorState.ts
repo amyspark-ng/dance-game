@@ -6,7 +6,7 @@ import { KaplayState } from "../../core/scenes/KaplayState";
 import { Sound } from "../../core/sound";
 import { ChartEvent, eventId } from "../../data/event/event";
 import EventSchema from "../../data/event/schema";
-import { SongContent } from "../../data/song";
+import { SongContent, SongManifest } from "../../data/song";
 import { FileManager } from "../../FileManager";
 import { addNotification } from "../../ui/objects/notification";
 import { utils } from "../../utils";
@@ -285,14 +285,54 @@ export class StateChart extends KaplayState {
 	}
 
 	/** Changes the current song, removes notes and adds the new ones */
-	changeSong(content: SongContent) {
+	async changeSong(content: SongContent) {
 		this.notes.forEach((note) => this.deleteNote(note));
 		this.events.forEach((event) => this.deleteEvent(event));
-		this.song = content;
 
-		this.song.chart.notes.forEach((note) => this.placeNote(note));
-		this.song.chart.events.forEach((event) => this.placeEvent(event));
+		// it's a default song, you can't overwrite it, make a copy
+		if (SongContent.defaultUUIDS.includes(content.manifest.uuid_DONT_CHANGE)) {
+			// TODO: There's a case where you'll need the default content, what is it?
+			this.song = cloneDeep(content);
+
+			this.song.manifest.name = this.song.manifest.name + " (copy)";
+			this.song.manifest.uuid_DONT_CHANGE = v4();
+
+			addNotification(`Editing: ${this.song.manifest.name}`, 3);
+		}
+		// overwrite it for all i care!!
+		else {
+			this.song = content;
+			if (!this.song.manifest.uuid_DONT_CHANGE) {
+				// it's a new song
+				this.song.manifest.uuid_DONT_CHANGE = v4();
+			}
+			// TODO: Have to make a dialog here about you're about to overwrite unsaved change you're ok with that etc etc
+
+			addNotification(`[warning]WARNING[/warning]: You'll be overwriting "${this.song.manifest.name}"`, 5);
+		}
+
+		// reload assets
+
+		// have to reload the audio i don't know how much this would work since this loading takes time so
+		const sound = getSound(content.getAudioName());
+		if (sound) await loadSound(this.song.getAudioName(), sound.data.buf as any);
+		else await loadSound(this.song.getAudioName(), SongManifest.default_audio_file);
+
 		this.updateAudio();
+
+		// also have to reload the cover this sucks
+		const sprite = getSprite(content.getCoverName());
+		if (sprite) {
+			FileManager.spriteToDataURL(content.getCoverName()).then(async (dataurl) => {
+				await loadSprite(this.song.getCoverName(), dataurl);
+			});
+		}
+		else {
+			await loadSprite(this.song.getCoverName(), SongManifest.default_cover_file);
+		}
+
+		this.song.chart.notes.forEach((chartNote) => this.placeNote(chartNote));
+		this.song.chart.events.forEach((ChartEvent) => this.placeEvent(ChartEvent));
 	}
 
 	/** Downloads the chart for the current song */
@@ -309,20 +349,18 @@ export class StateChart extends KaplayState {
 		// This has to run after the asset reloading
 		Sound.musics.forEach((music) => music.stop());
 		this.conductor = new Conductor({
-			audioPlay: Sound.playMusic(this.song.getAudioName(), {
+			audioPlay: Sound.playMusic(this.params.song.getAudioName(), {
 				speed: this.params.playbackSpeed,
 			}),
-			BPM: this.song.manifest.initial_bpm * this.params.playbackSpeed,
-			timeSignature: this.song.manifest.time_signature,
+			BPM: this.params.song.manifest.initial_bpm * this.params.playbackSpeed,
+			timeSignature: this.params.song.manifest.time_signature,
 			offset: 0,
 		});
 		this.conductor.audioPlay?.stop();
 		this.conductor.audioPlay.seek(this.params.seekTime);
 		this.paused = true;
 		this.scrollToStep(this.conductor.timeToStep(this.params.seekTime));
-
-		this.song.chart.notes.forEach((chartNote) => this.placeNote(chartNote));
-		this.song.chart.events.forEach((ChartEvent) => this.placeEvent(ChartEvent));
+		this.changeSong(this.params.song);
 	}
 
 	constructor(params: paramsEditor) {
@@ -339,34 +377,5 @@ export class StateChart extends KaplayState {
 
 		params.song = params.song ?? new SongContent();
 		this.params = params;
-
-		// it's a default song, you can't overwrite it, make a copy
-		if (SongContent.defaultUUIDS.includes(this.params.song.manifest.uuid_DONT_CHANGE)) {
-			// TODO: There's a case where you'll need the default content, what is it?
-
-			this.song = cloneDeep(this.params.song);
-
-			this.song.manifest.name = this.song.manifest.name + " (copy)";
-			this.song.manifest.uuid_DONT_CHANGE = v4();
-			const oldUUID = params.song.manifest.uuid_DONT_CHANGE;
-
-			// reload assets
-
-			// have to reload the audio i don't know how much this would work since this loading takes time so
-			const soundBuffer = getSound(`${oldUUID}-audio`).data.buf;
-			loadSound(this.song.getAudioName(), soundBuffer as any);
-
-			// also have to reload the cover this sucks
-			FileManager.spriteToDataURL(`${oldUUID}-cover`).then((dataurl) => {
-				loadSprite(this.song.getCoverName(), dataurl);
-			});
-
-			addNotification(`Editing: ${this.song.manifest.name}`, 3);
-		}
-		// overwrite it for all i care!!
-		else {
-			this.song = this.params.song;
-			addNotification(`[warning]WARNING[/warning]: You'll be overwriting ${this.song.manifest.name}`, 5);
-		}
 	}
 }

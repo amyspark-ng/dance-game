@@ -4,6 +4,7 @@ import TOML, { TomlPrimitive } from "smol-toml";
 import { v4 } from "uuid";
 import { FileManager } from "../FileManager";
 import { ChartNote } from "../play/objects/note";
+import { utils } from "../utils";
 import { ChartEvent } from "./event/event";
 import { eventValue } from "./event/schema";
 
@@ -56,13 +57,29 @@ export class SongManifest {
 	/** The time signature of the song */
 	time_signature: [number, number] = [4, 4];
 	/** The UUID (universally unique identifier) of the song, please don't change */
-	uuid_DONT_CHANGE: string = v4();
+	uuid_DONT_CHANGE: string = undefined;
 	/** The path/url of the chart file */
-	chart_file: string;
+
+	get chart_file() {
+		return utils.kebabCase(this.name) + "-chart.json";
+	}
+
+	set chart_file(value: string) {
+		return;
+	}
+
+	static get default_audio_file() {
+		return "content/songs/new-song-audio.ogg";
+	}
+
+	static get default_cover_file() {
+		return "content/songs/new-song-cover.png";
+	}
+
 	/** The path/url of the audio file */
-	audio_file: string;
+	audio_file: string = "new-song-audio.ogg";
 	/** The path/url of the cover file */
-	cover_file: string;
+	cover_file: string = "new-song-cover.png";
 
 	get steps_per_beat() {
 		return this.time_signature[0];
@@ -232,26 +249,25 @@ export class SongContent {
 		const zipFolder = new JSZip();
 
 		// chart
-		this.manifest.chart_file = this.manifest.name + "-chart.json";
 		zipFolder.file(this.manifest.chart_file, JSON.stringify(this.chart));
 
 		// manifest
 		zipFolder.file("manifest.toml", TOML.stringify(this.manifest));
 
 		// cover
-		const defaultCover = "sprites/defaultCover.png";
 		let pathToCover: string = undefined;
-		const cover = await getSprite(this.manifest.uuid_DONT_CHANGE + "-cover");
-		if (!cover) pathToCover = defaultCover;
-		else pathToCover = await FileManager.spriteToDataURL(this.manifest.uuid_DONT_CHANGE + "-cover");
+		const cover = await getSprite(this.getCoverName());
+		if (!cover) {
+			pathToCover = SongManifest.default_cover_file;
+		}
+		else pathToCover = await FileManager.spriteToDataURL(this.getCoverName());
 		const imageBlob = await fetch(pathToCover).then((r) => r.blob());
 		zipFolder.file(this.manifest.cover_file, imageBlob);
 
 		// audio
-		const defaultAudio = "audio/new-song-audio.ogg";
-		const audio = await getSound(this.manifest.uuid_DONT_CHANGE + "-audio");
-		let audioBlob = await fetch(defaultAudio).then((r) => r.blob());
-		if (!audio) audioBlob = await fetch(defaultAudio).then((r) => r.blob());
+		const audio = await getSound(this.getAudioName());
+		let audioBlob = await fetch(SongManifest.default_audio_file).then((r) => r.blob());
+		if (!audio) audioBlob = await fetch(SongManifest.default_audio_file).then((r) => r.blob());
 		else {
 			const blob = audioBufferToBlob(audio.buf);
 			audioBlob = blob;
@@ -262,11 +278,13 @@ export class SongContent {
 	}
 
 	getAudioName() {
-		return this.manifest.uuid_DONT_CHANGE + "-audio";
+		if (!this.manifest.uuid_DONT_CHANGE) return this.manifest.audio_file;
+		else return this.manifest.uuid_DONT_CHANGE + "-audio";
 	}
 
 	getCoverName() {
-		return this.manifest.uuid_DONT_CHANGE + "-cover";
+		if (!this.manifest.uuid_DONT_CHANGE) return this.manifest.cover_file;
+		else return this.manifest.uuid_DONT_CHANGE + "-cover";
 	}
 
 	constructor(chart: SongChart = new SongChart(), manifest: SongManifest = new SongManifest()) {
