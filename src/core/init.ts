@@ -2,6 +2,7 @@ import { getCurrent, WebviewWindow } from "@tauri-apps/api/window";
 import { getSongByName } from "../data/song";
 import { StateChart } from "../play/editor/EditorState";
 import { StateGame } from "../play/PlayState";
+import { StateOptions } from "../ui/menu/options/optionsScene";
 import { FocusState } from "../ui/scenes/FocusScene";
 import { StateTitle } from "../ui/scenes/TitleScene";
 import { utils } from "../utils";
@@ -99,6 +100,7 @@ document.addEventListener("fullscreenchange", (event) => {
 
 export function INITIAL_SCENE() {
 	KaplayState.switchState(new StateTitle());
+	// KaplayState.switchState(new StateOptions());
 	// KaplayState.switchState(new StateDancerSelect());
 	// KaplayState.switchState(
 	// new StateChart({ song: getSongByName("Bopeebo") }),
