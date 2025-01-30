@@ -5,12 +5,17 @@ import { utils } from "../../../../utils";
 import { StateSongSelect } from "../SongSelectScene";
 
 export class StateDancerSelect extends KaplayState {
-	constructor() {
-		super("dancerselect");
+	/** The index of the song you were when entering this state */
+	previousSongIndex: number = 0;
+	constructor(previousSongIndex: number) {
+		super();
+		this.previousSongIndex = previousSongIndex;
 	}
 }
 
-KaplayState.scene("dancerselect", (DancerSelectState: StateDancerSelect) => {
+KaplayState.scene("StateDancerSelect", (previousSongIndex: number) => {
+	const DancerSelectState = new StateDancerSelect(previousSongIndex);
+
 	function addDancerChar(dancerName: string) {
 		const curDancer = add([
 			sprite(getDancerByName(dancerName).spriteName),
@@ -77,7 +82,7 @@ KaplayState.scene("dancerselect", (DancerSelectState: StateDancerSelect) => {
 	onKeyPress("enter", () => {
 		// get(GameSave.dancer)[0].play("victory");
 		GameSave.save();
-		KaplayState.switchState(new StateSongSelect(0));
+		KaplayState.switchState(StateSongSelect, DancerSelectState.previousSongIndex);
 	});
 
 	setBackground(BLUE.lighten(60));

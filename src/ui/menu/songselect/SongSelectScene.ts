@@ -150,7 +150,7 @@ export class StateSongSelect extends KaplayState {
 	}
 
 	constructor(startAt: SongContent | number) {
-		super("songselect");
+		super();
 
 		if (typeof startAt == "number") {
 			utils.isInRange(startAt, 0, SongContent.loaded.length - 1);
@@ -170,7 +170,8 @@ const barWidth = 46;
 
 type songCapsuleObj = ReturnType<typeof StateSongSelect.addSongCapsule>;
 
-KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
+KaplayState.scene("StateSongSelect", (startAt: SongContent | number) => {
+	const SongSelectState = new StateSongSelect(startAt);
 	setBackground(BLUE.lighten(50));
 
 	let songAmount = SongContent.loaded.length + 1;
@@ -335,16 +336,7 @@ KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 			SongSelectState.menuInputEnabled = false;
 			SongSelectState.songPreview?.stop();
 			const currentSongZip = hoveredCapsule.song;
-
-			KaplayState.switchState(
-				new StateGame({
-					dancerName: GameSave.dancer,
-					fromEditor: false,
-					song: currentSongZip,
-					playbackSpeed: 1,
-				}),
-				BlackBarsTransition,
-			);
+			KaplayState.switchState(StateGame, { song: currentSongZip });
 		}
 	});
 
@@ -355,13 +347,13 @@ KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 	onKeyPress("tab", () => {
 		if (!SongSelectState.menuInputEnabled) return;
 		stopPreview();
-		KaplayState.switchState(new StateDancerSelect());
+		KaplayState.switchState(StateDancerSelect, 0);
 	});
 
 	onKeyPress("escape", () => {
 		if (!SongSelectState.menuInputEnabled) return;
 		stopPreview();
-		KaplayState.switchState(new StateMenu("songs"));
+		KaplayState.switchState(StateMenu, "songs");
 	});
 
 	onSceneLeave(() => {
@@ -369,8 +361,6 @@ KaplayState.scene("songselect", (SongSelectState: StateSongSelect) => {
 	});
 
 	SongSelectState.onAddSongCapsule(() => {
-		const addSongCapsule = allCapsules.find((capsule) => capsule.song == null);
-		// have to sort them so the add song capsule is at the end of the array
 		allCapsules.sort((a, b) => a.song == null ? 1 : -1);
 	});
 });

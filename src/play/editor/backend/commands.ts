@@ -42,7 +42,8 @@ export const editorCommands = {
 	},
 
 	Exit: () => {
-		KaplayState.switchState(new StateMenu("editor"));
+		StateChart.instance.conductor.destroy();
+		KaplayState.switchState(StateMenu, "editor");
 	},
 
 	SelectAll: () => {

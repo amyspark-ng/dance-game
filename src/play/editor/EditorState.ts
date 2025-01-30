@@ -345,7 +345,19 @@ export class StateChart extends KaplayState {
 		addNotification(`EDITOR: ${this.song.manifest.name}.zip, DOWNLOADED! :)`);
 	}
 
-	add() {
+	constructor(params: paramsEditor) {
+		super();
+		StateChart.instance = this;
+
+		params.playbackSpeed = params.playbackSpeed ?? 1;
+		params.playbackSpeed = Math.abs(clamp(params.playbackSpeed, 0, Infinity));
+		params.seekTime = Math.abs(params.seekTime) ?? 0;
+		if (params.seekTime < 0) params.seekTime = 0;
+		else if (isNaN(params.seekTime)) params.seekTime = 0;
+
+		params.song = params.song ?? new SongContent();
+		this.params = params;
+
 		// This has to run after the asset reloading
 		Sound.musics.forEach((music) => music.stop());
 		this.conductor = new Conductor({
@@ -361,21 +373,5 @@ export class StateChart extends KaplayState {
 		this.paused = true;
 		this.scrollToStep(this.conductor.timeToStep(this.params.seekTime));
 		this.changeSong(this.params.song);
-	}
-
-	constructor(params: paramsEditor) {
-		super("editor");
-
-		StateChart.instance = this;
-
-		params.playbackSpeed = params.playbackSpeed ?? 1;
-		params.playbackSpeed = Math.abs(clamp(params.playbackSpeed, 0, Infinity));
-
-		params.seekTime = Math.abs(params.seekTime) ?? 0;
-		if (params.seekTime < 0) params.seekTime = 0;
-		else if (isNaN(params.seekTime)) params.seekTime = 0;
-
-		params.song = params.song ?? new SongContent();
-		this.params = params;
 	}
 }

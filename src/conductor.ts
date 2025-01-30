@@ -142,6 +142,11 @@ export class Conductor {
 		this.timeSignature = newTm;
 	}
 
+	destroy() {
+		this.audioPlay.stop();
+		this.events.clear();
+	}
+
 	/** Update function that should run onUpdate so the conductor gets updated */
 	private update() {
 		if (this.timeInSeconds >= 0) this.audioPlay.paused = this.paused;
@@ -160,7 +165,7 @@ export class Conductor {
 
 			if (!this.started) {
 				this.started = true;
-				this.trigger("start");
+				this.events.trigger("start");
 			}
 
 			this.updateIntervals();
@@ -172,19 +177,10 @@ export class Conductor {
 			this.currentBeat = Math.floor(this.timeToBeat(this.timeInSeconds));
 
 			// if (this.paused) return;
-			if (oldStep != this.currentStep) {
-				this.trigger("step", this.currentStep);
-			}
-
-			if (oldBeat != this.currentBeat) {
-				this.trigger("beat", this.currentBeat);
-			}
+			if (oldStep != this.currentStep) return this.events.trigger("step", this.currentStep);
+			else if (oldBeat != this.currentBeat) return this.events.trigger("beat", this.currentBeat);
+			else if (oldBeat != this.currentBeat) return this.events.trigger("measure", 0);
 		}
-	}
-
-	/** Trigger an event */
-	private trigger(event: "start" | "beat" | "step" | "measure", ...args: any) {
-		return this.events.trigger(event, args);
 	}
 
 	/** Runs when the conductor starts playing (time in seconds is greater than 0) */

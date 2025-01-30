@@ -1,17 +1,19 @@
 import { Color } from "kaplay";
 // import { allSongCharts } from "../../core/loading/loader"
+import { _GameSave } from "../../core/save";
 import { KaplayState } from "../../core/scenes/KaplayState";
 import { Sound } from "../../core/sound";
 import { getDancer } from "../../data/dancer";
 import { StateSongSelect } from "../../ui/menu/songselect/SongSelectScene";
 import { utils } from "../../utils";
+import { StateChart } from "../editor/EditorState";
 import { Ranking, Scoring } from "../objects/scoring";
 import { StateGame } from "../PlayState";
 
 export class StateResults extends KaplayState {
 	GameState: StateGame;
 	constructor(GameState: StateGame) {
-		super("results");
+		super();
 		this.GameState = GameState;
 	}
 }
@@ -22,7 +24,8 @@ export function getAnimsAccordingToRanking(ranking: Ranking) {
 	else if (ranking == "F") return { initial: "victory", end: "miss" };
 }
 
-KaplayState.scene("results", (ResultsState: StateResults) => {
+KaplayState.scene("StateResults", (params: StateGame) => {
+	const ResultsState = new StateResults(params);
 	setBackground(RED.lighten(60));
 
 	/** Class that contains a dumb thing for each line in the tally countering */
@@ -153,7 +156,16 @@ KaplayState.scene("results", (ResultsState: StateResults) => {
 		dancer.play(anims.end, { loop: true });
 	});
 
-	onKeyPress("escape", () => {
-		KaplayState.switchState(new StateSongSelect(ResultsState.GameState.song));
+	onKeyPress(["escape", "enter", "space"], () => {
+		if (ResultsState.GameState.params.fromEditor) {
+			KaplayState.switchState(StateChart, {
+				song: ResultsState.GameState.song,
+				playbackSpeed: ResultsState.GameState.params.playbackSpeed,
+				seekTime: ResultsState.GameState.params.seekTime,
+			});
+		}
+		else {
+			KaplayState.switchState(StateSongSelect, ResultsState.GameState.song);
+		}
 	});
 });

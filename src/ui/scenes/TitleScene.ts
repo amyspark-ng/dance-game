@@ -5,13 +5,13 @@ import { StateMenu } from "../menu/MenuScene";
 
 export class StateTitle extends KaplayState {
 	constructor() {
-		super("title");
+		super();
 	}
 }
 
 // hopefully this scene will have some way of adding really cool scrollable texts
 // with some jokes and easter eggs and stuff yeah :)
-KaplayState.scene("title", (TitleState: StateTitle) => {
+KaplayState.scene("StateTitle", () => {
 	setBackground(BLUE.lighten(30));
 
 	let inDesktop = false;
@@ -49,6 +49,6 @@ KaplayState.scene("title", (TitleState: StateTitle) => {
 
 	onKeyPress("enter", () => {
 		if (!inputEnabled) return;
-		KaplayState.switchState(new StateMenu("songs"));
+		KaplayState.switchState(StateMenu, "songs");
 	});
 });

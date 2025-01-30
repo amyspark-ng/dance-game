@@ -3,7 +3,6 @@ import { Conductor } from "../Conductor";
 import { cam } from "../core/camera";
 import { GameSave } from "../core/save";
 import { KaplayState } from "../core/scenes/KaplayState";
-import { BlackBarsTransition } from "../core/scenes/transitions/blackbar";
 import { Sound } from "../core/sound";
 import { ChartEvent } from "../data/event/event";
 import { StateSongSelect } from "../ui/menu/songselect/SongSelectScene";
@@ -21,7 +20,7 @@ import { SaveScore } from "./savescore";
 import { StateResults } from "./scenes/ResultsScene";
 
 /** Type to store the parameters for the game scene */
-export type paramsGameScene = {
+export type paramsGame = {
 	/** The song passed for gameplay */
 	song: SongContent;
 
@@ -50,7 +49,7 @@ export class StateGame extends KaplayState {
 	static instance: StateGame = null;
 
 	/** The params this was initialized with */
-	params: paramsGameScene = null;
+	params: paramsGame = null;
 
 	/** The current conductor */
 	conductor: Conductor = null;
@@ -135,7 +134,7 @@ export class StateGame extends KaplayState {
 		songSaveScore.tally = this.tally;
 		GameSave.songsPlayed.push(songSaveScore);
 		GameSave.save();
-		KaplayState.switchState(new StateResults(this));
+		KaplayState.switchState(StateResults, this);
 	}
 
 	/** Restarts the song */
@@ -212,20 +211,14 @@ export class StateGame extends KaplayState {
 
 	/** Function to exit to the song select menu from the gamescene */
 	exitMenu() {
-		KaplayState.switchState(new StateSongSelect(this.song), BlackBarsTransition);
+		KaplayState.switchState(StateSongSelect, this.song);
 	}
 
 	/** Function to exit to the editor menu from the gamescene */
 	exitEditor() {
 		this.stop();
 		this.menuInputEnabled = false;
-		KaplayState.switchState(
-			new StateChart({
-				playbackSpeed: this.params.playbackSpeed,
-				seekTime: this.conductor.timeInSeconds,
-				song: this.song,
-			}),
-		);
+		KaplayState.switchState(StateChart, { song: this.song });
 	}
 
 	/** Collection of events called in the state */
@@ -251,8 +244,18 @@ export class StateGame extends KaplayState {
 		},
 	};
 
-	/** Think of it as a second constructor */
-	add() {
+	constructor(params: paramsGame) {
+		super();
+		StateGame.instance = this;
+		params.playbackSpeed = params.playbackSpeed ?? 1;
+		params.seekTime = params.seekTime ?? 0;
+		if (isNaN(params.seekTime)) params.seekTime = 0;
+		params.dancerName = params.dancerName ?? "Astri";
+		params.fromEditor = params.fromEditor ?? false;
+
+		this.params = params;
+		this.song = this.params.song;
+
 		// now that we have the song we can get the scroll speed multiplier and set the playback speed for funzies
 		const speed = this.song.manifest.initial_scrollspeed * GameSave.scrollSpeed;
 		setTimeForStrum(1.25);
@@ -282,18 +285,6 @@ export class StateGame extends KaplayState {
 
 		this.conductor.audioPlay.seek(this.params.seekTime);
 		if (this.dancer) this.dancer.doMove("idle");
-	}
-
-	constructor(params: paramsGameScene) {
-		super("game");
-		StateGame.instance = this;
-		params.playbackSpeed = params.playbackSpeed ?? 1;
-		params.seekTime = params.seekTime ?? 0;
-		params.dancerName = params.dancerName ?? "astri";
-		params.fromEditor = params.fromEditor ?? false;
-
-		this.params = params;
-		this.song = this.params.song;
 	}
 }
 

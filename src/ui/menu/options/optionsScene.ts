@@ -13,11 +13,11 @@ export class StateOptions extends KaplayState {
 	focusingControl: boolean = false;
 
 	constructor() {
-		super("options");
+		super();
 	}
 }
 
-KaplayState.scene("options", (OptionsState: StateOptions) => {
+KaplayState.scene("StateOptions", () => {
 	setBackground(BLUE.lighten(30));
 
 	// add([
@@ -99,5 +99,5 @@ KaplayState.scene("options", (OptionsState: StateOptions) => {
 		GameSave.save();
 	});
 
-	onKeyPress("escape", () => KaplayState.switchState(new StateMenu("options")));
+	onKeyPress("escape", () => KaplayState.switchState(StateMenu, "options"));
 });

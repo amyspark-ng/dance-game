@@ -1,8 +1,7 @@
 import { juice } from "../../core/juiceComp";
-import { GameSave } from "../../core/save";
 import { KaplayState } from "../../core/scenes/KaplayState";
 import { SongContent } from "../../data/song";
-import { paramsEditor, StateChart } from "../../play/editor/EditorState";
+import { StateChart } from "../../play/editor/EditorState";
 import { utils } from "../../utils";
 import { StateTitle } from "../scenes/TitleScene";
 import { StateCredits } from "./CreditsScene";
@@ -64,18 +63,19 @@ export function addMenuButton(title: buttonOption, action: () => void) {
 export class StateMenu extends KaplayState {
 	index: number = 0;
 	constructor(option: typeof buttonList[number]) {
-		super("menu");
+		super();
 		this.index = buttonList.indexOf(option) ?? 0;
 	}
 }
 
-KaplayState.scene("menu", (MenuState: StateMenu) => {
+KaplayState.scene("StateMenu", (option: typeof buttonList[number]) => {
+	const MenuState = new StateMenu(option);
 	const somePurple = rgb(39, 20, 92);
 	setBackground(somePurple);
 
 	onUpdate(() => {
-		if (isKeyPressed("right")) MenuState.index = utils.scrollIndex(MenuState.index, 1, 5);
-		else if (isKeyPressed("left")) MenuState.index = utils.scrollIndex(MenuState.index, -1, 5);
+		if (isKeyPressed("right")) MenuState.index = utils.scrollIndex(MenuState.index, 1, buttonList.length);
+		else if (isKeyPressed("left")) MenuState.index = utils.scrollIndex(MenuState.index, -1, buttonList.length);
 
 		const hoveredButton = get("menubutton").find((button) => button.index == MenuState.index);
 		if (!hoveredButton) return;
@@ -93,24 +93,22 @@ KaplayState.scene("menu", (MenuState: StateMenu) => {
 
 		if (option == "songs") {
 			theFunction = () => {
-				KaplayState.switchState(new StateSongSelect(0));
+				KaplayState.switchState(StateSongSelect, 0);
 			};
 		}
 		else if (option == "credits") {
 			theFunction = () => {
-				KaplayState.switchState(new StateCredits());
+				KaplayState.switchState(StateCredits);
 			};
 		}
 		else if (option == "editor") {
 			theFunction = () => {
-				KaplayState.switchState(
-					new StateChart({ playbackSpeed: 1, seekTime: 0, song: new SongContent() }),
-				);
+				KaplayState.switchState(StateChart, { song: new SongContent() });
 			};
 		}
 		else if (option == "options") {
 			theFunction = () => {
-				KaplayState.switchState(new StateOptions());
+				KaplayState.switchState(StateOptions);
 			};
 		}
 
@@ -132,6 +130,6 @@ KaplayState.scene("menu", (MenuState: StateMenu) => {
 	});
 
 	onKeyPress("escape", () => {
-		KaplayState.switchState(new StateTitle());
+		KaplayState.switchState(StateTitle);
 	});
 });

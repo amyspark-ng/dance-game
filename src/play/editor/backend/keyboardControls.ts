@@ -17,16 +17,7 @@ export function keyboardControls() {
 		ChartState.paused = true;
 
 		// transition to scene normally
-		KaplayState.switchState(
-			new StateGame({
-				dancerName: GameSave.dancer,
-				fromEditor: true,
-				song: ChartState.song,
-				playbackSpeed: ChartState.params.playbackSpeed,
-				seekTime: ChartState.conductor.timeInSeconds,
-			}),
-			BlackBarsTransition,
-		);
+		KaplayState.switchState(StateGame, { fromEditor: true, song: ChartState.song, seekTime: ChartState.conductor.timeInSeconds });
 	});
 
 	// Pausing unpausing behaviour

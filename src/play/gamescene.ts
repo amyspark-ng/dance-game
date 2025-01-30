@@ -11,11 +11,11 @@ import { utils } from "../utils";
 import { updateJudgement } from "./objects/judgement";
 import { ChartNote, NoteGameObj, notesSpawner, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
 import { getClosestNote, Scoring } from "./objects/scoring";
-import { inputHandler, introGo, StateGame } from "./PlayState";
+import { inputHandler, introGo, paramsGame, StateGame } from "./PlayState";
 import { StateDeath } from "./scenes/DeathScene";
 
-KaplayState.scene("game", (GameState: StateGame) => {
-	GameState.add();
+KaplayState.scene("StateGame", (params: paramsGame) => {
+	const GameState = new StateGame(params);
 
 	setBackground(RED.lighten(60));
 
@@ -176,7 +176,7 @@ KaplayState.scene("game", (GameState: StateGame) => {
 
 		if (GameState.health <= 0) {
 			GameState.conductor.audioPlay.stop();
-			KaplayState.switchState(new StateDeath(GameState));
+			KaplayState.switchState(StateDeath, this);
 		}
 	});
 

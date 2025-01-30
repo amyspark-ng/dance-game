@@ -1,7 +1,5 @@
-import { Transition } from "./transitions/Transition";
-
-// TODO: REDO IT, i don't like the idea of doing new State() now :(, just find a way to type them with the parameters i guess
-const sceneDefinitions: Record<string, (state: KaplayState) => void> = {};
+const sceneDefinitions: Record<string, (...args: any[]) => void> = {};
+export type transitionFunction = (state: new(...args: any[]) => KaplayState, ...args: any[]) => void;
 
 /** Class to handle the scenes/states of the game
  *
@@ -32,7 +30,11 @@ const sceneDefinitions: Record<string, (state: KaplayState) => void> = {};
  * Cool right?
  */
 export class KaplayState {
-	static scene(name: string, sceneDef: (state: KaplayState) => void) {
+	/** Defines a scene to be loaded automatically
+	 * @param name Must be THE SAME as the class that it's associated with
+	 * @param params The params that are passed when entering this class (usually the arguments in the constructor)
+	 */
+	static scene(name: string, sceneDef: (...params: any[]) => void) {
 		sceneDefinitions[name] = sceneDef;
 	}
 
@@ -40,31 +42,36 @@ export class KaplayState {
 	 * @param state The new state
 	 * @param transition Wheter to use a transition
 	 */
-	static switchState(state: KaplayState, transition?: Transition) {
-		if (transition) transition.action(state);
-		else {
-			KaplayState.goScene(state);
+	static switchState<T extends new(...args) => KaplayState>(state: T, ...args: ConstructorParameters<T>);
+	static switchState<T extends new(...args) => KaplayState>(state: T, transition: transitionFunction, ...args: ConstructorParameters<T>);
+	static switchState<T extends new(...args) => KaplayState>(state: T, ...args: any[]) {
+		let transition: transitionFunction | undefined;
+		let constructorArgs: any[];
+
+		// Check if first argument is a transition (string) or the constructor args
+		if (typeof args[0] === "function") {
+			transition = args[0];
+			constructorArgs = args.slice(1);
 		}
+		else {
+			constructorArgs = args;
+		}
+
+		if (transition) transition(state, ...constructorArgs);
+		else KaplayState.goScene(state, ...constructorArgs);
 	}
 
 	/** Go to a scene directly */
-	static goScene(state: KaplayState) {
-		getTreeRoot().trigger("scene_change", name);
-		go(state.sceneName, state);
+	static goScene<T extends new(...args) => KaplayState>(state: T, ...args: any[]) {
+		getTreeRoot().trigger("scene_change", state.name);
+		go(state.name, ...args);
 	}
-
-	/** The name of the scene to go to when the transition is over */
-	sceneName: string;
 
 	/** Runs when the scene is changed
 	 * @param action Void function that has the name of the new scene i think
 	 */
 	static onSceneChange(action: (sceneName: string) => void) {
 		return getTreeRoot().on("scene_change", action);
-	}
-
-	constructor(sceneName: string) {
-		this.sceneName = sceneName;
 	}
 }
 

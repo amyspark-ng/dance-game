@@ -11,6 +11,7 @@ export function addNotification(textToShow: string, time: number = 1) {
 	const texty = add([
 		pos(),
 		stay(),
+		fixed(),
 		z(9999999),
 		timer(),
 		"logText",

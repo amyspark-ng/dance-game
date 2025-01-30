@@ -3,16 +3,16 @@ import { StateMenu } from "./MenuScene";
 
 export class StateCredits extends KaplayState {
 	constructor() {
-		super("credits");
+		super();
 	}
 }
 
-KaplayState.scene("credits", (CreditsState: StateCredits) => {
+KaplayState.scene("StateCredits", () => {
 	add([
 		text("GAME MADE BY\nme lol"),
 		anchor("center"),
 		pos(center()),
 	]);
 
-	onKeyPress("escape", () => KaplayState.switchState(new StateMenu("credits")));
+	onKeyPress("escape", () => KaplayState.switchState(StateMenu, "credits"));
 });

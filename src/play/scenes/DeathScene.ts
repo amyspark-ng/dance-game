@@ -7,12 +7,13 @@ import { StateGame } from "../PlayState";
 export class StateDeath extends KaplayState {
 	GameState: StateGame;
 	constructor(GameState: StateGame) {
-		super("death");
+		super();
 		this.GameState = GameState;
 	}
 }
 
-KaplayState.scene("death", (DeathState: StateDeath) => {
+KaplayState.scene("StateDeath", (GameState: StateGame) => {
+	const DeathState = new StateDeath(GameState);
 	setBackground(BLACK);
 
 	add([
@@ -26,19 +27,11 @@ KaplayState.scene("death", (DeathState: StateDeath) => {
 	dancer.play(dancer.data.getAnim("up", true));
 
 	onKeyPress(["backspace", "escape"], () => {
-		KaplayState.switchState(new StateSongSelect(DeathState.GameState.song));
+		KaplayState.switchState(StateSongSelect, DeathState.GameState.song);
 	});
 
 	onKeyPress("enter", () => {
 		// TODO: Restart button
-		KaplayState.switchState(
-			new StateGame({
-				dancerName: DeathState.GameState.params.dancerName,
-				fromEditor: false,
-				song: DeathState.GameState.song,
-				playbackSpeed: DeathState.GameState.params.playbackSpeed,
-				seekTime: DeathState.GameState.params.seekTime,
-			}),
-		);
+		KaplayState.switchState(StateGame, DeathState.GameState.params);
 	});
 });

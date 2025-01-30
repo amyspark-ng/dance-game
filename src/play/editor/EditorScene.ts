@@ -6,7 +6,7 @@ import { ChartNote } from "../objects/note.ts";
 import { editorShortcuts } from "./backend/handlers.ts";
 import { keyboardControls } from "./backend/keyboardControls.ts";
 import { mouseControls } from "./backend/mouseControls.ts";
-import { StateChart } from "./EditorState.ts";
+import { paramsEditor, StateChart } from "./EditorState.ts";
 import { EditorLane, EventLane, NoteLane } from "./objects/lane.ts";
 import { EditorMinimap } from "./objects/minimap.ts";
 import { EditorSelectionBox } from "./objects/selectionbox.ts";
@@ -14,8 +14,8 @@ import { EditorStamp } from "./objects/stamp.ts";
 import { MenuBar } from "./ui/menubar.ts";
 import { EditorTab } from "./ui/tabs.ts";
 
-KaplayState.scene("editor", (ChartState: StateChart) => {
-	ChartState.add();
+KaplayState.scene("StateChart", (params: paramsEditor) => {
+	const ChartState = new StateChart(params);
 	cam.reset();
 
 	// BE CAREFUL TO PUT IT BEFORE the drawing of other things like lane and minimap
