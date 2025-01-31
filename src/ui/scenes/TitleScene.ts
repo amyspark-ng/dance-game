@@ -1,4 +1,4 @@
-import { appWindow } from "../../core/init";
+import { appWindow } from "@tauri-apps/api/window";
 import { KaplayState } from "../../core/scenes/KaplayState";
 import { utils } from "../../utils";
 import { StateMenu } from "../menu/MenuScene";

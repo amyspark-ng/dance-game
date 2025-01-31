@@ -1,6 +1,6 @@
 import "./kaplay";
-// import "./test";
-import "./core/init";
+import "./test";
+// import "./core/init";
 
 // type editorParams = { seekTime: number; speed: number; };
 // class StateChart extends KaplayState {

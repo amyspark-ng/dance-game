@@ -1,8 +1,5 @@
-import { AudioPlay } from "kaplay";
-import { gameCursor } from "../../../core/cursor";
 import { GameSave } from "../../../core/save";
 import { KaplayState } from "../../../core/scenes/KaplayState";
-import { BlackBarsTransition } from "../../../core/scenes/transitions/blackbar";
 import { CustomAudioPlay, Sound } from "../../../core/sound";
 import { SongContent } from "../../../data/song";
 import { FileManager } from "../../../FileManager";
@@ -358,6 +355,9 @@ KaplayState.scene("StateSongSelect", (startAt: SongContent | number) => {
 
 	onSceneLeave(() => {
 		stopPreview();
+	});
+
+	onKeyPress("q", () => {
 	});
 
 	SongSelectState.onAddSongCapsule(() => {

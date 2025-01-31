@@ -290,8 +290,7 @@ export class StateChart extends KaplayState {
 		this.events.forEach((event) => this.deleteEvent(event));
 
 		// it's a default song, you can't overwrite it, make a copy
-		if (SongContent.defaultUUIDS.includes(content.manifest.uuid_DONT_CHANGE)) {
-			// TODO: There's a case where you'll need the default content, what is it?
+		if (content.isDefault) {
 			this.song = cloneDeep(content);
 
 			this.song.manifest.name = this.song.manifest.name + " (copy)";

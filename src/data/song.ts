@@ -1,12 +1,12 @@
 import audioBufferToBlob from "audiobuffer-to-blob";
 import JSZip from "jszip";
 import TOML, { TomlPrimitive } from "smol-toml";
-import { v4 } from "uuid";
+// import { request, songsDB } from "../core/game";
+import { GameSave } from "../core/save";
 import { FileManager } from "../FileManager";
 import { ChartNote } from "../play/objects/note";
 import { utils } from "../utils";
 import { ChartEvent } from "./event/event";
-import { eventValue } from "./event/schema";
 
 export const songSchema = {
 	"name": { label: "Name", description: "The name of the song", type: "string", default: "Song name" },
@@ -180,7 +180,7 @@ export class SongContent {
 		const chart = await zipFile.file(manifest.chart_file).async("text");
 
 		if (audio) assets.audio = audio;
-		if (cover) assets.cover = URL.createObjectURL(cover);
+		if (cover) assets.cover = await FileManager.blobToDataURL(cover);
 		if (chart) assets.chart = JSON.parse(chart);
 
 		return new Promise((resolve) => resolve(assets));
@@ -190,6 +190,17 @@ export class SongContent {
 		await loadSound(assets.manifest.uuid_DONT_CHANGE + "-audio", assets.audio);
 		await loadSprite(assets.manifest.uuid_DONT_CHANGE + "-cover", assets.cover);
 		const content = new SongContent(assets.chart, assets.manifest);
+
+		if (!content.isDefault) {
+			if (GameSave.extraSongs.includes(assets.manifest.uuid_DONT_CHANGE)) {
+				const index = GameSave.extraSongs.indexOf(assets.manifest.uuid_DONT_CHANGE);
+				GameSave.extraSongs[index] = assets.manifest.uuid_DONT_CHANGE;
+			}
+			else {
+				GameSave.extraSongs.push(assets.manifest.uuid_DONT_CHANGE);
+			}
+		}
+
 		return new Promise((resolve) => resolve(content));
 	}
 
@@ -213,6 +224,30 @@ export class SongContent {
 						}
 
 						if (index == SongContent.defaultPaths.length - 1) resolve("ok");
+					});
+				}
+				catch (e) {
+					reject(e);
+				}
+			}),
+		);
+
+		if (GameSave.extraSongs.length < 1) return;
+		await load(
+			new Promise(async (resolve, reject) => {
+				try {
+					// now load the default ones
+					GameSave.extraSongs.forEach(async (uuid, index) => {
+						const assets: SongAssets = getData(uuid);
+						// @ts-ignore
+						assets.audio = JSON.parse(assets.audio);
+						const content = await SongContent.load(assets);
+						SongContent.loaded.push(content);
+
+						if (index == GameSave.extraSongs.length - 1) {
+							console.log("should resolve");
+							resolve("ok");
+						}
 					});
 				}
 				catch (e) {
@@ -244,6 +279,10 @@ export class SongContent {
 	manifest: SongManifest = new SongManifest();
 	/** The content of the chart.json in the zip */
 	chart: SongChart = new SongChart();
+
+	get isDefault() {
+		return SongContent.defaultUUIDS.includes(this.manifest.uuid_DONT_CHANGE);
+	}
 
 	/** Will return a blob to download a zip with the song */
 	async writeToBlob(): Promise<Blob> {

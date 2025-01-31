@@ -1,7 +1,7 @@
 import { Key } from "kaplay";
 import { Move } from "../play/objects/dancer";
 import { SaveScore } from "../play/savescore";
-import { GAME } from "./init";
+import { GAME } from "./game";
 
 /** Function to manage some merging of gamesaves */
 export function deepMergeSaves(oldSave: _GameSave, newSave: _GameSave): _GameSave {
@@ -78,6 +78,9 @@ export class _GameSave {
 
 	/** The songs that have been played, check @link {} type for more info */
 	songsPlayed: SaveScore[] = [];
+
+	/** Array of uuids that are stored as keys on the localStorage and have to be loaded */
+	extraSongs: string[] = [];
 
 	/** Writes current instance to localStorage */
 	save() {

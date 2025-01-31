@@ -91,6 +91,16 @@ export class FileManager {
 		return URL.createObjectURL(file);
 	}
 
+	static blobToDataURL(blob: Blob): Promise<string> {
+		return new Promise<string>((resolve, reject) => {
+			const reader = new FileReader();
+			reader.onload = _e => resolve(reader.result as string);
+			reader.onerror = _e => reject(reader.error);
+			reader.onabort = _e => reject(new Error("Read aborted"));
+			reader.readAsDataURL(blob);
+		});
+	}
+
 	/** Asks for a file from the user
 	 * @param type Will either be **mod** to receive a full mod, **audio** to receive only an audio file, or **cover** to only receive an image
 	 * @returns The file that the user selected

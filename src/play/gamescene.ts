@@ -1,7 +1,7 @@
 import { appWindow } from "@tauri-apps/api/window";
 import { EaseFunc, KEventController } from "kaplay";
 import { cam } from "../core/camera";
-import { GAME } from "../core/init";
+import { GAME } from "../core/game";
 import { GameSave } from "../core/save";
 import { KaplayState } from "../core/scenes/KaplayState";
 import { Sound } from "../core/sound";

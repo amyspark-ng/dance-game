@@ -29,12 +29,20 @@ export const editorCommands = {
 		const assets = await SongContent.parseFromFile(songFile);
 		const content = await SongContent.load(assets);
 
-		// if it's on the default ones i have to create a copy, won't do that for now because im lazy
-		// if (SongContent.defaultUUIDS.includes(content.manifest.uuid_DONT_CHANGE))
+		// TODO: What...
+		if (content.isDefault) {
+			StateChart.instance.changeSong(cloneDeep(content));
+			addNotification(`Editor: Editing ${content.manifest.name}`);
+		}
+		else if (content.manifest.uuid_DONT_CHANGE == StateChart.instance.song.manifest.uuid_DONT_CHANGE) {
+			StateChart.instance.changeSong(content);
+			addNotification(`[warning]Warning:[/warning] Overwrote "${StateChart.instance.song.manifest.name}" by "${content.manifest.name}" since they have the same UUID`, 5);
+		}
+		// else {
+		// 	StateChart.instance.changeSong(cloneDeep(content));
+		// }
 
-		StateChart.instance.changeSong(content);
 		loading.cancel();
-		addNotification(`Editor: Editing ${content.manifest.name}`);
 	},
 
 	SaveChart: () => {

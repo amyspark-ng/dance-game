@@ -1,4 +1,4 @@
-import { getCurrent, WebviewWindow } from "@tauri-apps/api/window";
+import { getCurrent } from "@tauri-apps/api/window";
 import { getSongByName } from "../data/song";
 import { StateChart } from "../play/editor/EditorState";
 import { StateGame } from "../play/PlayState";
@@ -9,31 +9,16 @@ import { utils } from "../utils";
 import { setupCamera } from "./camera";
 import { setupCursor } from "./cursor";
 import { curDraggin } from "./drag";
+import { appWindow, GAME, setAppWindow } from "./game";
 import { loadAssets, loadingScreen } from "./loader";
 import { GameSave } from "./save";
 import { KaplayState, setupScenes } from "./scenes/KaplayState";
 import { Sound } from "./sound";
 import { CustomSoundTray } from "./soundtray";
 
-/** Class that handles some variables related to the game as a product */
-export class GAME {
-	static DEBUG = true;
-	static AUTHOR = "amyspark-ng";
-	static NAME = "dance-game";
-	static VERSION = "0.0.0";
-
-	static SAVE_NAME = `${this.AUTHOR}.${this.NAME}`;
-
-	// FEATURES
-	/** Wheter the game should get you to the focus scene if the canvas isn't focused at start */
-	static FEATURE_FOCUS = true;
-}
-
-/** The window (in case you're using desktop) */
-export let appWindow: WebviewWindow = null;
 document.title = GAME.NAME;
 utils.runInDesktop(() => {
-	appWindow = getCurrent();
+	setAppWindow(getCurrent());
 	appWindow.setTitle(GAME.NAME);
 });
 
