@@ -8,6 +8,8 @@ type conductorOpts = {
 	offset?: number;
 };
 
+// TODO: make it work with this.events
+
 /*
 	=== Some explanations about conducting and music ===
 	I had to learn music theory from start, props to flagBearer for teaching some of the code related stuff
@@ -144,7 +146,7 @@ export class Conductor {
 
 	destroy() {
 		this.audioPlay.stop();
-		this.events.clear();
+		getTreeRoot().clear();
 	}
 
 	/** Update function that should run onUpdate so the conductor gets updated */
@@ -165,7 +167,7 @@ export class Conductor {
 
 			if (!this.started) {
 				this.started = true;
-				this.events.trigger("start");
+				getTreeRoot().trigger("start");
 			}
 
 			this.updateIntervals();
@@ -177,30 +179,30 @@ export class Conductor {
 			this.currentBeat = Math.floor(this.timeToBeat(this.timeInSeconds));
 
 			// if (this.paused) return;
-			if (oldStep != this.currentStep) return this.events.trigger("step", this.currentStep);
-			else if (oldBeat != this.currentBeat) return this.events.trigger("beat", this.currentBeat);
-			else if (oldBeat != this.currentBeat) return this.events.trigger("measure", 0);
+			if (oldStep != this.currentStep) getTreeRoot().trigger("step", this.currentStep);
+			else if (oldBeat != this.currentBeat) getTreeRoot().trigger("beat", this.currentBeat);
+			else if (oldBeat != this.currentBeat) getTreeRoot().trigger("measure", 0);
 		}
 	}
 
 	/** Runs when the conductor starts playing (time in seconds is greater than 0) */
 	onStart(action: () => void) {
-		return this.events.on("start", action);
+		return getTreeRoot().on("start", action);
 	}
 
 	/** Runs when the conductor's beat changes */
 	onBeatHit(action: (curBeat: number) => void) {
-		return this.events.on("beat", action);
+		return getTreeRoot().on("beat", action);
 	}
 
 	/** Runs when the conductor's step changes */
 	onStepHit(action: (curStep: number) => void) {
-		return this.events.on("step", action);
+		return getTreeRoot().on("step", action);
 	}
 
 	/** Runs when the conductor's measure changes */
 	onMeasureHit(action: (curMeasure: number) => void) {
-		return this.events.on("measure", action);
+		return getTreeRoot().on("measure", action);
 	}
 
 	constructor(opts: conductorOpts) {

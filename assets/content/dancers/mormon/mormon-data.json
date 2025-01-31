@@ -1,0 +1,17 @@
+{
+    "sliceX": 6,
+    "sliceY": 2,
+    "anims": {
+        "idle": 0,
+        "left": 1,
+        "right": 2,
+        "up": 3,
+        "down": 4,
+        "miss": 5,
+        "victory": {
+            "from": 6,
+            "to": 7,
+            "loop": true
+        }
+    }
+}

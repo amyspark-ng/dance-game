@@ -118,6 +118,7 @@ export class DancerContent {
 		"content/dancers/astri-blight",
 		// "content/dancers/gru",
 		"content/dancers/starlight",
+		"content/dancers/mormon",
 	];
 
 	manifest: DancerManifest;

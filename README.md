@@ -14,7 +14,7 @@ Sadly the songs you import can't be stored anywhere and you'd have to re-import 
 AmySparkNG - Coding<br>
 webadazzz - Artist<br>
 DevkyRD - Artist, Musician<br>
-Khriz28 - Playtester<br>
+Khriz28 - Playtester, Mormon<br>
 <br>
 Flagbearer - Conduction help<br>
 MF - Note spawning help<br>

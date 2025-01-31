@@ -14,6 +14,7 @@ import { createStrumline, StrumlineGameObj } from "./objects/strumline";
 import { addUI } from "./objects/ui/gameUi";
 import { addPauseUI } from "./objects/ui/pauseUi";
 import "./GameScene";
+import { getDancer } from "../data/dancer";
 import { getNoteskinSprite } from "../data/noteskins";
 import { SongContent } from "../data/song";
 import { SaveScore } from "./savescore";
@@ -250,7 +251,7 @@ export class StateGame extends KaplayState {
 		params.playbackSpeed = params.playbackSpeed ?? 1;
 		params.seekTime = params.seekTime ?? 0;
 		if (isNaN(params.seekTime)) params.seekTime = 0;
-		params.dancerName = params.dancerName ?? "Astri";
+		params.dancerName = params.dancerName ?? getDancer().manifest.name;
 		params.fromEditor = params.fromEditor ?? false;
 
 		this.params = params;

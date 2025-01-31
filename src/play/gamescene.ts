@@ -109,7 +109,6 @@ KaplayState.scene("StateGame", (params: paramsGame) => {
 		}
 
 		if (GameState.dancer.currentMove == "idle") {
-			GameState.dancer.play("idle");
 			GameState.dancer.moveBop();
 		}
 	});

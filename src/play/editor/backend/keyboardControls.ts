@@ -1,6 +1,5 @@
 import { GameSave } from "../../../core/save";
 import { KaplayState } from "../../../core/scenes/KaplayState";
-import { BlackBarsTransition } from "../../../core/scenes/transitions/blackbar";
 import { getFocused } from "../../../ui/objects/uiElementComp";
 import { StateGame } from "../../PlayState";
 import { StateChart } from "../EditorState";
