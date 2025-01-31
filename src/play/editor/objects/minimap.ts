@@ -38,7 +38,7 @@ export class EditorMinimap {
 		const maxRight = this.pos.x + this.width / 2;
 
 		this.sizeOfNote = vec2(StateChart.SQUARE_SIZE.x / 2, height() / ChartState.conductor.totalSteps);
-		this.controller.height = this.sizeOfNote.y * 11;
+		this.controller.height = this.sizeOfNote.y * StateChart.SQUARES_IN_SCREEN;
 
 		if (utils.isInRange(mousePos().x, minLeft, maxRight)) this.canMove = true;
 		else {
@@ -101,7 +101,6 @@ export class EditorMinimap {
 			anchor: "top",
 		});
 
-		const selectColor = BLUE.lighten(30);
 		const stamps = EditorStamp.mix(ChartState.notes, ChartState.events);
 		stamps.forEach((stamp) => {
 			let xPos = this.pos.x;
@@ -109,7 +108,7 @@ export class EditorMinimap {
 			const yPos = map(stamp.step, 0, ChartState.conductor.totalSteps, 0, height() - this.sizeOfNote.y);
 
 			let theColor = stamp.is("note") ? ChartNote.moveToColor(stamp.data.move) : BLACK.lerp(WHITE, 0.25);
-			if (stamp.selected) theColor = theColor.lerp(selectColor, 0.25);
+			if (stamp.selected) theColor = ChartState.selectionBox.color;
 
 			const drawOpts = {
 				width: this.sizeOfNote.x,
@@ -119,13 +118,6 @@ export class EditorMinimap {
 				pos: vec2(xPos, yPos),
 				opacity: 0.5,
 			} as DrawRectOpt;
-
-			if (stamp.selected) {
-				drawOpts.outline = {
-					color: selectColor,
-					width: 2,
-				};
-			}
 
 			drawRect(drawOpts);
 			if (!stamp.is("note")) return;
@@ -156,7 +148,7 @@ export class EditorMinimap {
 		// draws the minimap controller
 		drawRect({
 			width: this.width,
-			height: this.controller.height, // 11 is the amount of steps you can see
+			height: this.controller.height,
 			anchor: "top",
 			pos: vec2(this.pos.x, this.controller.y),
 			opacity: this.controller.opacity,
@@ -166,13 +158,45 @@ export class EditorMinimap {
 				color: utils.blendColors(RED, YELLOW, 0.5),
 			},
 		});
+
+		if (ChartState.selectionBox.isSelecting) {
+			// // get height in steps
+			// const heightInSteps = ChartState.selectionBox.height / StateChart.SQUARE_SIZE.y;
+			// // then every step would be 1 sizeOfNote
+			// const scaledHeight = this.sizeOfNote.y * heightInSteps;
+
+			// const x = this.pos.x;
+
+			// const y = Math.min(ChartState.selectionBox.lastClickPos.y, ChartState.selectionBox.pos.y);
+			// debug.log(y);
+
+			// TODO: Draw the selection box :()
+
+			// drawRect({
+			// 	width: this.width,
+			// 	height: this.height,
+			// 	pos: vec2(this.pos.x, this.pos.y),
+			// 	color: this.color,
+			// 	opacity: 0.25,
+			// 	outline: {
+			// 		color: this.color,
+			// 		width: 5,
+			// 	},
+			// });
+
+			// drawRect({
+			// 	pos: vec2(x, y),
+			// 	width: this.width,
+			// 	height: scaledHeight,
+			// });
+		}
 	}
 
 	constructor() {
 		this.obj = add(makeMinimapObj());
 		this.obj.onUpdate(() => {
 			this.width = StateChart.SQUARE_SIZE.x;
-			this.height = StateChart.SQUARE_SIZE.y * 11;
+			this.height = StateChart.SQUARE_SIZE.y * StateChart.SQUARES_IN_SCREEN;
 
 			this.obj.width = this.width;
 			this.obj.height = this.height;

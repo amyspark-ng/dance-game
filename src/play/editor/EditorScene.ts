@@ -76,6 +76,27 @@ KaplayState.scene("StateChart", (params: paramsEditor) => {
 		ChartState.conductor.BPM = ChartState.song.manifest.initial_bpm;
 		ChartState.conductor.timeSignature = ChartState.song.manifest.time_signature;
 
+		// has notes selected or has selectionbox
+		const canScrollWithCursor = EditorStamp.mix(ChartState.notes, ChartState.events).some((stamp) => stamp.selected && stamp.isHovering())
+			|| ChartState.selectionBox.isSelecting;
+		if (canScrollWithCursor) {
+			// scroll up
+			const canScrollUp = ChartState.scrollStep - 1 >= 0;
+			const canScrollDown = ChartState.scrollStep + 1 <= ChartState.conductor.totalSteps;
+			if (canScrollUp && mousePos().y < StateChart.SQUARE_SIZE.y) {
+				// convert size to step
+				const diff = 1 - (mousePos().y / StateChart.SQUARE_SIZE.y);
+				ChartState.scrollToStep(ChartState.scrollStep - diff * 0.35, false);
+				if (ChartState.selectionBox.isSelecting) ChartState.selectionBox.lastClickPos.y += diff * 0.35 * StateChart.SQUARE_SIZE.y;
+			}
+			// scroll down
+			else if (canScrollDown && mousePos().y > height() - StateChart.SQUARE_SIZE.y) {
+				const diff = 1 + (mousePos().y / StateChart.SQUARE_SIZE.y - StateChart.SQUARES_IN_SCREEN);
+				ChartState.scrollToStep(ChartState.scrollStep + diff * 0.35, false);
+				if (ChartState.selectionBox.isSelecting) ChartState.selectionBox.lastClickPos.y -= diff * 0.35 * StateChart.SQUARE_SIZE.y;
+			}
+		}
+
 		editorShortcuts();
 	});
 
@@ -99,22 +120,13 @@ KaplayState.scene("StateChart", (params: paramsEditor) => {
 
 	// The scroll event
 	onScroll((delta) => {
-		let scrollPlus = 0;
 		if (!ChartState.paused) ChartState.paused = true;
-
-		if (delta.y >= 1) scrollPlus = 1;
-		else scrollPlus = -1;
+		const scrollPlus = delta.y > 0 ? 1 : -1;
 
 		// strumline step
 		if (isKeyDown("shift")) {
-			if (ChartState.strumlineStep >= 0 && ChartState.strumlineStep < ChartState.conductor.totalSteps) {
-				ChartState.strumlineStep += scrollPlus;
-				ChartState.strumlineStep = clamp(
-					ChartState.strumlineStep,
-					0,
-					ChartState.conductor.totalSteps - ChartState.scrollStep,
-				);
-			}
+			ChartState.strumlineStep += scrollPlus;
+			ChartState.strumlineStep = clamp(ChartState.strumlineStep, 0, StateChart.SQUARES_IN_SCREEN);
 		}
 		else {
 			// scroll step
@@ -141,6 +153,7 @@ KaplayState.scene("StateChart", (params: paramsEditor) => {
 
 	onSceneLeave(() => {
 		gameCursor.color = WHITE;
+		cam.reset(); // just in case
 	});
 
 	MenuBar.setup();

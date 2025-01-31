@@ -1,5 +1,5 @@
 import { getCurrent } from "@tauri-apps/api/window";
-import { getSongByName } from "../data/song";
+import { getSongByName, SongContent } from "../data/song";
 import { StateChart } from "../play/editor/EditorState";
 import { StateGame } from "../play/PlayState";
 import { StateOptions } from "../ui/menu/options/optionsScene";
@@ -84,5 +84,6 @@ document.addEventListener("fullscreenchange", (event) => {
 });
 
 export function INITIAL_SCENE() {
-	KaplayState.switchState(StateTitle);
+	// KaplayState.switchState(StateTitle);
+	KaplayState.switchState(StateChart, { song: SongContent.getByName("Bopeebo") });
 }

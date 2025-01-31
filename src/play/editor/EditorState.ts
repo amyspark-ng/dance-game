@@ -64,6 +64,11 @@ export class StateChart extends KaplayState {
 	/** Width and height of every square */
 	static SQUARE_SIZE = vec2(52, 52);
 
+	/** How many squares in the screen (vertically) */
+	static get SQUARES_IN_SCREEN() {
+		return Math.floor(height() / StateChart.SQUARE_SIZE.y);
+	}
+
 	/** The initial pos of the first square */
 	static INITIAL_POS = vec2(center().x, this.SQUARE_SIZE.y - this.SQUARE_SIZE.y / 2);
 
@@ -169,11 +174,16 @@ export class StateChart extends KaplayState {
 		this.conductor.audioPlay = Sound.playMusic(this.song.getAudioName());
 	}
 
-	/** Sets scrollStep to a clamped and rounded value */
-	scrollToStep(newStep: number) {
+	/** Sets scrollStep to a clamped and rounded value
+	 * @param newStep The new step to scroll to
+	 * @param round? Wheter to round the value
+	 */
+	scrollToStep(newStep: number, round: boolean = true) {
 		newStep = clamp(newStep, 0, this.conductor.totalSteps);
-		newStep = Math.abs(Math.round(newStep));
+		newStep = Math.abs(newStep);
+		if (round) newStep = Math.round(newStep);
 		this.scrollStep = newStep;
+		return newStep;
 	}
 
 	/** The notes in the editor */

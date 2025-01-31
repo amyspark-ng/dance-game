@@ -1,14 +1,23 @@
-import { Vec2 } from "kaplay";
+import { Color, KEventController, Vec2 } from "kaplay";
 import { StateChart } from "../EditorState";
 import { EditorStamp } from "./stamp";
 
+let scrollEv: KEventController = null;
 export class EditorSelectionBox {
 	canSelect: boolean = false;
 	width: number = 0;
 	height: number = 0;
+	color: Color = BLUE;
+
+	/** The pos of the selection box (starts at click pos) */
 	pos: Vec2 = vec2();
+
+	/** The position the selection box starts at */
 	lastClickPos: Vec2 = vec2();
-	points: [Vec2, Vec2, Vec2, Vec2] = [vec2(), vec2(), vec2(), vec2()];
+
+	get isSelecting() {
+		return this.lastClickPos && this.width > 1 && this.height > 1;
+	}
 
 	update() {
 		const ChartState = StateChart.instance;
@@ -22,6 +31,11 @@ export class EditorSelectionBox {
 			this.canSelect = canSelect;
 			if (this.canSelect) {
 				this.lastClickPos = mousePos();
+				scrollEv?.cancel();
+				scrollEv = onScroll((delta) => {
+					if (delta.y > 0 && ChartState.scrollStep + 1 <= ChartState.conductor.totalSteps) this.lastClickPos.y -= StateChart.SQUARE_SIZE.y;
+					else if (delta.y < 0 && ChartState.scrollStep - 1 >= 0) this.lastClickPos.y += StateChart.SQUARE_SIZE.y;
+				});
 			}
 		}
 
@@ -31,31 +45,11 @@ export class EditorSelectionBox {
 
 			this.pos.x = Math.min(this.lastClickPos.x, mousePos().x);
 			this.pos.y = Math.min(this.lastClickPos.y, mousePos().y);
-
-			// # topleft
-			// the pos will just be the pos of the selectionbox since it's anchor topleft
-			this.points[0] = this.pos;
-
-			// # topright
-			// the x will be the same as topleft.x + width
-			this.points[1].x = this.pos.x + this.width;
-			// y will be the same as topleft.y
-			this.points[1].y = this.pos.y;
-
-			// # bottomleft
-			// the x will be the same as points[0].x
-			this.points[2].x = this.pos.x;
-			// the y will be pos.y + height
-			this.points[2].y = this.pos.y + this.height;
-
-			// # bottomright
-			// the x will be the same as topright x pos
-			this.points[3].x = this.points[1].x;
-			// the y will be the same as bottom left
-			this.points[3].y = this.points[2].y;
 		}
 
 		if (isMouseReleased("left") && this.canSelect) {
+			scrollEv?.cancel();
+
 			const boxRect = new Rect(
 				this.pos,
 				this.width,
@@ -84,7 +78,6 @@ export class EditorSelectionBox {
 			}
 
 			this.lastClickPos = vec2(0, 0);
-			this.points = [vec2(0, 0), vec2(0, 0), vec2(0, 0), vec2(0, 0)];
 			this.pos = vec2(0, 0);
 			this.width = 0;
 			this.height = 0;
@@ -98,10 +91,10 @@ export class EditorSelectionBox {
 			width: this.width,
 			height: this.height,
 			pos: vec2(this.pos.x, this.pos.y),
-			color: BLUE,
-			opacity: 0.1,
+			color: this.color,
+			opacity: 0.25,
 			outline: {
-				color: BLUE,
+				color: this.color,
 				width: 5,
 			},
 		});
