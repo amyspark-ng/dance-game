@@ -7,7 +7,7 @@ import { getDancer } from "../../data/dancer";
 import { StateSongSelect } from "../../ui/menu/songselect/SongSelectScene";
 import { utils } from "../../utils";
 import { StateChart } from "../editor/EditorState";
-import { Ranking, Scoring } from "../objects/scoring";
+import { Ranking, Scoring, Tally } from "../objects/scoring";
 import { StateGame } from "../PlayState";
 
 export class StateResults extends KaplayState {
@@ -38,7 +38,7 @@ KaplayState.scene("StateResults", (params: StateGame) => {
 	const tallyThings: tallyContainer[] = [
 		{ title: "score", value: ResultsState.GameState.tally.score, color: WHITE },
 		// { title: "total notes", value: ResultsState.GameState.songZip.notes.length, color: WHITE },
-		{ title: "hit notes", value: Scoring.tally(ResultsState.GameState.tally).hitNotes(), color: WHITE },
+		{ title: "hit notes", value: Tally.hitNotes(ResultsState.GameState.tally), color: WHITE },
 		{ title: "awesomes", value: ResultsState.GameState.tally.awesomes, color: BLUE.lighten(50) },
 		{ title: "goods", value: ResultsState.GameState.tally.goods, color: GREEN.lighten(50) },
 		{ title: "ehhs", value: ResultsState.GameState.tally.ehhs, color: BLACK.lighten(50) },
@@ -53,10 +53,10 @@ KaplayState.scene("StateResults", (params: StateGame) => {
 	const initialY = 40;
 
 	/** How cleared was the song */
-	const cleared = Scoring.tally(ResultsState.GameState.tally).cleared();
+	const cleared = Tally.cleared(ResultsState.GameState.tally);
 
 	/** The ranking you're gonna get */
-	const ranking = Scoring.tally(ResultsState.GameState.tally).ranking();
+	const ranking = Tally.ranking(ResultsState.GameState.tally);
 
 	/** The animations of the dancer according to the ranking you got */
 	const anims = getAnimsAccordingToRanking(ranking);

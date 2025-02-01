@@ -17,7 +17,13 @@ import { StateDeath } from "./scenes/DeathScene";
 KaplayState.scene("StateGame", (params: paramsGame) => {
 	const GameState = new StateGame(params);
 
-	setBackground(RED.lighten(60));
+	add([
+		sprite(getDancer().bgSpriteName),
+		pos(center()),
+		anchor("center"),
+		layer("background"),
+		z(0),
+	]);
 
 	// ==== SETS UP SOME IMPORTANT STUFF ====
 	notesSpawner(GameState);
@@ -27,14 +33,6 @@ KaplayState.scene("StateGame", (params: paramsGame) => {
 	GameState.dancer.onUpdate(() => {
 		if (GameState.dancer.waitForIdle) GameState.dancer.waitForIdle.paused = GameState.paused;
 	});
-
-	add([
-		sprite(getDancer().bgSpriteName),
-		pos(center()),
-		anchor("center"),
-		layer("background"),
-		z(0),
-	]);
 
 	let hasPlayedGo = false;
 	let timeToFinishSong = false;
@@ -116,10 +114,7 @@ KaplayState.scene("StateGame", (params: paramsGame) => {
 	GameState.events.onNoteHit((chartNote: ChartNote) => {
 		let verdict = Scoring.judgeNote(GameState.conductor.timeInSeconds, chartNote);
 
-		if (verdict.judgement == "Miss") {
-			GameState.events.trigger("miss", chartNote);
-			return;
-		}
+		// debug.log(`diff: ${GameState.conductor.timeInSeconds - chartNote.time}`);
 
 		// the judgement isn't a miss, you did well :)
 		GameState.tally[verdict.judgement.toLowerCase() + "s"] += 1;
@@ -157,7 +152,7 @@ KaplayState.scene("StateGame", (params: paramsGame) => {
 		// Sound.playSound("noteMiss");
 		updateJudgement("Miss");
 
-		const closestNote = Scoring.getClosestNote(GameState.conductor.timeInSeconds, GameState.song.chart.notes);
+		// const closestNote = Scoring.getClosestNote(GameState.conductor.timeInSeconds, GameState.song.chart.notes);
 		// if (GameState.tally.score > 0) GameState.tally.score -= ;
 
 		if (GameState.tally.score > 0) {

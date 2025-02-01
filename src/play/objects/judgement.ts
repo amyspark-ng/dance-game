@@ -1,7 +1,7 @@
 import { StateGame } from "../PlayState";
 import { DANCER_POS } from "./dancer";
 import { ChartNote } from "./note";
-import { Judgement, Scoring } from "./scoring";
+import { Judgement, Scoring, Tally } from "./scoring";
 
 /** Add judgement object */
 export function updateJudgement(judgement: Judgement) {
@@ -57,8 +57,9 @@ export function updateJudgement(judgement: Judgement) {
 		// since it already exists just bop it
 		const judgementObj = get("judgement")[0] as ReturnType<typeof createJudgement>;
 
-		if (StateGame.instance.tally.isPerfect) judgementObj.text = judgement + "!!";
+		if (Tally.isPerfect(StateGame.instance.tally)) judgementObj.text = judgement + "!!";
 		else if (StateGame.instance.tally.misses < 1) judgementObj.text = judgement + "!";
+		else judgementObj.text = judgement;
 
 		tween(vec2(1.15), vec2(1), 0.15, (p) => judgementObj.scale = p, easings.easeOutQuad);
 

@@ -7,7 +7,6 @@ import { Scoring } from "./scoring";
 
 export function createStrumline() {
 	const STRUMLINE_COLOR = WHITE.darken(60);
-	const GameState = StateGame.instance;
 
 	/** The position of the strumline */
 	const STRUM_POS = vec2(center().x, height() - 60);

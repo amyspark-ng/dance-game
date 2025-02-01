@@ -3,9 +3,9 @@ import { KaplayState } from "../../../core/scenes/KaplayState";
 import { CustomAudioPlay, Sound } from "../../../core/sound";
 import { SongContent } from "../../../data/song";
 import { FileManager } from "../../../FileManager";
-import { Scoring } from "../../../play/objects/scoring";
+import { Tally } from "../../../play/objects/scoring";
 import { StateGame } from "../../../play/PlayState";
-import { SaveScore } from "../../../play/savescore";
+import { SongScore } from "../../../play/savescore";
 import { utils } from "../../../utils";
 import { addNotification } from "../../objects/notification";
 import { StateMenu } from "../MenuScene";
@@ -99,9 +99,10 @@ export class StateSongSelect extends KaplayState {
 		});
 
 		capsuleContainer.onUpdate(() => {
-			const tally = SaveScore.getHighscore(curSong.manifest.uuid_DONT_CHANGE).tally;
+			const tally = SongScore.getHighscore(curSong.manifest.uuid_DONT_CHANGE).tally;
+			const clear = Tally.cleared(tally);
 
-			capsuleName.text = `${curSong.manifest.name} (${tally.clear}%)\n${songDuration}`;
+			capsuleName.text = `${curSong.manifest.name} (${clear}%)\n${songDuration}`;
 			capsuleName.pos.y = capsuleContainer.height / 2;
 
 			albumCover.opacity = capsuleContainer.opacity;
@@ -111,13 +112,14 @@ export class StateSongSelect extends KaplayState {
 
 		// if the song has a highscore then add the sticker with the ranking
 		if (GameSave.scores.some((song) => song.uuid == curSong.manifest.uuid_DONT_CHANGE)) {
-			const tally = SaveScore.getHighscore(curSong.manifest.uuid_DONT_CHANGE).tally;
+			const tally = SongScore.getHighscore(curSong.manifest.uuid_DONT_CHANGE).tally;
+			const ranking = Tally.ranking(tally);
 
 			const maxOffset = 50;
 			const offset = vec2(rand(-maxOffset, maxOffset), rand(-maxOffset, maxOffset));
 			const randAngle = rand(-20, 20);
 			const rankingSticker = capsuleContainer.add([
-				sprite("rank_" + tally.ranking),
+				sprite("rank_" + ranking),
 				pos(),
 				rotate(randAngle),
 				anchor("center"),
@@ -244,7 +246,7 @@ KaplayState.scene("StateSongSelect", (startAt: SongContent | number) => {
 			return;
 		}
 
-		const tallyScore = SaveScore.getHighscore(
+		const tallyScore = SongScore.getHighscore(
 			allCapsules[SongSelectState.index].song.manifest.uuid_DONT_CHANGE,
 		);
 

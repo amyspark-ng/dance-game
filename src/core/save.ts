@@ -1,6 +1,6 @@
 import { Key } from "kaplay";
 import { Move } from "../play/objects/dancer";
-import { SaveScore } from "../play/savescore";
+import { SongScore } from "../play/savescore";
 import { GAME } from "./game";
 
 /** Function to manage some merging of gamesaves */
@@ -57,7 +57,7 @@ export class _GameSave {
 	unlockedDancers: string[] = ["Astri"];
 
 	/** The songs that have been played, check @link {} type for more info */
-	scores: SaveScore[] = [];
+	scores: SongScore[] = [];
 
 	/** Array of uuids that are stored as keys on the localStorage and have to be loaded */
 	extraSongs: string[] = [];

@@ -14,7 +14,7 @@ import { Scoring, Tally } from "./objects/scoring";
 import { createStrumline, StrumlineGameObj } from "./objects/strumline";
 import { addUI } from "./objects/ui/gameUi";
 import { addPauseUI } from "./objects/ui/pauseUi";
-import { SaveScore } from "./savescore";
+import { SongScore } from "./savescore";
 import { StateResults } from "./scenes/ResultsScene";
 import "./GameScene";
 
@@ -143,7 +143,7 @@ export class StateGame extends KaplayState {
 
 	/** Run this to finish the song */
 	finishSong() {
-		const songSaveScore = new SaveScore(this.song.manifest.uuid_DONT_CHANGE, this.tally);
+		const songSaveScore = new SongScore(this.song.manifest.uuid_DONT_CHANGE, this.tally);
 		GameSave.scores.push(songSaveScore);
 		GameSave.save();
 		KaplayState.switchState(StateResults, this);
@@ -304,7 +304,7 @@ export function inputHandler(GameState: StateGame) {
 		const moveForKey = GameSave.getMoveForKey(gameKey);
 
 		if (isKeyPressed(gameKey)) {
-			const note = Scoring.checkForNoteHit(moveForKey, GameState.conductor.timeInSeconds);
+			const note = Scoring.checkForNote(GameState.conductor.timeInSeconds, moveForKey);
 			if (note) GameState.events.trigger("notehit", note);
 		}
 	});

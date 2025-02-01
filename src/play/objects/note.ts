@@ -75,11 +75,17 @@ export class ChartNote {
 		}
 	}
 
-	/** Get the position of a note at a given time */
-	static getPosAtTime(time: number, note: ChartNote, strumlineXpos: number) {
-		let mapValue = (time - ChartNote.spawnTime(note)) / StateGame.instance.TIME_FOR_STRUM;
-		const xPos = map(mapValue, 0, 1, NOTE_SPAWNPOINT, strumlineXpos - NOTE_WIDTH / 2);
-		return xPos;
+	/** Gets the pos of a note at a given time
+	 * @param hitTime
+	 * @param spawnTime
+	 * @param strumlinePos
+	 */
+	static getPosAtTime(hitTime: number, spawnTime: number, strumlinePos: Vec2) {
+		let mapValue = (hitTime - spawnTime) / StateGame.instance.TIME_FOR_STRUM;
+		return vec2(
+			map(mapValue, 0, 1, NOTE_SPAWNPOINT, strumlinePos.x),
+			map(mapValue, 0, 1, strumlinePos.y, strumlinePos.x),
+		);
 	}
 
 	/** Returns an array of all the notes currently on the screen (not counting trails) */
@@ -88,7 +94,13 @@ export class ChartNote {
 	}
 }
 
-export function addBouncyNote(chartNote: ChartNote, startPos: Vec2 = vec2(), force: Vec2 = vec2(50, 50), rotation = -10) {
+/** Adds a funny little bouncy note
+ * @param chartNote The ChartNote
+ * @param startPos
+ * @param force
+ * @param rotation
+ */
+export function addBouncyNote(chartNote: ChartNote, startPos: Vec2 = vec2(), force: Vec2 = vec2(50, 50), rotation: number = -10) {
 	const note = add([
 		sprite(getNoteskinSprite(chartNote.move)),
 		pos(startPos),
@@ -114,7 +126,10 @@ export function addBouncyNote(chartNote: ChartNote, startPos: Vec2 = vec2(), for
 	return note;
 }
 
-/** Adds a note to the game */
+/** Adds a note to the game
+ * @param chartNote The chart note
+ * @param GameState The game instance
+ */
 export function addNote(chartNote: ChartNote, GameState: StateGame) {
 	let trail: ReturnType<typeof addTrail> = null;
 
@@ -137,7 +152,7 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 
 	const noteObj = add([
 		sprite(getNoteskinSprite(chartNote.move)),
-		pos(width() + NOTE_WIDTH, GameState.strumline.pos.y),
+		pos(NOTE_SPAWNPOINT, GameState.strumline.pos.y),
 		anchor("center"),
 		opacity(),
 		z(2),
@@ -169,12 +184,12 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 		const fakeNote = addFakeNote();
 
 		trail.parent.width = fakeNote.pos.x; // hit the note with trail, so it should be masked
-		let step = GameState.conductor.currentStep;
+		let step = GameState.conductor.timeToStep(noteHit.time);
 		let trailHasFinished = false;
 
 		// do stuff to wait for the trail to finish
 		trail.onUpdate(() => {
-			if (GameState.conductor.currentStep >= (step + chartNote.length + 0.5) && !trailHasFinished) {
+			if (GameState.conductor.currentStep >= (step + chartNote.length) && !trailHasFinished) {
 				trailHasFinished = true;
 				if (fakeNote) {
 					fakeNote.destroy();
@@ -210,12 +225,12 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 		if (GameState.paused) return;
 
 		if (GameState.strumline.currentNote != chartNote) {
-			const xPos = ChartNote.getPosAtTime(
+			const pos = ChartNote.getPosAtTime(
 				GameState.conductor.timeInSeconds,
-				chartNote,
-				GameState.strumline.pos.x,
+				ChartNote.spawnTime(chartNote),
+				GameState.strumline.pos,
 			);
-			noteObj.pos.x = xPos;
+			noteObj.pos = pos;
 		}
 
 		if (noteObj.hasPassed) {
@@ -303,10 +318,10 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 			if (GameState.paused) return;
 			const xPos = ChartNote.getPosAtTime(
 				GameState.conductor.timeInSeconds,
-				chartNote,
-				GameState.strumline.pos.x,
+				ChartNote.spawnTime(chartNote),
+				GameState.strumline.pos,
 			);
-			trail.pos = vec2(xPos, noteObj.pos.y);
+			trail.pos = vec2(xPos.x, noteObj.pos.y);
 			trail.opacity = noteObj.opacity;
 		});
 
@@ -365,4 +380,57 @@ export function notesSpawner(GameState: StateGame) {
 		if (GameState.conductor.paused) return;
 		checkNotes();
 	});
+
+	// testFunction()
+
+	function testFunction() {
+		let usingFunction = false;
+
+		const fakeNote = add([
+			pos(),
+			anchor("center"),
+			sprite(getNoteskinSprite("up")),
+		]);
+
+		fakeNote.onUpdate(() => {
+			if (isMousePressed("left")) usingFunction = !usingFunction;
+
+			if (usingFunction) fakeNote.pos = ChartNote.getPosAtTime(0, -GameState.TIME_FOR_STRUM, GameState.strumline.pos);
+			else fakeNote.pos = mousePos();
+		});
+
+		onUpdate(() => {
+			debug.log(Scoring.checkForNote(GameState.conductor.timeInSeconds) ? true : false);
+
+			const note = new ChartNote();
+			// const note = Scoring.checkForNote();
+			note.time = map(
+				fakeNote.pos.x,
+				width(),
+				0,
+				0,
+				GameState.TIME_FOR_STRUM * 2,
+			);
+
+			const verdict = Scoring.judgeNote(GameState.TIME_FOR_STRUM, note);
+			const absDiff = GameState.TIME_FOR_STRUM - note.time;
+			debug.log(`Diff: ${absDiff.toFixed(4)} | ${verdict.judgement} | ${verdict.score}`);
+		});
+
+		onDraw(() => {
+			const pos = ChartNote.getPosAtTime(0, -GameState.TIME_FOR_STRUM, StateGame.instance.strumline.pos);
+
+			drawRect({
+				pos,
+				width: NOTE_WIDTH,
+				height: NOTE_WIDTH,
+				fill: false,
+				outline: {
+					width: 5,
+					color: BLUE,
+				},
+				anchor: "center",
+			});
+		});
+	}
 }

@@ -1,7 +1,7 @@
 // # This file will manage the ranking system
 import { utils } from "../../utils";
 import { StateGame } from "../PlayState";
-import { DANCER_POS, Move } from "./dancer";
+import { Move } from "./dancer";
 import { ChartNote } from "./note";
 
 /** Result of JudgeNote */
@@ -25,40 +25,45 @@ export type Judgement = typeof judgements[number];
 /** A class full of static methods and properties for everything related to scoring */
 export class Scoring {
 	/** The max score for a note */
-	static MAX_SCORE = 10;
+	static MAX_SCORE = 50;
+
 	/** The min score for a note */
 	static MIN_SCORE = 5;
+
+	// These timings are built in a way that they are
+	// The min difference of time between the current time and the note time
+	// To get that judgement
+
 	/** The treshold (in time) in which a note can be hit in */
-	static INPUT_TRESHOLD = 0.16;
+	static INPUT_TRESHOLD = 200 / 1000;
 
 	/** The max difference between the current time and the note of a song */
-	static AWESOME_TIMING = 0.05;
+	static AWESOME_TIMING = 45 / 1000;
 
 	/** The max difference to get a good judgement */
-	static GOOD_TIMING = 0.11;
+	static GOOD_TIMING = 90 / 1000;
 
 	/** The max differnece to get an ehh timing */
-	static EHH_TIMING = 0.1355;
-
-	/** The max difference to get a miss timing */
-	static MISS_TIMING = 0.166;
+	static EHH_TIMING = 135 / 1000;
 
 	/** Get the judgement the player did based on hit time
 	 * @param timeInSeconds The time in seconds the judge was asked for
 	 * @param note The ChartNote
 	 * @returns An object that holds the score and the judgement (eg: { score: 50, judgement: "Awesome" })
+	 *
+	 * If the judgement was a miss you hit either too late or too early
 	 */
 	static judgeNote(timeInSeconds: number, note: ChartNote): verdict {
 		const diff = timeInSeconds - note.time;
 		const absDiff = Math.abs(timeInSeconds - note.time);
 
-		let judgement: Judgement = null;
+		let judgement: Judgement = "Miss";
 		if (absDiff <= Scoring.AWESOME_TIMING) judgement = "Awesome";
 		else if (absDiff <= Scoring.GOOD_TIMING) judgement = "Good";
 		else if (absDiff <= Scoring.EHH_TIMING) judgement = "Ehh";
-		else if (absDiff <= Scoring.MISS_TIMING) judgement = "Miss";
+		else if (absDiff >= Scoring.INPUT_TRESHOLD) judgement = "Miss";
 
-		const score = Math.round(map(diff, 0, Scoring.INPUT_TRESHOLD, Scoring.MAX_SCORE, Scoring.MIN_SCORE));
+		const score = Math.round(map(absDiff, 0, Scoring.INPUT_TRESHOLD, Scoring.MAX_SCORE, Scoring.MIN_SCORE));
 
 		return {
 			score: score,
@@ -66,22 +71,22 @@ export class Scoring {
 		};
 	}
 
-	/** Get the closest note at a given time
-	 * @param time The time in seconds to check for
-	 * @param arr The array of ChartNotes
-	 */
-	static getClosestNote(time: number, arr: ChartNote[]): ChartNote {
-		return arr.reduce((acc, obj) => Math.abs(time - obj.time) < Math.abs(time - acc.time) ? obj : acc);
-	}
-
 	/** Checks if a note with the move param has been hit in the given time */
-	static checkForNoteHit(move: Move, time: number = StateGame.instance.conductor.timeInSeconds) {
-		const closestNote = Scoring.getClosestNote(time, StateGame.instance.song.chart.notes);
+	static checkForNote(time: number = StateGame.instance.conductor.timeInSeconds, move?: Move) {
+		function getClosestNote(time: number, arr: ChartNote[]): ChartNote {
+			return arr.reduce((acc, obj) => Math.abs(time - obj.time) < Math.abs(time - acc.time) ? obj : acc);
+		}
+
+		const closestNote = getClosestNote(time, StateGame.instance.song.chart.notes);
 
 		// if time in seconds is in range by input_treshold
 		// to the hit note of any note in the chart
 		const isNoteInRange = utils.isInRange(time, closestNote.time - Scoring.INPUT_TRESHOLD, closestNote.time + Scoring.INPUT_TRESHOLD);
-		if (isNoteInRange && closestNote.move == move) {
+		if (isNoteInRange) {
+			if (move) {
+				if (closestNote.move == move) return closestNote;
+				else return undefined;
+			}
 			return closestNote;
 		}
 
@@ -100,37 +105,37 @@ export class Tally {
 	highestCombo: number = 0;
 
 	/** Current hit notes */
-	get hitNotes() {
-		return this.awesomes + this.goods + this.ehhs;
+	static hitNotes(tally: Tally) {
+		return tally.awesomes + tally.goods + tally.ehhs;
 	}
 
 	/**
 	 * Current total notes.
 	 *
 	 * (This should only be used in results sceen, because it's not accurate otherwise) */
-	get totalNotes() {
-		return this.awesomes + this.goods + this.ehhs + this.misses;
+	static totalNotes(tally: Tally) {
+		return Tally.hitNotes(tally) + tally.misses;
 	}
 
 	/** Returns number from 0 to 100 based on how many notes were hit */
-	get clear() {
-		const division = this.hitNotes / this.totalNotes;
+	static cleared(tally: Tally) {
+		const division = Tally.hitNotes(tally) / Tally.totalNotes(tally);
 		if (isNaN(division)) return 0;
-		else return division * 100;
+		else return Math.round(division * 100);
 	}
 
 	/** Gets the ranking for the current tally */
-	get ranking() {
-		if (this.awesomes == this.totalNotes && this.score > 1) return "S+";
-		else if (this.misses == 0 && this.score > 1) return "S";
-		else if (this.clear > 85) return "A";
-		else if (this.clear > 70) return "B";
-		else if (this.clear > 50) return "C";
+	static ranking(tally: Tally) {
+		if (tally.awesomes == Tally.totalNotes(tally) && tally.score > 1) return "S+";
+		else if (tally.misses == 0 && tally.score > 1) return "S";
+		else if (Tally.cleared(tally) > 85) return "A";
+		else if (Tally.cleared(tally) > 70) return "B";
+		else if (Tally.cleared(tally) > 50) return "C";
 		else return "F";
 	}
 
 	/** Wheter the player has gotten a 'not-awesome' */
-	get isPerfect() {
-		return this.awesomes == this.hitNotes && this.misses == 0;
+	static isPerfect(tally: Tally) {
+		return tally.awesomes == Tally.hitNotes(tally) && tally.misses == 0;
 	}
 }
