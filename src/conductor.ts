@@ -146,7 +146,7 @@ export class Conductor {
 
 	destroy() {
 		this.audioPlay.stop();
-		getTreeRoot().clear();
+		this.events.clear();
 	}
 
 	/** Update function that should run onUpdate so the conductor gets updated */
@@ -161,13 +161,13 @@ export class Conductor {
 		}
 		// if it has to start playing and hasn't started playing, play!!
 		else if (this.timeInSeconds >= 0) {
-			if (!this.paused) {
-				this.timeInSeconds = this.audioPlay.time();
-			}
-
 			if (!this.started) {
 				this.started = true;
-				getTreeRoot().trigger("start");
+				this.events.trigger("start");
+			}
+
+			if (!this.paused) {
+				this.timeInSeconds = this.audioPlay.time();
 			}
 
 			this.updateIntervals();
@@ -178,31 +178,25 @@ export class Conductor {
 			this.currentStep = Math.floor(this.timeToStep(this.timeInSeconds));
 			this.currentBeat = Math.floor(this.timeToBeat(this.timeInSeconds));
 
-			// if (this.paused) return;
-			if (oldStep != this.currentStep) getTreeRoot().trigger("step", this.currentStep);
-			else if (oldBeat != this.currentBeat) getTreeRoot().trigger("beat", this.currentBeat);
-			else if (oldBeat != this.currentBeat) getTreeRoot().trigger("measure", 0);
+			// // if (this.paused) return;
+			if (oldStep != this.currentStep) this.events.trigger("step", this.currentStep);
+			if (oldBeat != this.currentBeat) this.events.trigger("beat", this.currentBeat);
 		}
 	}
 
 	/** Runs when the conductor starts playing (time in seconds is greater than 0) */
 	onStart(action: () => void) {
-		return getTreeRoot().on("start", action);
+		return this.events.on("start", action);
 	}
 
 	/** Runs when the conductor's beat changes */
 	onBeatHit(action: (curBeat: number) => void) {
-		return getTreeRoot().on("beat", action);
+		return this.events.on("beat", action);
 	}
 
 	/** Runs when the conductor's step changes */
 	onStepHit(action: (curStep: number) => void) {
-		return getTreeRoot().on("step", action);
-	}
-
-	/** Runs when the conductor's measure changes */
-	onMeasureHit(action: (curMeasure: number) => void) {
-		return getTreeRoot().on("measure", action);
+		return this.events.on("step", action);
 	}
 
 	constructor(opts: conductorOpts) {
@@ -212,9 +206,8 @@ export class Conductor {
 		this.audioPlay = opts.audioPlay;
 		this.changeTimeSignature(opts.timeSignature);
 		this.updateIntervals();
+		this.events = new KEventHandler();
 
-		this.currentBeat = 0;
-		this.currentStep = 0;
 		if (opts.offset > 0) this.timeInSeconds = -opts.offset;
 		else this.timeInSeconds = 0;
 

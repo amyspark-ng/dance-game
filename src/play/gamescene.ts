@@ -1,5 +1,5 @@
 import { appWindow } from "@tauri-apps/api/window";
-import { EaseFunc, KEventController } from "kaplay";
+import { KEventController } from "kaplay";
 import { cam } from "../core/camera";
 import { GAME } from "../core/game";
 import { GameSave } from "../core/save";
@@ -9,8 +9,8 @@ import { getDancer } from "../data/dancer";
 import EventHandler from "../data/event/handler";
 import { utils } from "../utils";
 import { updateJudgement } from "./objects/judgement";
-import { ChartNote, NoteGameObj, notesSpawner, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
-import { getClosestNote, Scoring } from "./objects/scoring";
+import { ChartNote, notesSpawner } from "./objects/note";
+import { Scoring } from "./objects/scoring";
 import { inputHandler, introGo, paramsGame, StateGame } from "./PlayState";
 import { StateDeath } from "./scenes/DeathScene";
 
@@ -44,7 +44,7 @@ KaplayState.scene("StateGame", (params: paramsGame) => {
 	onUpdate(() => {
 		GameState.conductor.paused = GameState.paused;
 
-		if (GameState.conductor.timeInSeconds >= -(TIME_FOR_STRUM / 2) && !hasPlayedGo) {
+		if (GameState.conductor.timeInSeconds >= -(GameState.TIME_FOR_STRUM / 2) && !hasPlayedGo) {
 			introGo();
 			hasPlayedGo = true;
 		}
@@ -114,41 +114,40 @@ KaplayState.scene("StateGame", (params: paramsGame) => {
 	});
 
 	GameState.events.onNoteHit((chartNote: ChartNote) => {
-		let judgement = Scoring.judgeNote(GameState.conductor.timeInSeconds, chartNote);
+		let verdict = Scoring.judgeNote(GameState.conductor.timeInSeconds, chartNote);
 
-		if (judgement == "Miss") {
+		if (verdict.judgement == "Miss") {
 			GameState.events.trigger("miss", chartNote);
 			return;
 		}
 
 		// the judgement isn't a miss, you did well :)
-		GameState.tally[judgement.toLowerCase() + "s"] += 1;
+		GameState.tally[verdict.judgement.toLowerCase() + "s"] += 1;
 		GameState.combo += 1;
 		if (GameState.combo > GameState.highestCombo) GameState.highestCombo = GameState.combo;
 
 		// score stuff
-		let scorePerDiff = Scoring.getScorePerDiff(GameState.conductor.timeInSeconds, chartNote);
-		GameState.addScore(scorePerDiff);
+		updateJudgement(verdict.judgement);
+		GameState.addScore(verdict.score);
 		GameState.hitNotes.push(chartNote);
+		if (chartNote.length) {
+			let step = GameState.conductor.currentStep;
+			const stepHitEv = GameState.conductor.onStepHit(() => {
+				const hasFinished = GameState.conductor.currentStep >= step + chartNote.length;
+				if (hasFinished) stepHitEv.cancel();
 
+				// only provide the score if the key is down
+				if (isKeyDown(GameSave.getKeyForMove(chartNote.move))) {
+					GameState.addScore(Math.round(verdict.score));
+				}
+			});
+		}
+
+		// health
 		if (GameState.health < 100) GameState.health += randi(2, 6);
-
-		updateJudgement(judgement);
 
 		// this updates last move don't worry
 		GameState.dancer.doMove(chartNote.move);
-
-		if (chartNote.length) {
-			let keyRelease: KEventController = null;
-
-			const noteObj = get("noteObj", { recursive: true }).find((obj: NoteGameObj) => obj.chartNote == chartNote) as NoteGameObj;
-			if (noteObj) noteObj.opacity = 0;
-
-			keyRelease = onKeyRelease(GameSave.getKeyForMove(chartNote.move), () => {
-				keyRelease.cancel();
-				noteObj.destroy();
-			});
-		}
 	});
 
 	GameState.events.onMiss((note: ChartNote) => {
@@ -158,12 +157,11 @@ KaplayState.scene("StateGame", (params: paramsGame) => {
 		// Sound.playSound("noteMiss");
 		updateJudgement("Miss");
 
-		const closestNote = getClosestNote(GameState.song.chart.notes, GameState.conductor.timeInSeconds);
-		const scoreDiff = Scoring.getScorePerDiff(GameState.conductor.timeInSeconds, closestNote);
-		if (GameState.tally.score > 0) GameState.tally.score -= scoreDiff;
+		const closestNote = Scoring.getClosestNote(GameState.conductor.timeInSeconds, GameState.song.chart.notes);
+		// if (GameState.tally.score > 0) GameState.tally.score -= ;
 
 		if (GameState.tally.score > 0) {
-			GameState.gameUI.scoreDiffText.value = -scoreDiff;
+			// GameState.gameUI.scoreDiffText.value = -scoreDiff;
 			GameState.gameUI.scoreDiffText.opacity = 1;
 			GameState.gameUI.scoreDiffText.bop({ startScale: vec2(1.1), endScale: vec2(1) });
 		}
@@ -179,7 +177,10 @@ KaplayState.scene("StateGame", (params: paramsGame) => {
 		}
 	});
 
-	GameState.events.onRestart(() => GameState.dancer.doMove("idle"));
+	GameState.events.onRestart(() => {
+		hasPlayedGo = false;
+		GameState.dancer.doMove("idle");
+	});
 
 	// END SONG
 	GameState.conductor.audioPlay.onEnd(() => {

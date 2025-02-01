@@ -43,26 +43,26 @@ const defaultControls: gameControls = {
 
 /** Holds all the info that should be saved and loaded through sessions */
 export class _GameSave {
-	volume: number = 1;
-	soundVolume: number = 1;
-	musicVolume: number = 1;
-
-	/** Wheter the strumline and lane will be on the top or the bottom (LOL) */
-	upscroll: boolean = false;
-	/** The multiplier for the scrollspeed */
-	scrollSpeed: number = 1;
-
-	/** The dancer the player is using (to dance) */
-	dancer: string = "Astri";
-
-	/** The dancers the player can use */
-	unlockedDancers: string[] = ["Astri"];
-
 	/** (static) property that holds the default controls for the game
 	 *
 	 * Its type is actually a record! (Record<Move, Key>)
 	 */
 	static defaultControls: gameControls = defaultControls;
+
+	volume: number = 1;
+	soundVolume: number = 1;
+	musicVolume: number = 1;
+
+	/** The dancers the player can use */
+	unlockedDancers: string[] = ["Astri"];
+
+	/** The songs that have been played, check @link {} type for more info */
+	scores: SaveScore[] = [];
+
+	/** Array of uuids that are stored as keys on the localStorage and have to be loaded */
+	extraSongs: string[] = [];
+
+	// #region PREFERENCES
 
 	/** The controls for the game
 	 *
@@ -76,11 +76,19 @@ export class _GameSave {
 	/** The prefix for the noteskin */
 	noteskin: string = "arrows";
 
-	/** The songs that have been played, check @link {} type for more info */
-	songsPlayed: SaveScore[] = [];
+	/** Wheter the strumline and lane will be on the top or the bottom (LOL) */
+	upscroll: boolean = false;
 
-	/** Array of uuids that are stored as keys on the localStorage and have to be loaded */
-	extraSongs: string[] = [];
+	/** The multiplier for the scrollspeed */
+	scrollSpeed: number = 1;
+
+	/** The dancer the player is using (to dance) */
+	dancer: string = "Astri";
+
+	/** Wheter notes should jump when hit */
+	sillyNotes: boolean = true;
+
+	// #endregion PREFERENCES
 
 	/** Writes current instance to localStorage */
 	save() {

@@ -100,10 +100,8 @@ export class StateSongSelect extends KaplayState {
 
 		capsuleContainer.onUpdate(() => {
 			const tally = SaveScore.getHighscore(curSong.manifest.uuid_DONT_CHANGE).tally;
-			let clear = Math.round(Scoring.tally(tally).cleared());
-			if (isNaN(clear)) clear = 0;
 
-			capsuleName.text = `${curSong.manifest.name} (${clear}%)\n${songDuration}`;
+			capsuleName.text = `${curSong.manifest.name} (${tally.clear}%)\n${songDuration}`;
 			capsuleName.pos.y = capsuleContainer.height / 2;
 
 			albumCover.opacity = capsuleContainer.opacity;
@@ -112,15 +110,14 @@ export class StateSongSelect extends KaplayState {
 		});
 
 		// if the song has a highscore then add the sticker with the ranking
-		if (GameSave.songsPlayed.some((song) => song.uuid == curSong.manifest.uuid_DONT_CHANGE)) {
+		if (GameSave.scores.some((song) => song.uuid == curSong.manifest.uuid_DONT_CHANGE)) {
 			const tally = SaveScore.getHighscore(curSong.manifest.uuid_DONT_CHANGE).tally;
-			const ranking = Scoring.tally(tally).ranking();
 
 			const maxOffset = 50;
 			const offset = vec2(rand(-maxOffset, maxOffset), rand(-maxOffset, maxOffset));
 			const randAngle = rand(-20, 20);
 			const rankingSticker = capsuleContainer.add([
-				sprite("rank_" + ranking),
+				sprite("rank_" + tally.ranking),
 				pos(),
 				rotate(randAngle),
 				anchor("center"),

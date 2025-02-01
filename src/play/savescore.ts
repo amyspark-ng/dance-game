@@ -12,10 +12,10 @@ export class SaveScore {
 
 	/** Gets the saveScore for a song name */
 	static getHighscore(uuid: string): SaveScore {
-		const scoresOfSong = GameSave.songsPlayed.filter((song) => song.uuid == uuid);
+		const scoresOfSong = GameSave.scores.filter((song) => song.uuid == uuid);
 
 		if (scoresOfSong.length < 1) {
-			return new SaveScore();
+			return new SaveScore(uuid);
 		}
 		else {
 			// get the highest song save score
@@ -23,8 +23,8 @@ export class SaveScore {
 		}
 	}
 
-	constructor() {
-		this.uuid = undefined;
-		this.tally = new Tally();
+	constructor(uuid: string, tally: Tally = new Tally()) {
+		this.uuid = uuid;
+		this.tally = tally;
 	}
 }

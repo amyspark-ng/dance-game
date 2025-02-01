@@ -169,6 +169,12 @@ export function addPauseUI() {
 	// EVERYTHING THAT IS ABOVE WILL RUN ONLY ONCE
 	// Everything below will run everytime the pause state changes
 	GameState.onPauseChange(() => {
+		// get all the objects and filter the ones that have any tag that is included in tagsToPause
+		get("game").forEach((obj) => {
+			obj.paused = GameState.paused;
+		});
+
+		if (GameState.conductor.timeInSeconds < 0) return;
 		Sound.playSound("pauseScratch", {
 			detune: GameState.paused == true ? -150 : 150,
 			speed: 1,
@@ -185,14 +191,9 @@ export function addPauseUI() {
 		else {
 			const audioName = GameState.song.manifest.uuid_DONT_CHANGE + "-audio";
 			const songToScratch = Sound.playMusic(audioName);
-			songToScratch.seek(GameState.conductor.timeInSeconds);
+			if (GameState.conductor.timeInSeconds > 0) songToScratch.seek(GameState.conductor.timeInSeconds);
 			pauseScratch(songToScratch);
 		}
-
-		// get all the objects and filter the ones that have any tag that is included in tagsToPause
-		get("game").forEach((obj) => {
-			obj.paused = GameState.paused;
-		});
 	});
 
 	return { blackScreen, title, pausedText, buttons, fakeDancer };

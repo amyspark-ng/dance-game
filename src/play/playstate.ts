@@ -1,24 +1,22 @@
 // Handles the setup for the game scene and some other important stuff
 import { Conductor } from "../Conductor";
-import { cam } from "../core/camera";
 import { GameSave } from "../core/save";
 import { KaplayState } from "../core/scenes/KaplayState";
 import { Sound } from "../core/sound";
-import { ChartEvent } from "../data/event/event";
-import { StateSongSelect } from "../ui/menu/songselect/SongSelectScene";
-import { StateChart } from "./editor/EditorState";
-import { DancerGameObj, makeDancer } from "./objects/dancer";
-import { ChartNote, setTimeForStrum, TIME_FOR_STRUM } from "./objects/note";
-import { Tally } from "./objects/scoring";
-import { createStrumline, StrumlineGameObj } from "./objects/strumline";
-import { addUI } from "./objects/ui/gameUi";
-import { addPauseUI } from "./objects/ui/pauseUi";
-import "./GameScene";
 import { getDancer } from "../data/dancer";
 import { getNoteskinSprite } from "../data/noteskins";
 import { SongContent } from "../data/song";
+import { StateSongSelect } from "../ui/menu/songselect/SongSelectScene";
+import { StateChart } from "./editor/EditorState";
+import { DancerGameObj, makeDancer } from "./objects/dancer";
+import { addBouncyNote, ChartNote } from "./objects/note";
+import { Scoring, Tally } from "./objects/scoring";
+import { createStrumline, StrumlineGameObj } from "./objects/strumline";
+import { addUI } from "./objects/ui/gameUi";
+import { addPauseUI } from "./objects/ui/pauseUi";
 import { SaveScore } from "./savescore";
 import { StateResults } from "./scenes/ResultsScene";
+import "./GameScene";
 
 /** Type to store the parameters for the game scene */
 export type paramsGame = {
@@ -40,14 +38,24 @@ export type paramsGame = {
 
 /** Class that holds and manages some important variables in the game scene
  * @param song The song that you're going to play
- * @param dancerName The name of the dancer to start as
- * @param playbackSpeed How fast the song will go
- * @param seekTime At what time the song will start
- * @param fromEditor Wheter you're coming from the editor or not
+ * @param dancerName? The name of the dancer to start as
+ * @param playbackSpeed? How fast the song will go
+ * @param seekTime? At what time the song will start
+ * @param fromEditor? Wheter you're coming from the editor or not
  */
 export class StateGame extends KaplayState {
 	/** Static instance of the class */
 	static instance: StateGame = null;
+
+	/** How much time will take for the note to reach the strum */
+	TIME_FOR_STRUM = 1.25;
+
+	/** Change the scrollspeed
+	 * @example 1.25
+	 */
+	set scrollspeed(value: number) {
+		this.TIME_FOR_STRUM = this.TIME_FOR_STRUM / value;
+	}
 
 	/** The params this was initialized with */
 	params: paramsGame = null;
@@ -68,10 +76,14 @@ export class StateGame extends KaplayState {
 	highestCombo: number = 0;
 
 	/** Holds all the notes that have been spawned */
-	spawnedNotes: ChartNote[] = [];
+	get spawnedNotes() {
+		return this.song.chart.notes.filter((note) => note.time < this.conductor.timeInSeconds);
+	}
 
-	/** All the events that are done */
-	eventsDone: ChartEvent[] = [];
+	/** All the events that have been passed */
+	get eventsDone() {
+		return this.song.chart.events.filter((ev) => ev.time < this.conductor.timeInSeconds);
+	}
 
 	/** Holds all the notes that have been hit */
 	hitNotes: ChartNote[] = [];
@@ -129,11 +141,10 @@ export class StateGame extends KaplayState {
 		return getTreeRoot().on("pauseChange", action);
 	}
 
+	/** Run this to finish the song */
 	finishSong() {
-		const songSaveScore = new SaveScore();
-		songSaveScore.uuid = this.params.song.manifest.uuid_DONT_CHANGE;
-		songSaveScore.tally = this.tally;
-		GameSave.songsPlayed.push(songSaveScore);
+		const songSaveScore = new SaveScore(this.song.manifest.uuid_DONT_CHANGE, this.tally);
+		GameSave.scores.push(songSaveScore);
 		GameSave.save();
 		KaplayState.switchState(StateResults, this);
 	}
@@ -145,8 +156,6 @@ export class StateGame extends KaplayState {
 		this.conductor.audioPlay.stop();
 
 		this.health = 100;
-		this.spawnedNotes = [];
-		this.eventsDone = [];
 		this.hitNotes = [];
 		this.tally = new Tally();
 		this.combo = 0;
@@ -155,7 +164,6 @@ export class StateGame extends KaplayState {
 		this.song.chart.notes.forEach((note) => {
 			if (note.time <= this.params.seekTime) {
 				this.hitNotes.push(note);
-				this.spawnedNotes.push(note);
 			}
 		});
 
@@ -163,37 +171,16 @@ export class StateGame extends KaplayState {
 			this.conductor.audioPlay.seek(this.params.seekTime);
 		}
 		else {
-			this.conductor.timeInSeconds = -TIME_FOR_STRUM;
+			this.conductor.timeInSeconds = -this.TIME_FOR_STRUM;
 		}
-
-		tween(cam.pos, center(), 0.1, (p) => cam.pos = p, easings.easeOutExpo);
-		tween(cam.zoom, vec2(1), 0.1, (p) => cam.zoom = p, easings.easeOutExpo);
-		tween(cam.angle, 0, 0.1, (p) => cam.angle = p, easings.easeOutExpo);
 
 		ChartNote.getNotesOnScreen().forEach((noteObj) => {
 			noteObj.destroy();
 
+			const chartNote = noteObj.chartNote;
 			let rotationDirection = choose([-10, 10]);
-			const newdumbnote = add([
-				sprite(getNoteskinSprite(noteObj.chartNote.move)),
-				pos(noteObj.pos),
-				anchor(noteObj.anchor),
-				opacity(noteObj.opacity),
-				z(noteObj.z),
-				body(),
-				area({ collisionIgnore: ["dumbNote"] }),
-				rotate(0),
-				"dumbNote",
-				{
-					update() {
-						this.angle += rotationDirection;
-						if (this.pos.y >= height() + this.height) this.destroy();
-					},
-				},
-			]);
-
-			newdumbnote.fadeOut(TIME_FOR_STRUM);
-			newdumbnote.jump(rand(250, 500));
+			const note = addBouncyNote(chartNote, noteObj.pos, vec2(0, rand(250, 500)), rotationDirection);
+			note.fadeOut(this.TIME_FOR_STRUM);
 		});
 
 		get("trailObj").forEach((obj) => {
@@ -220,6 +207,9 @@ export class StateGame extends KaplayState {
 		this.stop();
 		this.menuInputEnabled = false;
 		KaplayState.switchState(StateChart, { song: this.song });
+	}
+
+	handleInput() {
 	}
 
 	/** Collection of events called in the state */
@@ -258,9 +248,7 @@ export class StateGame extends KaplayState {
 		this.song = this.params.song;
 
 		// now that we have the song we can get the scroll speed multiplier and set the playback speed for funzies
-		const speed = this.song.manifest.initial_scrollspeed * GameSave.scrollSpeed;
-		setTimeForStrum(1.25);
-		setTimeForStrum(TIME_FOR_STRUM / speed);
+		this.scrollspeed = (this.song.manifest.initial_scrollspeed * GameSave.scrollSpeed) * this.params.playbackSpeed;
 
 		// then we actually setup the conductor and play the song
 		this.conductor = new Conductor({
@@ -269,7 +257,7 @@ export class StateGame extends KaplayState {
 			}),
 			BPM: this.params.song.manifest.initial_bpm * this.params.playbackSpeed,
 			timeSignature: this.song.manifest.time_signature,
-			offset: TIME_FOR_STRUM,
+			offset: this.TIME_FOR_STRUM,
 		});
 
 		// adds the ui to the game
@@ -298,12 +286,12 @@ export function introGo() {
 		rotate(rand(-20, 20)),
 		anchor("center"),
 		opacity(),
-		z(1),
+		z(5),
 		timer(),
 	]);
 
 	// goText.tween(goText.pos.y, height() + goText.height, TIME_FOR_STRUM / 2, (p) => goText.pos.y = p).onEnd(() => goText.destroy())
-	goText.fadeIn(TIME_FOR_STRUM / 4).onEnd(() => {
+	goText.fadeIn(StateGame.instance.TIME_FOR_STRUM / 4).onEnd(() => {
 		goText.fadeOut();
 	});
 }
@@ -316,10 +304,8 @@ export function inputHandler(GameState: StateGame) {
 		const moveForKey = GameSave.getMoveForKey(gameKey);
 
 		if (isKeyPressed(gameKey)) {
-			GameState.strumline.press(moveForKey);
-		}
-		else if (isKeyReleased(gameKey)) {
-			GameState.strumline.pressed = false;
+			const note = Scoring.checkForNoteHit(moveForKey, GameState.conductor.timeInSeconds);
+			if (note) GameState.events.trigger("notehit", note);
 		}
 	});
 
@@ -341,6 +327,3 @@ export function inputHandler(GameState: StateGame) {
 		}
 	}
 }
-
-// TIMINGS
-export const INPUT_THRESHOLD = 0.16;

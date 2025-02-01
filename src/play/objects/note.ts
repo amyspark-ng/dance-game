@@ -1,11 +1,10 @@
-import { LoadSpriteOpt } from "kaplay";
+import { Vec2 } from "kaplay";
 import { GameSave } from "../../core/save";
-import { getNoteskinSprite, NoteskinContent } from "../../data/noteskins";
+import { getNoteskinSprite } from "../../data/noteskins";
 import { utils } from "../../utils";
-import { INPUT_THRESHOLD, StateGame } from "../PlayState";
-import { makeDancer, Move, moveAnimsArr } from "./dancer";
+import { StateGame } from "../PlayState";
+import { Move } from "./dancer";
 import { Scoring } from "./scoring";
-import { StrumlineGameObj } from "./strumline";
 
 /** The width of the note */
 export const NOTE_WIDTH = 80;
@@ -27,7 +26,7 @@ export class ChartNote {
 
 	/** The spawn time of the note based on the time to reach the strum */
 	static spawnTime(note: ChartNote): number {
-		return note.time - TIME_FOR_STRUM;
+		return note.time - StateGame.instance.TIME_FOR_STRUM;
 	}
 
 	/** Converts a move to a color */
@@ -78,7 +77,7 @@ export class ChartNote {
 
 	/** Get the position of a note at a given time */
 	static getPosAtTime(time: number, note: ChartNote, strumlineXpos: number) {
-		let mapValue = (time - ChartNote.spawnTime(note)) / TIME_FOR_STRUM;
+		let mapValue = (time - ChartNote.spawnTime(note)) / StateGame.instance.TIME_FOR_STRUM;
 		const xPos = map(mapValue, 0, 1, NOTE_SPAWNPOINT, strumlineXpos - NOTE_WIDTH / 2);
 		return xPos;
 	}
@@ -89,94 +88,120 @@ export class ChartNote {
 	}
 }
 
-/** How much time will take for the note to reach the strum */
-export let TIME_FOR_STRUM = 1.25;
-
-// TODO: Move this to GameState????????
-export function setTimeForStrum(value: number) {
-	TIME_FOR_STRUM = value;
-}
-
-/** Adds a little mask for the long notes */
-function addMasked() {
-	const masked = add([
-		rect(width() / 2, height()),
-		pos(),
-		z(10),
-		mask("subtract"),
-		"masked",
+export function addBouncyNote(chartNote: ChartNote, startPos: Vec2 = vec2(), force: Vec2 = vec2(50, 50), rotation = -10) {
+	const note = add([
+		sprite(getNoteskinSprite(chartNote.move)),
+		pos(startPos),
+		anchor("center"),
+		area(),
+		body(),
+		z(2),
+		opacity(),
+		rotate(0),
+		"bouncyNote",
+		"game",
 	]);
-	return masked;
+
+	note.jump(force.y);
+	note.onUpdate(() => {
+		note.pos.x += force.x;
+		if (note.pos.y >= height() + note.height) note.destroy();
+		note.angle += rotation;
+	});
+
+	note.collisionIgnore = ["bouncyNote"];
+
+	return note;
 }
 
 /** Adds a note to the game */
-export function addNote(chartNote: ChartNote, GameState: StateGame, strumline: StrumlineGameObj) {
+export function addNote(chartNote: ChartNote, GameState: StateGame) {
 	let trail: ReturnType<typeof addTrail> = null;
-	const masked = get("masked")[0] as ReturnType<typeof addMasked>;
-	masked.z = 1;
+
+	function addSillyNote(pos: Vec2) {
+		const force = map(GameState.TIME_FOR_STRUM, 0.05, 1.25, -50, -10);
+		return addBouncyNote(noteObj.chartNote, pos, vec2(force, noteObj.height * 3), 1);
+	}
+
+	function addFakeNote() {
+		return add([
+			sprite(getNoteskinSprite(chartNote.move)),
+			pos(noteObj.pos),
+			anchor("center"),
+			opacity(),
+			rotate(0),
+			z(2),
+			"game",
+		]);
+	}
 
 	const noteObj = add([
 		sprite(getNoteskinSprite(chartNote.move)),
-		pos(width() + NOTE_WIDTH, strumline.pos.y),
+		pos(width() + NOTE_WIDTH, GameState.strumline.pos.y),
 		anchor("center"),
 		opacity(),
 		z(2),
 		"noteObj",
 		{
-			chartNote: { time: 0, move: "left" } as ChartNote,
+			moving: true,
+			chartNote: chartNote,
+
+			/** if the time has already passed to hit a note and the note is not on spawned notes */
+			get hasPassed() {
+				return GameState.conductor.timeInSeconds >= this.chartNote.time + Scoring.INPUT_TRESHOLD && !hasMissedNote && GameState.spawnedNotes.includes(this.chartNote)
+					&& !GameState.hitNotes.includes(this.chartNote);
+			},
 		},
 	]);
 
-	noteObj.chartNote = chartNote;
-
-	/** if the time has already passed to hit a note and the note is not on spawned notes */
-	function conditionsForPassedNote(note: ChartNote) {
-		return GameState.conductor.timeInSeconds >= note.time + INPUT_THRESHOLD
-			&& !hasMissedNote && GameState.spawnedNotes.includes(note) && !GameState.hitNotes.includes(note);
-	}
-
 	const noteHitEv = GameState.events.onNoteHit((noteHit) => {
 		if (noteHit != chartNote) return;
-
-		// this will only run when the note is hit
-		noteObj.destroy();
 		noteHitEv.cancel();
 
-		if (!noteHit.length) return;
+		if (!noteHit.length) {
+			noteObj.destroy();
+			if (GameSave.sillyNotes) addSillyNote(noteObj.pos);
+		}
 
+		if (!noteHit.length) return; // the following will only run on long notes
+
+		noteObj.destroy();
+		const fakeNote = addFakeNote();
+
+		trail.parent.width = fakeNote.pos.x; // hit the note with trail, so it should be masked
+		let step = GameState.conductor.currentStep;
 		let trailHasFinished = false;
 
-		// trail.parent = masked;
-		// masked.children.push(trail);
+		// do stuff to wait for the trail to finish
 		trail.onUpdate(() => {
-			if (trail.pos.x + trail.width < width() / 2 && !trailHasFinished) {
+			if (GameState.conductor.currentStep >= (step + chartNote.length + 0.5) && !trailHasFinished) {
 				trailHasFinished = true;
-			}
-		});
-
-		const score = Scoring.getScorePerDiff(GameState.conductor.timeInSeconds, chartNote);
-		const stepHitEv = GameState.conductor.onStepHit(() => {
-			// will only run while the note is going on
-			if (trailHasFinished) {
-				stepHitEv.cancel();
-				return;
-			}
-
-			// only provide the score if the key is down
-			if (isKeyDown(GameSave.getKeyForMove(noteHit.move))) {
-				GameState.addScore(Math.round(score / 2));
+				if (fakeNote) {
+					fakeNote.destroy();
+					addSillyNote(fakeNote.pos);
+				}
 			}
 		});
 
 		const keyReleaseEv = onKeyRelease(GameSave.getKeyForMove(chartNote.move), () => {
-			strumline.currentNote = null;
+			keyReleaseEv.cancel();
+			GameState.strumline.currentNote = null;
 
 			// didn't finish holding, bad
 			if (!trailHasFinished) {
-				tween(noteObj.opacity, 0, 0.15, (p) => noteObj.opacity = p);
+				trail.destroy();
+				fakeNote.destroy();
+				// adds a sad note
+				const sadNote = addFakeNote();
+				sadNote.use(area());
+				sadNote.use(body());
+				sadNote.onUpdate(() => {
+					sadNote.angle -= 5;
+					sadNote.pos.x -= 1;
+					sadNote.opacity -= 0.05;
+					if (sadNote.pos.y >= height() + sadNote.height) sadNote.destroy();
+				});
 			}
-
-			keyReleaseEv.cancel();
 		});
 	});
 
@@ -184,73 +209,94 @@ export function addNote(chartNote: ChartNote, GameState: StateGame, strumline: S
 	noteObj.onUpdate(() => {
 		if (GameState.paused) return;
 
-		if (strumline.currentNote != chartNote) {
+		if (GameState.strumline.currentNote != chartNote) {
 			const xPos = ChartNote.getPosAtTime(
 				GameState.conductor.timeInSeconds,
 				chartNote,
-				strumline.pos.x,
+				GameState.strumline.pos.x,
 			);
 			noteObj.pos.x = xPos;
 		}
 
-		if (conditionsForPassedNote(chartNote)) {
+		if (noteObj.hasPassed) {
 			hasMissedNote = true;
 			GameState.events.trigger("miss", chartNote);
 		}
 
+		if (noteObj.pos.x < -noteObj.width) {
+			noteObj.destroy();
+		}
+
 		if (hasMissedNote) {
 			noteObj.opacity -= 0.085;
-			if (noteObj.pos.x < -noteObj.width) {
-				noteObj.destroy();
-			}
 		}
 	});
 
 	function addTrail() {
+		const masked = add([
+			rect(0, height()),
+			pos(),
+			z(noteObj.z - 1),
+			mask("subtract"),
+			"masked",
+		]);
+
 		const trail = masked.add([
 			pos(noteObj.pos),
 			anchor("left"),
 			opacity(),
-			z(noteObj.z - 1),
 			{
 				width: NOTE_WIDTH * chartNote.length,
 			},
 		]);
 
+		trail.onDestroy(() => masked.destroy());
+
 		trail.onDraw(() => {
-			for (let i = 0; i < chartNote.length; i++) {
-				if (i == 0) {
-					drawSprite({
-						sprite: getNoteskinSprite("trail", chartNote.move),
-						width: NOTE_WIDTH / 2,
-						height: NOTE_WIDTH,
-						anchor: "left",
-						opacity: trail.opacity,
-					});
-				}
+			// debugging
+			// for (let i = 0; i < chartNote.length; i++) {
+			// 	drawRect({
+			// 		width: NOTE_WIDTH,
+			// 		height: noteObj.height,
+			// 		fill: false,
+			// 		anchor: "left",
+			// 		pos: vec2(NOTE_WIDTH / 2 + NOTE_WIDTH * i, 0),
+			// 		outline: {
+			// 			width: 5,
+			// 			color: BLUE,
+			// 		},
+			// 	});
+			// }
 
-				drawSprite({
-					sprite: (i != chartNote.length - 1)
-						? getNoteskinSprite("trail", chartNote.move)
-						: getNoteskinSprite("tail", chartNote.move),
-					pos: vec2(NOTE_WIDTH / 2 + (NOTE_WIDTH * i), 0),
-					anchor: "left",
-					opacity: trail.opacity,
-				});
+			// draws the base
+			drawSprite({
+				sprite: getNoteskinSprite("trail", chartNote.move),
+				width: NOTE_WIDTH / 2,
+				height: NOTE_WIDTH,
+				anchor: "left",
+				opacity: trail.opacity,
+			});
 
-				// DEBUGGING purposes
-				// drawRect({
-				// 	width: NOTE_WIDTH,
-				// 	height: NOTE_WIDTH,
-				// 	outline: {
-				// 		width: 1,
-				// 		color: WHITE,
-				// 	},
-				// 	fill: false,
-				// 	pos: vec2(NOTE_WIDTH / 2 + (NOTE_WIDTH * i), 0),
-				// 	anchor: "left",
-				// });
-			}
+			// draws the trail
+			drawSprite({
+				sprite: getNoteskinSprite("trail", chartNote.move),
+				width: trail.width - NOTE_WIDTH, // removes 1 to account for the tail
+				height: noteObj.height,
+				// tiled: true,
+				pos: vec2(NOTE_WIDTH / 2, 0),
+				anchor: "left",
+				opacity: trail.opacity,
+			});
+
+			// draws the tail
+			drawSprite({
+				sprite: getNoteskinSprite("tail", chartNote.move),
+				pos: vec2(NOTE_WIDTH / 2 + trail.width - NOTE_WIDTH, 0),
+				width: NOTE_WIDTH,
+				height: noteObj.height,
+				anchor: "left",
+				opacity: trail.opacity,
+			});
 		});
 
 		trail.onUpdate(() => {
@@ -258,9 +304,10 @@ export function addNote(chartNote: ChartNote, GameState: StateGame, strumline: S
 			const xPos = ChartNote.getPosAtTime(
 				GameState.conductor.timeInSeconds,
 				chartNote,
-				strumline.pos.x,
+				GameState.strumline.pos.x,
 			);
 			trail.pos = vec2(xPos, noteObj.pos.y);
+			trail.opacity = noteObj.opacity;
 		});
 
 		return trail;
@@ -280,8 +327,6 @@ export type NoteGameObj = ReturnType<typeof addNote>;
 // MF you genius
 /** Crucial function that handles the spawning of notes in the game */
 export function notesSpawner(GameState: StateGame) {
-	addMasked();
-
 	/** holds all the chart.notes that have not been spawned */
 	let waiting: ChartNote[] = [];
 
@@ -305,7 +350,7 @@ export function notesSpawner(GameState: StateGame) {
 			if (ChartNote.spawnTime(note) > t) {
 				break;
 			}
-			GameState.strumline.spawnNote(note);
+			addNote(note, GameState);
 			index--;
 		}
 
