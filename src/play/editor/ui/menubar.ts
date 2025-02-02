@@ -65,6 +65,10 @@ export class MenuBar {
 				action: () => StateChart.commands.InvertSelection(),
 			},
 			{
+				text: "Invert moves (Ctrl + Shift + F)\n",
+				action: () => StateChart.commands.InvertNotes(),
+			},
+			{
 				text: "Delete (Backspace)",
 				action: () => StateChart.commands.DeleteMultiple(),
 			},

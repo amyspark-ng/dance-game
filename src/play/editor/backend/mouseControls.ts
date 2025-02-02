@@ -1,4 +1,5 @@
 import { KEventController } from "kaplay";
+import { isSomeHovered } from "../../../core/cursor";
 import { StateChart } from "../EditorState";
 import { EditorEvent, EditorNote, EditorStamp } from "../objects/stamp";
 
@@ -19,7 +20,7 @@ export function mouseControls() {
 		if (!inGridAtClick) {
 			const releasedOutsideTheGrid = onMouseRelease("left", () => {
 				releasedOutsideTheGrid.cancel();
-				StateChart.commands.DeselectAll();
+				if (!isSomeHovered()) StateChart.commands.DeselectAll();
 			});
 		}
 		else {

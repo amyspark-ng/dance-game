@@ -75,6 +75,16 @@ export class ChartNote {
 		}
 	}
 
+	/** Gives the opposite direction of a move
+	 * @param move The move to invert
+	 */
+	static invertMove(move: Move): Move {
+		if (move == "left") return "right";
+		else if (move == "down") return "up";
+		else if (move == "up") return "down";
+		else if (move == "right") return "left";
+	}
+
 	/** Gets the pos of a note at a given time
 	 * @param hitTime
 	 * @param spawnTime

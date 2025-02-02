@@ -7,6 +7,11 @@ interface customCursorComp extends Comp {
 	do(doing: cursorDoing): void;
 }
 
+/** Wheter any hover object is being hovered */
+export function isSomeHovered() {
+	return get("hover", { recursive: true }).some((obj) => obj.isHovering());
+}
+
 function cursorComponent(): customCursorComp {
 	return {
 		id: "cursorComponent",

@@ -50,6 +50,7 @@ export const editorShortcuts = () => {
 	// all the control commands
 	if (!isKeyDown("control")) return;
 	else if (isKeyDown("shift") && isKeyPressed("s")) StateChart.commands.SaveChart();
+	else if (isKeyDown("shift") && isKeyPressed("f")) StateChart.commands.InvertNotes();
 	else if (isKeyPressed("n")) StateChart.commands.NewChart();
 	else if (isKeyPressed("o")) StateChart.commands.OpenChart();
 	else if (isKeyPressed("q")) StateChart.commands.Exit();

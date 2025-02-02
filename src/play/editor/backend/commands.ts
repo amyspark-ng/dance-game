@@ -7,6 +7,7 @@ import { FileManager } from "../../../FileManager";
 import { StateMenu } from "../../../ui/menu/MenuScene";
 import { addNotification } from "../../../ui/objects/notification";
 import { Move } from "../../objects/dancer";
+import { ChartNote } from "../../objects/note";
 import { StateChart } from "../EditorState";
 import { EditorEvent, EditorNote, EditorStamp } from "../objects/stamp";
 import { addFloatyText } from "./utils";
@@ -148,6 +149,19 @@ export const editorCommands = {
 		if (stamps.some((stamp) => stamp.is("event"))) {
 			Sound.playSound("eventCog", { detune: rand(-50, 50) });
 		}
+	},
+
+	InvertNotes(notes?: EditorNote[]) {
+		notes = notes ?? StateChart.instance.selected.filter((stamp) => stamp.is("note"));
+		if (notes.length < 1) return;
+		notes.forEach((note) => {
+			note.data.move = ChartNote.invertMove(note.data.move);
+			note.twist();
+			note.bop();
+		});
+
+		const sound = notes[0].addSound();
+		sound.detune -= rand(500, 600);
 	},
 
 	Copy(stamps?: EditorStamp[]) {
