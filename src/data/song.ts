@@ -36,7 +36,7 @@ export const songSchema = {
 	},
 };
 
-type SongAssets = {
+export type SongAssets = {
 	manifest: SongManifest;
 	cover: string;
 	audio: string | ArrayBuffer;
