@@ -119,6 +119,13 @@ export class SongChart {
 	}
 }
 
+export class StringSongAssets {
+	cover: string = "";
+	audio: string = "";
+	chart: string = "";
+	manifest: string = "";
+}
+
 export class SongContent {
 	/**
 	 * Fetch a manifest from a path
@@ -279,6 +286,11 @@ export class SongContent {
 	manifest: SongManifest = new SongManifest();
 	/** The content of the chart.json in the zip */
 	chart: SongChart = new SongChart();
+
+	assignFromAssets(assets: StringSongAssets) {
+		this.chart = JSON.parse(assets.chart);
+		this.manifest = JSON.parse(assets.manifest);
+	}
 
 	get isDefault() {
 		return SongContent.defaultUUIDS.includes(this.manifest.uuid_DONT_CHANGE);
