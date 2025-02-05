@@ -8,6 +8,12 @@ type conductorOpts = {
 	offset?: number;
 };
 
+// Will only happen if lajbel decides to make it happen
+class BPMChange {
+	bpm: number = 100;
+	time: number = 0;
+}
+
 // TODO: make it work with this.events
 
 /*
@@ -49,22 +55,17 @@ type conductorOpts = {
 
 /** Manages the stuff related to music and beats */
 export class Conductor {
-	events = new KEventHandler();
+	/** The bpm of the song on the audioPlay */
+	currentBPM: number = 100;
 
 	/** The AudioPlay object of the current song that is playing */
 	audioPlay: CustomAudioPlay;
 
 	/** Is the current time in the song, the same as this.audioPlay.time() i think */
-	timeInSeconds: number = 0;
+	time: number = 0;
 
 	/** The time signature, array of 2 numbers */
 	timeSignature: [number, number] = [4, 4];
-
-	/** Interval between steps */
-	stepInterval: number = 0;
-
-	/** Interval between beats */
-	beatInterval: number = 0;
 
 	/** Is the top (0) number of the timeSignature, how many steps are in a beat */
 	get stepsPerBeat() {
@@ -76,20 +77,31 @@ export class Conductor {
 		return this.timeSignature[1];
 	}
 
+	/** Interval between steps */
+	get stepInterval() {
+		return this.beatInterval / this.stepsPerBeat;
+	}
+
+	/** Interval between beats */
+	get beatInterval() {
+		return 60 / this.currentBPM;
+	}
+
 	/** The time in steps */
-	stepTime: number = 0;
+	get stepTime() {
+		return this.timeToStep(this.time);
+	}
 
 	/** The time in beats */
-	beatTime: number = 0;
+	get beatTime() {
+		return this.timeToBeat(this.time);
+	}
 
 	/** The current step at the current time */
-	currentStep: number = 0;
+	currentStep = Math.floor(this.stepTime);
 
 	/** The current beat at the current time */
-	currentBeat: number = 0;
-
-	/** The bpm of the song on the audioPlay */
-	BPM: number = 100;
+	currentBeat = Math.floor(this.beatTime);
 
 	/** Wheter the conductor is paused or nah */
 	paused: boolean = false;
@@ -97,16 +109,10 @@ export class Conductor {
 	/** Wheter the offset for the song has already passed */
 	private started: boolean = false;
 
-	/** Sets the intervals */
-	private updateIntervals() {
-		this.beatInterval = 60 / this.BPM;
-		this.stepInterval = this.beatInterval / this.stepsPerBeat;
-	}
-
 	/** Coverts a given time to a beat
 	 * @returns The time in beats (can be fractional)
 	 */
-	timeToBeat(time: number = this.timeInSeconds, lengthOfBeat: number = this.beatInterval) {
+	timeToBeat(time: number = this.time, lengthOfBeat: number = this.beatInterval) {
 		return time / lengthOfBeat;
 	}
 
@@ -139,10 +145,7 @@ export class Conductor {
 		return Math.floor(this.timeToStep(this.audioPlay.duration()));
 	}
 
-	/** Changes the time signature */
-	changeTimeSignature(newTm: [number, number]) {
-		this.timeSignature = newTm;
-	}
+	events = new KEventHandler();
 
 	destroy() {
 		this.audioPlay.stop();
@@ -151,32 +154,31 @@ export class Conductor {
 
 	/** Update function that should run onUpdate so the conductor gets updated */
 	private update() {
-		if (this.timeInSeconds >= 0) this.audioPlay.paused = this.paused;
+		if (this.time >= 0) this.audioPlay.paused = this.paused;
 
-		if (this.timeInSeconds < 0) {
+		if (this.time < 0) {
 			if (this.paused) return;
-			this.timeInSeconds += dt();
+			this.time += dt();
 			this.audioPlay.paused = true;
 			this.started = false;
 		}
 		// if it has to start playing and hasn't started playing, play!!
-		else if (this.timeInSeconds >= 0) {
+		else if (this.time >= 0) {
 			if (!this.started) {
 				this.started = true;
 				this.events.trigger("start");
 			}
 
 			if (!this.paused) {
-				this.timeInSeconds = this.audioPlay.time();
+				this.time = this.audioPlay.time();
 			}
-
-			this.updateIntervals();
 
 			const oldStep = this.currentStep;
 			const oldBeat = this.currentBeat;
 
-			this.currentStep = Math.floor(this.timeToStep(this.timeInSeconds));
-			this.currentBeat = Math.floor(this.timeToBeat(this.timeInSeconds));
+			// Can't make these getters because of the code below
+			this.currentStep = Math.floor(this.stepTime);
+			this.currentBeat = Math.floor(this.beatTime);
 
 			// // if (this.paused) return;
 			if (oldStep != this.currentStep) this.events.trigger("step", this.currentStep);
@@ -202,14 +204,13 @@ export class Conductor {
 	constructor(opts: conductorOpts) {
 		opts.offset = opts.offset ?? 0;
 
-		this.BPM = opts.BPM;
+		this.currentBPM = opts.BPM;
 		this.audioPlay = opts.audioPlay;
-		this.changeTimeSignature(opts.timeSignature);
-		this.updateIntervals();
+		this.timeSignature = opts.timeSignature;
 		this.events = new KEventHandler();
 
-		if (opts.offset > 0) this.timeInSeconds = -opts.offset;
-		else this.timeInSeconds = 0;
+		if (opts.offset > 0) this.time = -opts.offset;
+		else this.time = 0;
 
 		onUpdate(() => {
 			this.update();

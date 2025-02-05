@@ -72,7 +72,7 @@ export class Scoring {
 	}
 
 	/** Checks if a note with the move param has been hit in the given time */
-	static checkForNote(time: number = StateGame.instance.conductor.timeInSeconds, move?: Move) {
+	static checkForNote(time: number = StateGame.instance.conductor.time, move?: Move) {
 		function getClosestNote(time: number, arr: ChartNote[]): ChartNote {
 			return arr.reduce((acc, obj) => Math.abs(time - obj.time) < Math.abs(time - acc.time) ? obj : acc);
 		}

@@ -46,7 +46,7 @@ export function syncTab() {
 
 	camSquare.onUpdate(() => {
 		const events = ChartState.song.chart.events;
-		const camValue = EventHandler["cam-move"](ChartState.conductor.timeInSeconds, events);
+		const camValue = EventHandler["cam-move"](ChartState.conductor.time, events);
 
 		camSquare.pos.x = camSquare.width / 2 + camValue.x;
 		camSquare.pos.y = camSquare.height / 2 + camValue.y;
@@ -91,7 +91,7 @@ export function syncTab() {
 	});
 
 	const onStepHitEv = ChartState.conductor.onStepHit((curStep) => {
-		const camValue = EventHandler["cam-move"](ChartState.conductor.timeInSeconds, ChartState.song.chart.events);
+		const camValue = EventHandler["cam-move"](ChartState.conductor.time, ChartState.song.chart.events);
 		if (curStep % (Math.round(ChartState.conductor.stepsPerBeat / camValue.bop_rate)) == 0) {
 			// handling zoom
 			tween(
@@ -128,7 +128,7 @@ export function syncTab() {
 	tab.onDraw(() => {
 		// #region playbar
 		const barWidth = map(
-			ChartState.conductor.timeInSeconds,
+			ChartState.conductor.time,
 			0,
 			ChartState.conductor.audioPlay.duration(),
 			0,
@@ -156,7 +156,7 @@ export function syncTab() {
 		});
 
 		drawText({
-			text: utils.formatTime(ChartState.conductor.timeInSeconds, true),
+			text: utils.formatTime(ChartState.conductor.time, true),
 			align: "left",
 			size: 20,
 			pos: vec2(5, tab.height - 30),

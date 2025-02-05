@@ -228,7 +228,7 @@ export class EditorNote extends EditorStamp {
 		if (!canDraw) return;
 
 		// select stuff
-		const opacity = StateChart.instance.conductor.timeInSeconds >= this.data.time ? 1 : 0.5;
+		const opacity = StateChart.instance.conductor.time >= this.data.time ? 1 : 0.5;
 
 		// actual drawing
 		if (this.data.length) {
@@ -327,7 +327,7 @@ export class EditorEvent extends EditorStamp {
 		if (!StateChart.utils.renderingConditions(this.intendedPos.y)) return;
 
 		// select stuff
-		const opacity = StateChart.instance.conductor.timeInSeconds >= this.data.time ? 1 : 0.5;
+		const opacity = StateChart.instance.conductor.time >= this.data.time ? 1 : 0.5;
 		// this draws the actual stamp (event or note)
 		drawSprite({
 			sprite: this.data.id ?? "hueSlider",

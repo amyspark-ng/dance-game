@@ -174,7 +174,7 @@ export function addPauseUI() {
 			obj.paused = GameState.paused;
 		});
 
-		if (GameState.conductor.timeInSeconds < 0) return;
+		if (GameState.conductor.time < 0) return;
 		Sound.playSound("pauseScratch", {
 			detune: GameState.paused == true ? -150 : 150,
 			speed: 1,
@@ -191,7 +191,7 @@ export function addPauseUI() {
 		else {
 			const audioName = GameState.song.manifest.uuid_DONT_CHANGE + "-audio";
 			const songToScratch = Sound.playMusic(audioName);
-			if (GameState.conductor.timeInSeconds > 0) songToScratch.seek(GameState.conductor.timeInSeconds);
+			if (GameState.conductor.time > 0) songToScratch.seek(GameState.conductor.time);
 			pauseScratch(songToScratch);
 		}
 	});

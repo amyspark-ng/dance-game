@@ -61,19 +61,19 @@ KaplayState.scene("StateChart", (params: paramsEditor) => {
 		ChartState.lerpScrollStep = lerp(ChartState.lerpScrollStep, ChartState.scrollStep, StateChart.LERP);
 		if (ChartState.paused) {
 			const theTime = ChartState.conductor.stepToTime(ChartState.scrollStep + ChartState.strumlineStep);
-			ChartState.conductor.timeInSeconds = theTime;
+			ChartState.conductor.time = theTime;
 		}
 		else {
 			const stepOffsetTime = ChartState.conductor.stepToTime(ChartState.strumlineStep);
 			const newStep = ChartState.conductor.timeToStep(
-				ChartState.conductor.timeInSeconds - stepOffsetTime,
+				ChartState.conductor.time - stepOffsetTime,
 			);
 			ChartState.scrollStep = Math.round(newStep);
 		}
 
 		// HOVERED STEP
 		ChartState.hoveredStep = ChartState.scrollStep + Math.floor(gameCursor.pos.y / StateChart.SQUARE_SIZE.y);
-		ChartState.conductor.BPM = ChartState.song.manifest.initial_bpm;
+		ChartState.conductor.currentBPM = ChartState.song.manifest.initial_bpm;
 		ChartState.conductor.timeSignature = ChartState.song.manifest.time_signature;
 
 		// has notes selected or has selectionbox

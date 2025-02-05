@@ -16,7 +16,7 @@ export function keyboardControls() {
 		ChartState.paused = true;
 
 		// transition to scene normally
-		KaplayState.switchState(StateGame, { fromEditor: true, song: ChartState.song, seekTime: ChartState.conductor.timeInSeconds });
+		KaplayState.switchState(StateGame, { fromEditor: true, song: ChartState.song, seekTime: ChartState.conductor.time });
 	});
 
 	// Pausing unpausing behaviour
@@ -27,7 +27,7 @@ export function keyboardControls() {
 		ChartState.paused = !ChartState.paused;
 
 		if (ChartState.paused == false) {
-			ChartState.conductor.audioPlay.seek(ChartState.conductor.timeInSeconds);
+			ChartState.conductor.audioPlay.seek(ChartState.conductor.time);
 		}
 	});
 

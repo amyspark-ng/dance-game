@@ -42,15 +42,15 @@ KaplayState.scene("StateGame", (params: paramsGame) => {
 	onUpdate(() => {
 		GameState.conductor.paused = GameState.paused;
 
-		if (GameState.conductor.timeInSeconds >= -(GameState.TIME_FOR_STRUM / 2) && !hasPlayedGo) {
+		if (GameState.conductor.time >= -(GameState.TIME_FOR_STRUM / 2) && !hasPlayedGo) {
 			introGo();
 			hasPlayedGo = true;
 		}
 
 		if (GameState.song.chart.notes.length > 2) {
 			if (
-				GameState.conductor.timeInSeconds >= GameState.song.chart.notes[GameState.song.chart.notes.length - 1].time
-				&& GameState.conductor.timeInSeconds + 5 < GameState.conductor.audioPlay.duration() && !timeToFinishSong
+				GameState.conductor.time >= GameState.song.chart.notes[GameState.song.chart.notes.length - 1].time
+				&& GameState.conductor.time + 5 < GameState.conductor.audioPlay.duration() && !timeToFinishSong
 			) {
 				timeToFinishSong = true;
 				tween(GameState.conductor.audioPlay.volume, 0, 5, (p) => GameState.conductor.audioPlay.volume = p).onEnd(() => {
@@ -61,7 +61,7 @@ KaplayState.scene("StateGame", (params: paramsGame) => {
 
 		// HANDLE CAM
 		const camValue = EventHandler["cam-move"](
-			GameState.conductor.timeInSeconds,
+			GameState.conductor.time,
 			GameState.song.chart.events,
 		);
 
@@ -72,9 +72,9 @@ KaplayState.scene("StateGame", (params: paramsGame) => {
 		// OTHER STUFF
 		inputHandler(GameState);
 		GameState.gameUI.missesText.misses = GameState.tally.misses;
-		GameState.gameUI.timeText.time = GameState.conductor.timeInSeconds < 0
+		GameState.gameUI.timeText.time = GameState.conductor.time < 0
 			? 0
-			: GameState.conductor.timeInSeconds;
+			: GameState.conductor.time;
 		GameState.gameUI.healthText.health = lerp(GameState.gameUI.healthText.health, GameState.health, 0.5);
 		GameState.gameUI.scoreText.score = lerp(GameState.gameUI.scoreText.score, GameState.tally.score, 0.5);
 	});
@@ -86,7 +86,7 @@ KaplayState.scene("StateGame", (params: paramsGame) => {
 	});
 
 	GameState.conductor.onStepHit((curStep) => {
-		const camValue = EventHandler["cam-move"](GameState.conductor.timeInSeconds, GameState.song.chart.events);
+		const camValue = EventHandler["cam-move"](GameState.conductor.time, GameState.song.chart.events);
 		if (curStep % (Math.round(GameState.conductor.stepsPerBeat / camValue.bop_rate)) == 0) {
 			// handling zoom
 			tween(
@@ -112,7 +112,7 @@ KaplayState.scene("StateGame", (params: paramsGame) => {
 	});
 
 	GameState.events.onNoteHit((chartNote: ChartNote) => {
-		let verdict = Scoring.judgeNote(GameState.conductor.timeInSeconds, chartNote);
+		let verdict = Scoring.judgeNote(GameState.conductor.time, chartNote);
 
 		// debug.log(`diff: ${GameState.conductor.timeInSeconds - chartNote.time}`);
 

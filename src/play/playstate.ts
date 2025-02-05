@@ -77,12 +77,12 @@ export class StateGame extends KaplayState {
 
 	/** Holds all the notes that have been spawned */
 	get spawnedNotes() {
-		return this.song.chart.notes.filter((note) => note.time < this.conductor.timeInSeconds);
+		return this.song.chart.notes.filter((note) => note.time < this.conductor.time);
 	}
 
 	/** All the events that have been passed */
 	get eventsDone() {
-		return this.song.chart.events.filter((ev) => ev.time < this.conductor.timeInSeconds);
+		return this.song.chart.events.filter((ev) => ev.time < this.conductor.time);
 	}
 
 	/** Holds all the notes that have been hit */
@@ -171,7 +171,7 @@ export class StateGame extends KaplayState {
 			this.conductor.audioPlay.seek(this.params.seekTime);
 		}
 		else {
-			this.conductor.timeInSeconds = -this.TIME_FOR_STRUM;
+			this.conductor.time = -this.TIME_FOR_STRUM;
 		}
 
 		ChartNote.getNotesOnScreen().forEach((noteObj) => {
@@ -304,7 +304,7 @@ export function inputHandler(GameState: StateGame) {
 		const moveForKey = GameSave.getMoveForKey(gameKey);
 
 		if (isKeyPressed(gameKey)) {
-			const note = Scoring.checkForNote(GameState.conductor.timeInSeconds, moveForKey);
+			const note = Scoring.checkForNote(GameState.conductor.time, moveForKey);
 			if (note) GameState.events.trigger("notehit", note);
 		}
 	});
@@ -313,7 +313,7 @@ export function inputHandler(GameState: StateGame) {
 
 	if (isKeyPressed("escape")) {
 		// this will trigger some stuff, check the 'paused' setter
-		if (GameState.conductor.timeInSeconds < 0) return;
+		if (GameState.conductor.time < 0) return;
 		GameState.paused = !GameState.paused;
 	}
 	else if (isKeyDown("shift") && isKeyDown("r")) {

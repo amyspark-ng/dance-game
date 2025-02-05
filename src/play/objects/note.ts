@@ -173,7 +173,7 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 
 			/** if the time has already passed to hit a note and the note is not on spawned notes */
 			get hasPassed() {
-				return GameState.conductor.timeInSeconds >= this.chartNote.time + Scoring.INPUT_TRESHOLD && !hasMissedNote && GameState.spawnedNotes.includes(this.chartNote)
+				return GameState.conductor.time >= this.chartNote.time + Scoring.INPUT_TRESHOLD && !hasMissedNote && GameState.spawnedNotes.includes(this.chartNote)
 					&& !GameState.hitNotes.includes(this.chartNote);
 			},
 		},
@@ -236,7 +236,7 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 
 		if (GameState.strumline.currentNote != chartNote) {
 			const pos = ChartNote.getPosAtTime(
-				GameState.conductor.timeInSeconds,
+				GameState.conductor.time,
 				ChartNote.spawnTime(chartNote),
 				GameState.strumline.pos,
 			);
@@ -327,7 +327,7 @@ export function addNote(chartNote: ChartNote, GameState: StateGame) {
 		trail.onUpdate(() => {
 			if (GameState.paused) return;
 			const xPos = ChartNote.getPosAtTime(
-				GameState.conductor.timeInSeconds,
+				GameState.conductor.time,
 				ChartNote.spawnTime(chartNote),
 				GameState.strumline.pos,
 			);
@@ -365,7 +365,7 @@ export function notesSpawner(GameState: StateGame) {
 
 	/** Check wheter a note should be spawned */
 	function checkNotes() {
-		const t = GameState.conductor.timeInSeconds;
+		const t = GameState.conductor.time;
 		let index = waiting.length - 1;
 
 		// while there are notes to spawn
@@ -410,7 +410,7 @@ export function notesSpawner(GameState: StateGame) {
 		});
 
 		onUpdate(() => {
-			debug.log(Scoring.checkForNote(GameState.conductor.timeInSeconds) ? true : false);
+			debug.log(Scoring.checkForNote(GameState.conductor.time) ? true : false);
 
 			const note = new ChartNote();
 			// const note = Scoring.checkForNote();
