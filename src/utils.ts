@@ -1,4 +1,5 @@
 import { Color, EaseFunc, Vec2 } from "kaplay";
+import { FileManager } from "./FileManager";
 
 type coolFormatNumberOpt = {
 	/**
@@ -166,5 +167,31 @@ export class utils {
 
 	static getEasingByIndex(idx: number): EaseFunc {
 		return easings[Object.keys(easings)[idx]];
+	}
+
+	static async getAverageColorOfSprite(sprite: string): Promise<Color> {
+		/* https://stackoverflow.com/questions/2541481/get-average-color-of-image-via-javascript */
+		return new Promise(async (resolve) => {
+			let context = document.createElement("canvas").getContext("2d");
+			context!.imageSmoothingEnabled = true;
+
+			const src = await FileManager.spriteToDataURL(sprite);
+			let img = new Image();
+			img.src = src;
+			img.crossOrigin = "";
+
+			img.onload = () => {
+				context!.drawImage(img, 0, 0, 1, 1);
+				const data = context!.getImageData(0, 0, 1, 1).data.slice(0, 3);
+				resolve(rgb(data[0], data[1], data[2]));
+			};
+		});
+
+		// const col = await utils.getAverageColorOfSprite(capsule.song.getCoverName());
+
+		// add([
+		// 	rect(50, 50),
+		// 	color(col),
+		// ]);
 	}
 }

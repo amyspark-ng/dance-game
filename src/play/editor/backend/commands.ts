@@ -28,7 +28,7 @@ export const editorCommands = {
 		}
 
 		const assets = await SongContent.parseFromFile(songFile);
-		const content = await SongContent.load(assets);
+		const content = await SongContent.load(assets, true);
 
 		// TODO: What...
 		if (content.isDefault) {

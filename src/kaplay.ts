@@ -26,3 +26,14 @@ utils.runInDesktop(() => {
 
 console.log("EXECUTED KAPLAY");
 const k = kaplay(libraryOpts);
+
+import { configure, InMemory } from "@zenfs/core";
+import { IndexedDB } from "@zenfs/dom";
+
+await configure({
+	mounts: {
+		"/tmp": InMemory,
+		"/home": IndexedDB,
+	},
+	addDevices: true,
+});

@@ -2,11 +2,17 @@ import audioBufferToBlob from "audiobuffer-to-blob";
 import JSZip from "jszip";
 import TOML, { TomlPrimitive } from "smol-toml";
 // import { request, songsDB } from "../core/game";
+import { Zip } from "@zenfs/archives";
+import fs, { resolveMountConfig } from "@zenfs/core";
+import { GAME } from "../core/game";
 import { GameSave } from "../core/save";
 import { FileManager } from "../FileManager";
 import { ChartNote } from "../play/objects/note";
 import { utils } from "../utils";
 import { ChartEvent } from "./event/event";
+
+const IMAGE_HELPER = "data:image/png;base64,";
+const AUDIO_HELPER = "data:audio/wav;base64,";
 
 export const songSchema = {
 	"name": { label: "Name", description: "The name of the song", type: "string", default: "Song name" },
@@ -36,13 +42,6 @@ export const songSchema = {
 	},
 };
 
-export type SongAssets = {
-	manifest: SongManifest;
-	cover: string;
-	audio: string | ArrayBuffer;
-	chart: SongChart;
-};
-
 export class SongManifest {
 	/** Name of the song */
 	name: string = "Song name";
@@ -58,8 +57,8 @@ export class SongManifest {
 	time_signature: [number, number] = [4, 4];
 	/** The UUID (universally unique identifier) of the song, please don't change */
 	uuid_DONT_CHANGE: string = undefined;
-	/** The path/url of the chart file */
 
+	/** The path/url of the chart file */
 	get chart_file() {
 		return utils.kebabCase(this.name) + "-chart.json";
 	}
@@ -119,7 +118,7 @@ export class SongChart {
 	}
 }
 
-export class StringSongAssets {
+export class SongAssets {
 	cover: string = "";
 	audio: string = "";
 	chart: string = "";
@@ -149,8 +148,7 @@ export class SongContent {
 	 * The next step is pass it through {@link load()}
 	 */
 	static async parseFromManifest(manifest: SongManifest, path: string): Promise<SongAssets> {
-		const assets: SongAssets = {} as any;
-		assets.manifest = manifest;
+		const assets = new SongAssets();
 
 		function getPath(otherPath: string) {
 			return path + "/" + otherPath;
@@ -160,9 +158,11 @@ export class SongContent {
 		const cover = await FileManager.getFileAtUrl(getPath(manifest.cover_file));
 		const chart = await FileManager.getFileAtUrl(getPath(manifest.chart_file));
 
-		if (audio) assets.audio = await audio.blob().then((thing) => thing.arrayBuffer());
-		if (cover) assets.cover = await cover.blob().then((thing) => URL.createObjectURL(thing));
-		if (chart) assets.chart = JSON.parse(await chart.blob().then((thing) => thing.text()));
+		// no need for audio/image helper with this method apparently
+		if (audio) assets.audio = await FileManager.blobToDataURL(await audio.blob());
+		if (cover) assets.cover = await FileManager.blobToDataURL(await cover.blob());
+		if (chart) assets.chart = await chart.blob().then((thing) => thing.text());
+		assets.manifest = JSON.stringify(manifest);
 
 		return new Promise((resolve) => resolve(assets));
 	}
@@ -172,48 +172,78 @@ export class SongContent {
 	 * The next step is pass it through {@link load()}
 	 */
 	static async parseFromFile(file: File): Promise<SongAssets> {
-		const jsZip = new JSZip();
-		const zipFile = await jsZip.loadAsync(file);
+		const zipFs = await resolveMountConfig({ backend: Zip, data: await file.arrayBuffer() });
+		fs.mount("/mnt/zip", zipFs);
 
-		const manifestFile = zipFile.file("manifest.toml");
+		const stringManifest = fs.readFileSync("/mnt/zip/manifest.toml", "utf-8");
 		const manifest = new SongManifest();
-		manifest.assignFromTOML(TOML.parse(await manifestFile.async("string")));
+		manifest.assignFromTOML(TOML.parse(stringManifest));
 
-		const assets: SongAssets = {} as any;
-		assets.manifest = manifest;
+		const coverPath = manifest.cover_file;
+		const coverBase64 = fs.readFileSync("/mnt/zip/" + coverPath, "base64");
 
-		const audio = await zipFile.file(manifest.audio_file).async("arraybuffer");
-		const cover = await zipFile.file(manifest.cover_file).async("blob");
-		const chart = await zipFile.file(manifest.chart_file).async("text");
+		const audioPath = manifest.audio_file;
+		const audioBase64 = fs.readFileSync("/mnt/zip/" + audioPath, "base64");
 
-		if (audio) assets.audio = audio;
-		if (cover) assets.cover = await FileManager.blobToDataURL(cover);
-		if (chart) assets.chart = JSON.parse(chart);
+		const chartPath = manifest.chart_file;
+		const stringChart = fs.readFileSync("/mnt/zip/" + chartPath, "utf-8");
+		const chartObject = JSON.parse(stringChart);
+
+		const assets = new SongAssets();
+		assets.cover = IMAGE_HELPER + coverBase64;
+		assets.audio = AUDIO_HELPER + audioBase64;
+		assets.manifest = JSON.stringify(manifest);
+		assets.chart = JSON.stringify(chartObject);
+
+		fs.umount("/mnt/zip");
 
 		return new Promise((resolve) => resolve(assets));
 	}
 
-	static async load(assets: SongAssets): Promise<SongContent> {
-		await loadSound(assets.manifest.uuid_DONT_CHANGE + "-audio", assets.audio);
-		await loadSprite(assets.manifest.uuid_DONT_CHANGE + "-cover", assets.cover);
-		const content = new SongContent(assets.chart, assets.manifest);
+	/** Loads a song to the game
+	 * @param assets The SongAssets to load
+	 * @param pushToIndexedDB Wheter to push the song to indexedDB (defaults to false)
+	 * @param pushToLoaded Wheter to push the song to the loaded array (available songs) (defalts to true)
+	 */
+	static async load(assets: SongAssets, pushToIndexedDB = false, pushToLoaded = true): Promise<SongContent> {
+		const manifest = JSON.parse(assets.manifest);
+		const content = new SongContent(JSON.parse(assets.chart), JSON.parse(assets.manifest));
+		console.log(`${GAME.NAME}: Loading ${content.isDefault ? "default" : "extra"} song with the UUID ${content.manifest.uuid_DONT_CHANGE}...`);
+		await loadSprite(content.getCoverName(), assets.cover);
+		await loadSound(content.getAudioName(), assets.audio);
 
 		if (!content.isDefault) {
-			if (GameSave.extraSongs.includes(assets.manifest.uuid_DONT_CHANGE)) {
-				const index = GameSave.extraSongs.indexOf(assets.manifest.uuid_DONT_CHANGE);
-				GameSave.extraSongs[index] = assets.manifest.uuid_DONT_CHANGE;
+			if (GameSave.extraSongs.includes(manifest.uuid_DONT_CHANGE)) {
+				const index = GameSave.extraSongs.indexOf(manifest.uuid_DONT_CHANGE);
+				GameSave.extraSongs[index] = manifest.uuid_DONT_CHANGE;
 			}
 			else {
-				GameSave.extraSongs.push(assets.manifest.uuid_DONT_CHANGE);
+				GameSave.extraSongs.push(manifest.uuid_DONT_CHANGE);
 			}
+		}
+
+		if (pushToIndexedDB) {
+			const file_path = `/home/songs/${content.manifest.uuid_DONT_CHANGE}`;
+			const data = JSON.stringify(assets);
+
+			if (!fs.existsSync("/home/songs")) fs.mkdirSync("/home/songs");
+			fs.writeFileSync(file_path, data);
+			console.log(">GTHIS RUND AND WRITES TO FOLERDER");
+			if (GameSave.save) GameSave.save();
+		}
+
+		if (pushToLoaded) {
+			const songWithSameUUID = SongContent.loaded.find((song) => song.manifest.uuid_DONT_CHANGE == content.manifest.uuid_DONT_CHANGE);
+			if (songWithSameUUID) SongContent.loaded[SongContent.loaded.indexOf(songWithSameUUID)] = content;
+			else SongContent.loaded.push(content);
 		}
 
 		return new Promise((resolve) => resolve(content));
 	}
 
 	static async loadAll() {
-		loadSound("new-song-audio", "content/songs/new-song-audio.ogg");
-		loadSprite("new-song-cover", "content/songs/new-song-cover.png");
+		await loadSound("new-song-audio", "content/songs/new-song-audio.ogg");
+		await loadSprite("new-song-cover", "content/songs/new-song-cover.png");
 
 		await load(
 			new Promise(async (resolve, reject) => {
@@ -222,15 +252,16 @@ export class SongContent {
 						try {
 							const manifest = await SongContent.fetchManifestFromPath(path);
 							const assets = await SongContent.parseFromManifest(manifest, path);
-							const content = await SongContent.load(assets);
-							SongContent.loaded.push(content);
+							await SongContent.load(assets);
 						}
 						catch (err) {
-							console.error(err);
-							throw new Error("There was an error loading the default songs");
+							throw new Error("There was an error loading the default songs, was trying to load: " + path);
 						}
 
-						if (index == SongContent.defaultPaths.length - 1) resolve("ok");
+						if (index == SongContent.defaultPaths.length - 1) {
+							console.log(`${GAME.NAME}: Loaded default songs successfully`);
+							resolve("ok");
+						}
 					});
 				}
 				catch (e) {
@@ -243,16 +274,20 @@ export class SongContent {
 		await load(
 			new Promise(async (resolve, reject) => {
 				try {
-					// now load the default ones
+					// now load the extra ones
 					GameSave.extraSongs.forEach(async (uuid, index) => {
-						const assets: SongAssets = getData(uuid);
-						// @ts-ignore
-						assets.audio = JSON.parse(assets.audio);
-						const content = await SongContent.load(assets);
-						SongContent.loaded.push(content);
+						if (fs.existsSync(`/home/songs/${uuid}`)) {
+							const stringAssets = fs.readFileSync(`/home/songs/${uuid}`, "utf8");
+							const assets = JSON.parse(stringAssets);
+							await SongContent.load(assets);
+						}
+						else {
+							console.log(`${GAME.NAME}: There's no song with the UUID: '${uuid}' stored in the file system, removed UUID from list`);
+							GameSave.extraSongs.splice(GameSave.extraSongs.indexOf(uuid), 1);
+						}
 
 						if (index == GameSave.extraSongs.length - 1) {
-							console.log("should resolve");
+							console.log(`${GAME.NAME}: Loaded extra songs successfully`);
 							resolve("ok");
 						}
 					});
@@ -286,11 +321,6 @@ export class SongContent {
 	manifest: SongManifest = new SongManifest();
 	/** The content of the chart.json in the zip */
 	chart: SongChart = new SongChart();
-
-	assignFromAssets(assets: StringSongAssets) {
-		this.chart = JSON.parse(assets.chart);
-		this.manifest = JSON.parse(assets.manifest);
-	}
 
 	get isDefault() {
 		return SongContent.defaultUUIDS.includes(this.manifest.uuid_DONT_CHANGE);

@@ -1,3 +1,6 @@
+import fs from "@zenfs/core";
+import { Color } from "kaplay";
+import { cloneDeep } from "lodash";
 import { GameSave } from "../../../core/save";
 import { KaplayState } from "../../../core/scenes/KaplayState";
 import { CustomAudioPlay, Sound } from "../../../core/sound";
@@ -180,7 +183,7 @@ KaplayState.scene("StateSongSelect", (startAt: SongContent | number) => {
 	// add the song capsule for the extra thing
 	StateSongSelect.addSongCapsule(null);
 
-	let allCapsules = get("songCapsule", { liveUpdate: true }) as songCapsuleObj[];
+	const allCapsules = get("songCapsule", { liveUpdate: true }) as songCapsuleObj[];
 	onUpdate(() => {
 		songAmount = SongContent.loaded.length + 1;
 		allCapsules.forEach((songCapsule, index) => {
@@ -239,21 +242,22 @@ KaplayState.scene("StateSongSelect", (startAt: SongContent | number) => {
 		SongSelectState.updateState();
 	});
 
-	SongSelectState.onUpdateState(() => {
-		if (!allCapsules[SongSelectState.index]) return;
-		if (!allCapsules[SongSelectState.index].song) {
+	SongSelectState.onUpdateState(async () => {
+		const capsule = allCapsules[SongSelectState.index];
+		if (!capsule) return;
+		if (!capsule.song) {
 			SongSelectState.songPreview?.stop();
 			return;
 		}
 
 		const tallyScore = SongScore.getHighscore(
-			allCapsules[SongSelectState.index].song.manifest.uuid_DONT_CHANGE,
+			capsule.song.manifest.uuid_DONT_CHANGE,
 		);
 
 		highscoreText.solidValue = Math.floor(tallyScore.tally.score);
 
 		SongSelectState.songPreview?.stop();
-		SongSelectState.songPreview = Sound.playMusic(allCapsules[SongSelectState.index].song.getAudioName());
+		SongSelectState.songPreview = Sound.playMusic(capsule.song.getAudioName());
 		SongSelectState.songPreview.loop = true;
 		SongSelectState.songPreview.fadeIn(Sound.musicVolume, 0.25);
 	});
@@ -268,8 +272,9 @@ KaplayState.scene("StateSongSelect", (startAt: SongContent | number) => {
 			const gottenFile = await FileManager.receiveFile("mod");
 
 			if (gottenFile) {
+				const oldLoadedList = cloneDeep(SongContent.loaded);
 				const assets = await SongContent.parseFromFile(gottenFile);
-				const content = await SongContent.load(assets);
+				const content = await SongContent.load(assets, true);
 
 				// is trying to overwrite deafult, not!!
 				if (SongContent.defaultUUIDS.includes(content.manifest.uuid_DONT_CHANGE)) {
@@ -279,7 +284,7 @@ KaplayState.scene("StateSongSelect", (startAt: SongContent | number) => {
 				}
 
 				/** Wheter the UUID is already on loaded but not on default */
-				const overwritingExtra = SongContent.loaded.map((content) => content.manifest.uuid_DONT_CHANGE).includes(content.manifest.uuid_DONT_CHANGE)
+				const overwritingExtra = oldLoadedList.map((content) => content.manifest.uuid_DONT_CHANGE).includes(content.manifest.uuid_DONT_CHANGE)
 					&& !SongContent.defaultUUIDS.includes(content.manifest.uuid_DONT_CHANGE);
 
 				const overwritingDefault = SongContent.defaultUUIDS.includes(content.manifest.uuid_DONT_CHANGE);
@@ -315,7 +320,6 @@ KaplayState.scene("StateSongSelect", (startAt: SongContent | number) => {
 				}
 
 				// if you got here it's because you're not overwriting a song, you're adding a totally new one
-				SongContent.loaded.push(content);
 				const capsule = StateSongSelect.addSongCapsule(content);
 				let index = allCapsules.indexOf(capsule);
 				if (index == -1) index = 0;

@@ -1,8 +1,11 @@
 import { getCurrent } from "@tauri-apps/api/window";
+import { configure, InMemory } from "@zenfs/core";
+import { IndexedDB } from "@zenfs/dom";
 import { getSongByName, SongContent } from "../data/song";
 import { StateChart } from "../play/editor/EditorState";
 import { StateGame } from "../play/PlayState";
 import { StateOptions } from "../ui/menu/options/optionsScene";
+import { StateSongSelect } from "../ui/menu/songselect/SongSelectScene";
 import { StateFocus } from "../ui/scenes/FocusScene";
 import { StateTitle } from "../ui/scenes/TitleScene";
 import { utils } from "../utils";
@@ -85,6 +88,7 @@ document.addEventListener("fullscreenchange", (event) => {
 
 export function INITIAL_SCENE() {
 	// KaplayState.switchState(StateTitle);
-	KaplayState.switchState(StateChart, { song: SongContent.getByName("Bopeebo") });
+	KaplayState.switchState(StateSongSelect, 0);
+	// KaplayState.switchState(StateChart, { song: SongContent.getByName("Bopeebo") });
 	// KaplayState.switchState(StateGame, { song: SongContent.getByName("Bopeebo") });
 }
