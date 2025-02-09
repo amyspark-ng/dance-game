@@ -1,97 +1,108 @@
+import { GameObj } from "kaplay";
+import { cam } from "../../../core/camera";
 import { _GameSave, GameSave } from "../../../core/save";
 import { KaplayState } from "../../../core/scenes/KaplayState";
-import { getNoteskinSprite, NoteskinContent } from "../../../data/noteskins";
+import { NoteskinContent } from "../../../data/noteskins";
 import { Move } from "../../../play/objects/dancer";
 import { utils } from "../../../utils";
 import { StateMenu } from "../MenuScene";
 import { StateSongSelect } from "../songselect/SongSelectScene";
+import { addOptionsCheckbox, addOptionsNoteskinEnum, addOptionsStepper, optionsCheckboxComp, optionsStepperComp, optionsUIComp } from "./optionsUI";
 
 export class StateOptions extends KaplayState {
-	noteskinIndex: number = 0;
-	focusingNoteskin: boolean = true;
-	controlIndex: number = 0;
-	focusingControl: boolean = false;
+	index: number = 0;
 
 	constructor() {
 		super();
 	}
 }
 
+// master
+// music
+// sfx
+// silly notes
+// noteskin
+// controls
+
 KaplayState.scene("StateOptions", () => {
+	const OptionsState = new StateOptions();
 	setBackground(BLUE.lighten(30));
 
-	// add([
-	// 	text("OPTIONS", { size: 80 }),
-	// 	anchor("center"),
-	// 	pos(center().x, 70),
-	// ]);
+	const sillyNotesCheckbox = addOptionsCheckbox("Silly notes", "Wheter to make notes do the silly", (checked: boolean) => {
+		GameSave.sillyNotes = checked;
+	}, GameSave.sillyNotes);
+	sillyNotesCheckbox.index = 0;
 
-	const moves = ["left", "down", "up", "right"];
-	NoteskinContent.loaded.forEach((noteskin, noteskinIndex) => {
-		const noteskinData = NoteskinContent.getByName(noteskin.name);
+	const testCheckbox = addOptionsCheckbox("Silly notes", "Wheter to make notes do the silly", (checked: boolean) => {
+		GameSave.sillyNotes = checked;
+	}, GameSave.sillyNotes);
+	sillyNotesCheckbox.index = 1;
 
-		moves.forEach((move: Move, moveIndex) => {
-			const note = add([
-				sprite(noteskinData.getSprite(move)),
-				pos(center()),
-				anchor("center"),
-				opacity(),
-				area(),
-				"hover",
-			]);
+	const masterVolume = addOptionsStepper("Master volume", "Changes the master volume", 10, 0, 100, (value) => {
+		GameSave.volume = value / 100;
+	}, Math.round(GameSave.volume * 10));
+	masterVolume.index = 2;
 
-			note.pos = note.pos.add(vec2(60 * moveIndex, noteskinIndex * 60));
+	const musicVolume = addOptionsStepper("Music Volume", "Changes the music volume", 10, 0, 100, (value) => {
+		GameSave.musicVolume = value / 100;
+	}, Math.round(GameSave.musicVolume * 10));
+	musicVolume.index = 3;
 
-			note.onUpdate(() => {
-				if (GameSave.noteskin == noteskin.name) note.opacity = 1;
-				else note.opacity = 0.5;
-			});
+	const sfxVolume = addOptionsStepper("SFX Volume", "Changes the SFX volume", 10, 0, 100, (value) => {
+		GameSave.soundVolume = value / 100;
+	}, Math.round(GameSave.soundVolume * 10));
+	sfxVolume.index = 4;
 
-			note.onClick(() => {
-				GameSave.noteskin = noteskin.name;
-			});
-		});
+	const noteskinEnum = addOptionsNoteskinEnum(NoteskinContent.getByName(GameSave.noteskin), NoteskinContent.loaded, (name) => {
+		GameSave.noteskin = name;
+	});
+	noteskinEnum.index = 5;
+
+	const uiElements = get("optionsUI", { liveUpdate: true }) as GameObj<optionsUIComp | any>[];
+	onUpdate("optionsUI", (element: GameObj<optionsUIComp | any>) => {
+		element.focused = element.index == OptionsState.index;
+
+		element.pos.y = 50 + (element.height * 1.25) * element.index;
+
+		if (element.focused) {
+			element.pos.x = lerp(element.pos.x, 70, 0.25);
+		}
+		else {
+			element.pos.x = lerp(element.pos.x, 50, 0.25);
+		}
 	});
 
-	Object.keys(GameSave.gameControls).forEach((key, index) => {
-		const square = add([
-			rect(50, 50),
-			pos(80 * index, 0),
-			color(BLACK),
-			opacity(),
-			area(),
-			"key",
-			"hover",
-			{
-				focused: false,
-			},
-		]);
+	onUpdate(() => {
+		const element = uiElements.find((element) => element.focused);
 
-		square.pos = vec2(30).add(80 * index, 0);
+		if (isKeyPressed("down")) {
+			OptionsState.index = utils.scrollIndex(OptionsState.index, 1, uiElements.length);
+		}
+		else if (isKeyPressed("up")) {
+			OptionsState.index = utils.scrollIndex(OptionsState.index, -1, uiElements.length);
+		}
+		else if (isKeyPressed("enter")) {
+			if (element) {
+				if (element.is("checkbox")) {
+					(element as GameObj<optionsCheckboxComp>).check();
+				}
+			}
+		}
 
-		square.onUpdate(() => {
-			if (get("key").some((key) => key.focused) && !square.focused) square.opacity = 0.5;
-			else if (get("key").some((key) => key.focused) && square.focused) square.opacity = 1;
-			else square.opacity = 1;
-		});
-
-		square.onClick(() => {
-			square.focused = true;
-			const inputEV = onKeyPress((ch) => {
-				GameSave.gameControls[key] = ch;
-				inputEV.cancel();
-				square.focused = false;
-			});
-		});
-
-		square.onDraw(() => {
-			drawText({
-				text: GameSave.gameControls[key],
-				color: WHITE,
-				align: "center",
-				size: square.height / 2,
-			});
-		});
+		if (isKeyPressedRepeat("left")) {
+			if (element) {
+				if (element.is("stepper")) {
+					(element as GameObj<optionsStepperComp>).change(-1);
+				}
+			}
+		}
+		else if (isKeyPressedRepeat("right")) {
+			if (element) {
+				if (element.is("stepper")) {
+					(element as GameObj<optionsStepperComp>).change(1);
+				}
+			}
+		}
 	});
 
 	onSceneLeave(() => {

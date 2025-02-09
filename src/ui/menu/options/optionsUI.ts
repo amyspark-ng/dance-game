@@ -1,147 +1,161 @@
-import { Comp } from "kaplay";
+import { Comp, GameObj } from "kaplay";
+import { NoteskinContent, NoteskinData } from "../../../data/noteskins";
+import { Move } from "../../../play/objects/dancer";
 import { utils } from "../../../utils";
 
-export interface optionitemComp extends Comp {
+export interface optionsUIComp extends Comp {
+	focused: boolean;
 	index: number;
 }
 
-function optionItem(): optionitemComp {
+function optionsUI(): optionsUIComp {
 	return {
-		/** The position they have on the list */
-		id: "optionItem",
-		index: undefined,
+		id: "optionsUI",
+		focused: false,
+		index: 0,
 	};
 }
 
-export const tagForSlider = "slider";
-export function addVolumeSlider(title: string) {
-	const rectangle = add([
-		rect(300, 50),
-		pos(),
-		anchor("left"),
-		optionItem(),
-		color(),
-		opacity(),
-		tagForSlider,
-		title,
-		{
-			value: 0,
-		},
-	]);
-
-	const titleText = rectangle.add([
-		text(title, { align: "center" }),
-		pos(),
-		anchor("center"),
-		opacity(),
-		"title",
-		{
-			update() {
-				this.pos.x = rectangle.width / 2;
-				this.opacity = rectangle.opacity;
-			},
-		},
-	]);
-
-	const valueText = rectangle.add([
-		text("", { align: "left" }),
-		pos(),
-		anchor("right"),
-		opacity(),
-		"value",
-	]);
-
-	valueText.onUpdate(() => {
-		rectangle.value = utils.fixDecimal(rectangle.value);
-		valueText.text = utils.formatNumber(rectangle.value, { type: "decimal" });
-		valueText.pos.x = rectangle.width + valueText.width * 1.1;
-		valueText.opacity = rectangle.opacity;
-	});
-
-	return rectangle;
+export interface optionsCheckboxComp extends optionsUIComp {
+	value: boolean;
+	check(): void;
+	onCheck: (action: (checked: boolean) => void) => void;
 }
 
-export const tagForCheckbox = "checkbox";
-
-export function addCheckbox(title: string) {
-	const checkbox = add([
-		rect(50, 50),
-		pos(),
-		anchor("center"),
-		color(),
-		optionItem(),
-		opacity(),
-		tagForCheckbox,
-		{
-			selected: false,
-			check() {
-				this.selected = !this.selected;
-				this.trigger("check", this.selected);
-			},
-
-			onCheck(action: (checked: boolean) => void) {
+export function addOptionsCheckbox(label: string, description: string, onCheck: (checked: boolean) => void, initialValue: boolean) {
+	function optionsCheckbox(): optionsCheckboxComp {
+		return {
+			...optionsUI(),
+			value: initialValue,
+			onCheck(action) {
 				return this.on("check", action);
 			},
+			check() {
+			},
+		};
+	}
+
+	const checkbox = add([
+		rect(70, 70),
+		optionsCheckbox(),
+		anchor("center"),
+		pos(),
+		color(),
+		"checkbox",
+		{
+			type: "boolean",
 		},
 	]);
 
-	const texty = add([
-		text(title, { align: "left" }),
-		pos(),
-		anchor("left"),
-		opacity(),
-	]);
-
-	texty.onUpdate(() => {
-		texty.pos.x = checkbox.pos.x + checkbox.width * 1.1;
-		texty.pos.y = checkbox.pos.y;
-		texty.opacity = checkbox.opacity;
-
-		checkbox.tags.forEach((tag) => {
-			if (!texty.is(tag)) texty.use(tag);
-		});
+	checkbox.onUpdate(() => {
+		if (checkbox.value) checkbox.color = BLACK;
+		else checkbox.color = WHITE;
 	});
+
+	checkbox.check = () => {
+		checkbox.value = !checkbox.value;
+		onCheck(checkbox.value);
+	};
+
+	const labelObj = checkbox.add([
+		text(label, { align: "center", size: checkbox.height / 1.5 }),
+		anchor("left"),
+		pos(checkbox.width, 0),
+	]);
 
 	return checkbox;
 }
 
-export const tagForNumItem = "numItem";
-export function addNumberItem(title: string) {
-	const height = 50;
+export interface optionsStepperComp extends optionsUIComp {
+	value: number;
+	change(change: -1 | 1): void;
+	onChange(action: () => void): void;
+}
 
-	const item = add([
-		text("0", { size: height }),
-		pos(),
+export function addOptionsStepper(label: string, description: string, step: number, min: number, max: number, onChange: (value: number) => void, initialValue: number) {
+	function optionsStepper(): optionsStepperComp {
+		return {
+			...optionsUI(),
+			value: initialValue,
+			onChange(action) {
+			},
+			change(change) {
+			},
+		};
+	}
+
+	const number = add([
+		text(initialValue.toString(), { size: 60 }),
+		optionsStepper(),
+		color(BLACK),
 		anchor("center"),
-		optionItem(),
-		opacity(),
-		tagForNumItem,
+		pos(),
+		"stepper",
+	]);
+
+	number.change = (change) => {
+		number.value += step * change;
+		number.value = clamp(number.value, min, max);
+		number.text = number.value.toString();
+		onChange(number.value);
+	};
+
+	const labelObj = number.add([
+		text(label, { align: "center", size: number.height / 1.5 }),
+		anchor("left"),
+		pos(number.width, 0),
+	]);
+
+	return number;
+}
+
+export function addOptionsNoteskinEnum(noteskin: NoteskinContent, options: NoteskinContent[], onChange: (name: string) => void) {
+	const container = add([
+		optionsUI(),
+		color(BLACK),
+		anchor("center"),
+		pos(),
+		"stepper",
 		{
-			value: 0,
-			update() {
-				this.text = this.value.toFixed(1);
+			height: 0,
+			width: 0,
+			change(change: -1 | 1) {
 			},
 		},
 	]);
 
-	item.height = height;
+	let index = options.indexOf(noteskin);
 
-	const texty = add([
-		text(title, { align: "left" }),
-		pos(),
-		anchor("left"),
-		opacity(),
-	]);
+	container.change = (change: -1 | 1) => {
+		index = utils.scrollIndex(index, change, options.length);
+		const name = options[index].name;
+		container.get("note").forEach((note) => note.sprite = options[index].getSprite(note.gameMove));
+		onChange(name);
+	};
 
-	texty.onUpdate(() => {
-		texty.pos.x = item.pos.x + item.width * 1.1;
-		texty.pos.y = item.pos.y;
-		texty.opacity = item.opacity;
+	const moves = ["left", "down", "up", "right"] as Move[];
 
-		item.tags.forEach((tag) => {
-			if (!texty.is(tag)) texty.use(tag);
-		});
+	moves.forEach((move, index) => {
+		const child = container.add([
+			sprite(noteskin.getSprite(move)),
+			pos(0, 0),
+			scale(0.5),
+			"note",
+			{
+				gameMove: move,
+			},
+		]);
+
+		child.pos.x = child.width * index;
+		container.width += child.width * 0.5;
+		container.height = child.height * 0.5;
 	});
 
-	return item;
+	const labelObj = container.add([
+		text("Noteskin", { align: "center", size: container.children[0].height / 1.5 }),
+		anchor("left"),
+		pos(0, 0),
+	]);
+
+	return container;
 }
