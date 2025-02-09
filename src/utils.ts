@@ -169,6 +169,11 @@ export class utils {
 		return easings[Object.keys(easings)[idx]];
 	}
 
+	static countDecimals(number: number) {
+		if (Math.floor(number) === number) return 1;
+		return number.toString().split(".")[1].length || 0;
+	}
+
 	static async getAverageColorOfSprite(sprite: string): Promise<Color> {
 		/* https://stackoverflow.com/questions/2541481/get-average-color-of-image-via-javascript */
 		return new Promise(async (resolve) => {

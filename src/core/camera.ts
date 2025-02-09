@@ -35,14 +35,15 @@ export function setupCamera() {
 		},
 
 		reset(duration: number = 0, easing: EaseFunc = easings.linear) {
-			tween(cam.zoom, vec2(1), duration, (p) => cam.zoom = p, easing);
-			tween(cam.angle, 0, duration, (p) => cam.angle = p, easing);
-			tween(cam.pos, center(), duration, (p) => cam.pos = p, easing);
+			camManager.tween(cam.zoom, vec2(1), duration, (p) => cam.zoom = p, easing);
+			camManager.tween(cam.angle, 0, duration, (p) => cam.angle = p, easing);
+			camManager.tween(cam.pos, center(), duration, (p) => cam.pos = p, easing);
 		},
 	};
 
 	const camManager = add([
 		stay(),
+		timer(),
 		{
 			update() {
 				camPos(cam.pos);

@@ -39,7 +39,7 @@ loadAssets();
 
 onLoad(() => {
 	Sound.changeVolume(GameSave.volume);
-	new CustomSoundTray(["+"], ["-"], false);
+	new CustomSoundTray([GameSave.soundUpKey], [GameSave.soundDownKey], false);
 	setupScenes();
 	setupCursor();
 	setupCamera();

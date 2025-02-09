@@ -70,6 +70,9 @@ export class _GameSave {
 	 */
 	gameControls: gameControls = defaultControls;
 
+	soundDownKey: Key = "-";
+	soundUpKey: Key = "+";
+
 	/** (From 0 to 1) The hue of the background in the editor */
 	editorHue = 0.696;
 

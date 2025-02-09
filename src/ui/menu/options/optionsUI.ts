@@ -1,35 +1,17 @@
-import { Comp, GameObj } from "kaplay";
-import { NoteskinContent, NoteskinData } from "../../../data/noteskins";
+import { Comp, GameObj, KEventController, Key } from "kaplay";
+import { getNoteskinSprite, NoteskinContent, NoteskinData } from "../../../data/noteskins";
 import { Move } from "../../../play/objects/dancer";
 import { utils } from "../../../utils";
 
-export interface optionsUIComp extends Comp {
-	focused: boolean;
-	index: number;
-}
-
-function optionsUI(): optionsUIComp {
-	return {
-		id: "optionsUI",
-		focused: false,
-		index: 0,
-	};
-}
-
-export interface optionsCheckboxComp extends optionsUIComp {
+export interface optionsCheckboxComp extends Comp {
 	value: boolean;
 	check(): void;
-	onCheck: (action: (checked: boolean) => void) => void;
 }
 
-export function addOptionsCheckbox(label: string, description: string, onCheck: (checked: boolean) => void, initialValue: boolean) {
+export function addOptionsCheckbox(onCheck: (checked: boolean) => void, initialValue: boolean) {
 	function optionsCheckbox(): optionsCheckboxComp {
 		return {
-			...optionsUI(),
 			value: initialValue,
-			onCheck(action) {
-				return this.on("check", action);
-			},
 			check() {
 			},
 		};
@@ -38,14 +20,18 @@ export function addOptionsCheckbox(label: string, description: string, onCheck: 
 	const checkbox = add([
 		rect(70, 70),
 		optionsCheckbox(),
-		anchor("center"),
+		anchor("left"),
 		pos(),
 		color(),
 		"checkbox",
 		{
-			type: "boolean",
+			handleInput: () => {},
 		},
 	]);
+
+	checkbox.handleInput = () => {
+		if (isKeyPressed("enter")) checkbox.check();
+	};
 
 	checkbox.onUpdate(() => {
 		if (checkbox.value) checkbox.color = BLACK;
@@ -57,25 +43,18 @@ export function addOptionsCheckbox(label: string, description: string, onCheck: 
 		onCheck(checkbox.value);
 	};
 
-	const labelObj = checkbox.add([
-		text(label, { align: "center", size: checkbox.height / 1.5 }),
-		anchor("left"),
-		pos(checkbox.width, 0),
-	]);
-
 	return checkbox;
 }
 
-export interface optionsStepperComp extends optionsUIComp {
+export interface optionsStepperComp extends Comp {
 	value: number;
 	change(change: -1 | 1): void;
 	onChange(action: () => void): void;
 }
 
-export function addOptionsStepper(label: string, description: string, step: number, min: number, max: number, onChange: (value: number) => void, initialValue: number) {
+export function addOptionsStepper(step: number, min: number, max: number, onChange: (value: number) => void, initialValue: number) {
 	function optionsStepper(): optionsStepperComp {
 		return {
-			...optionsUI(),
 			value: initialValue,
 			onChange(action) {
 			},
@@ -88,41 +67,50 @@ export function addOptionsStepper(label: string, description: string, step: numb
 		text(initialValue.toString(), { size: 60 }),
 		optionsStepper(),
 		color(BLACK),
-		anchor("center"),
+		anchor("left"),
 		pos(),
 		"stepper",
+		{
+			handleInput: () => {},
+		},
 	]);
+
+	number.handleInput = () => {
+		if (isKeyPressed("left")) number.change(-1);
+		else if (isKeyPressed("right")) number.change(1);
+	};
 
 	number.change = (change) => {
 		number.value += step * change;
+		number.value = parseFloat(number.value.toFixed(utils.countDecimals(step)));
 		number.value = clamp(number.value, min, max);
 		number.text = number.value.toString();
 		onChange(number.value);
 	};
-
-	const labelObj = number.add([
-		text(label, { align: "center", size: number.height / 1.5 }),
-		anchor("left"),
-		pos(number.width, 0),
-	]);
 
 	return number;
 }
 
 export function addOptionsNoteskinEnum(noteskin: NoteskinContent, options: NoteskinContent[], onChange: (name: string) => void) {
 	const container = add([
-		optionsUI(),
+		area(),
+		rect(0, 0, { fill: false }),
 		color(BLACK),
-		anchor("center"),
+		anchor("left"),
 		pos(),
 		"stepper",
 		{
-			height: 0,
-			width: 0,
 			change(change: -1 | 1) {
+			},
+			handleInput: () => {
 			},
 		},
 	]);
+
+	container.handleInput = () => {
+		if (isKeyPressed("left")) container.change(-1);
+		else if (isKeyPressed("right")) container.change(1);
+	};
 
 	let index = options.indexOf(noteskin);
 
@@ -139,7 +127,8 @@ export function addOptionsNoteskinEnum(noteskin: NoteskinContent, options: Notes
 		const child = container.add([
 			sprite(noteskin.getSprite(move)),
 			pos(0, 0),
-			scale(0.5),
+			scale(1),
+			anchor("left"),
 			"note",
 			{
 				gameMove: move,
@@ -147,15 +136,93 @@ export function addOptionsNoteskinEnum(noteskin: NoteskinContent, options: Notes
 		]);
 
 		child.pos.x = child.width * index;
-		container.width += child.width * 0.5;
-		container.height = child.height * 0.5;
+		container.width += child.width * child.scale.x;
+		container.height = child.height * child.scale.y;
 	});
 
-	const labelObj = container.add([
-		text("Noteskin", { align: "center", size: container.children[0].height / 1.5 }),
+	return container;
+}
+
+export function addOptionsButton(label: string, action: () => void) {
+	const labelObj = add([
+		text(label, { align: "left", size: 60 }),
 		anchor("left"),
 		pos(0, 0),
+		{
+			action: action,
+			handleInput: () => {},
+		},
 	]);
 
-	return container;
+	labelObj.handleInput = () => {
+		if (isKeyPressed("enter")) action();
+	};
+
+	return labelObj;
+}
+
+export function addOptionsKeyInput(onChange: (key: Key) => void, onFocusChange: (focused: boolean) => void, initialValue: string) {
+	function parseKey(key: Key): string {
+		let string: string = "";
+		if (key == "left") string = "←";
+		else if (key == "down") string = "↓";
+		else if (key == "up") string = "↑";
+		else if (key == "right") string = "→";
+		else string = key.toUpperCase();
+		return string;
+	}
+
+	const square = add([
+		rect(60, 60),
+		anchor("left"),
+		color(BLACK),
+		pos(0, 0),
+		{
+			key: parseKey(initialValue),
+			handleInput: () => {},
+		},
+	]);
+
+	square.onDraw(() => {
+		drawText({
+			text: square.key,
+			size: square.height * 0.75,
+			anchor: "left",
+		});
+	});
+
+	let inputEV: KEventController = null;
+	square.handleInput = () => {
+		if (isKeyPressed("enter")) {
+			onFocusChange(true);
+			inputEV?.cancel();
+			inputEV = onCharInput((ch) => {
+				square.key = parseKey(ch);
+
+				inputEV.cancel();
+				inputEV = null;
+				onChange(ch);
+				onFocusChange(false);
+			});
+		}
+		else if (isKeyPressed("escape") && inputEV != null) {
+			inputEV?.cancel();
+			onFocusChange(false);
+		}
+	};
+
+	return square;
+}
+
+export function addOptionsMoveInput(move: Move, ...args: Parameters<typeof addOptionsKeyInput>) {
+	const keyInput = addOptionsKeyInput(...args);
+	const note = keyInput.add([
+		sprite(getNoteskinSprite(move)),
+		anchor("left"),
+		pos(),
+	]);
+	keyInput.width += note.width;
+	note.pos.x += note.width;
+
+	return keyInput;
 }
