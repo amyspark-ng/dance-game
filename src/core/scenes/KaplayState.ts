@@ -20,7 +20,6 @@ export function switchScene<T extends new(...args: any[]) => IScene>(
 	// registers the scene and passes the params
 	scene(sceneName, (...params: ConstructorParameters<T>) => {
 		const instance = new SceneClass(...params);
-		console.log(instance);
 		instance.scene(instance);
 	});
 

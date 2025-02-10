@@ -1,6 +1,5 @@
 # GENERAL
 - Sometimes the conductor keeps playing after exiting the scene
-- Do indexedDB thing
 - Make cursor animation system even BETTER
     ## Save
     - unlocked dancers system
@@ -16,7 +15,7 @@
 - Figure out why sometimes when adding a long note it will add another one below
 
 # OPTIONS
-Do the whole damn scene again
+- Make it so the cam is not so above
 
 # RESULTS
 - Rehaul it, AGAIN, make it so it smoothly transitions from gameplay

@@ -1,4 +1,4 @@
-import { Vec2 } from "kaplay";
+import { GameObj, ScaleComp, Vec2 } from "kaplay";
 import { GameSave } from "../../core/save";
 import { getNoteskinSprite } from "../../data/noteskins";
 import { utils } from "../../utils";
@@ -11,6 +11,14 @@ export const NOTE_WIDTH = 80;
 
 /** The spawn point of the note */
 export const NOTE_SPAWNPOINT = 1024 + NOTE_WIDTH / 2;
+
+function squishNote(obj: GameObj<ScaleComp>) {
+	// return tween(obj.scale.x, 0.75, 0.15, (p) => obj.scale.x = p, easings.easeOutQuad);
+}
+
+function stretchNote(obj: GameObj<ScaleComp>) {
+	// return tween(1.25, 1, 0.15, (p) => obj.scale.x = p, easings.easeOutExpo);
+}
 
 /** Class that holds the properties a note in a chart file would have
  *
@@ -119,6 +127,7 @@ export function addBouncyNote(chartNote: ChartNote, startPos: Vec2 = vec2(), for
 		body(),
 		z(2),
 		opacity(),
+		scale(),
 		rotate(0),
 		"bouncyNote",
 		"game",
@@ -154,6 +163,7 @@ export function addNote(chartNote: ChartNote, GameState: GameState) {
 			pos(noteObj.pos),
 			anchor("center"),
 			opacity(),
+			scale(),
 			rotate(0),
 			z(2),
 			"game",
@@ -192,6 +202,7 @@ export function addNote(chartNote: ChartNote, GameState: GameState) {
 
 		noteObj.destroy();
 		const fakeNote = addFakeNote();
+		squishNote(fakeNote);
 
 		trail.parent.width = fakeNote.pos.x; // hit the note with trail, so it should be masked
 		let step = GameState.conductor.timeToStep(noteHit.time);
@@ -203,7 +214,8 @@ export function addNote(chartNote: ChartNote, GameState: GameState) {
 				trailHasFinished = true;
 				if (fakeNote) {
 					fakeNote.destroy();
-					addSillyNote(fakeNote.pos);
+					const sillyNote = addSillyNote(fakeNote.pos);
+					stretchNote(sillyNote);
 				}
 			}
 		});
@@ -351,21 +363,21 @@ export type NoteGameObj = ReturnType<typeof addNote>;
 
 // MF you genius
 /** Crucial function that handles the spawning of notes in the game */
-export function notesSpawner(GameState: GameState) {
+export function notesSpawner(state: GameState) {
 	/** holds all the chart.notes that have not been spawned */
 	let waiting: ChartNote[] = [];
 
 	/** Resets the queued notes */
 	function resetWaiting() {
-		waiting = GameState.song.chart.notes.toSorted((a, b) => ChartNote.spawnTime(b) - ChartNote.spawnTime(a));
+		waiting = state.song.chart.notes.toSorted((a, b) => ChartNote.spawnTime(b) - ChartNote.spawnTime(a));
 	}
 
 	resetWaiting();
-	GameState.events.onRestart(() => resetWaiting());
+	state.events.onRestart(() => resetWaiting());
 
 	/** Check wheter a note should be spawned */
 	function checkNotes() {
-		const t = GameState.conductor.time;
+		const t = state.conductor.time;
 		let index = waiting.length - 1;
 
 		// while there are notes to spawn
@@ -375,19 +387,19 @@ export function notesSpawner(GameState: GameState) {
 			if (ChartNote.spawnTime(note) > t) {
 				break;
 			}
-			addNote(note, GameState);
+			addNote(note, state);
 			index--;
 		}
 
 		// remove all the notes that have been spawned
 		if (index < waiting.length - 1) {
-			GameState.spawnedNotes.push(...waiting.slice(index + 1, waiting.length));
+			state.spawnedNotes.push(...waiting.slice(index + 1, waiting.length));
 			waiting.splice(index + 1, waiting.length - 1 - index);
 		}
 	}
 
 	onUpdate(() => {
-		if (GameState.conductor.paused) return;
+		if (state.conductor.paused) return;
 		checkNotes();
 	});
 
@@ -405,12 +417,12 @@ export function notesSpawner(GameState: GameState) {
 		fakeNote.onUpdate(() => {
 			if (isMousePressed("left")) usingFunction = !usingFunction;
 
-			if (usingFunction) fakeNote.pos = ChartNote.getPosAtTime(0, -GameState.TIME_FOR_STRUM, GameState.strumline.pos);
+			if (usingFunction) fakeNote.pos = ChartNote.getPosAtTime(0, -state.TIME_FOR_STRUM, state.strumline.pos);
 			else fakeNote.pos = mousePos();
 		});
 
 		onUpdate(() => {
-			debug.log(Scoring.checkForNote(GameState.conductor.time) ? true : false);
+			debug.log(Scoring.checkForNote(state.conductor.time) ? true : false);
 
 			const note = new ChartNote();
 			// const note = Scoring.checkForNote();
@@ -419,16 +431,16 @@ export function notesSpawner(GameState: GameState) {
 				width(),
 				0,
 				0,
-				GameState.TIME_FOR_STRUM * 2,
+				state.TIME_FOR_STRUM * 2,
 			);
 
-			const verdict = Scoring.judgeNote(GameState.TIME_FOR_STRUM, note);
-			const absDiff = GameState.TIME_FOR_STRUM - note.time;
+			const verdict = Scoring.judgeNote(state.TIME_FOR_STRUM, note);
+			const absDiff = state.TIME_FOR_STRUM - note.time;
 			debug.log(`Diff: ${absDiff.toFixed(4)} | ${verdict.judgement} | ${verdict.score}`);
 		});
 
 		onDraw(() => {
-			const pos = ChartNote.getPosAtTime(0, -GameState.TIME_FOR_STRUM, GameState.instance.strumline.pos);
+			const pos = ChartNote.getPosAtTime(0, -state.TIME_FOR_STRUM, GameState.instance.strumline.pos);
 
 			drawRect({
 				pos,

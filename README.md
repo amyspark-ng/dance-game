@@ -3,12 +3,19 @@
 we dancing in this mf
 
 ## Modding
-You can access the chart editor and create new songs!
+### Songs
+You can access the chart editor to create new songs!
+* You can put a custom cover, audio and fill the metadata and all
+* This will give you nifty little zip which contains all the files necessary to open the song, the most important of them is the `manifest.toml` file, which points to the files necessary, if you'd like to host this files somewhere so the zip is lighter, you can do that! 
 
-You can import an audio file, chart it, import your album cover and then download
-In a nifty little zip folder, which you can send and people will be able to port into their game
+### Dancers
+TODO
 
-Sadly the songs you import can't be stored anywhere and you'd have to re-import them anytime you want to play them again (localstorage limitations)
+### Noteskins
+TODO
+
+### Scripting
+🖕
 
 ## CREDITS
 AmySparkNG - Coding<br>
