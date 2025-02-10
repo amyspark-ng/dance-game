@@ -1,11 +1,11 @@
 import { GameSave } from "../../../core/save";
-import { KaplayState } from "../../../core/scenes/KaplayState";
+import { switchScene } from "../../../core/scenes/KaplayState";
 import { getFocused } from "../../../ui/objects/uiElementComp";
-import { StateGame } from "../../PlayState";
-import { StateChart } from "../EditorState";
+import { GameState } from "../../GameState";
+import { EditorState } from "../EditorState";
 
 export function keyboardControls() {
-	const ChartState = StateChart.instance;
+	const ChartState = EditorState.instance;
 
 	// Send you to the game
 	onKeyPress("enter", async () => {
@@ -16,7 +16,7 @@ export function keyboardControls() {
 		ChartState.paused = true;
 
 		// transition to scene normally
-		KaplayState.switchState(StateGame, { fromEditor: true, song: ChartState.song, seekTime: ChartState.conductor.time });
+		switchScene(GameState, { fromEditor: true, song: ChartState.song, seekTime: ChartState.conductor.time });
 	});
 
 	// Pausing unpausing behaviour

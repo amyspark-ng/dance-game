@@ -1,4 +1,4 @@
-import { StateGame } from "../PlayState";
+import { GameState } from "../GameState";
 import { DANCER_POS } from "./dancer";
 import { ChartNote } from "./note";
 import { Judgement, Scoring, Tally } from "./scoring";
@@ -25,14 +25,14 @@ export function updateJudgement(judgement: Judgement) {
 			judgementObj.opacity = timeLeft;
 			if (judgementObj.opacity <= 0) judgementObj.destroy();
 			if (judgement == "Miss") comboText = "BREAK";
-			else comboText = StateGame.instance.combo.toString();
+			else comboText = GameState.instance.combo.toString();
 		});
 
-		const onNoteHitEV = StateGame.instance.events.onNoteHit((note: ChartNote) => {
+		const onNoteHitEV = GameState.instance.events.onNoteHit((note: ChartNote) => {
 			timeLeft = 1;
 		});
 
-		const onNoteMiss = StateGame.instance.events.onMiss(() => {
+		const onNoteMiss = GameState.instance.events.onMiss(() => {
 			timeLeft = 1;
 		});
 
@@ -57,8 +57,8 @@ export function updateJudgement(judgement: Judgement) {
 		// since it already exists just bop it
 		const judgementObj = get("judgement")[0] as ReturnType<typeof createJudgement>;
 
-		if (Tally.isPerfect(StateGame.instance.tally)) judgementObj.text = judgement + "!!";
-		else if (StateGame.instance.tally.misses < 1) judgementObj.text = judgement + "!";
+		if (Tally.isPerfect(GameState.instance.tally)) judgementObj.text = judgement + "!!";
+		else if (GameState.instance.tally.misses < 1) judgementObj.text = judgement + "!";
 		else judgementObj.text = judgement;
 
 		tween(vec2(1.15), vec2(1), 0.15, (p) => judgementObj.scale = p, easings.easeOutQuad);

@@ -1,7 +1,7 @@
 import { Vec2 } from "kaplay";
 import { utils } from "../../../utils";
 import { Move } from "../../objects/dancer";
-import { StateChart } from "../EditorState";
+import { EditorState } from "../EditorState";
 import { EditorEvent, EditorNote, EditorStamp } from "../objects/stamp";
 
 export function addFloatyText(texting: string) {
@@ -48,15 +48,15 @@ interface editorUtils {
 export const editorUtils: editorUtils = {
 	clipboardMessage(action: "copy" | "cut" | "paste", clipboard: EditorStamp[]) {
 		const stringForAction = action == "copy" ? "Copied" : action == "cut" ? "Cut" : "Pasted";
-		return stringForAction + " " + StateChart.utils.boxSortStamps(clipboard).toString() + "!";
+		return stringForAction + " " + EditorState.utils.boxSortStamps(clipboard).toString() + "!";
 	},
 
 	find(stampType: "note" | "event", step: number) {
 		if (stampType == "note") {
-			const note = StateChart.instance.notes.find((note) => note.step == step);
+			const note = EditorState.instance.notes.find((note) => note.step == step);
 			if (note) return note as EditorNote;
 			else {
-				const longNotes = StateChart.instance.notes.filter((note) => note.data.length != undefined);
+				const longNotes = EditorState.instance.notes.filter((note) => note.data.length != undefined);
 				const noteWithTrailAtStep = longNotes.find((note) => {
 					if (utils.isInRange(step, note.step, note.step + note.data.length)) {
 						return note;
@@ -67,7 +67,7 @@ export const editorUtils: editorUtils = {
 			}
 		}
 		else if (stampType == "event") {
-			return StateChart.instance.events.find((event) => {
+			return EditorState.instance.events.find((event) => {
 				return event.step == step;
 			}) as EditorEvent;
 		}
@@ -94,11 +94,11 @@ export const editorUtils: editorUtils = {
 		};
 	},
 
-	renderingConditions(yPos: number, square_size = StateChart.SQUARE_SIZE) {
+	renderingConditions(yPos: number, square_size = EditorState.SQUARE_SIZE) {
 		return utils.isInRange(yPos, -square_size.y, height() + square_size.y);
 	},
 
 	stepToPos(step: number) {
-		return utils.getPosInGrid(StateChart.INITIAL_POS, step, 0, StateChart.SQUARE_SIZE);
+		return utils.getPosInGrid(EditorState.INITIAL_POS, step, 0, EditorState.SQUARE_SIZE);
 	},
 };

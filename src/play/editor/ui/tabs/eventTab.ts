@@ -1,7 +1,7 @@
 import { GameObj, Vec2 } from "kaplay";
 import EventSchema, { eventValue } from "../../../../data/event/schema";
 import { uiComp } from "../../../../ui/objects/uiElementComp";
-import { StateChart } from "../../EditorState";
+import { EditorState } from "../../EditorState";
 import { EditorEvent } from "../../objects/stamp";
 import makeCheckbox from "../elements/checkbox";
 import { makeEnumStepper, makeNumberStepper } from "../elements/stepper";
@@ -65,7 +65,7 @@ function eventTab() {
 
 	tab.onUpdate(() => {
 		const oldEvent = currentEvent;
-		currentEvent = StateChart.instance.events.find((event) => event.beingEdited == true);
+		currentEvent = EditorState.instance.events.find((event) => event.beingEdited == true);
 		const newEvent = currentEvent;
 		if (oldEvent != newEvent) updateTab();
 	});
@@ -85,7 +85,7 @@ function eventTab() {
 		drawLine({
 			p1: vec2(currentEvent.pos.x, currentEvent.pos.y),
 			// @ts-ignore
-			p2: vec2(currentEvent.pos.x, currentEvent.pos.y + StateChart.SQUARE_SIZE.x * StateChart.instance.conductor.timeToStep(currentEvent.data.data.duration)),
+			p2: vec2(currentEvent.pos.x, currentEvent.pos.y + EditorState.SQUARE_SIZE.x * EditorState.instance.conductor.timeToStep(currentEvent.data.data.duration)),
 			width: 2,
 			opacity: 0.5,
 		});

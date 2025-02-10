@@ -2,7 +2,7 @@ import { Vec2 } from "kaplay";
 import { GameSave } from "../../core/save";
 import { getNoteskinSprite } from "../../data/noteskins";
 import { utils } from "../../utils";
-import { StateGame } from "../PlayState";
+import { GameState } from "../GameState";
 import { Move } from "./dancer";
 import { Scoring } from "./scoring";
 
@@ -26,7 +26,7 @@ export class ChartNote {
 
 	/** The spawn time of the note based on the time to reach the strum */
 	static spawnTime(note: ChartNote): number {
-		return note.time - StateGame.instance.TIME_FOR_STRUM;
+		return note.time - GameState.instance.TIME_FOR_STRUM;
 	}
 
 	/** Converts a move to a color */
@@ -91,7 +91,7 @@ export class ChartNote {
 	 * @param strumlinePos
 	 */
 	static getPosAtTime(hitTime: number, spawnTime: number, strumlinePos: Vec2) {
-		let mapValue = (hitTime - spawnTime) / StateGame.instance.TIME_FOR_STRUM;
+		let mapValue = (hitTime - spawnTime) / GameState.instance.TIME_FOR_STRUM;
 		return vec2(
 			map(mapValue, 0, 1, NOTE_SPAWNPOINT, strumlinePos.x),
 			map(mapValue, 0, 1, strumlinePos.y, strumlinePos.x),
@@ -140,7 +140,7 @@ export function addBouncyNote(chartNote: ChartNote, startPos: Vec2 = vec2(), for
  * @param chartNote The chart note
  * @param GameState The game instance
  */
-export function addNote(chartNote: ChartNote, GameState: StateGame) {
+export function addNote(chartNote: ChartNote, GameState: GameState) {
 	let trail: ReturnType<typeof addTrail> = null;
 
 	function addSillyNote(pos: Vec2) {
@@ -351,7 +351,7 @@ export type NoteGameObj = ReturnType<typeof addNote>;
 
 // MF you genius
 /** Crucial function that handles the spawning of notes in the game */
-export function notesSpawner(GameState: StateGame) {
+export function notesSpawner(GameState: GameState) {
 	/** holds all the chart.notes that have not been spawned */
 	let waiting: ChartNote[] = [];
 
@@ -428,7 +428,7 @@ export function notesSpawner(GameState: StateGame) {
 		});
 
 		onDraw(() => {
-			const pos = ChartNote.getPosAtTime(0, -GameState.TIME_FOR_STRUM, StateGame.instance.strumline.pos);
+			const pos = ChartNote.getPosAtTime(0, -GameState.TIME_FOR_STRUM, GameState.instance.strumline.pos);
 
 			drawRect({
 				pos,

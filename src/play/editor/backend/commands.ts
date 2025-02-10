@@ -1,21 +1,21 @@
 import { cloneDeep } from "lodash";
-import { KaplayState } from "../../../core/scenes/KaplayState";
+import { switchScene } from "../../../core/scenes/KaplayState";
 import { Sound } from "../../../core/sound";
 import { ChartEvent, EventDataDefaults, eventId } from "../../../data/event/event";
 import { SongContent } from "../../../data/song";
 import { FileManager } from "../../../FileManager";
-import { StateMenu } from "../../../ui/menu/MenuScene";
+import { MenuState } from "../../../ui/menu/MenuState";
 import { addNotification } from "../../../ui/objects/notification";
 import { Move } from "../../objects/dancer";
 import { ChartNote } from "../../objects/note";
-import { StateChart } from "../EditorState";
+import { EditorState } from "../EditorState";
 import { EditorEvent, EditorNote, EditorStamp } from "../objects/stamp";
 import { addFloatyText } from "./utils";
 
 export const editorCommands = {
 	NewChart: async () => {
 		const loading = FileManager.loadingScreen();
-		await StateChart.instance.changeSong(new SongContent());
+		await EditorState.instance.changeSong(new SongContent());
 		loading.cancel();
 	},
 
@@ -32,12 +32,12 @@ export const editorCommands = {
 
 		// TODO: What...
 		if (content.isDefault) {
-			StateChart.instance.changeSong(cloneDeep(content));
+			EditorState.instance.changeSong(cloneDeep(content));
 			addNotification(`Editor: Editing ${content.manifest.name}`);
 		}
-		else if (content.manifest.uuid_DONT_CHANGE == StateChart.instance.song.manifest.uuid_DONT_CHANGE) {
-			StateChart.instance.changeSong(content);
-			addNotification(`[warning]Warning:[/warning] Overwrote "${StateChart.instance.song.manifest.name}" by "${content.manifest.name}" since they have the same UUID`, 5);
+		else if (content.manifest.uuid_DONT_CHANGE == EditorState.instance.song.manifest.uuid_DONT_CHANGE) {
+			EditorState.instance.changeSong(content);
+			addNotification(`[warning]Warning:[/warning] Overwrote "${EditorState.instance.song.manifest.name}" by "${content.manifest.name}" since they have the same UUID`, 5);
 		}
 		// else {
 		// 	StateChart.instance.changeSong(cloneDeep(content));
@@ -47,17 +47,17 @@ export const editorCommands = {
 	},
 
 	SaveChart: () => {
-		StateChart.instance.downloadChart();
+		EditorState.instance.downloadChart();
 	},
 
 	Exit: () => {
-		StateChart.instance.conductor.destroy();
-		KaplayState.switchState(StateMenu, "editor");
+		EditorState.instance.conductor.destroy();
+		switchScene(MenuState, "editor");
 	},
 
 	SelectAll: () => {
-		StateChart.instance.takeSnapshot("selected all");
-		EditorStamp.mix(StateChart.instance.notes, StateChart.instance.events).forEach((stamp) => stamp.selected = true);
+		EditorState.instance.takeSnapshot("selected all");
+		EditorStamp.mix(EditorState.instance.notes, EditorState.instance.events).forEach((stamp) => stamp.selected = true);
 	},
 
 	/** Place a note (cooler)
@@ -65,9 +65,9 @@ export const editorCommands = {
 	 * @param step? The step to place te note in
 	 * @param move The move the note will be
 	 */
-	PlaceNote(doSound: boolean = true, step: number = StateChart.instance.hoveredStep, move: Move = StateChart.instance.currentMove) {
-		StateChart.instance.takeSnapshot(`added ${move} note`);
-		const note = StateChart.instance.placeNote({ time: StateChart.instance.conductor.stepToTime(step), move: move });
+	PlaceNote(doSound: boolean = true, step: number = EditorState.instance.hoveredStep, move: Move = EditorState.instance.currentMove) {
+		EditorState.instance.takeSnapshot(`added ${move} note`);
+		const note = EditorState.instance.placeNote({ time: EditorState.instance.conductor.stepToTime(step), move: move });
 		note.selected = true;
 		note.bop();
 
@@ -82,8 +82,8 @@ export const editorCommands = {
 	 * @param note The note to remove
 	 */
 	DeleteNote(doSound: boolean = true, note: EditorNote) {
-		StateChart.instance.takeSnapshot(`deleted ${note.data.move} note`);
-		StateChart.instance.deleteNote(note);
+		EditorState.instance.takeSnapshot(`deleted ${note.data.move} note`);
+		EditorState.instance.deleteNote(note);
 		if (doSound) note.deleteSound();
 		return note;
 	},
@@ -95,13 +95,13 @@ export const editorCommands = {
 	 */
 	PlaceEvent<T extends eventId = eventId>(
 		doSound: boolean = true,
-		step: number = StateChart.instance.hoveredStep,
-		id: eventId = StateChart.instance.currentEvent,
+		step: number = EditorState.instance.hoveredStep,
+		id: eventId = EditorState.instance.currentEvent,
 		data?: EventDataDefaults[T],
 	) {
-		StateChart.instance.takeSnapshot(`added ${id} event`);
+		EditorState.instance.takeSnapshot(`added ${id} event`);
 		data = data ?? ChartEvent.getDefault(id);
-		const event = StateChart.instance.placeEvent({ time: StateChart.instance.conductor.stepToTime(step), id, data: data });
+		const event = EditorState.instance.placeEvent({ time: EditorState.instance.conductor.stepToTime(step), id, data: data });
 		event.selected = true;
 		event.bop();
 
@@ -116,27 +116,27 @@ export const editorCommands = {
 	 * @param Event The Event to remove
 	 */
 	DeleteEvent(doSound: boolean = true, event: EditorEvent) {
-		StateChart.instance.takeSnapshot(`deleted ${event.data.id} event`);
-		StateChart.instance.deleteEvent(event);
+		EditorState.instance.takeSnapshot(`deleted ${event.data.id} event`);
+		EditorState.instance.deleteEvent(event);
 		if (doSound) event.deleteSound();
 		return Event;
 	},
 
 	DeselectAll: () => {
-		StateChart.instance.selected.forEach((stamp) => stamp.selected = false);
+		EditorState.instance.selected.forEach((stamp) => stamp.selected = false);
 	},
 
 	InvertSelection: () => {
-		StateChart.instance.takeSnapshot("invert selection");
-		const allStamps = EditorStamp.mix(StateChart.instance.notes, StateChart.instance.events);
+		EditorState.instance.takeSnapshot("invert selection");
+		const allStamps = EditorStamp.mix(EditorState.instance.notes, EditorState.instance.events);
 		allStamps.forEach((stamp) => stamp.selected = !stamp.selected);
 	},
 
 	DeleteMultiple(stamps?: EditorStamp[]) {
-		const ChartState = StateChart.instance;
+		const ChartState = EditorState.instance;
 		stamps = stamps ?? ChartState.selected;
 		if (stamps.length == 0) return;
-		ChartState.takeSnapshot(`deleted ${StateChart.utils.boxSortStamps(stamps).toString()}`);
+		ChartState.takeSnapshot(`deleted ${EditorState.utils.boxSortStamps(stamps).toString()}`);
 
 		stamps.forEach((stamp) => {
 			if (stamp.is("note")) ChartState.deleteNote(stamp);
@@ -152,7 +152,7 @@ export const editorCommands = {
 	},
 
 	InvertNotes(notes?: EditorNote[]) {
-		notes = notes ?? StateChart.instance.selected.filter((stamp) => stamp.is("note"));
+		notes = notes ?? EditorState.instance.selected.filter((stamp) => stamp.is("note"));
 		if (notes.length < 1) return;
 		notes.forEach((note) => {
 			note.data.move = ChartNote.invertMove(note.data.move);
@@ -165,11 +165,11 @@ export const editorCommands = {
 	},
 
 	Copy(stamps?: EditorStamp[]) {
-		stamps = stamps ?? StateChart.instance.selected;
+		stamps = stamps ?? EditorState.instance.selected;
 		if (stamps.length == 0) return;
 
-		StateChart.instance.clipboard = stamps;
-		addFloatyText(StateChart.utils.clipboardMessage("copy", StateChart.instance.clipboard));
+		EditorState.instance.clipboard = stamps;
+		addFloatyText(EditorState.utils.clipboardMessage("copy", EditorState.instance.clipboard));
 		Sound.playSound("noteCopy", { detune: rand(25, 50) });
 
 		stamps.forEach((stamp) => {
@@ -181,14 +181,14 @@ export const editorCommands = {
 	},
 
 	Cut(stamps?: EditorStamp[]) {
-		const ChartState = StateChart.instance;
-		stamps = stamps ?? StateChart.instance.selected;
+		const ChartState = EditorState.instance;
+		stamps = stamps ?? EditorState.instance.selected;
 		if (stamps.length == 0) return;
-		ChartState.takeSnapshot(`cut ${StateChart.utils.boxSortStamps(stamps).toString()}`);
+		ChartState.takeSnapshot(`cut ${EditorState.utils.boxSortStamps(stamps).toString()}`);
 
 		// some code from the copy action
 		ChartState.clipboard = stamps;
-		addFloatyText(StateChart.utils.clipboardMessage("cut", ChartState.clipboard));
+		addFloatyText(EditorState.utils.clipboardMessage("cut", ChartState.clipboard));
 		Sound.playSound("noteCopy", { detune: rand(0, 25) });
 
 		stamps.forEach((stamp) => {
@@ -198,16 +198,16 @@ export const editorCommands = {
 	},
 
 	Paste(stamps?: EditorStamp[]) {
-		const ChartState = StateChart.instance;
+		const ChartState = EditorState.instance;
 		stamps = stamps ?? ChartState.clipboard;
 		stamps = cloneDeep(stamps);
 		if (stamps.length == 0) return;
 
 		// shickiiii
-		ChartState.takeSnapshot(`pasted ${StateChart.utils.boxSortStamps(stamps).toString()}`);
+		ChartState.takeSnapshot(`pasted ${EditorState.utils.boxSortStamps(stamps).toString()}`);
 
 		Sound.playSound("noteCopy", { detune: rand(-50, -25) });
-		addFloatyText(StateChart.utils.clipboardMessage("paste", stamps));
+		addFloatyText(EditorState.utils.clipboardMessage("paste", stamps));
 
 		// sorts them timely
 		stamps.sort((b, a) => b.data.time - a.data.time);
@@ -218,8 +218,8 @@ export const editorCommands = {
 
 			// this turns them to low value range, which i can sum hoveredStep to, then it will work :)
 			const newStep = stamp.step + ChartState.hoveredStep;
-			if (stamp.is("note")) StateChart.commands.PlaceNote(false, newStep, stamp.data.move);
-			else if (stamp.is("event")) StateChart.commands.PlaceEvent(false, newStep, stamp.data.id, stamp.data.data);
+			if (stamp.is("note")) EditorState.commands.PlaceNote(false, newStep, stamp.data.move);
+			else if (stamp.is("event")) EditorState.commands.PlaceEvent(false, newStep, stamp.data.id, stamp.data.data);
 			stamp.twist();
 		});
 
@@ -227,24 +227,24 @@ export const editorCommands = {
 	},
 
 	Undo: () => {
-		const oldSong = StateChart.instance.song;
-		const newSong = StateChart.instance.undo()?.song;
+		const oldSong = EditorState.instance.song;
+		const newSong = EditorState.instance.undo()?.song;
 		if (!newSong) return;
 
 		if (oldSong != newSong) {
 			Sound.playSound("undo", { detune: rand(-50, -25) });
-			addNotification(`undid: "${StateChart.instance.snapshots[StateChart.instance.snapshotIndex].command}"`);
+			addNotification(`undid: "${EditorState.instance.snapshots[EditorState.instance.snapshotIndex].command}"`);
 		}
 	},
 
 	Redo: () => {
-		const oldSong = StateChart.instance.song;
-		const newSong = StateChart.instance.redo()?.song;
+		const oldSong = EditorState.instance.song;
+		const newSong = EditorState.instance.redo()?.song;
 		if (!newSong) return;
 
 		if (oldSong != newSong) {
 			Sound.playSound("undo", { detune: rand(25, 50) });
-			addNotification(`redid: "${StateChart.instance.snapshots[StateChart.instance.snapshotIndex].command}"`);
+			addNotification(`redid: "${EditorState.instance.snapshots[EditorState.instance.snapshotIndex].command}"`);
 		}
 	},
 };

@@ -3,12 +3,12 @@ import { ChartEvent } from "../../../../data/event/event";
 import EventHandler from "../../../../data/event/handler";
 import { utils } from "../../../../utils";
 import { DANCER_POS, makeDancer } from "../../../objects/dancer";
-import { StateChart } from "../../EditorState";
+import { EditorState } from "../../EditorState";
 import { EditorTab } from "../tabs";
 import addTab from "./baseTab";
 
 export function syncTab() {
-	const ChartState = StateChart.instance;
+	const ChartState = EditorState.instance;
 	const tab = addTab(EditorTab.tabs.Sync);
 
 	const stepText = tab.add([

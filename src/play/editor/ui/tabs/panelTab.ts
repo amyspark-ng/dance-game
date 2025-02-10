@@ -1,6 +1,6 @@
 import { eventId } from "../../../../data/event/event";
 import EventSchema from "../../../../data/event/schema";
-import { StateChart } from "../../EditorState";
+import { EditorState } from "../../EditorState";
 import { EditorTab } from "../tabs";
 import addTab from "./baseTab";
 
@@ -18,11 +18,11 @@ export function panelTab() {
 		]);
 
 		event.onClick(() => {
-			StateChart.instance.currentEvent = key as eventId;
+			EditorState.instance.currentEvent = key as eventId;
 		});
 
 		event.onUpdate(() => {
-			if (StateChart.instance.currentEvent == key) event.opacity = lerp(event.opacity, 1, 0.5);
+			if (EditorState.instance.currentEvent == key) event.opacity = lerp(event.opacity, 1, 0.5);
 			else event.opacity = lerp(event.opacity, event.isHovering() ? 0.8 : 0.5, 0.5);
 		});
 

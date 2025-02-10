@@ -2,7 +2,7 @@ import { GameObj } from "kaplay";
 import { eventValue } from "../../../../data/event/schema";
 import { songSchema } from "../../../../data/song";
 import { FileManager } from "../../../../FileManager";
-import { StateChart } from "../../EditorState";
+import { EditorState } from "../../EditorState";
 import makeButton from "../elements/button";
 import makeCheckbox from "../elements/checkbox";
 import { makeEnumStepper, makeNumberStepper } from "../elements/stepper";
@@ -11,7 +11,7 @@ import { EditorTab } from "../tabs";
 import addTab from "./baseTab";
 
 export function songTab() {
-	const ChartState = StateChart.instance;
+	const ChartState = EditorState.instance;
 	const tab = addTab(EditorTab.tabs.SongInfo);
 
 	Object.keys(songSchema).forEach((key) => {

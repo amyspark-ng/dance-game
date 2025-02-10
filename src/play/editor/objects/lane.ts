@@ -2,7 +2,7 @@ import { Vec2 } from "kaplay";
 import { getNoteskinSprite } from "../../../data/noteskins";
 import { Move } from "../../objects/dancer";
 import { ChartNote } from "../../objects/note";
-import { ChartSnapshot, StateChart } from "../EditorState";
+import { ChartSnapshot, EditorState } from "../EditorState";
 
 function makeLaneObj() {
 	return make([
@@ -18,8 +18,8 @@ function makeLaneObj() {
 export class EditorLane {
 	type: "note" | "event";
 	pos: Vec2 = vec2(width() / 2, 0);
-	width: number = StateChart.SQUARE_SIZE.x;
-	height: number = StateChart.SQUARE_SIZE.y;
+	width: number = EditorState.SQUARE_SIZE.x;
+	height: number = EditorState.SQUARE_SIZE.y;
 	angle: number = 0;
 	onClick(button: "left" | "right" | "middle" = "left", action: () => void) {
 		if (button == "left") return this.obj.onClick(action);
@@ -46,20 +46,20 @@ export class EditorLane {
 	}
 
 	draw() {
-		const ChartState = StateChart.instance;
+		const ChartState = EditorState.instance;
 
 		for (let i = 0; i < ChartState.conductor.totalSteps; i++) {
-			const newPos = vec2(this.pos.x, this.pos.y + StateChart.utils.stepToPos(i).y);
-			newPos.y -= StateChart.SQUARE_SIZE.y * StateChart.instance.lerpScrollStep;
+			const newPos = vec2(this.pos.x, this.pos.y + EditorState.utils.stepToPos(i).y);
+			newPos.y -= EditorState.SQUARE_SIZE.y * EditorState.instance.lerpScrollStep;
 
 			const col = i % 2 == 0 ? this.lightColor : this.darkColor;
 
 			// draws the background chess board squares etc
-			if (StateChart.utils.renderingConditions(newPos.y)) {
+			if (EditorState.utils.renderingConditions(newPos.y)) {
 				// note square
 				drawRect({
-					width: StateChart.SQUARE_SIZE.x,
-					height: StateChart.SQUARE_SIZE.y,
+					width: EditorState.SQUARE_SIZE.x,
+					height: EditorState.SQUARE_SIZE.y,
 					color: col,
 					pos: vec2(newPos.x, newPos.y),
 					anchor: "center",
@@ -68,16 +68,16 @@ export class EditorLane {
 
 			// draws a line on every beat
 			if (i % ChartState.conductor.stepsPerBeat == 0) {
-				if (StateChart.utils.renderingConditions(newPos.y)) {
+				if (EditorState.utils.renderingConditions(newPos.y)) {
 					// line beat
 					drawRect({
-						width: StateChart.SQUARE_SIZE.x,
+						width: EditorState.SQUARE_SIZE.x,
 						height: 5,
 						color: this.darkColor.darken(70),
 						anchor: "left",
 						pos: vec2(
-							newPos.x - StateChart.SQUARE_SIZE.x / 2,
-							newPos.y - StateChart.SQUARE_SIZE.y / 2 - 2.5,
+							newPos.x - EditorState.SQUARE_SIZE.x / 2,
+							newPos.y - EditorState.SQUARE_SIZE.y / 2 - 2.5,
 						),
 					});
 				}
@@ -88,8 +88,8 @@ export class EditorLane {
 	constructor() {
 		this.obj = add(makeLaneObj());
 		this.obj.onUpdate(() => {
-			this.width = StateChart.SQUARE_SIZE.x;
-			this.height = StateChart.SQUARE_SIZE.y * 11;
+			this.width = EditorState.SQUARE_SIZE.x;
+			this.height = EditorState.SQUARE_SIZE.y * 11;
 
 			this.obj.width = this.width;
 			this.obj.height = this.height;
@@ -107,23 +107,23 @@ export class EditorLane {
 	}
 
 	static drawCursor() {
-		const isInNotelane = StateChart.instance.isInNoteLane;
-		const isInEventLane = StateChart.instance.isInEventLane;
+		const isInNotelane = EditorState.instance.isInNoteLane;
+		const isInEventLane = EditorState.instance.isInEventLane;
 		if (!(isInNotelane || isInEventLane)) return;
 
-		const stepThing = StateChart.utils.stepToPos(StateChart.instance.hoveredStep - StateChart.instance.scrollStep);
-		if (isInEventLane) this.cursorPos = stepThing.add(StateChart.SQUARE_SIZE.x, 0);
+		const stepThing = EditorState.utils.stepToPos(EditorState.instance.hoveredStep - EditorState.instance.scrollStep);
+		if (isInEventLane) this.cursorPos = stepThing.add(EditorState.SQUARE_SIZE.x, 0);
 		else this.cursorPos = stepThing;
 		this.lerpCursorPos = lerp(this.lerpCursorPos, this.cursorPos, 0.5);
 
-		const noteOrEventAtStep = StateChart.utils.find("note", StateChart.instance.hoveredStep) || StateChart.utils.find("event", StateChart.instance.hoveredStep);
+		const noteOrEventAtStep = EditorState.utils.find("note", EditorState.instance.hoveredStep) || EditorState.utils.find("event", EditorState.instance.hoveredStep);
 
 		// if no note at step
 		if (!noteOrEventAtStep) {
 			drawSprite({
-				sprite: isInNotelane ? getNoteskinSprite(StateChart.instance.currentMove) : StateChart.instance.currentEvent,
-				width: StateChart.SQUARE_SIZE.x - 5,
-				height: StateChart.SQUARE_SIZE.y - 5,
+				sprite: isInNotelane ? getNoteskinSprite(EditorState.instance.currentMove) : EditorState.instance.currentEvent,
+				width: EditorState.SQUARE_SIZE.x - 5,
+				height: EditorState.SQUARE_SIZE.y - 5,
 				opacity: wave(0.5, 0.75, time() % 5),
 				pos: this.lerpCursorPos,
 				angle: wave(-1, 1, time() * 10),
@@ -160,19 +160,19 @@ export class NoteLane extends EditorLane {
 	override draw() {
 		super.draw();
 
-		for (let i = 0; i < StateChart.instance.conductor.totalSteps; i++) {
-			if (i % StateChart.instance.conductor.stepsPerBeat == 0) {
-				const newPos = StateChart.utils.stepToPos(i);
-				newPos.y -= StateChart.SQUARE_SIZE.y * StateChart.instance.lerpScrollStep;
+		for (let i = 0; i < EditorState.instance.conductor.totalSteps; i++) {
+			if (i % EditorState.instance.conductor.stepsPerBeat == 0) {
+				const newPos = EditorState.utils.stepToPos(i);
+				newPos.y -= EditorState.SQUARE_SIZE.y * EditorState.instance.lerpScrollStep;
 
-				if (StateChart.utils.renderingConditions(newPos.y)) {
+				if (EditorState.utils.renderingConditions(newPos.y)) {
 					// the beat text
 					drawText({
-						text: `${i / StateChart.instance.conductor.stepsPerBeat}`,
+						text: `${i / EditorState.instance.conductor.stepsPerBeat}`,
 						color: WHITE,
-						size: StateChart.SQUARE_SIZE.x / 2,
+						size: EditorState.SQUARE_SIZE.x / 2,
 						anchor: "center",
-						pos: vec2(newPos.x - StateChart.SQUARE_SIZE.x, newPos.y),
+						pos: vec2(newPos.x - EditorState.SQUARE_SIZE.x, newPos.y),
 					});
 				}
 			}

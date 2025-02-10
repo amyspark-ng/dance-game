@@ -1,22 +1,19 @@
 import { appWindow } from "@tauri-apps/api/window";
-import { KEventController } from "kaplay";
 import { cam } from "../core/camera";
 import { GAME } from "../core/game";
 import { GameSave } from "../core/save";
-import { KaplayState } from "../core/scenes/KaplayState";
+import { switchScene } from "../core/scenes/KaplayState";
 import { Sound } from "../core/sound";
 import { getDancer } from "../data/dancer";
 import EventHandler from "../data/event/handler";
 import { utils } from "../utils";
+import { GameState, inputHandler, introGo, paramsGame } from "./GameState";
 import { updateJudgement } from "./objects/judgement";
 import { ChartNote, notesSpawner } from "./objects/note";
 import { Scoring } from "./objects/scoring";
-import { inputHandler, introGo, paramsGame, StateGame } from "./PlayState";
-import { StateDeath } from "./scenes/DeathScene";
+import { DeathState } from "./scenes/DeathScene";
 
-KaplayState.scene("StateGame", (params: paramsGame) => {
-	const GameState = new StateGame(params);
-
+export function GameScene(GameState: GameState) {
 	add([
 		sprite(getDancer().bgSpriteName),
 		pos(center()),
@@ -24,6 +21,8 @@ KaplayState.scene("StateGame", (params: paramsGame) => {
 		layer("background"),
 		z(0),
 	]);
+
+	console.log(GameState.dancer.exists());
 
 	// ==== SETS UP SOME IMPORTANT STUFF ====
 	notesSpawner(GameState);
@@ -168,7 +167,7 @@ KaplayState.scene("StateGame", (params: paramsGame) => {
 
 		if (GameState.health <= 0) {
 			GameState.conductor.audioPlay.stop();
-			KaplayState.switchState(StateDeath, this);
+			switchScene(DeathState, this);
 		}
 	});
 
@@ -189,4 +188,4 @@ KaplayState.scene("StateGame", (params: paramsGame) => {
 	onSceneLeave(() => {
 		cam.reset();
 	});
-});
+}

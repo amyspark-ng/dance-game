@@ -2,12 +2,12 @@ import { getCurrent } from "@tauri-apps/api/window";
 import { configure, InMemory } from "@zenfs/core";
 import { IndexedDB } from "@zenfs/dom";
 import { getSongByName, SongContent } from "../data/song";
-import { StateChart } from "../play/editor/EditorState";
-import { StateGame } from "../play/PlayState";
-import { StateOptions } from "../ui/menu/options/optionsScene";
-import { StateSongSelect } from "../ui/menu/songselect/SongSelectScene";
-import { StateFocus } from "../ui/scenes/FocusScene";
-import { StateTitle } from "../ui/scenes/TitleScene";
+import { EditorState } from "../play/editor/EditorState";
+import { GameState } from "../play/GameState";
+import { OptionsState } from "../ui/menu/options/OptionsState";
+import { SongSelectState } from "../ui/menu/songselect/SongSelectState";
+import { FocusState } from "../ui/scenes/FocusState";
+import { TitleState } from "../ui/scenes/TitleState";
 import { utils } from "../utils";
 import { setupCamera } from "./camera";
 import { setupCursor } from "./cursor";
@@ -15,9 +15,17 @@ import { curDraggin } from "./drag";
 import { appWindow, GAME, setAppWindow } from "./game";
 import { loadAssets, loadingScreen } from "./loader";
 import { GameSave } from "./save";
-import { KaplayState, setupScenes } from "./scenes/KaplayState";
+import { switchScene } from "./scenes/KaplayState";
 import { Sound } from "./sound";
 import { CustomSoundTray } from "./soundtray";
+
+configure({
+	mounts: {
+		"/tmp": InMemory,
+		"/home": IndexedDB,
+	},
+	addDevices: true,
+});
 
 document.title = GAME.NAME;
 utils.runInDesktop(() => {
@@ -40,7 +48,6 @@ loadAssets();
 onLoad(() => {
 	Sound.changeVolume(GameSave.volume);
 	new CustomSoundTray([GameSave.soundUpKey], [GameSave.soundDownKey], false);
-	setupScenes();
 	setupCursor();
 	setupCamera();
 
@@ -48,7 +55,7 @@ onLoad(() => {
 
 	if (GAME.FEATURE_FOCUS) {
 		if (isFocused()) INITIAL_SCENE();
-		else KaplayState.switchState(StateFocus);
+		else switchScene(FocusState);
 	}
 	else {
 		INITIAL_SCENE();
@@ -86,10 +93,11 @@ document.addEventListener("fullscreenchange", (event) => {
 	// else GameSave.fullscreen = false;
 });
 
+const scenes = {
+	"game": GameState,
+	"title": TitleState,
+} as const;
+
 export function INITIAL_SCENE() {
-	// KaplayState.switchState(StateTitle);
-	KaplayState.switchState(StateOptions);
-	// KaplayState.switchState(StateSongSelect, 0);
-	// KaplayState.switchState(StateChart, { song: SongContent.getByName("Bopeebo") });
-	// KaplayState.switchState(StateGame, { song: SongContent.getByName("Bopeebo") });
+	switchScene(TitleState);
 }

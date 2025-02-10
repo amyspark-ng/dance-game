@@ -1,5 +1,5 @@
 import { GameSave } from "../../../core/save";
-import { StateChart } from "../EditorState";
+import { EditorState } from "../EditorState";
 
 const SIZE_OF_MENUBAR = vec2(125, 25);
 const STARTING_POS = vec2(25, 25);
@@ -30,15 +30,15 @@ export class MenuBar {
 		"File": new MenuBar("File", [
 			{
 				text: "New (Ctrl + N)",
-				action: () => StateChart.commands.NewChart(),
+				action: () => EditorState.commands.NewChart(),
 			},
 			{
 				text: "Open (Ctrl + O)\n",
-				action: () => StateChart.commands.OpenChart(),
+				action: () => EditorState.commands.OpenChart(),
 			},
 			{
 				text: "Save as... (Ctrl + Shift + S)\n",
-				action: () => StateChart.commands.SaveChart(),
+				action: () => EditorState.commands.SaveChart(),
 			},
 			{
 				text: "Save to loaded songs (Ctrl + Shift + M)",
@@ -48,47 +48,47 @@ export class MenuBar {
 			},
 			{
 				text: "Exit (Ctrl + Q)",
-				action: () => StateChart.commands.Exit(),
+				action: () => EditorState.commands.Exit(),
 			},
 		]),
 		"Edit": new MenuBar("Edit", [
 			{
 				text: "Select all (Ctrl + A)",
-				action: () => StateChart.commands.SelectAll(),
+				action: () => EditorState.commands.SelectAll(),
 			},
 			{
 				text: "Deselect (Ctrl + D)",
-				action: () => StateChart.commands.DeselectAll(),
+				action: () => EditorState.commands.DeselectAll(),
 			},
 			{
 				text: "Invert selection (Ctrl + I)\n",
-				action: () => StateChart.commands.InvertSelection(),
+				action: () => EditorState.commands.InvertSelection(),
 			},
 			{
 				text: "Invert moves (Ctrl + Shift + F)\n",
-				action: () => StateChart.commands.InvertNotes(),
+				action: () => EditorState.commands.InvertNotes(),
 			},
 			{
 				text: "Delete (Backspace)",
-				action: () => StateChart.commands.DeleteMultiple(),
+				action: () => EditorState.commands.DeleteMultiple(),
 			},
 			{
 				text: "Copy (Ctrl + C)",
-				action: () => StateChart.commands.Copy(),
+				action: () => EditorState.commands.Copy(),
 			},
 			{
 				text: "Cut (Ctrl + X)",
-				action: () => StateChart.commands.Cut(),
+				action: () => EditorState.commands.Cut(),
 			},
 			{
 				text: "Paste (Ctrl + V)\n",
-				action: () => StateChart.commands.Paste(),
+				action: () => EditorState.commands.Paste(),
 			},
 			{
 				text: "Undo (Ctrl + Z)",
-				action: () => StateChart.commands.Undo(),
+				action: () => EditorState.commands.Undo(),
 				extraCode(itemObj) {
-					const ChartState = StateChart.instance;
+					const ChartState = EditorState.instance;
 					itemObj.onUpdate(() => {
 						if (ChartState.snapshotIndex == 0) itemObj.off = true;
 						else {
@@ -102,10 +102,10 @@ export class MenuBar {
 			},
 			{
 				text: "Redo (Ctrl + Y)",
-				action: () => StateChart.commands.Redo(),
+				action: () => EditorState.commands.Redo(),
 				extraCode(itemObj) {
 					itemObj.onUpdate(() => {
-						const ChartState = StateChart.instance;
+						const ChartState = EditorState.instance;
 						itemObj.onUpdate(() => {
 							if (ChartState.snapshotIndex == 0) itemObj.off = true;
 							else {
@@ -169,7 +169,7 @@ export class MenuBar {
 
 	/** Manages and adds all of the menubar items for the chart editor */
 	static setup() {
-		const ChartState = StateChart.instance;
+		const ChartState = EditorState.instance;
 
 		Object.values(MenuBar.bars).forEach((button, index) => {
 			const bar = MenuBar.addMenuBar();

@@ -2,7 +2,7 @@ import { GameSave } from "../../../core/save";
 import { CustomAudioPlay, Sound } from "../../../core/sound";
 import { getDancer } from "../../../data/dancer";
 import { utils } from "../../../utils";
-import { StateGame } from "../../PlayState";
+import { GameState } from "../../GameState";
 import { DANCER_POS } from "../dancer";
 
 function pauseScratch(audio: CustomAudioPlay, duration: number = 0.15) {
@@ -12,7 +12,7 @@ function pauseScratch(audio: CustomAudioPlay, duration: number = 0.15) {
 
 /** Runs when the game is paused */
 export function addPauseUI() {
-	const GameState = StateGame.instance;
+	const GameState = GameState.instance;
 
 	const baseZ = 100;
 	const baseLerp = 0.5;

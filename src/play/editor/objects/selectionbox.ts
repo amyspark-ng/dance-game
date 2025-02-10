@@ -1,5 +1,5 @@
 import { Color, KEventController, Vec2 } from "kaplay";
-import { StateChart } from "../EditorState";
+import { EditorState } from "../EditorState";
 import { EditorStamp } from "./stamp";
 
 let scrollEv: KEventController = null;
@@ -20,7 +20,7 @@ export class EditorSelectionBox {
 	}
 
 	update() {
-		const ChartState = StateChart.instance;
+		const ChartState = EditorState.instance;
 
 		if (isMousePressed("left")) {
 			const canSelect = !get("hover", { recursive: true }).some((obj) => obj.isHovering())
@@ -33,8 +33,8 @@ export class EditorSelectionBox {
 				this.lastClickPos = mousePos();
 				scrollEv?.cancel();
 				scrollEv = onScroll((delta) => {
-					if (delta.y > 0 && ChartState.scrollStep + 1 <= ChartState.conductor.totalSteps) this.lastClickPos.y -= StateChart.SQUARE_SIZE.y;
-					else if (delta.y < 0 && ChartState.scrollStep - 1 >= 0) this.lastClickPos.y += StateChart.SQUARE_SIZE.y;
+					if (delta.y > 0 && ChartState.scrollStep + 1 <= ChartState.conductor.totalSteps) this.lastClickPos.y -= EditorState.SQUARE_SIZE.y;
+					else if (delta.y < 0 && ChartState.scrollStep - 1 >= 0) this.lastClickPos.y += EditorState.SQUARE_SIZE.y;
 				});
 			}
 		}
@@ -70,7 +70,7 @@ export class EditorSelectionBox {
 
 			// if stamp was collided take a snapshot and actually select them
 			if (stampsCollided.length > 0) {
-				ChartState.takeSnapshot(`selected ${StateChart.utils.boxSortStamps(stampsCollided).toString()}`);
+				ChartState.takeSnapshot(`selected ${EditorState.utils.boxSortStamps(stampsCollided).toString()}`);
 				stampsCollided.forEach((stamp) => {
 					stamp.selected = true;
 					stamp.twitch();

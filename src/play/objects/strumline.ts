@@ -1,7 +1,7 @@
 import { juice } from "../../core/juiceComp";
 import { GameSave } from "../../core/save";
 import { utils } from "../../utils";
-import { StateGame } from "../PlayState";
+import { GameState } from "../GameState";
 import { addNote, ChartNote } from "./note";
 import { Scoring } from "./scoring";
 

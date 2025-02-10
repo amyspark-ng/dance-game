@@ -2,7 +2,7 @@ import { Color, Vec2 } from "kaplay";
 import { cloneDeep } from "lodash";
 import { v4 } from "uuid";
 import { Conductor } from "../../Conductor";
-import { KaplayState } from "../../core/scenes/KaplayState";
+import { IScene } from "../../core/scenes/KaplayState";
 import { Sound } from "../../core/sound";
 import { ChartEvent, eventId } from "../../data/event/event";
 import EventSchema from "../../data/event/schema";
@@ -14,11 +14,11 @@ import { Move } from "../objects/dancer";
 import { ChartNote } from "../objects/note";
 import { editorCommands } from "./backend/commands";
 import { editorUtils } from "./backend/utils";
+import { EditorScene } from "./EditorScene";
 import { EventLane, NoteLane } from "./objects/lane";
 import { EditorMinimap } from "./objects/minimap";
 import { EditorSelectionBox } from "./objects/selectionbox";
 import { EditorEvent, EditorNote, EditorStamp } from "./objects/stamp";
-import "./EditorScene";
 
 /** The params for the chart editor */
 export type paramsEditor = {
@@ -41,7 +41,7 @@ export class ChartSnapshot {
 	events: EditorEvent[];
 	/** The command you were goinge to execute in the moment the snapshot was taken */
 	command: string = undefined;
-	constructor(ChartState: StateChart, command: string) {
+	constructor(ChartState: EditorState, command: string) {
 		this.song = ChartState.song;
 		this.notes = ChartState.notes;
 		this.events = ChartState.events;
@@ -54,9 +54,9 @@ export class ChartSnapshot {
  * @param playbackSpeed How fast it will be gooing
  * @param seekTime The time the scene will start at
  */
-export class StateChart extends KaplayState {
+export class EditorState implements IScene {
 	/** Static instance of the statechart */
-	static instance: StateChart = null;
+	static instance: EditorState = null;
 
 	/** How lerped the scene will be */
 	static LERP = 0.5;
@@ -66,7 +66,7 @@ export class StateChart extends KaplayState {
 
 	/** How many squares in the screen (vertically) */
 	static get SQUARES_IN_SCREEN() {
-		return Math.floor(height() / StateChart.SQUARE_SIZE.y);
+		return Math.floor(height() / EditorState.SQUARE_SIZE.y);
 	}
 
 	/** The initial pos of the first square */
@@ -354,9 +354,12 @@ export class StateChart extends KaplayState {
 		addNotification(`EDITOR: ${this.song.manifest.name}.zip, DOWNLOADED! :)`);
 	}
 
+	scene(instance: EditorState): void {
+		EditorScene(instance);
+	}
+
 	constructor(params: paramsEditor) {
-		super();
-		StateChart.instance = this;
+		EditorState.instance = this;
 
 		params.playbackSpeed = params.playbackSpeed ?? 1;
 		params.playbackSpeed = Math.abs(clamp(params.playbackSpeed, 0, Infinity));

@@ -1,37 +1,36 @@
-import { KaplayState } from "../../core/scenes/KaplayState";
-import { getDancer, getDancerByName } from "../../data/dancer";
-import { StateSongSelect } from "../../ui/menu/songselect/SongSelectScene";
+import { IScene, switchScene } from "../../core/scenes/KaplayState";
+import { getDancerByName } from "../../data/dancer";
+import { SongSelectState } from "../../ui/menu/songselect/SongSelectState";
+import { GameState } from "../GameState";
 import { makeDancer } from "../objects/dancer";
-import { StateGame } from "../PlayState";
 
-export class StateDeath extends KaplayState {
-	GameState: StateGame;
-	constructor(GameState: StateGame) {
-		super();
+export class DeathState implements IScene {
+	GameState: GameState;
+
+	scene(this: DeathState): void {
+		setBackground(BLACK);
+
+		add([
+			text("YOU DIED"),
+			anchor("center"),
+			pos(center()),
+			"deathText",
+		]);
+
+		const dancer = add(makeDancer(getDancerByName(this.GameState.params.dancerName).manifest.name));
+		dancer.play(dancer.data.getAnim("up", true));
+
+		onKeyPress(["backspace", "escape"], () => {
+			switchScene(SongSelectState, this.GameState.song);
+		});
+
+		onKeyPress("enter", () => {
+			// TODO: Restart button
+			switchScene(GameState, this.GameState.params);
+		});
+	}
+
+	constructor(GameState: GameState) {
 		this.GameState = GameState;
 	}
 }
-
-KaplayState.scene("StateDeath", (GameState: StateGame) => {
-	const DeathState = new StateDeath(GameState);
-	setBackground(BLACK);
-
-	add([
-		text("YOU DIED"),
-		anchor("center"),
-		pos(center()),
-		"deathText",
-	]);
-
-	const dancer = add(makeDancer(getDancerByName(DeathState.GameState.params.dancerName).manifest.name));
-	dancer.play(dancer.data.getAnim("up", true));
-
-	onKeyPress(["backspace", "escape"], () => {
-		KaplayState.switchState(StateSongSelect, DeathState.GameState.song);
-	});
-
-	onKeyPress("enter", () => {
-		// TODO: Restart button
-		KaplayState.switchState(StateGame, DeathState.GameState.params);
-	});
-});

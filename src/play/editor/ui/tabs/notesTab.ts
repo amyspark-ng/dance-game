@@ -1,6 +1,6 @@
 import { getNoteskinSprite } from "../../../../data/noteskins";
 import { Move } from "../../../objects/dancer";
-import { StateChart } from "../../EditorState";
+import { EditorState } from "../../EditorState";
 import { EditorTab } from "../tabs";
 import addTab from "./baseTab";
 
@@ -22,7 +22,7 @@ export function notesTab() {
 		]);
 
 		note.onClick(() => {
-			StateChart.instance.currentMove = move;
+			EditorState.instance.currentMove = move;
 		});
 
 		note.onUpdate(() => {

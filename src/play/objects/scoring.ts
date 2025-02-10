@@ -1,6 +1,6 @@
 // # This file will manage the ranking system
 import { utils } from "../../utils";
-import { StateGame } from "../PlayState";
+import { GameState } from "../GameState";
 import { Move } from "./dancer";
 import { ChartNote } from "./note";
 
@@ -72,12 +72,12 @@ export class Scoring {
 	}
 
 	/** Checks if a note with the move param has been hit in the given time */
-	static checkForNote(time: number = StateGame.instance.conductor.time, move?: Move) {
+	static checkForNote(time: number = GameState.instance.conductor.time, move?: Move) {
 		function getClosestNote(time: number, arr: ChartNote[]): ChartNote {
 			return arr.reduce((acc, obj) => Math.abs(time - obj.time) < Math.abs(time - acc.time) ? obj : acc);
 		}
 
-		const closestNote = getClosestNote(time, StateGame.instance.song.chart.notes);
+		const closestNote = getClosestNote(time, GameState.instance.song.chart.notes);
 
 		// if time in seconds is in range by input_treshold
 		// to the hit note of any note in the chart

@@ -1,8 +1,8 @@
 import { getFocused } from "../../../ui/objects/uiElementComp";
-import { StateChart } from "../EditorState";
+import { EditorState } from "../EditorState";
 
 export const editorShortcuts = () => {
-	const ChartState = StateChart.instance;
+	const ChartState = EditorState.instance;
 	// if shortcuts disabled return (don't do anything)
 	if (getFocused()) return;
 
@@ -45,22 +45,22 @@ export const editorShortcuts = () => {
 	// #endregion MOVES
 
 	// #region COMMANDS
-	if (isKeyPressed("backspace")) StateChart.commands.DeleteMultiple();
+	if (isKeyPressed("backspace")) EditorState.commands.DeleteMultiple();
 
 	// all the control commands
 	if (!isKeyDown("control")) return;
-	else if (isKeyDown("shift") && isKeyPressed("s")) StateChart.commands.SaveChart();
-	else if (isKeyDown("shift") && isKeyPressed("f")) StateChart.commands.InvertNotes();
-	else if (isKeyPressed("n")) StateChart.commands.NewChart();
-	else if (isKeyPressed("o")) StateChart.commands.OpenChart();
-	else if (isKeyPressed("q")) StateChart.commands.Exit();
-	else if (isKeyPressed("a")) StateChart.commands.SelectAll();
-	else if (isKeyPressed("d")) StateChart.commands.DeselectAll();
-	else if (isKeyPressed("i")) StateChart.commands.InvertSelection();
-	else if (isKeyPressed("c")) StateChart.commands.Copy();
-	else if (isKeyPressed("x")) StateChart.commands.Cut();
-	else if (isKeyPressed("v")) StateChart.commands.Paste();
-	else if (isKeyPressedRepeat("z")) StateChart.commands.Undo();
-	else if (isKeyPressedRepeat("y")) StateChart.commands.Redo();
+	else if (isKeyDown("shift") && isKeyPressed("s")) EditorState.commands.SaveChart();
+	else if (isKeyDown("shift") && isKeyPressed("f")) EditorState.commands.InvertNotes();
+	else if (isKeyPressed("n")) EditorState.commands.NewChart();
+	else if (isKeyPressed("o")) EditorState.commands.OpenChart();
+	else if (isKeyPressed("q")) EditorState.commands.Exit();
+	else if (isKeyPressed("a")) EditorState.commands.SelectAll();
+	else if (isKeyPressed("d")) EditorState.commands.DeselectAll();
+	else if (isKeyPressed("i")) EditorState.commands.InvertSelection();
+	else if (isKeyPressed("c")) EditorState.commands.Copy();
+	else if (isKeyPressed("x")) EditorState.commands.Cut();
+	else if (isKeyPressed("v")) EditorState.commands.Paste();
+	else if (isKeyPressedRepeat("z")) EditorState.commands.Undo();
+	else if (isKeyPressedRepeat("y")) EditorState.commands.Redo();
 	// #endregion COMMANDS
 };

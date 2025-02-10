@@ -5,7 +5,7 @@ import EventSchema from "../../../data/event/schema";
 import { getNoteskinSprite } from "../../../data/noteskins";
 import { utils } from "../../../utils";
 import { ChartNote } from "../../objects/note";
-import { StateChart } from "../EditorState";
+import { EditorState } from "../EditorState";
 
 /** Class for one of the notes or events in a ChartState
  *
@@ -13,8 +13,8 @@ import { StateChart } from "../EditorState";
  */
 export class EditorStamp {
 	angle: number = 0;
-	width: number = StateChart.SQUARE_SIZE.x;
-	height: number = StateChart.SQUARE_SIZE.y;
+	width: number = EditorState.SQUARE_SIZE.x;
+	height: number = EditorState.SQUARE_SIZE.y;
 	selected: boolean = false;
 	scale: Vec2 = vec2(1);
 	pos: Vec2 = vec2();
@@ -24,11 +24,11 @@ export class EditorStamp {
 	events = new KEventHandler();
 
 	set step(newStep: number) {
-		this.data.time = StateChart.instance.conductor.stepToTime(newStep);
+		this.data.time = EditorState.instance.conductor.stepToTime(newStep);
 	}
 
 	get step() {
-		return Math.round(StateChart.instance.conductor.timeToStep(this.data.time));
+		return Math.round(EditorState.instance.conductor.timeToStep(this.data.time));
 	}
 
 	static mix(notes: EditorNote[], events: EditorEvent[]) {
@@ -149,8 +149,8 @@ export class EditorStamp {
 
 	/** The pos the stamp should be */
 	get intendedPos() {
-		const stampPos = utils.getPosInGrid(StateChart.INITIAL_POS, this.step, 0, vec2(this.width, this.height));
-		stampPos.y -= this.height * StateChart.instance.lerpScrollStep;
+		const stampPos = utils.getPosInGrid(EditorState.INITIAL_POS, this.step, 0, vec2(this.width, this.height));
+		stampPos.y -= this.height * EditorState.instance.lerpScrollStep;
 		if (this.is("event")) stampPos.x += this.width;
 		return stampPos;
 	}
@@ -210,10 +210,10 @@ export class EditorNote extends EditorStamp {
 	/** Determines wheter there's a trail at a certain step
 	 * @param step The step to find the trail at
 	 */
-	static trailAtStep(step: number = StateChart.instance.hoveredStep) {
-		const note = StateChart.utils.find("note", step);
+	static trailAtStep(step: number = EditorState.instance.hoveredStep) {
+		const note = EditorState.utils.find("note", step);
 		if (note) {
-			const noteStep = Math.round(StateChart.instance.conductor.timeToStep(note.data.time));
+			const noteStep = Math.round(EditorState.instance.conductor.timeToStep(note.data.time));
 			if (note.data.length) {
 				return utils.isInRange(step, noteStep + 1, noteStep + 1 + note.data.length);
 			}
@@ -223,12 +223,12 @@ export class EditorNote extends EditorStamp {
 	}
 
 	override draw() {
-		const stampLengthIsInRange = EditorNote.trailAtStep(StateChart.instance.scrollStep);
-		const canDraw = StateChart.utils.renderingConditions(this.pos.y) || stampLengthIsInRange;
+		const stampLengthIsInRange = EditorNote.trailAtStep(EditorState.instance.scrollStep);
+		const canDraw = EditorState.utils.renderingConditions(this.pos.y) || stampLengthIsInRange;
 		if (!canDraw) return;
 
 		// select stuff
-		const opacity = StateChart.instance.conductor.time >= this.data.time ? 1 : 0.5;
+		const opacity = EditorState.instance.conductor.time >= this.data.time ? 1 : 0.5;
 
 		// actual drawing
 		if (this.data.length) {
@@ -268,7 +268,7 @@ export class EditorNote extends EditorStamp {
 	override update() {
 		super.update();
 
-		if (StateChart.instance.scrollStep == this.step || this.data.length && utils.isInRange(StateChart.instance.scrollStep, this.step, this.step + this.data.length)) {
+		if (EditorState.instance.scrollStep == this.step || this.data.length && utils.isInRange(EditorState.instance.scrollStep, this.step, this.step + this.data.length)) {
 			this.scale = lerp(this.scale, vec2(1.2), 0.5);
 		}
 		else this.scale = lerp(this.scale, vec2(1), 0.5);
@@ -315,7 +315,7 @@ export class EditorEvent extends EditorStamp {
 	override update(): void {
 		super.update();
 
-		if (StateChart.instance.conductor.currentStep == this.step) {
+		if (EditorState.instance.conductor.currentStep == this.step) {
 			this.scale = lerp(this.scale, vec2(1.1), 0.5);
 		}
 		else {
@@ -324,10 +324,10 @@ export class EditorEvent extends EditorStamp {
 	}
 
 	override draw() {
-		if (!StateChart.utils.renderingConditions(this.intendedPos.y)) return;
+		if (!EditorState.utils.renderingConditions(this.intendedPos.y)) return;
 
 		// select stuff
-		const opacity = StateChart.instance.conductor.time >= this.data.time ? 1 : 0.5;
+		const opacity = EditorState.instance.conductor.time >= this.data.time ? 1 : 0.5;
 		// this draws the actual stamp (event or note)
 		drawSprite({
 			sprite: this.data.id ?? "hueSlider",

@@ -1,13 +1,13 @@
 // Handles the setup for the game scene and some other important stuff
 import { Conductor } from "../Conductor";
 import { GameSave } from "../core/save";
-import { KaplayState } from "../core/scenes/KaplayState";
+import { IScene, switchScene } from "../core/scenes/KaplayState";
 import { Sound } from "../core/sound";
 import { getDancer } from "../data/dancer";
-import { getNoteskinSprite } from "../data/noteskins";
 import { SongContent } from "../data/song";
-import { StateSongSelect } from "../ui/menu/songselect/SongSelectScene";
-import { StateChart } from "./editor/EditorState";
+import { SongSelectState } from "../ui/menu/songselect/SongSelectState";
+import { EditorState } from "./editor/EditorState";
+import { GameScene } from "./GameScene";
 import { DancerGameObj, makeDancer } from "./objects/dancer";
 import { addBouncyNote, ChartNote } from "./objects/note";
 import { Scoring, Tally } from "./objects/scoring";
@@ -15,8 +15,7 @@ import { createStrumline, StrumlineGameObj } from "./objects/strumline";
 import { addUI } from "./objects/ui/gameUi";
 import { addPauseUI } from "./objects/ui/pauseUi";
 import { SongScore } from "./savescore";
-import { StateResults } from "./scenes/ResultsScene";
-import "./GameScene";
+import { ResultsState } from "./scenes/ResultsState";
 
 /** Type to store the parameters for the game scene */
 export type paramsGame = {
@@ -43,9 +42,9 @@ export type paramsGame = {
  * @param seekTime? At what time the song will start
  * @param fromEditor? Wheter you're coming from the editor or not
  */
-export class StateGame extends KaplayState {
+export class GameState implements IScene {
 	/** Static instance of the class */
-	static instance: StateGame = null;
+	static instance: GameState = null;
 
 	/** How much time will take for the note to reach the strum */
 	TIME_FOR_STRUM = 1.25;
@@ -146,7 +145,7 @@ export class StateGame extends KaplayState {
 		const songSaveScore = new SongScore(this.song.manifest.uuid_DONT_CHANGE, this.tally);
 		GameSave.scores.push(songSaveScore);
 		GameSave.save();
-		KaplayState.switchState(StateResults, this);
+		switchScene(ResultsState, this);
 	}
 
 	/** Restarts the song */
@@ -199,14 +198,14 @@ export class StateGame extends KaplayState {
 
 	/** Function to exit to the song select menu from the gamescene */
 	exitMenu() {
-		KaplayState.switchState(StateSongSelect, this.song);
+		switchScene(SongSelectState, this.song);
 	}
 
 	/** Function to exit to the editor menu from the gamescene */
 	exitEditor() {
 		this.stop();
 		this.menuInputEnabled = false;
-		KaplayState.switchState(StateChart, { song: this.song });
+		switchScene(EditorState, { song: this.song });
 	}
 
 	handleInput() {
@@ -235,9 +234,12 @@ export class StateGame extends KaplayState {
 		},
 	};
 
+	scene(instance: this): void {
+		GameScene(instance);
+	}
+
 	constructor(params: paramsGame) {
-		super();
-		StateGame.instance = this;
+		GameState.instance = this;
 		params.playbackSpeed = params.playbackSpeed ?? 1;
 		params.seekTime = params.seekTime ?? 0;
 		if (isNaN(params.seekTime)) params.seekTime = 0;
@@ -291,13 +293,13 @@ export function introGo() {
 	]);
 
 	// goText.tween(goText.pos.y, height() + goText.height, TIME_FOR_STRUM / 2, (p) => goText.pos.y = p).onEnd(() => goText.destroy())
-	goText.fadeIn(StateGame.instance.TIME_FOR_STRUM / 4).onEnd(() => {
+	goText.fadeIn(GameState.instance.TIME_FOR_STRUM / 4).onEnd(() => {
 		goText.fadeOut();
 	});
 }
 
 /** The function that manages input functions inside the game, must be called onUpdate */
-export function inputHandler(GameState: StateGame) {
+export function inputHandler(GameState: GameState) {
 	// goes through each gamekey
 	Object.values(GameSave.gameControls).forEach((gameKey, index) => {
 		if (GameState.paused) return;

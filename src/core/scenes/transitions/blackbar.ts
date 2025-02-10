@@ -1,6 +1,4 @@
-import { KaplayState, transitionFunction } from "../KaplayState";
-
-export const BlackBarsTrans: transitionFunction = (state: new(...args: any) => KaplayState, ...args: any[]) => {
+export function BlackBarsTrans(middleAction: () => void) {
 	const topleft = add([
 		rect(width(), height() / 2),
 		pos(center().x, center().y + height() / 2),
@@ -28,7 +26,7 @@ export const BlackBarsTrans: transitionFunction = (state: new(...args: any) => K
 	botleft.tween(botleft.pos.y, center().y, 0.15, (p) => botleft.pos.y = p, easings.easeOutQuad);
 
 	wait(0.3, () => {
-		KaplayState.goScene(state, ...args);
+		middleAction();
 
 		const sceneLeave = onSceneLeave(() => {
 			sceneLeave.cancel();
@@ -53,4 +51,4 @@ export const BlackBarsTrans: transitionFunction = (state: new(...args: any) => K
 			});
 		});
 	});
-};
+}

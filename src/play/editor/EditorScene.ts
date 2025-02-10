@@ -1,12 +1,11 @@
 import { cam } from "../../core/camera.ts";
 import { gameCursor } from "../../core/cursor.ts";
-import { KaplayState } from "../../core/scenes/KaplayState.ts";
 import { utils } from "../../utils.ts";
 import { ChartNote } from "../objects/note.ts";
 import { editorShortcuts } from "./backend/handlers.ts";
 import { keyboardControls } from "./backend/keyboardControls.ts";
 import { mouseControls } from "./backend/mouseControls.ts";
-import { paramsEditor, StateChart } from "./EditorState.ts";
+import { EditorState } from "./EditorState.ts";
 import { EditorLane, EventLane, NoteLane } from "./objects/lane.ts";
 import { EditorMinimap } from "./objects/minimap.ts";
 import { EditorSelectionBox } from "./objects/selectionbox.ts";
@@ -14,8 +13,7 @@ import { EditorStamp } from "./objects/stamp.ts";
 import { MenuBar } from "./ui/menubar.ts";
 import { EditorTab } from "./ui/tabs.ts";
 
-KaplayState.scene("StateChart", (params: paramsEditor) => {
-	const ChartState = new StateChart(params);
+export function EditorScene(ChartState: EditorState) {
 	cam.reset();
 
 	// BE CAREFUL TO PUT IT BEFORE the drawing of other things like lane and minimap
@@ -31,10 +29,10 @@ KaplayState.scene("StateChart", (params: paramsEditor) => {
 	ChartState.noteLane = new NoteLane("any");
 
 	ChartState.eventLane = new EventLane();
-	ChartState.eventLane.pos = ChartState.noteLane.pos.add(StateChart.SQUARE_SIZE.x, 0);
+	ChartState.eventLane.pos = ChartState.noteLane.pos.add(EditorState.SQUARE_SIZE.x, 0);
 
 	ChartState.minimap = new EditorMinimap();
-	ChartState.minimap.pos = ChartState.eventLane.pos.add(StateChart.SQUARE_SIZE.x, 0);
+	ChartState.minimap.pos = ChartState.eventLane.pos.add(EditorState.SQUARE_SIZE.x, 0);
 
 	ChartState.selectionBox = new EditorSelectionBox();
 	// the ol' switcheroo
@@ -55,10 +53,10 @@ KaplayState.scene("StateChart", (params: paramsEditor) => {
 		// MOUSE COLOR
 		const currentColor = ChartNote.moveToColor(ChartState.currentMove);
 		const mouseColor = utils.blendColors(WHITE, currentColor, 0.5);
-		gameCursor.color = lerp(gameCursor.color, mouseColor, StateChart.LERP);
+		gameCursor.color = lerp(gameCursor.color, mouseColor, EditorState.LERP);
 
 		// SCROLL STEP
-		ChartState.lerpScrollStep = lerp(ChartState.lerpScrollStep, ChartState.scrollStep, StateChart.LERP);
+		ChartState.lerpScrollStep = lerp(ChartState.lerpScrollStep, ChartState.scrollStep, EditorState.LERP);
 		if (ChartState.paused) {
 			const theTime = ChartState.conductor.stepToTime(ChartState.scrollStep + ChartState.strumlineStep);
 			ChartState.conductor.time = theTime;
@@ -72,7 +70,7 @@ KaplayState.scene("StateChart", (params: paramsEditor) => {
 		}
 
 		// HOVERED STEP
-		ChartState.hoveredStep = ChartState.scrollStep + Math.floor(gameCursor.pos.y / StateChart.SQUARE_SIZE.y);
+		ChartState.hoveredStep = ChartState.scrollStep + Math.floor(gameCursor.pos.y / EditorState.SQUARE_SIZE.y);
 		ChartState.conductor.currentBPM = ChartState.song.manifest.initial_bpm;
 		ChartState.conductor.timeSignature = ChartState.song.manifest.time_signature;
 
@@ -83,17 +81,17 @@ KaplayState.scene("StateChart", (params: paramsEditor) => {
 			// scroll up
 			const canScrollUp = ChartState.scrollStep - 1 >= 0;
 			const canScrollDown = ChartState.scrollStep + 1 <= ChartState.conductor.totalSteps;
-			if (canScrollUp && mousePos().y < StateChart.SQUARE_SIZE.y) {
+			if (canScrollUp && mousePos().y < EditorState.SQUARE_SIZE.y) {
 				// convert size to step
-				const diff = 1 - (mousePos().y / StateChart.SQUARE_SIZE.y);
+				const diff = 1 - (mousePos().y / EditorState.SQUARE_SIZE.y);
 				ChartState.scrollToStep(ChartState.scrollStep - diff * 0.35, false);
-				if (ChartState.selectionBox.isSelecting) ChartState.selectionBox.lastClickPos.y += diff * 0.35 * StateChart.SQUARE_SIZE.y;
+				if (ChartState.selectionBox.isSelecting) ChartState.selectionBox.lastClickPos.y += diff * 0.35 * EditorState.SQUARE_SIZE.y;
 			}
 			// scroll down
-			else if (canScrollDown && mousePos().y > height() - StateChart.SQUARE_SIZE.y) {
-				const diff = 1 + (mousePos().y / StateChart.SQUARE_SIZE.y - StateChart.SQUARES_IN_SCREEN);
+			else if (canScrollDown && mousePos().y > height() - EditorState.SQUARE_SIZE.y) {
+				const diff = 1 + (mousePos().y / EditorState.SQUARE_SIZE.y - EditorState.SQUARES_IN_SCREEN);
 				ChartState.scrollToStep(ChartState.scrollStep + diff * 0.35, false);
-				if (ChartState.selectionBox.isSelecting) ChartState.selectionBox.lastClickPos.y -= diff * 0.35 * StateChart.SQUARE_SIZE.y;
+				if (ChartState.selectionBox.isSelecting) ChartState.selectionBox.lastClickPos.y -= diff * 0.35 * EditorState.SQUARE_SIZE.y;
 			}
 		}
 
@@ -106,15 +104,15 @@ KaplayState.scene("StateChart", (params: paramsEditor) => {
 		EditorLane.drawCursor(); // i draw it here so it's above the note selected box
 
 		// # strumlineline
-		const strumlineYPos = StateChart.instance.strumlineStep * StateChart.SQUARE_SIZE.y;
+		const strumlineYPos = EditorState.instance.strumlineStep * EditorState.SQUARE_SIZE.y;
 		drawRect({
 			pos: vec2(center().x, strumlineYPos),
 			anchor: "center",
 			height: 5,
 			radius: 5,
 			color: RED,
-			scale: vec2(StateChart.instance.strumlineScale.x, 1),
-			width: (StateChart.SQUARE_SIZE.x * 3),
+			scale: vec2(EditorState.instance.strumlineScale.x, 1),
+			width: (EditorState.SQUARE_SIZE.x * 3),
 		});
 	});
 
@@ -126,7 +124,7 @@ KaplayState.scene("StateChart", (params: paramsEditor) => {
 		// strumline step
 		if (isKeyDown("shift")) {
 			ChartState.strumlineStep += scrollPlus;
-			ChartState.strumlineStep = clamp(ChartState.strumlineStep, 0, StateChart.SQUARES_IN_SCREEN);
+			ChartState.strumlineStep = clamp(ChartState.strumlineStep, 0, EditorState.SQUARES_IN_SCREEN);
 		}
 		else {
 			// scroll step
@@ -158,4 +156,4 @@ KaplayState.scene("StateChart", (params: paramsEditor) => {
 
 	MenuBar.setup();
 	EditorTab.setup();
-});
+}

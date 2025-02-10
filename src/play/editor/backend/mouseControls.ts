@@ -1,12 +1,12 @@
 import { KEventController } from "kaplay";
 import { isSomeHovered } from "../../../core/cursor";
-import { StateChart } from "../EditorState";
+import { EditorState } from "../EditorState";
 import { EditorEvent, EditorNote, EditorStamp } from "../objects/stamp";
 
 /** Function that contains the whole mouse controls for the editor (placing stamps, selecting stamps, moving stamps, etc) */
 export function mouseControls() {
 	return onMousePress((button) => {
-		const ChartState = StateChart.instance;
+		const ChartState = EditorState.instance;
 
 		/** The event for stretching a note */
 		let stretchingNoteEV: KEventController = undefined;
@@ -20,13 +20,13 @@ export function mouseControls() {
 		if (!inGridAtClick) {
 			const releasedOutsideTheGrid = onMouseRelease("left", () => {
 				releasedOutsideTheGrid.cancel();
-				if (!isSomeHovered()) StateChart.commands.DeselectAll();
+				if (!isSomeHovered()) EditorState.commands.DeselectAll();
 			});
 		}
 		else {
 			if (hoveredStamp) {
 				if (!hoveredStamp.selected) {
-					if (!isKeyDown("control")) StateChart.commands.DeselectAll();
+					if (!isKeyDown("control")) EditorState.commands.DeselectAll();
 					hoveredStamp.selected = true;
 				}
 				else {
@@ -43,7 +43,7 @@ export function mouseControls() {
 					}
 				}
 			}
-			else StateChart.commands.DeselectAll();
+			else EditorState.commands.DeselectAll();
 		}
 
 		// #region placing
@@ -51,7 +51,7 @@ export function mouseControls() {
 			// placing notes
 			if (ChartState.isInNoteLane) {
 				if (!hoveredStamp) {
-					const note = StateChart.commands.PlaceNote(true);
+					const note = EditorState.commands.PlaceNote(true);
 					stretchingNoteEV?.cancel();
 					stretchingNoteEV = onMouseMove(() => {
 						let oldLength = note.data.length;
@@ -74,7 +74,7 @@ export function mouseControls() {
 			// placing events
 			else if (ChartState.isInEventLane) {
 				if (!hoveredStamp) {
-					const event = StateChart.commands.PlaceEvent(true);
+					const event = EditorState.commands.PlaceEvent(true);
 				}
 			}
 		}
@@ -89,14 +89,14 @@ export function mouseControls() {
 						note.data.length = undefined;
 						note.snapSound();
 					}
-					else StateChart.commands.DeleteNote(true, note);
+					else EditorState.commands.DeleteNote(true, note);
 				}
 			}
 			// delete event
 			else if (ChartState.isInEventLane) {
 				const event = hoveredStamp as EditorEvent;
 				if (event) {
-					StateChart.commands.DeleteEvent(true, event);
+					EditorState.commands.DeleteEvent(true, event);
 					event.deleteSound();
 				}
 			}

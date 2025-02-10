@@ -1,7 +1,7 @@
 import { DrawRectOpt, GameObj, Vec2 } from "kaplay";
 import { utils } from "../../../utils";
 import { ChartNote } from "../../objects/note";
-import { StateChart } from "../EditorState";
+import { EditorState } from "../EditorState";
 import { EditorStamp } from "./stamp";
 
 function makeMinimapObj() {
@@ -20,25 +20,25 @@ export class EditorMinimap {
 	controller = {
 		y: 0,
 		opacity: 0.5,
-		height: StateChart.SQUARE_SIZE.y,
+		height: EditorState.SQUARE_SIZE.y,
 	};
 
 	/** How big a note is depending on the amount of total steps */
 	sizeOfNote: Vec2 = vec2();
 	canMove: boolean = false;
 	height: number = height();
-	width: number = StateChart.SQUARE_SIZE.x;
+	width: number = EditorState.SQUARE_SIZE.x;
 	isMoving: boolean = false;
 
 	obj: ReturnType<typeof makeMinimapObj> = null;
 
 	private update() {
-		const ChartState = StateChart.instance;
+		const ChartState = EditorState.instance;
 		const minLeft = this.pos.x - this.width / 2;
 		const maxRight = this.pos.x + this.width / 2;
 
-		this.sizeOfNote = vec2(StateChart.SQUARE_SIZE.x / 2, height() / ChartState.conductor.totalSteps);
-		this.controller.height = this.sizeOfNote.y * StateChart.SQUARES_IN_SCREEN;
+		this.sizeOfNote = vec2(EditorState.SQUARE_SIZE.x / 2, height() / ChartState.conductor.totalSteps);
+		this.controller.height = this.sizeOfNote.y * EditorState.SQUARES_IN_SCREEN;
 
 		if (utils.isInRange(mousePos().x, minLeft, maxRight)) this.canMove = true;
 		else {
@@ -90,11 +90,11 @@ export class EditorMinimap {
 	}
 
 	private draw() {
-		const ChartState = StateChart.instance;
+		const ChartState = EditorState.instance;
 
 		// draws the minimap background
 		drawRect({
-			width: StateChart.SQUARE_SIZE.x,
+			width: EditorState.SQUARE_SIZE.x,
 			height: this.height,
 			color: BLACK.lerp(WHITE, 0.5),
 			pos: this.pos,
@@ -136,7 +136,7 @@ export class EditorMinimap {
 
 		// draw strumline
 		drawRect({
-			width: StateChart.SQUARE_SIZE.x,
+			width: EditorState.SQUARE_SIZE.x,
 			height: this.sizeOfNote.y,
 			opacity: 0.5,
 			color: RED,
@@ -195,8 +195,8 @@ export class EditorMinimap {
 	constructor() {
 		this.obj = add(makeMinimapObj());
 		this.obj.onUpdate(() => {
-			this.width = StateChart.SQUARE_SIZE.x;
-			this.height = StateChart.SQUARE_SIZE.y * StateChart.SQUARES_IN_SCREEN;
+			this.width = EditorState.SQUARE_SIZE.x;
+			this.height = EditorState.SQUARE_SIZE.y * EditorState.SQUARES_IN_SCREEN;
 
 			this.obj.width = this.width;
 			this.obj.height = this.height;

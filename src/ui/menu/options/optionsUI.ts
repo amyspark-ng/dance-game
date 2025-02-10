@@ -23,6 +23,7 @@ export function addOptionsCheckbox(onCheck: (checked: boolean) => void, initialV
 		anchor("left"),
 		pos(),
 		color(),
+		outline(5, BLACK),
 		"checkbox",
 		{
 			handleInput: () => {},
@@ -34,8 +35,8 @@ export function addOptionsCheckbox(onCheck: (checked: boolean) => void, initialV
 	};
 
 	checkbox.onUpdate(() => {
-		if (checkbox.value) checkbox.color = BLACK;
-		else checkbox.color = WHITE;
+		if (checkbox.value) checkbox.color = WHITE;
+		else checkbox.color = BLACK.lighten(20);
 	});
 
 	checkbox.check = () => {
