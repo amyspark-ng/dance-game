@@ -5,29 +5,29 @@ import { GameState } from "../../GameState";
 import { EditorState } from "../EditorState";
 
 export function keyboardControls() {
-	const ChartState = EditorState.instance;
+	const state = EditorState.instance;
 
 	// Send you to the game
 	onKeyPress("enter", async () => {
-		if (!ChartState.inputEnabled) return;
+		if (!state.inputEnabled) return;
 		if (getFocused()) return;
 
-		ChartState.inputEnabled = false;
-		ChartState.paused = true;
+		state.inputEnabled = false;
+		state.paused = true;
 
 		// transition to scene normally
-		switchScene(GameState, { fromEditor: true, song: ChartState.song, seekTime: ChartState.conductor.time });
+		switchScene(GameState, { fromEditor: true, song: state.song, seekTime: state.conductor.time });
 	});
 
 	// Pausing unpausing behaviour
 	onKeyPress("space", () => {
-		if (!ChartState.inputEnabled) return;
+		if (!state.inputEnabled) return;
 		if (getFocused()) return;
 
-		ChartState.paused = !ChartState.paused;
+		state.paused = !state.paused;
 
-		if (ChartState.paused == false) {
-			ChartState.conductor.audioPlay.seek(ChartState.conductor.time);
+		if (state.paused == false) {
+			state.conductor.audioPlay.seek(state.conductor.time);
 		}
 	});
 

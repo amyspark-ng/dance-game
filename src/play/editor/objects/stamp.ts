@@ -7,7 +7,7 @@ import { utils } from "../../../utils";
 import { ChartNote } from "../../objects/note";
 import { EditorState } from "../EditorState";
 
-/** Class for one of the notes or events in a ChartState
+/** Class for one of the notes or events in a EditorState
  *
  * Has many cool little props like selected step sounds, anim utils, etc
  */
@@ -165,7 +165,7 @@ export class EditorStamp {
 	}
 }
 
-/** Class for one of the notes in a ChartState */
+/** Class for one of the notes in a EditorState */
 export class EditorNote extends EditorStamp {
 	override data: ChartNote = null;
 
@@ -281,7 +281,7 @@ export class EditorNote extends EditorStamp {
 	}
 }
 
-/** Class for one of the events in a ChartState */
+/** Class for one of the events in a EditorState */
 export class EditorEvent extends EditorStamp {
 	override data: ChartEvent = null;
 	beingEdited: boolean = false;

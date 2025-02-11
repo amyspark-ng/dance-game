@@ -11,12 +11,12 @@ import { EditorTab } from "../tabs";
 import addTab from "./baseTab";
 
 export function songTab() {
-	const ChartState = EditorState.instance;
+	const state = EditorState.instance;
 	const tab = addTab(EditorTab.tabs.SongInfo);
 
 	Object.keys(songSchema).forEach((key) => {
 		const schema = songSchema[key] as eventValue;
-		const value = ChartState.song.manifest[key];
+		const value = state.song.manifest[key];
 
 		let obj: GameObj<any> = null;
 		if (schema.type == "number") obj = tab.add(makeNumberStepper(value));
@@ -40,8 +40,8 @@ export function songTab() {
 				if (file) {
 					// cover
 					const base64 = FileManager.ImageToBase64(file);
-					await loadSprite(ChartState.song.getCoverName(), base64);
-					const theButton = tab.get("ui").find((obj) => obj.value == ChartState.song.manifest.cover_file);
+					await loadSprite(state.song.getCoverName(), base64);
+					const theButton = tab.get("ui").find((obj) => obj.value == state.song.manifest.cover_file);
 					if (theButton) theButton.value = file.name;
 					obj.trigger("change");
 				}
@@ -55,10 +55,10 @@ export function songTab() {
 				const loading = FileManager.loadingScreen();
 				let file: File = await FileManager.receiveFile("audio");
 
-				await loadSound(ChartState.song.getAudioName(), await file.arrayBuffer());
-				ChartState.updateAudio();
+				await loadSound(state.song.getAudioName(), await file.arrayBuffer());
+				state.updateAudio();
 				loading.cancel();
-				const theButton = tab.get("ui").find((obj) => obj.value == ChartState.song.manifest.audio_file);
+				const theButton = tab.get("ui").find((obj) => obj.value == state.song.manifest.audio_file);
 				if (theButton) theButton.value = file.name;
 				theButton.trigger("change");
 			});
@@ -68,7 +68,7 @@ export function songTab() {
 		label.pos.y += label.height / 2;
 
 		obj.onChange(() => {
-			ChartState.song.manifest[key] = obj.value;
+			state.song.manifest[key] = obj.value;
 		});
 	});
 

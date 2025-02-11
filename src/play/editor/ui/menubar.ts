@@ -1,4 +1,5 @@
 import { GameSave } from "../../../core/save";
+import { coolRedo, coolUndo } from "../backend/commands";
 import { EditorState } from "../EditorState";
 
 const SIZE_OF_MENUBAR = vec2(125, 25);
@@ -54,46 +55,46 @@ export class MenuBar {
 		"Edit": new MenuBar("Edit", [
 			{
 				text: "Select all (Ctrl + A)",
-				action: () => EditorState.commands.SelectAll(),
+				action: () => EditorState.instance.performCommand("SelectStamps"),
 			},
 			{
 				text: "Deselect (Ctrl + D)",
-				action: () => EditorState.commands.DeselectAll(),
+				action: () => EditorState.instance.performCommand("SelectStamps", []),
 			},
 			{
 				text: "Invert selection (Ctrl + I)\n",
-				action: () => EditorState.commands.InvertSelection(),
+				action: () => EditorState.instance.performCommand("InvertSelection"),
 			},
 			{
 				text: "Invert moves (Ctrl + Shift + F)\n",
-				action: () => EditorState.commands.InvertNotes(),
+				action: () => EditorState.instance.performCommand("FlipMoves"),
 			},
 			{
 				text: "Delete (Backspace)",
-				action: () => EditorState.commands.DeleteMultiple(),
+				action: () => EditorState.instance.performCommand("DeleteStamps"),
 			},
 			{
 				text: "Copy (Ctrl + C)",
-				action: () => EditorState.commands.Copy(),
+				action: () => EditorState.instance.performCommand("Copy"),
 			},
 			{
 				text: "Cut (Ctrl + X)",
-				action: () => EditorState.commands.Cut(),
+				action: () => EditorState.instance.performCommand("Cut"),
 			},
 			{
 				text: "Paste (Ctrl + V)\n",
-				action: () => EditorState.commands.Paste(),
+				action: () => EditorState.instance.performCommand("Paste"),
 			},
 			{
 				text: "Undo (Ctrl + Z)",
-				action: () => EditorState.commands.Undo(),
+				action: () => coolUndo(),
 				extraCode(itemObj) {
-					const ChartState = EditorState.instance;
+					const state = EditorState.instance;
 					itemObj.onUpdate(() => {
-						if (ChartState.snapshotIndex == 0) itemObj.off = true;
+						if (state.snapshotIndex == 0) itemObj.off = true;
 						else {
 							itemObj.off = false;
-							// const lastCommand = ChartState.snapshots[ChartState.snapshotIndex].command;
+							// const lastCommand = state.snapshots[state.snapshotIndex].command;
 							// if (lastCommand) itemObj.item.text = `Undo ${lastCommand} (Ctrl + Z)`;
 							// else itemObj.item.text = "Undo (Ctrl + Z)";
 						}
@@ -102,15 +103,15 @@ export class MenuBar {
 			},
 			{
 				text: "Redo (Ctrl + Y)",
-				action: () => EditorState.commands.Redo(),
+				action: () => coolRedo(),
 				extraCode(itemObj) {
 					itemObj.onUpdate(() => {
-						const ChartState = EditorState.instance;
+						const state = EditorState.instance;
 						itemObj.onUpdate(() => {
-							if (ChartState.snapshotIndex == 0) itemObj.off = true;
+							if (state.snapshotIndex == 0) itemObj.off = true;
 							else {
 								itemObj.off = false;
-								// const lastSnapshot = ChartState.snapshots[ChartState.snapshotIndex + 1];
+								// const lastSnapshot = state.snapshots[state.snapshotIndex + 1];
 								// if (lastSnapshot && lastSnapshot.command) {
 								// 	itemObj.item.text = `Redo ${lastSnapshot.command} (Ctrl + Y)`;
 								// }
@@ -169,7 +170,7 @@ export class MenuBar {
 
 	/** Manages and adds all of the menubar items for the chart editor */
 	static setup() {
-		const ChartState = EditorState.instance;
+		const state = EditorState.instance;
 
 		Object.values(MenuBar.bars).forEach((button, index) => {
 			const bar = MenuBar.addMenuBar();
@@ -218,11 +219,11 @@ export class MenuBar {
 							if (menuitem.off == false) {
 								const intendedColor = menuitem.isHovering()
 									? WHITE
-									: ChartState.bgColor.lerp(WHITE, 0.5);
+									: state.bgColor.lerp(WHITE, 0.5);
 								menuitem.color = lerp(menuitem.color, intendedColor, 0.5);
 							}
 							else {
-								menuitem.color = lerp(menuitem.color, ChartState.bgColor.lerp(WHITE, 0.25), 0.5);
+								menuitem.color = lerp(menuitem.color, state.bgColor.lerp(WHITE, 0.25), 0.5);
 							}
 
 							menuitem.pos.y = lerp(

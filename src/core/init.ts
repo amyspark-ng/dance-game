@@ -93,11 +93,6 @@ document.addEventListener("fullscreenchange", (event) => {
 	// else GameSave.fullscreen = false;
 });
 
-const scenes = {
-	"game": GameState,
-	"title": TitleState,
-} as const;
-
 export function INITIAL_SCENE() {
-	switchScene(TitleState);
+	switchScene(EditorState, { song: SongContent.getByName("Bopeebo") });
 }

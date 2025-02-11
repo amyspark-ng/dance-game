@@ -8,18 +8,18 @@ import { EditorTab } from "../tabs";
 import addTab from "./baseTab";
 
 export function syncTab() {
-	const ChartState = EditorState.instance;
+	const state = EditorState.instance;
 	const tab = addTab(EditorTab.tabs.Sync);
 
 	const stepText = tab.add([
-		text("Current step: " + ChartState.conductor.currentStep, { size: 20 }),
+		text("Current step: " + state.conductor.currentStep, { size: 20 }),
 		pos(),
 		"ui",
 		"step",
 	]);
 
 	const beatText = tab.add([
-		text("Current beat: " + ChartState.conductor.currentBeat, { size: 20 }),
+		text("Current beat: " + state.conductor.currentBeat, { size: 20 }),
 		pos(),
 		"ui",
 		"beat",
@@ -45,8 +45,8 @@ export function syncTab() {
 	dancer.pos = DANCER_POS.scale(0.25);
 
 	camSquare.onUpdate(() => {
-		const events = ChartState.song.chart.events;
-		const camValue = EventHandler["cam-move"](ChartState.conductor.time, events);
+		const events = state.song.chart.events;
+		const camValue = EventHandler["cam-move"](state.conductor.time, events);
 
 		camSquare.pos.x = camSquare.width / 2 + camValue.x;
 		camSquare.pos.y = camSquare.height / 2 + camValue.y;
@@ -76,7 +76,7 @@ export function syncTab() {
 		return counter;
 	}
 
-	for (let i = 0; i < ChartState.conductor.stepsPerBeat; i++) {
+	for (let i = 0; i < state.conductor.stepsPerBeat; i++) {
 		const counter = addCounterObj(i);
 		counterParent.width += counter.width * 1.25;
 		counterParent.height = counter.height * 1.5;
@@ -90,14 +90,14 @@ export function syncTab() {
 		dancer.play(ev.data.anim);
 	});
 
-	const onStepHitEv = ChartState.conductor.onStepHit((curStep) => {
-		const camValue = EventHandler["cam-move"](ChartState.conductor.time, ChartState.song.chart.events);
-		if (curStep % (Math.round(ChartState.conductor.stepsPerBeat / camValue.bop_rate)) == 0) {
+	const onStepHitEv = state.conductor.onStepHit((curStep) => {
+		const camValue = EventHandler["cam-move"](state.conductor.time, state.song.chart.events);
+		if (curStep % (Math.round(state.conductor.stepsPerBeat / camValue.bop_rate)) == 0) {
 			// handling zoom
 			tween(
 				camValue.bop_strength,
 				camValue.zoom,
-				ChartState.conductor.stepInterval,
+				state.conductor.stepInterval,
 				(p) => {
 					camSquare.scale = vec2(1 / p).scale(camSquare.scale);
 				},
@@ -106,20 +106,18 @@ export function syncTab() {
 		}
 	});
 
-	const onBeatHitEv = ChartState.conductor.onBeatHit((curBeat) => {
-		const currentBeatObj = (counterParent.get("beatcounter") as ReturnType<typeof addCounterObj>[]).find((obj) =>
-			obj.beat == (curBeat % ChartState.conductor.stepsPerBeat) + 1
-		);
+	const onBeatHitEv = state.conductor.onBeatHit((curBeat) => {
+		const currentBeatObj = (counterParent.get("beatcounter") as ReturnType<typeof addCounterObj>[]).find((obj) => obj.beat == (curBeat % state.conductor.stepsPerBeat) + 1);
 
 		tween(vec2(1.3), vec2(1), 0.15, (p) => currentBeatObj.scale = p);
-		if (currentBeatObj.beat == ChartState.conductor.stepsPerBeat) {
+		if (currentBeatObj.beat == state.conductor.stepsPerBeat) {
 			tween(YELLOW, WHITE, 0.15, (p) => currentBeatObj.color = p);
 		}
 
 		if (dancer.currentMove == "idle") dancer.moveBop();
 	});
 
-	const onNoteHitEv = ChartState.onStampHit((stamp) => {
+	const onNoteHitEv = state.onStampHit((stamp) => {
 		if (stamp.is("note")) {
 			dancer.doMove(stamp.data.move);
 		}
@@ -128,9 +126,9 @@ export function syncTab() {
 	tab.onDraw(() => {
 		// #region playbar
 		const barWidth = map(
-			ChartState.conductor.time,
+			state.conductor.time,
 			0,
-			ChartState.conductor.audioPlay.duration(),
+			state.conductor.audioPlay.duration(),
 			0,
 			tab.width,
 		);
@@ -143,7 +141,7 @@ export function syncTab() {
 			radius: [0, 0, tab.radius[2], tab.radius[3]],
 			anchor: "topleft",
 			pos: vec2(0, tab.height - 10),
-			color: ChartState.bgColor.darken(50),
+			color: state.bgColor.darken(50),
 		});
 
 		drawRect({
@@ -152,11 +150,11 @@ export function syncTab() {
 			radius: [0, 0, 50, 50],
 			anchor: "left",
 			pos: vec2(0, tab.height - 5),
-			color: ChartState.bgColor.lighten(50),
+			color: state.bgColor.lighten(50),
 		});
 
 		drawText({
-			text: utils.formatTime(ChartState.conductor.time, true),
+			text: utils.formatTime(state.conductor.time, true),
 			align: "left",
 			size: 20,
 			pos: vec2(5, tab.height - 30),
@@ -165,10 +163,10 @@ export function syncTab() {
 		drawCircle({
 			radius: 6,
 			pos: vec2(lerpedWidth, tab.height - 5),
-			color: ChartState.bgColor.lighten(40),
+			color: state.bgColor.lighten(40),
 			anchor: "center",
 			outline: {
-				color: ChartState.bgColor.lighten(70),
+				color: state.bgColor.lighten(70),
 				width: 2,
 			},
 		});

@@ -46,9 +46,9 @@ export class EditorLane {
 	}
 
 	draw() {
-		const ChartState = EditorState.instance;
+		const state = EditorState.instance;
 
-		for (let i = 0; i < ChartState.conductor.totalSteps; i++) {
+		for (let i = 0; i < state.conductor.totalSteps; i++) {
 			const newPos = vec2(this.pos.x, this.pos.y + EditorState.utils.stepToPos(i).y);
 			newPos.y -= EditorState.SQUARE_SIZE.y * EditorState.instance.lerpScrollStep;
 
@@ -67,7 +67,7 @@ export class EditorLane {
 			}
 
 			// draws a line on every beat
-			if (i % ChartState.conductor.stepsPerBeat == 0) {
+			if (i % state.conductor.stepsPerBeat == 0) {
 				if (EditorState.utils.renderingConditions(newPos.y)) {
 					// line beat
 					drawRect({

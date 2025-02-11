@@ -12,7 +12,7 @@ import { addNotification } from "../../ui/objects/notification";
 import { utils } from "../../utils";
 import { Move } from "../objects/dancer";
 import { ChartNote } from "../objects/note";
-import { editorCommands } from "./backend/commands";
+import { commands, editorCommands, IEditorCommand } from "./backend/commands";
 import { editorUtils } from "./backend/utils";
 import { EditorScene } from "./EditorScene";
 import { EventLane, NoteLane } from "./objects/lane";
@@ -41,10 +41,10 @@ export class ChartSnapshot {
 	events: EditorEvent[];
 	/** The command you were goinge to execute in the moment the snapshot was taken */
 	command: string = undefined;
-	constructor(ChartState: EditorState, command: string) {
-		this.song = ChartState.song;
-		this.notes = ChartState.notes;
-		this.events = ChartState.events;
+	constructor(state: EditorState, command?: string) {
+		this.song = state.song;
+		this.notes = state.notes;
+		this.events = state.events;
 		this.command = command;
 	}
 }
@@ -102,7 +102,7 @@ export class EditorState implements IScene {
 	/** How many steps scrolled */
 	scrollStep: number = 0;
 
-	/** Is ChartState.scrollstep but lerped */
+	/** Is EditorState.scrollstep but lerped */
 	lerpScrollStep = 0;
 
 	/** The current selected move to place a note */
@@ -251,20 +251,20 @@ export class EditorState implements IScene {
 
 	/** Takes a snapshot before doing an action */
 	takeSnapshot(action: string) {
-		// debug.log(`did action ${action} at index ${this.snapshotIndex}`);
-		const snapshot = new ChartSnapshot(this, action);
-		// Remove any states ahead of the current index for redo to behave correctly
-		this.snapshots = this.snapshots.slice(0, this.snapshotIndex + 1);
-		// Add new state as a deep copy to avoid reference issues
-		this.snapshots.push(cloneDeep(snapshot));
-		this.snapshotIndex++;
-		return snapshot;
+		// // debug.log(`did action ${action} at index ${this.snapshotIndex}`);
+		// const snapshot = new ChartSnapshot(this, action);
+		// // Remove any states ahead of the current index for redo to behave correctly
+		// this.snapshots = this.snapshots.slice(0, this.snapshotIndex + 1);
+		// // Add new state as a deep copy to avoid reference issues
+		// this.snapshots.push(cloneDeep(snapshot));
+		// this.snapshotIndex++;
+		// return snapshot;
 	}
 
 	/** Reverts state to latest snapshot
 	 * @returns Returns the new state
 	 */
-	undo() {
+	undo(): ChartSnapshot {
 		if (this.snapshotIndex > 0) {
 			this.snapshotIndex--;
 
@@ -273,14 +273,14 @@ export class EditorState implements IScene {
 			this.notes = previousState.notes;
 			this.events = previousState.events;
 
-			return this;
+			return previousState;
 		}
 
 		return null;
 	}
 
 	/** Redoes the song and selected notes to latest snapshot */
-	redo() {
+	redo(): ChartSnapshot {
 		if (this.snapshotIndex < this.snapshots.length - 1) {
 			this.snapshotIndex++;
 			const nextState = this.snapshots[this.snapshotIndex];
@@ -288,7 +288,7 @@ export class EditorState implements IScene {
 			this.notes = nextState.notes;
 			this.events = nextState.events;
 
-			return this;
+			return nextState;
 		}
 
 		return null;
@@ -352,6 +352,35 @@ export class EditorState implements IScene {
 		const songBlob = await this.song.writeToBlob();
 		downloadBlob(`${this.song.manifest.name}.zip`, songBlob);
 		addNotification(`EDITOR: ${this.song.manifest.name}.zip, DOWNLOADED! :)`);
+	}
+
+	// TODO: Fix this typing
+	// @ts-ignore
+	/**
+	 * Performs a command in the editor, is typed to a commands array object in the commands file
+	 * @param commandKey The key to pass
+	 * @param args Some args
+	 * @returns The thing the do() function inside the command would return
+	 */
+	performCommand<T extends keyof typeof commands>(commandKey: T, ...args: Parameters<typeof commands[T]["do"]>): ReturnType<typeof commands[T]["do"]> {
+		const command = commands[commandKey];
+		const before = this.snapshotIndex == 0
+			? cloneDeep(new ChartSnapshot(this, "starting point"))
+			: cloneDeep(this.snapshots[this.snapshotIndex]);
+
+		// @ts-ignore
+		const returnValue = command.do(...args);
+
+		if (command.addToHistory) {
+			this.snapshotIndex++;
+			// @ts-ignore
+			const snapshot = new ChartSnapshot(this, command.toString(...args));
+			this.snapshots[this.snapshotIndex - 1] = before;
+			this.snapshots[this.snapshotIndex] = snapshot;
+		}
+
+		// @ts-ignore
+		return returnValue;
 	}
 
 	scene(instance: EditorState): void {

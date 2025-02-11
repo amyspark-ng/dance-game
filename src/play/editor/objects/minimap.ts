@@ -33,11 +33,11 @@ export class EditorMinimap {
 	obj: ReturnType<typeof makeMinimapObj> = null;
 
 	private update() {
-		const ChartState = EditorState.instance;
+		const state = EditorState.instance;
 		const minLeft = this.pos.x - this.width / 2;
 		const maxRight = this.pos.x + this.width / 2;
 
-		this.sizeOfNote = vec2(EditorState.SQUARE_SIZE.x / 2, height() / ChartState.conductor.totalSteps);
+		this.sizeOfNote = vec2(EditorState.SQUARE_SIZE.x / 2, height() / state.conductor.totalSteps);
 		this.controller.height = this.sizeOfNote.y * EditorState.SQUARES_IN_SCREEN;
 
 		if (utils.isInRange(mousePos().x, minLeft, maxRight)) this.canMove = true;
@@ -49,7 +49,7 @@ export class EditorMinimap {
 		if (this.canMove) {
 			if (isMousePressed("left")) {
 				this.isMoving = true;
-				if (!ChartState.paused) ChartState.paused = true;
+				if (!state.paused) state.paused = true;
 			}
 			else if (isMouseReleased("left") && this.isMoving) {
 				this.isMoving = false;
@@ -67,10 +67,10 @@ export class EditorMinimap {
 					0, // min range value
 					height() - this.controller.height, // max range value
 					0, // min result value
-					ChartState.conductor.totalSteps, // max result value
+					state.conductor.totalSteps, // max result value
 				);
 
-				ChartState.scrollToStep(newStep);
+				state.scrollToStep(newStep);
 				this.controller.opacity = 0.5;
 			}
 		}
@@ -78,9 +78,9 @@ export class EditorMinimap {
 		// if you're not moving anything the pos of the controller will be mapped to the current scrollstep
 		if (!this.isMoving) {
 			this.controller.y = map(
-				ChartState.scrollStep,
+				state.scrollStep,
 				0, // min range value
-				ChartState.conductor.totalSteps, // max range value
+				state.conductor.totalSteps, // max range value
 				0, // min result value
 				this.height - this.controller.height, // max result value
 			);
@@ -90,7 +90,7 @@ export class EditorMinimap {
 	}
 
 	private draw() {
-		const ChartState = EditorState.instance;
+		const state = EditorState.instance;
 
 		// draws the minimap background
 		drawRect({
@@ -101,14 +101,14 @@ export class EditorMinimap {
 			anchor: "top",
 		});
 
-		const stamps = EditorStamp.mix(ChartState.notes, ChartState.events);
+		const stamps = EditorStamp.mix(state.notes, state.events);
 		stamps.forEach((stamp) => {
 			let xPos = this.pos.x;
 			if (stamp.is("note")) xPos -= this.sizeOfNote.x;
-			const yPos = map(stamp.step, 0, ChartState.conductor.totalSteps, 0, height() - this.sizeOfNote.y);
+			const yPos = map(stamp.step, 0, state.conductor.totalSteps, 0, height() - this.sizeOfNote.y);
 
 			let theColor = stamp.is("note") ? ChartNote.moveToColor(stamp.data.move) : BLACK.lerp(WHITE, 0.25);
-			if (stamp.selected) theColor = ChartState.selectionBox.color;
+			if (stamp.selected) theColor = state.selectionBox.color;
 
 			const drawOpts = {
 				width: this.sizeOfNote.x,
@@ -141,8 +141,8 @@ export class EditorMinimap {
 			opacity: 0.5,
 			color: RED,
 			anchor: "top",
-			scale: ChartState.strumlineScale,
-			pos: vec2(this.pos.x, this.controller.y + (this.sizeOfNote.y * ChartState.strumlineStep)),
+			scale: state.strumlineScale,
+			pos: vec2(this.pos.x, this.controller.y + (this.sizeOfNote.y * state.strumlineStep)),
 		});
 
 		// draws the minimap controller
@@ -159,15 +159,15 @@ export class EditorMinimap {
 			},
 		});
 
-		if (ChartState.selectionBox.isSelecting) {
+		if (state.selectionBox.isSelecting) {
 			// // get height in steps
-			// const heightInSteps = ChartState.selectionBox.height / StateChart.SQUARE_SIZE.y;
+			// const heightInSteps = state.selectionBox.height / StateChart.SQUARE_SIZE.y;
 			// // then every step would be 1 sizeOfNote
 			// const scaledHeight = this.sizeOfNote.y * heightInSteps;
 
 			// const x = this.pos.x;
 
-			// const y = Math.min(ChartState.selectionBox.lastClickPos.y, ChartState.selectionBox.pos.y);
+			// const y = Math.min(state.selectionBox.lastClickPos.y, state.selectionBox.pos.y);
 			// debug.log(y);
 
 			// TODO: Draw the selection box :()

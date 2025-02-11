@@ -20,21 +20,21 @@ export class EditorSelectionBox {
 	}
 
 	update() {
-		const ChartState = EditorState.instance;
+		const state = EditorState.instance;
 
 		if (isMousePressed("left")) {
 			const canSelect = !get("hover", { recursive: true }).some((obj) => obj.isHovering())
 				&& !get("drag", { recursive: true }).some((obj) => obj.dragging)
-				&& !ChartState.isCursorInGrid
-				&& !ChartState.minimap.canMove;
+				&& !state.isCursorInGrid
+				&& !state.minimap.canMove;
 
 			this.canSelect = canSelect;
 			if (this.canSelect) {
 				this.lastClickPos = mousePos();
 				scrollEv?.cancel();
 				scrollEv = onScroll((delta) => {
-					if (delta.y > 0 && ChartState.scrollStep + 1 <= ChartState.conductor.totalSteps) this.lastClickPos.y -= EditorState.SQUARE_SIZE.y;
-					else if (delta.y < 0 && ChartState.scrollStep - 1 >= 0) this.lastClickPos.y += EditorState.SQUARE_SIZE.y;
+					if (delta.y > 0 && state.scrollStep + 1 <= state.conductor.totalSteps) this.lastClickPos.y -= EditorState.SQUARE_SIZE.y;
+					else if (delta.y < 0 && state.scrollStep - 1 >= 0) this.lastClickPos.y += EditorState.SQUARE_SIZE.y;
 				});
 			}
 		}
@@ -59,7 +59,7 @@ export class EditorSelectionBox {
 			const stampsCollided: EditorStamp[] = [];
 
 			// goes through each stamp and checks if the box has collided with them
-			EditorStamp.mix(ChartState.notes, ChartState.events).forEach((stamp) => {
+			EditorStamp.mix(state.notes, state.events).forEach((stamp) => {
 				const stampRect = new Rect(stamp.pos.sub(stamp.width / 2, stamp.height / 2), stamp.width, stamp.height);
 				if (stamp.is("note") && stamp.data.length) stampRect.height += stamp.height * stamp.data.length;
 
@@ -70,7 +70,7 @@ export class EditorSelectionBox {
 
 			// if stamp was collided take a snapshot and actually select them
 			if (stampsCollided.length > 0) {
-				ChartState.takeSnapshot(`selected ${EditorState.utils.boxSortStamps(stampsCollided).toString()}`);
+				state.takeSnapshot(`selected ${EditorState.utils.boxSortStamps(stampsCollided).toString()}`);
 				stampsCollided.forEach((stamp) => {
 					stamp.selected = true;
 					stamp.twitch();

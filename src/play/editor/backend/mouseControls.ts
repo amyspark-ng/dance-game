@@ -2,17 +2,18 @@ import { KEventController } from "kaplay";
 import { isSomeHovered } from "../../../core/cursor";
 import { EditorState } from "../EditorState";
 import { EditorEvent, EditorNote, EditorStamp } from "../objects/stamp";
+import { commands } from "./commands";
 
 /** Function that contains the whole mouse controls for the editor (placing stamps, selecting stamps, moving stamps, etc) */
 export function mouseControls() {
 	return onMousePress((button) => {
-		const ChartState = EditorState.instance;
+		const state = EditorState.instance;
 
 		/** The event for stretching a note */
 		let stretchingNoteEV: KEventController = undefined;
-		let hoveredStamp = EditorStamp.mix(ChartState.notes, ChartState.events).find((stamp) => stamp.isHovering(true));
-		let startingStep = ChartState.hoveredStep;
-		const inGridAtClick = ChartState.isInNoteLane || ChartState.isInEventLane;
+		let hoveredStamp = EditorStamp.mix(state.notes, state.events).find((stamp) => stamp.isHovering(true));
+		let startingStep = state.hoveredStep;
+		const inGridAtClick = state.isInNoteLane || state.isInEventLane;
 
 		// #region PRESS
 
@@ -20,13 +21,13 @@ export function mouseControls() {
 		if (!inGridAtClick) {
 			const releasedOutsideTheGrid = onMouseRelease("left", () => {
 				releasedOutsideTheGrid.cancel();
-				if (!isSomeHovered()) EditorState.commands.DeselectAll();
+				if (!isSomeHovered()) EditorState.instance.performCommand("SelectStamps", []);
 			});
 		}
 		else {
 			if (hoveredStamp) {
 				if (!hoveredStamp.selected) {
-					if (!isKeyDown("control")) EditorState.commands.DeselectAll();
+					if (!isKeyDown("control")) EditorState.instance.performCommand("SelectStamps", []);
 					hoveredStamp.selected = true;
 				}
 				else {
@@ -34,7 +35,7 @@ export function mouseControls() {
 				}
 
 				if (hoveredStamp.is("event")) {
-					ChartState.events.filter((ev) => ev != hoveredStamp).forEach((ev) => ev.beingEdited = false);
+					state.events.filter((ev) => ev != hoveredStamp).forEach((ev) => ev.beingEdited = false);
 					hoveredStamp.beingEdited = !hoveredStamp.beingEdited;
 					if (hoveredStamp.beingEdited) {
 						hoveredStamp.twist();
@@ -43,19 +44,19 @@ export function mouseControls() {
 					}
 				}
 			}
-			else EditorState.commands.DeselectAll();
+			else EditorState.instance.performCommand("SelectStamps", []);
 		}
 
 		// #region placing
 		if (button == "left") {
 			// placing notes
-			if (ChartState.isInNoteLane) {
+			if (state.isInNoteLane) {
 				if (!hoveredStamp) {
-					const note = EditorState.commands.PlaceNote(true);
+					const note = EditorState.instance.performCommand("PlaceNote", true);
 					stretchingNoteEV?.cancel();
 					stretchingNoteEV = onMouseMove(() => {
 						let oldLength = note.data.length;
-						const noteLength = Math.floor(ChartState.hoveredStep - note.step);
+						const noteLength = Math.floor(state.hoveredStep - note.step);
 						note.data.length = noteLength > 0 ? noteLength : undefined;
 						let newLength = note.data.length;
 						if (oldLength != newLength) {
@@ -72,9 +73,9 @@ export function mouseControls() {
 				}
 			}
 			// placing events
-			else if (ChartState.isInEventLane) {
+			else if (state.isInEventLane) {
 				if (!hoveredStamp) {
-					const event = EditorState.commands.PlaceEvent(true);
+					const event = EditorState.instance.performCommand("PlaceEvent", true);
 				}
 			}
 		}
@@ -82,21 +83,21 @@ export function mouseControls() {
 		// #region deleting
 		else if (button == "right") {
 			// delete note
-			if (ChartState.isInNoteLane) {
+			if (state.isInNoteLane) {
 				if (hoveredStamp) {
 					const note = hoveredStamp as EditorNote;
 					if (EditorNote.trailAtStep()) {
 						note.data.length = undefined;
 						note.snapSound();
 					}
-					else EditorState.commands.DeleteNote(true, note);
+					else EditorState.instance.performCommand("DeleteNote", true, note);
 				}
 			}
 			// delete event
-			else if (ChartState.isInEventLane) {
+			else if (state.isInEventLane) {
 				const event = hoveredStamp as EditorEvent;
 				if (event) {
-					EditorState.commands.DeleteEvent(true, event);
+					EditorState.instance.performCommand("DeleteEvent", true, event);
 					event.deleteSound();
 				}
 			}
@@ -105,14 +106,14 @@ export function mouseControls() {
 		// #region copying type
 		else if (button == "middle") {
 			// copying note type
-			if (ChartState.isInNoteLane) {
+			if (state.isInNoteLane) {
 				const hoveredNote = hoveredStamp as EditorNote;
-				if (hoveredNote) ChartState.currentMove = hoveredNote.data.move;
+				if (hoveredNote) state.currentMove = hoveredNote.data.move;
 			}
 			// copying event type
-			else if (ChartState.isInEventLane) {
+			else if (state.isInEventLane) {
 				const hoveredEvent = hoveredStamp as EditorEvent;
-				if (hoveredEvent) ChartState.currentEvent = hoveredEvent.data.id;
+				if (hoveredEvent) state.currentEvent = hoveredEvent.data.id;
 			}
 		}
 		// #endregionregion copying type
@@ -121,15 +122,15 @@ export function mouseControls() {
 		if (button != "left") return;
 
 		const differencesToHover = { notes: [] as number[], events: [] as number[] };
-		hoveredStamp = EditorStamp.mix(ChartState.notes, ChartState.events).find((stamp) => stamp.isHovering());
+		hoveredStamp = EditorStamp.mix(state.notes, state.events).find((stamp) => stamp.isHovering());
 
 		// recalculate all differences to leading
-		differencesToHover.notes = ChartState.notes.map((note) => {
-			return note.step - ChartState.hoveredStep;
+		differencesToHover.notes = state.notes.map((note) => {
+			return note.step - state.hoveredStep;
 		});
 
-		differencesToHover.events = ChartState.events.map((event) => {
-			return event.step - ChartState.hoveredStep;
+		differencesToHover.events = state.events.map((event) => {
+			return event.step - state.hoveredStep;
 		});
 
 		// #endregion press
@@ -139,30 +140,30 @@ export function mouseControls() {
 			if (!inGridAtClick) return; // will run if clicked inside the grid
 			if (stretchingNoteEV) return;
 			// if not enough notes and you haven't moved then don't do nothing
-			if (ChartState.selected.length < 2 && ChartState.hoveredStep == startingStep) return;
+			if (state.selected.length < 2 && state.hoveredStep == startingStep) return;
 			if (!hoveredStamp) return;
 
-			let oldTime = ChartState.conductor.stepToTime(hoveredStamp.step);
+			let oldTime = state.conductor.stepToTime(hoveredStamp.step);
 
 			// is the actual thing that changes the step of the note
-			ChartState.selected.forEach((stamp) => {
+			state.selected.forEach((stamp) => {
 				// this stamp must always be "stepDiff" steps away from leaderStampStep
 				if (stamp.is("note")) {
-					const stepDiff = differencesToHover.notes[ChartState.notes.indexOf(stamp)];
-					stamp.step = ChartState.hoveredStep + stepDiff;
+					const stepDiff = differencesToHover.notes[state.notes.indexOf(stamp)];
+					stamp.step = state.hoveredStep + stepDiff;
 				}
 				else if (stamp.is("event")) {
-					const stepDiff = differencesToHover.events[ChartState.events.indexOf(stamp)];
-					stamp.step = ChartState.hoveredStep + stepDiff;
+					const stepDiff = differencesToHover.events[state.events.indexOf(stamp)];
+					stamp.step = state.hoveredStep + stepDiff;
 				}
 			});
 
-			let newTime = ChartState.conductor.stepToTime(hoveredStamp.step);
+			let newTime = state.conductor.stepToTime(hoveredStamp.step);
 
 			if (newTime != oldTime) {
 				// thinking WAY too hard for a simple sound effect lol!
-				const diff = ChartState.conductor.timeToStep(newTime) - startingStep;
-				const theSound = choose(ChartState.selected).moveSound();
+				const diff = state.conductor.timeToStep(newTime) - startingStep;
+				const theSound = choose(state.selected).moveSound();
 				theSound.detune *= diff;
 			}
 		});
