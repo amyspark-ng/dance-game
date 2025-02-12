@@ -31,25 +31,23 @@ export class MenuBar {
 		"File": new MenuBar("File", [
 			{
 				text: "New (Ctrl + N)",
-				action: () => EditorState.commands.NewChart(),
+				action: () => EditorState.instance.NewSong(),
 			},
 			{
 				text: "Open (Ctrl + O)\n",
-				action: () => EditorState.commands.OpenChart(),
+				action: () => EditorState.instance.OpenSong(),
+			},
+			{
+				text: "Save (Ctrl + S)",
+				action: () => EditorState.instance.SaveSong(),
 			},
 			{
 				text: "Save as... (Ctrl + Shift + S)\n",
-				action: () => EditorState.commands.SaveChart(),
-			},
-			{
-				text: "Save to loaded songs (Ctrl + Shift + M)",
-				action: () => {
-					// Content.loadedSongs.push(StateChart.instance.song);
-				},
+				action: () => EditorState.instance.DownloadSong(),
 			},
 			{
 				text: "Exit (Ctrl + Q)",
-				action: () => EditorState.commands.Exit(),
+				action: () => EditorState.instance.ExitState(),
 			},
 		]),
 		"Edit": new MenuBar("Edit", [
@@ -59,14 +57,14 @@ export class MenuBar {
 			},
 			{
 				text: "Deselect (Ctrl + D)",
-				action: () => EditorState.instance.performCommand("SelectStamps", []),
+				action: () => EditorState.instance.performCommand("DeselectStamps"),
 			},
 			{
 				text: "Invert selection (Ctrl + I)\n",
 				action: () => EditorState.instance.performCommand("InvertSelection"),
 			},
 			{
-				text: "Invert moves (Ctrl + Shift + F)\n",
+				text: "Invert moves (Ctrl + F)\n",
 				action: () => EditorState.instance.performCommand("FlipMoves"),
 			},
 			{
@@ -90,13 +88,15 @@ export class MenuBar {
 				action: () => coolUndo(),
 				extraCode(itemObj) {
 					const state = EditorState.instance;
+					// TODO: Figure out why the text isn't updating properly onupdate
 					itemObj.onUpdate(() => {
-						if (state.snapshotIndex == 0) itemObj.off = true;
+						if (state.snapshotIndex == 0) {
+							itemObj.item.text = "Undo (Ctrl + Z)";
+							itemObj.off = true;
+						}
 						else {
 							itemObj.off = false;
-							// const lastCommand = state.snapshots[state.snapshotIndex].command;
-							// if (lastCommand) itemObj.item.text = `Undo ${lastCommand} (Ctrl + Z)`;
-							// else itemObj.item.text = "Undo (Ctrl + Z)";
+							itemObj.item.text = `Undo ${state.snapshots[state.snapshotIndex].command} (Ctrl + Z)`;
 						}
 					});
 				},
@@ -108,14 +108,13 @@ export class MenuBar {
 					itemObj.onUpdate(() => {
 						const state = EditorState.instance;
 						itemObj.onUpdate(() => {
-							if (state.snapshotIndex == 0) itemObj.off = true;
+							if (!state.snapshots[state.snapshotIndex + 1]) {
+								itemObj.off = true;
+								itemObj.item.text = `Redo (Ctrl + Y)`;
+							}
 							else {
 								itemObj.off = false;
-								// const lastSnapshot = state.snapshots[state.snapshotIndex + 1];
-								// if (lastSnapshot && lastSnapshot.command) {
-								// 	itemObj.item.text = `Redo ${lastSnapshot.command} (Ctrl + Y)`;
-								// }
-								// else itemObj.item.text = "Redo (Ctrl + Y)";
+								itemObj.item.text = `Redo ${state.snapshots[state.snapshotIndex + 1].command} (Ctrl + Y)`;
 							}
 						});
 					});

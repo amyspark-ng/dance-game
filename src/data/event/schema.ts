@@ -3,7 +3,7 @@
 // Every property in that data is called value
 
 type baseDataValue = { label: string; description: string; };
-type numberDataValue = { type: "number"; range: [number, number]; default: number; };
+type numberDataValue = { type: "number"; range: [number, number]; default: number; step: number; };
 type booleanDataValue = { type: "boolean"; default: boolean; };
 type stringDataValue = { type: "string"; default: string; };
 type enumDataValue = { type: "enum"; options: string[]; default: string; };
@@ -19,30 +19,30 @@ const EventSchema = {
 	// this is an event's schema
 	"change-speed": {
 		// each of these is a value
-		"scroll_speed": { label: "Scroll", description: "How fast will the new scroll speed be", type: "number", default: 0, range: [-Infinity, Infinity] },
-		"playback_speed": { label: "Playback", description: "How fast will the song be", type: "number", default: 0, range: [-Infinity, Infinity] },
-		"duration": { label: "Duration", description: "How long will it take", type: "number", default: 0, range: [-Infinity, Infinity] },
+		"scroll_speed": { label: "Scroll", description: "How fast will the new scroll speed be", type: "number", step: 0.1, default: 0, range: [-Infinity, Infinity] },
+		"playback_speed": { label: "Playback", description: "How fast will the song be", type: "number", step: 0.1, default: 0, range: [-Infinity, Infinity] },
+		"duration": { label: "Duration", description: "How long will it take", type: "number", step: 0.1, default: 0, range: [-Infinity, Infinity] },
 		"easing": { label: "Easing", description: "What easing function to use", type: "enum", default: "linear", options: allEasingKeys },
 	},
 
 	"bpm-change": {
-		"bpm": { label: "BPM", description: "What bpm to change to", type: "number", default: 100, range: [-Infinity, Infinity] },
+		"bpm": { label: "BPM", description: "What bpm to change to", step: 1, type: "number", default: 100, range: [-Infinity, Infinity] },
 	},
 
 	"cam-move": {
-		"x": { label: "X", description: "How fart to the right", type: "number", default: 0, range: [-Infinity, Infinity] },
-		"y": { label: "Y", description: "How far to the bottom", type: "number", default: 0, range: [-Infinity, Infinity] },
-		"angle": { label: "Angle", description: "How much to spin it", type: "number", default: 0, range: [-Infinity, Infinity] },
-		"zoom": { label: "Zoom", description: "How much zoom", type: "number", default: 1, range: [-Infinity, Infinity] },
-		"bop_strength": { label: "Bop strength", description: "How strong will the beat zoom be", type: "number", default: 1, range: [-Infinity, Infinity] },
-		"bop_rate": { label: "Bops per beat", description: "Zooms per beat", type: "number", default: 1, range: [-Infinity, Infinity] },
-		"duration": { label: "Duration", description: "How long will it take", type: "number", default: 0, range: [-Infinity, Infinity] },
+		"x": { label: "X", step: 1, description: "How fart to the right", type: "number", default: 0, range: [-Infinity, Infinity] },
+		"y": { label: "Y", step: 1, description: "How far to the bottom", type: "number", default: 0, range: [-Infinity, Infinity] },
+		"angle": { label: "Angle", step: 1, description: "How much to spin it", type: "number", default: 0, range: [-Infinity, Infinity] },
+		"zoom": { label: "Zoom", step: 0.1, description: "How much zoom", type: "number", default: 1, range: [-Infinity, Infinity] },
+		"bop_strength": { label: "Bop strength", step: 1, description: "How strong will the beat zoom be", type: "number", default: 1, range: [-Infinity, Infinity] },
+		"bop_rate": { label: "Bops per beat", step: 0.1, description: "Zooms per beat", type: "number", default: 1, range: [-Infinity, Infinity] },
+		"duration": { label: "Duration", step: 1, description: "How long will it take", type: "number", default: 0, range: [-Infinity, Infinity] },
 		"easing": { label: "Easing", description: "What easing function to use", type: "enum", default: "linear", options: allEasingKeys },
 	},
 
 	"play-anim": {
 		"anim": { label: "Animation", description: "What animation to play", type: "string", default: "idle" },
-		"speed": { label: "Speed", description: "How fast will it be", type: "number", default: 1, range: [-Infinity, Infinity] },
+		"speed": { label: "Speed", step: 0.1, description: "How fast will it be", type: "number", default: 1, range: [-Infinity, Infinity] },
 		"force": { label: "Forced", description: "Wheter to override any other", type: "boolean", default: false },
 		"pingpong": { label: "Ping-Pong", description: "Wheter it should go back to the start after finishing", type: "boolean", default: false },
 	},
@@ -50,6 +50,6 @@ const EventSchema = {
 	"change-dancer": {
 		"dancer": { label: "Dancer", description: "What dancer to change to", type: "enum", options: ["Astri"], default: "astri" },
 	},
-};
+} as const satisfies Record<string, Record<string, eventValue>>;
 
 export default EventSchema;

@@ -27,6 +27,7 @@ configure({
 	addDevices: true,
 });
 
+console.log(`${GAME.AUTHOR}.${GAME.NAME} v: ${GAME.VERSION}`);
 document.title = GAME.NAME;
 utils.runInDesktop(() => {
 	setAppWindow(getCurrent());
@@ -50,8 +51,6 @@ onLoad(() => {
 	new CustomSoundTray([GameSave.soundUpKey], [GameSave.soundDownKey], false);
 	setupCursor();
 	setupCamera();
-
-	console.log(`${GAME.AUTHOR}.${GAME.NAME} v: ${GAME.VERSION}`);
 
 	if (GAME.FEATURE_FOCUS) {
 		if (isFocused()) INITIAL_SCENE();
@@ -83,6 +82,13 @@ document.body.onmousedown = function(e) {
 // prevent ctrl + s weirdness
 document.addEventListener("keydown", function(e) {
 	if (e.key === "s" && (navigator.userAgent.includes("Mac") ? e.metaKey : e.ctrlKey)) {
+		e.preventDefault();
+	}
+}, false);
+
+// prevent ctrl + f weirdness
+document.addEventListener("keydown", function(e) {
+	if (e.key === "f" && (navigator.userAgent.includes("Mac") ? e.metaKey : e.ctrlKey)) {
 		e.preventDefault();
 	}
 }, false);

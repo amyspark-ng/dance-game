@@ -1,4 +1,8 @@
+import audioBufferToBlob from "audiobuffer-to-blob";
 import { gameCursor } from "./core/cursor";
+
+export const IMAGE_HELPER = "data:image/png;base64,";
+export const AUDIO_HELPER = "data:audio/wav;base64,";
 
 /** File manager for some stuff of the game */
 export const inputElement = document.createElement("input");
@@ -121,7 +125,10 @@ export class FileManager {
 		});
 	}
 
-	/** Convers a sprite to a data url */
+	/** Convers a sprite to a data url
+	 *
+	 * ALREADY INCLUDES `IMAGE_HELPER`
+	 */
 	static async spriteToDataURL(sprName: string) {
 		const canvas = makeCanvas(396, 396);
 		canvas.draw(() => {
@@ -134,7 +141,19 @@ export class FileManager {
 			});
 		});
 
-		const dataURL = canvas.toDataURL();
-		return dataURL;
+		return canvas.toDataURL();
+	}
+
+	/** Converts a sound to data url
+	 *
+	 * USES 'DATA:APLICATION' HELPER BUT STILL WORKS WITH KAPLAY
+	 */
+	static async soundToDataURL(soundName: string) {
+		const audiobuffer = (await getSound(soundName)).buf;
+		const arraybuffer = new ArrayBuffer();
+
+		const blob = audioBufferToBlob(audiobuffer);
+		const dataurl = await FileManager.blobToDataURL(blob);
+		return dataurl;
 	}
 }

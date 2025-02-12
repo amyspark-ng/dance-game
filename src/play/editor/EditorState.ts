@@ -1,18 +1,19 @@
 import { Color, Vec2 } from "kaplay";
-import { cloneDeep } from "lodash";
+import { cloneDeep, isEqual } from "lodash";
 import { v4 } from "uuid";
 import { Conductor } from "../../Conductor";
-import { IScene } from "../../core/scenes/KaplayState";
+import { IScene, switchScene } from "../../core/scenes/KaplayState";
 import { Sound } from "../../core/sound";
 import { ChartEvent, eventId } from "../../data/event/event";
 import EventSchema from "../../data/event/schema";
 import { SongContent, SongManifest } from "../../data/song";
 import { FileManager } from "../../FileManager";
+import { MenuState } from "../../ui/menu/MenuState";
 import { addNotification } from "../../ui/objects/notification";
 import { utils } from "../../utils";
 import { Move } from "../objects/dancer";
 import { ChartNote } from "../objects/note";
-import { commands, editorCommands, IEditorCommand } from "./backend/commands";
+import { commands, IEditorCommand } from "./backend/commands";
 import { editorUtils } from "./backend/utils";
 import { EditorScene } from "./EditorScene";
 import { EventLane, NoteLane } from "./objects/lane";
@@ -75,9 +76,6 @@ export class EditorState implements IScene {
 	/** Certain functions that can help in some small things */
 	static utils = editorUtils;
 
-	/** Commands you might do to edit or do things with the result file */
-	static commands = editorCommands;
-
 	/** The color of the backgroun (determined by the hue on the game save) */
 	bgColor: Color = rgb(92, 50, 172);
 
@@ -125,6 +123,14 @@ export class EditorState implements IScene {
 	/** Wheter the cursor is in the events grid */
 	get isInEventLane() {
 		return this.eventLane && this.eventLane.isHovering();
+	}
+
+	/** Everytime you save this is setted to the current song */
+	lastSavedChanges: SongContent = null;
+
+	/** Wheter the song has unsaved changes */
+	get unsavedChanges() {
+		return !isEqual(this.song, this.lastSavedChanges);
 	}
 
 	/** The scale of the strumline line */
@@ -191,6 +197,67 @@ export class EditorState implements IScene {
 
 	/** The events in the editor */
 	events: EditorEvent[] = [];
+
+	/** Creates a new song */
+	async NewSong() {
+		const loading = FileManager.loadingScreen();
+		await EditorState.instance.changeSong(new SongContent());
+		loading.cancel();
+	}
+
+	/** Triggers a dialog to open a song zip */
+	async OpenSong() {
+		const loading = FileManager.loadingScreen();
+		const songFile = await FileManager.receiveFile("mod");
+		if (!songFile) {
+			loading.cancel();
+			return;
+		}
+
+		const assets = await SongContent.parseFromFile(songFile);
+		const content = await SongContent.load(assets, true);
+
+		// TODO: What...
+		if (content.isDefault) {
+			EditorState.instance.changeSong(cloneDeep(content));
+			addNotification(`Editor: Editing ${content.manifest.name}`);
+		}
+		else if (content.manifest.uuid_DONT_CHANGE == EditorState.instance.song.manifest.uuid_DONT_CHANGE) {
+			EditorState.instance.changeSong(content);
+			addNotification(`[warning]Warning:[/warning] Overwrote "${EditorState.instance.song.manifest.name}" by "${content.manifest.name}" since they have the same UUID`, 5);
+		}
+		loading.cancel();
+	}
+
+	/** Exits the state */
+	async ExitState() {
+		if (this.unsavedChanges) {
+			debug.log("You're sure you wanna exit?");
+			return;
+		}
+		EditorState.instance.conductor.destroy();
+		switchScene(MenuState, "editor");
+	}
+
+	/** Downloads the current song */
+	async DownloadSong() {
+		getTreeRoot().trigger("download");
+
+		// downloads the zip
+		const songBlob = await this.song.writeToBlob();
+		downloadBlob(`${this.song.manifest.name}.zip`, songBlob);
+		addNotification(`EDITOR: ${this.song.manifest.name}.zip, DOWNLOADED! :)`);
+	}
+
+	/** Saves the current song */
+	SaveSong() {
+		if (!this.unsavedChanges) return;
+		addNotification(`EDITOR: Saved '${this.song.manifest.name}' succesfully`);
+		this.lastSavedChanges = cloneDeep(this.song);
+		SongContent.addToLoaded(this.song);
+		// TODO: Make it so it doesn't always write to save, because this lags a bit
+		SongContent.writeToSave(this.song);
+	}
 
 	/** Adds a noteto the Chart
 	 * @param data The ChartNote
@@ -321,37 +388,15 @@ export class EditorState implements IScene {
 		}
 
 		// reload assets
-
-		// have to reload the audio i don't know how much this would work since this loading takes time so
-		const sound = getSound(content.getAudioName());
-		if (sound) await loadSound(this.song.getAudioName(), sound.data.buf as any);
-		else await loadSound(this.song.getAudioName(), SongManifest.default_audio_file);
+		const assets = await SongContent.extractAssets(content);
+		loadSound(this.song.getAudioName(), assets.audio);
+		loadSprite(this.song.getCoverName(), assets.cover);
 
 		this.updateAudio();
 
-		// also have to reload the cover this sucks
-		const sprite = getSprite(content.getCoverName());
-		if (sprite) {
-			FileManager.spriteToDataURL(content.getCoverName()).then(async (dataurl) => {
-				await loadSprite(this.song.getCoverName(), dataurl);
-			});
-		}
-		else {
-			await loadSprite(this.song.getCoverName(), SongManifest.default_cover_file);
-		}
-
+		this.lastSavedChanges = cloneDeep(this.song);
 		this.song.chart.notes.forEach((chartNote) => this.placeNote(chartNote));
 		this.song.chart.events.forEach((ChartEvent) => this.placeEvent(ChartEvent));
-	}
-
-	/** Downloads the chart for the current song */
-	async downloadChart() {
-		getTreeRoot().trigger("download");
-
-		// downloads the zip
-		const songBlob = await this.song.writeToBlob();
-		downloadBlob(`${this.song.manifest.name}.zip`, songBlob);
-		addNotification(`EDITOR: ${this.song.manifest.name}.zip, DOWNLOADED! :)`);
 	}
 
 	// TODO: Fix this typing
@@ -367,14 +412,15 @@ export class EditorState implements IScene {
 		const before = this.snapshotIndex == 0
 			? cloneDeep(new ChartSnapshot(this, "starting point"))
 			: cloneDeep(this.snapshots[this.snapshotIndex]);
+		// @ts-ignore
+		const stringAction = command.toString(...args); // have to do it before so the data still exists before the command is done
 
 		// @ts-ignore
 		const returnValue = command.do(...args);
 
 		if (command.addToHistory) {
 			this.snapshotIndex++;
-			// @ts-ignore
-			const snapshot = new ChartSnapshot(this, command.toString(...args));
+			const snapshot = new ChartSnapshot(this, stringAction);
 			this.snapshots[this.snapshotIndex - 1] = before;
 			this.snapshots[this.snapshotIndex] = snapshot;
 		}

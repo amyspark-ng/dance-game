@@ -10,31 +10,33 @@ export const editorShortcuts = () => {
 	// #region SCROLLING
 	let stepsToScroll = 0;
 
-	// scroll up
-	if (isKeyPressedRepeat("w")) {
-		if (!state.paused) state.paused = true;
-		if (isKeyDown("shift")) stepsToScroll = -5;
-		else stepsToScroll = -1;
-		state.scrollToStep(state.scrollStep + stepsToScroll);
-	}
-	// scroll down
-	else if (isKeyPressedRepeat("s")) {
-		if (!state.paused) state.paused = true;
-		if (isKeyDown("shift")) stepsToScroll = 5;
-		else stepsToScroll = 1;
-		state.scrollToStep(state.scrollStep + stepsToScroll);
-	}
+	if (!isKeyDown("control")) {
+		// scroll up
+		if (isKeyPressedRepeat("w")) {
+			if (!state.paused) state.paused = true;
+			if (isKeyDown("shift")) stepsToScroll = -5;
+			else stepsToScroll = -1;
+			state.scrollToStep(state.scrollStep + stepsToScroll);
+		}
+		// scroll down
+		else if (isKeyPressedRepeat("s")) {
+			if (!state.paused) state.paused = true;
+			if (isKeyDown("shift")) stepsToScroll = 5;
+			else stepsToScroll = 1;
+			state.scrollToStep(state.scrollStep + stepsToScroll);
+		}
 
-	// scroll left nah just messing with you
-	// floor to closest beat
-	if (isKeyPressedRepeat("a") && !isKeyDown("control")) {
-		if (!state.paused) state.paused = true;
-		state.scrollToStep(state.scrollStep - state.conductor.stepsPerBeat);
-	}
-	// ceil to closest beat
-	else if (isKeyPressedRepeat("d") && !isKeyDown("control")) {
-		if (!state.paused) state.paused = true;
-		state.scrollToStep(state.scrollStep + state.conductor.stepsPerBeat);
+		// scroll left nah just messing with you
+		// floor to closest beat
+		if (isKeyPressedRepeat("a") && !isKeyDown("control")) {
+			if (!state.paused) state.paused = true;
+			state.scrollToStep(state.scrollStep - state.conductor.stepsPerBeat);
+		}
+		// ceil to closest beat
+		else if (isKeyPressedRepeat("d") && !isKeyDown("control")) {
+			if (!state.paused) state.paused = true;
+			state.scrollToStep(state.scrollStep + state.conductor.stepsPerBeat);
+		}
 	}
 	// #endregion SCROLLING
 
@@ -50,13 +52,14 @@ export const editorShortcuts = () => {
 
 	// all the control commands
 	if (!isKeyDown("control")) return;
-	else if (isKeyDown("shift") && isKeyPressed("s")) EditorState.commands.SaveChart();
-	else if (isKeyDown("shift") && isKeyPressed("f")) EditorState.instance.performCommand("FlipMoves");
-	else if (isKeyPressed("n")) EditorState.commands.NewChart();
-	else if (isKeyPressed("o")) EditorState.commands.OpenChart();
-	else if (isKeyPressed("q")) EditorState.commands.Exit();
+	else if (isKeyDown("shift") && isKeyPressed("s")) EditorState.instance.DownloadSong();
+	else if (isKeyPressed("n")) EditorState.instance.NewSong();
+	else if (isKeyPressed("s")) EditorState.instance.SaveSong();
+	else if (isKeyPressed("o")) EditorState.instance.OpenSong();
+	else if (isKeyPressed("q")) EditorState.instance.ExitState();
+	else if (isKeyPressed("f")) EditorState.instance.performCommand("FlipMoves");
 	else if (isKeyPressed("a")) EditorState.instance.performCommand("SelectStamps");
-	else if (isKeyPressed("d")) EditorState.instance.performCommand("SelectStamps", []);
+	else if (isKeyPressed("d")) EditorState.instance.performCommand("DeselectStamps");
 	else if (isKeyPressed("i")) EditorState.instance.performCommand("InvertSelection");
 	else if (isKeyPressed("c")) EditorState.instance.performCommand("Copy");
 	else if (isKeyPressed("x")) EditorState.instance.performCommand("Cut");

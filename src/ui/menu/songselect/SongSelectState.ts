@@ -153,7 +153,7 @@ export class SongSelectState implements IScene {
 		return capsuleContainer;
 	}
 
-	scene(instance: SongSelectState): void {
+	scene(state: SongSelectState): void {
 		setBackground(BLUE.lighten(50));
 
 		let songAmount = SongContent.loaded.length + 1;
@@ -174,13 +174,13 @@ export class SongSelectState implements IScene {
 
 				const indexOfCapsule = allCapsules.indexOf(songCapsule);
 
-				if (indexOfCapsule == instance.index) {
+				if (indexOfCapsule == state.index) {
 					opacity = 1;
 					songCapsule.intendedXPos = center().x;
 				}
 				else {
 					opacity = 0.5;
-					songCapsule.intendedXPos = center().x + songCapsule.width * 1.5 * (index - instance.index);
+					songCapsule.intendedXPos = center().x + songCapsule.width * 1.5 * (index - state.index);
 				}
 
 				songCapsule.opacity = lerp(songCapsule.opacity, opacity, LERP_AMOUNT);
@@ -204,32 +204,32 @@ export class SongSelectState implements IScene {
 			highscoreText.text = utils.formatNumber(highscoreText.value, { type: "simple" }) + utils.star;
 		});
 
-		wait(0.01, () => instance.updateState());
+		wait(0.01, () => state.updateState());
 
 		onKeyPress("left", () => {
-			if (!instance.menuInputEnabled) return;
-			instance.scroll(-1, songAmount);
-			instance.updateState();
+			if (!state.menuInputEnabled) return;
+			state.scroll(-1, songAmount);
+			state.updateState();
 		});
 
 		onKeyPress("right", () => {
-			if (!instance.menuInputEnabled) return;
-			instance.scroll(1, songAmount);
-			instance.updateState();
+			if (!state.menuInputEnabled) return;
+			state.scroll(1, songAmount);
+			state.updateState();
 		});
 
 		onScroll((delta) => {
-			if (!instance.menuInputEnabled) return;
+			if (!state.menuInputEnabled) return;
 			delta.y = clamp(delta.y, -1, 1);
-			instance.scroll(delta.y, songAmount);
-			instance.updateState();
+			state.scroll(delta.y, songAmount);
+			state.updateState();
 		});
 
-		instance.onUpdateState(async () => {
-			const capsule = allCapsules[instance.index];
+		state.onUpdateState(async () => {
+			const capsule = allCapsules[state.index];
 			if (!capsule) return;
 			if (!capsule.song) {
-				instance.songPreview?.stop();
+				state.songPreview?.stop();
 				return;
 			}
 
@@ -239,15 +239,15 @@ export class SongSelectState implements IScene {
 
 			highscoreText.solidValue = Math.floor(tallyScore.tally.score);
 
-			instance.songPreview?.stop();
-			instance.songPreview = Sound.playMusic(capsule.song.getAudioName());
-			instance.songPreview.loop = true;
-			instance.songPreview.fadeIn(Sound.musicVolume, 0.25);
+			state.songPreview?.stop();
+			state.songPreview = Sound.playMusic(capsule.song.getAudioName());
+			state.songPreview.loop = true;
+			state.songPreview.fadeIn(Sound.musicVolume, 0.25);
 		});
 
 		onKeyPress("enter", async () => {
-			if (!instance.menuInputEnabled) return;
-			const hoveredCapsule = allCapsules[instance.index];
+			if (!state.menuInputEnabled) return;
+			const hoveredCapsule = allCapsules[state.index];
 			if (!hoveredCapsule) return;
 
 			if (hoveredCapsule.song == null) {
@@ -274,8 +274,8 @@ export class SongSelectState implements IScene {
 
 					if (overwritingDefault) {
 						addNotification("[error]ERROR:[/error] The song you were trying to load overwrites a default song", 5);
-						instance.index = allCapsules.indexOf(allCapsules.find((capsule) => capsule.song.manifest.uuid_DONT_CHANGE == content.manifest.uuid_DONT_CHANGE));
-						instance.updateState();
+						state.index = allCapsules.indexOf(allCapsules.find((capsule) => capsule.song.manifest.uuid_DONT_CHANGE == content.manifest.uuid_DONT_CHANGE));
+						state.updateState();
 						loadingScreen.cancel();
 						return;
 					}
@@ -292,8 +292,8 @@ export class SongSelectState implements IScene {
 
 						addNotification(`[warning]Warning:[/warning] Overwrote "${capsule.song.manifest.name}" by "${content.manifest.name}" since they have the same UUID`, 5);
 						allCapsules[allCapsules.indexOf(capsule)].song = content;
-						instance.index = allCapsules.indexOf(capsule);
-						instance.updateState();
+						state.index = allCapsules.indexOf(capsule);
+						state.updateState();
 
 						loadingScreen.cancel();
 						return;
@@ -306,9 +306,9 @@ export class SongSelectState implements IScene {
 					const capsule = SongSelectState.addSongCapsule(content);
 					let index = allCapsules.indexOf(capsule);
 					if (index == -1) index = 0;
-					instance.index = index;
+					state.index = index;
 
-					instance.updateState();
+					state.updateState();
 					loadingScreen.cancel();
 				}
 				else {
@@ -316,27 +316,35 @@ export class SongSelectState implements IScene {
 				}
 			}
 			else {
-				instance.menuInputEnabled = false;
-				instance.songPreview?.stop();
+				state.menuInputEnabled = false;
+				state.songPreview?.stop();
 				const currentSongZip = hoveredCapsule.song;
 				switchScene(GameState, { song: currentSongZip });
 			}
 		});
 
 		function stopPreview() {
-			instance.songPreview?.stop();
+			state.songPreview?.stop();
 		}
 
 		onKeyPress("tab", () => {
-			if (!instance.menuInputEnabled) return;
+			if (!state.menuInputEnabled) return;
 			stopPreview();
-			switchScene(DancerSelectState, instance.index);
+			switchScene(DancerSelectState, state.index);
 		});
 
 		onKeyPress("escape", () => {
-			if (!instance.menuInputEnabled) return;
+			if (!state.menuInputEnabled) return;
 			stopPreview();
 			switchScene(MenuState, "songs");
+		});
+
+		onKeyPress("backspace", () => {
+			// if (!state.menuInputEnabled) return;
+			// const hoveredCapsule = allCapsules[state.index];
+			// hoveredCapsule.destroy();
+			// SongContent.removeSongFromExistence(hoveredCapsule.song);
+			// state.updateState();
 		});
 
 		onSceneLeave(() => {
@@ -346,7 +354,7 @@ export class SongSelectState implements IScene {
 		onKeyPress("q", () => {
 		});
 
-		instance.onAddSongCapsule(() => {
+		state.onAddSongCapsule(() => {
 			allCapsules.sort((a, b) => a.song == null ? 1 : -1);
 		});
 	}

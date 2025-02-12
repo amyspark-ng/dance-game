@@ -12,18 +12,23 @@ import { EditorState } from "../EditorState";
 import { EditorEvent, EditorNote, EditorStamp } from "../objects/stamp";
 import { addFloatyText, editorUtils } from "./utils";
 
+// thank you StackOverflow user ford04
+// export type DropFirst<T extends unknown[]> = T extends [any, ...infer U] ? U : never;
+
+/** Interface containing the properties of a command */
 export interface IEditorCommand {
-	addToHistory: boolean;
 	do(...args: any[]): any;
 	toString(...args: any[]): string;
+	addToHistory: boolean;
 }
 
+/** Object containing the most important commands of the chart editor */
 export const commands = {
 	"Copy": {
 		do(stamps: EditorStamp[] = EditorState.instance.selected) {
 			if (stamps.length == 0) return;
 
-			EditorState.instance.clipboard = stamps;
+			EditorState.instance.clipboard = cloneDeep(stamps);
 			addFloatyText(EditorState.utils.clipboardMessage("copy", EditorState.instance.clipboard));
 			Sound.playSound("noteCopy", { detune: rand(25, 50) });
 
@@ -52,13 +57,14 @@ export const commands = {
 			});
 		},
 		toString(stamps: EditorStamp[] = EditorState.instance.selected) {
-			return "cut" + EditorState.utils.boxSortStamps(stamps).toString();
+			return `cut ${EditorState.utils.boxSortStamps(stamps).toString()}`;
 		},
 		addToHistory: true,
 	},
 	"Paste": {
-		do(stamps: EditorStamp[] = EditorState.instance.selected) {
+		do(stamps: EditorStamp[] = EditorState.instance.clipboard) {
 			if (stamps.length == 0) return;
+			stamps = cloneDeep(stamps);
 
 			Sound.playSound("noteCopy", { detune: rand(-50, -25) });
 			addFloatyText(EditorState.utils.clipboardMessage("paste", stamps));
@@ -72,15 +78,15 @@ export const commands = {
 
 				// this turns them to low value range, which i can sum hoveredStep to, then it will work :)
 				const newStep = stamp.step + EditorState.instance.hoveredStep;
-				if (stamp.is("note")) commands.PlaceNote.do(false, newStep, stamp.data.move);
+				if (stamp.is("note")) commands.PlaceNote.do(false, newStep, stamp.data.move, stamp.data.length);
 				else if (stamp.is("event")) commands.PlaceEvent.do(false, newStep, stamp.data.id, stamp.data.data);
 				stamp.twist();
 			});
 		},
-		addToHistory: true,
 		toString(stamps: EditorStamp[] = EditorState.instance.selected) {
 			return `pasted ${EditorState.utils.boxSortStamps(stamps).toString()}`;
 		},
+		addToHistory: true,
 	},
 	/** Place a note (cooler)
 	 * @param doSound Wheter to play a sound when it's added
@@ -88,8 +94,8 @@ export const commands = {
 	 * @param move The move the note will be
 	 */
 	"PlaceNote": {
-		do(doSound: boolean = true, step: number = EditorState.instance.hoveredStep, move: Move = EditorState.instance.currentMove) {
-			const note = EditorState.instance.placeNote({ time: EditorState.instance.conductor.stepToTime(step), move: move });
+		do(doSound: boolean = true, step: number = EditorState.instance.hoveredStep, move: Move = EditorState.instance.currentMove, length: number = undefined) {
+			const note = EditorState.instance.placeNote({ time: EditorState.instance.conductor.stepToTime(step), move, length });
 			note.selected = true;
 			note.bop();
 
@@ -163,31 +169,27 @@ export const commands = {
 		addToHistory: true,
 	},
 	/**
-	 * Selects/Deselects an array of stamps
+	 * Selects an array of stamps, if nothing is passed all will be selected
 	 * @param stamps Stamps to select
-	 *
-	 * If no stamp is passed, deselected will be deselected
-	 *
-	 * If passed array is empty, all selected will be deselected
 	 */
 	"SelectStamps": {
-		do(stamps?: EditorStamp[]) {
-			if (!stamps) {
-				EditorStamp.mix(EditorState.instance.notes, EditorState.instance.events).filter((stamp) => {
-					stamp.selected;
-				}).forEach((selectedStamp) => selectedStamp.selected = false);
-			}
-			else if (stamps.length == 0) {
-				EditorState.instance.selected.forEach((selected) => selected.selected = false);
-			}
-			else {
-				stamps.forEach((stamp) => stamp.selected = true);
-			}
+		do(stamps: EditorStamp[] = EditorStamp.mix(EditorState.instance.notes, EditorState.instance.events)) {
+			stamps.forEach((stamp) => stamp.selected = true);
 		},
 		toString(stamps: EditorStamp[] = EditorStamp.mix(EditorState.instance.notes, EditorState.instance.events)) {
 			return `selected ${EditorState.utils.boxSortStamps(stamps).toString()}`;
 		},
 		addToHistory: true,
+	},
+	/** Deselect stamps, if nothing is passed will deselect all selected */
+	"DeselectStamps": {
+		do(stamps: EditorStamp[] = EditorState.instance.selected) {
+			stamps.forEach((stamp) => stamp.selected = false);
+		},
+		toString(stamps: EditorStamp[] = EditorState.instance.selected) {
+			return `deselected ${EditorState.utils.boxSortStamps(stamps).toString()}`;
+		},
+		addToHistory: false,
 	},
 	"InvertSelection": {
 		do() {
@@ -195,10 +197,10 @@ export const commands = {
 			const allStamps = EditorStamp.mix(EditorState.instance.notes, EditorState.instance.events);
 			allStamps.forEach((stamp) => stamp.selected = !stamp.selected);
 		},
-		addToHistory: true,
 		toString() {
 			return "inverted selection";
 		},
+		addToHistory: true,
 	},
 	"DeleteStamps": {
 		do(stamps: EditorStamp[] = EditorState.instance.selected) {
@@ -217,7 +219,8 @@ export const commands = {
 			}
 		},
 		toString(stamps: EditorStamp[] = EditorState.instance.selected) {
-			return "delete " + EditorState.utils.boxSortStamps(stamps).toString();
+			if (stamps.length == 0) return;
+			return `delete ${EditorState.utils.boxSortStamps(stamps).toString()}`;
 		},
 		addToHistory: true,
 	},
@@ -234,13 +237,12 @@ export const commands = {
 			sound.detune -= rand(500, 600);
 		},
 		addToHistory: true,
-		toString(notes: EditorNote[]) {
+		toString(notes: EditorNote[] = EditorState.instance.selected.filter((stamp) => stamp.is("note"))) {
 			return `inverted ${notes.length} notes`;
 		},
 	},
 } as const satisfies Record<string, IEditorCommand>; // thank you reddit user u/musical_bear
 
-// TODO: Where to put this
 export function coolUndo() {
 	const oldSong = EditorState.instance.song;
 	const newSong = EditorState.instance.undo()?.song;
@@ -262,50 +264,3 @@ export function coolRedo() {
 		addNotification(`redid: "${EditorState.instance.snapshots[EditorState.instance.snapshotIndex].command}"`);
 	}
 }
-
-// thank you StackOverflow user ford04
-// export type DropFirst<T extends unknown[]> = T extends [any, ...infer U] ? U : never;
-
-export const editorCommands = {
-	NewChart: async () => {
-		const loading = FileManager.loadingScreen();
-		await EditorState.instance.changeSong(new SongContent());
-		loading.cancel();
-	},
-
-	OpenChart: async () => {
-		const loading = FileManager.loadingScreen();
-		const songFile = await FileManager.receiveFile("mod");
-		if (!songFile) {
-			loading.cancel();
-			return;
-		}
-
-		const assets = await SongContent.parseFromFile(songFile);
-		const content = await SongContent.load(assets, true);
-
-		// TODO: What...
-		if (content.isDefault) {
-			EditorState.instance.changeSong(cloneDeep(content));
-			addNotification(`Editor: Editing ${content.manifest.name}`);
-		}
-		else if (content.manifest.uuid_DONT_CHANGE == EditorState.instance.song.manifest.uuid_DONT_CHANGE) {
-			EditorState.instance.changeSong(content);
-			addNotification(`[warning]Warning:[/warning] Overwrote "${EditorState.instance.song.manifest.name}" by "${content.manifest.name}" since they have the same UUID`, 5);
-		}
-		// else {
-		// 	StateChart.instance.changeSong(cloneDeep(content));
-		// }
-
-		loading.cancel();
-	},
-
-	SaveChart: () => {
-		EditorState.instance.downloadChart();
-	},
-
-	Exit: () => {
-		EditorState.instance.conductor.destroy();
-		switchScene(MenuState, "editor");
-	},
-};

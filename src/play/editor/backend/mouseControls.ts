@@ -21,13 +21,13 @@ export function mouseControls() {
 		if (!inGridAtClick) {
 			const releasedOutsideTheGrid = onMouseRelease("left", () => {
 				releasedOutsideTheGrid.cancel();
-				if (!isSomeHovered()) EditorState.instance.performCommand("SelectStamps", []);
+				if (!isSomeHovered()) EditorState.instance.performCommand("DeselectStamps");
 			});
 		}
 		else {
 			if (hoveredStamp) {
 				if (!hoveredStamp.selected) {
-					if (!isKeyDown("control")) EditorState.instance.performCommand("SelectStamps", []);
+					if (!isKeyDown("control")) EditorState.instance.performCommand("DeselectStamps");
 					hoveredStamp.selected = true;
 				}
 				else {
@@ -44,7 +44,7 @@ export function mouseControls() {
 					}
 				}
 			}
-			else EditorState.instance.performCommand("SelectStamps", []);
+			else EditorState.instance.performCommand("DeselectStamps");
 		}
 
 		// #region placing

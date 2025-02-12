@@ -19,6 +19,7 @@
     "@zenfs/core": "^1.9.5",
     "@zenfs/dom": "^1.1.5",
     "audiobuffer-to-blob": "^1.0.2",
+    "buffer-to-data-url": "^1.0.0",
     "dprint": "^0.47.6",
     "is-url": "^1.2.4",
     "jszip": "^3.10.1",

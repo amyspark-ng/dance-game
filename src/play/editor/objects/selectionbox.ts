@@ -70,11 +70,8 @@ export class EditorSelectionBox {
 
 			// if stamp was collided take a snapshot and actually select them
 			if (stampsCollided.length > 0) {
-				state.takeSnapshot(`selected ${EditorState.utils.boxSortStamps(stampsCollided).toString()}`);
-				stampsCollided.forEach((stamp) => {
-					stamp.selected = true;
-					stamp.twitch();
-				});
+				EditorState.instance.performCommand("SelectStamps", stampsCollided);
+				stampsCollided.forEach((stamp) => stamp.twitch());
 			}
 
 			this.lastClickPos = vec2(0, 0);

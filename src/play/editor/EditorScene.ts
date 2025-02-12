@@ -1,5 +1,6 @@
 import { cam } from "../../core/camera.ts";
 import { gameCursor } from "../../core/cursor.ts";
+import { FileManager } from "../../FileManager.ts";
 import { utils } from "../../utils.ts";
 import { ChartNote } from "../objects/note.ts";
 import { editorShortcuts } from "./backend/handlers.ts";
@@ -47,6 +48,11 @@ export function EditorScene(state: EditorState) {
 		state.bgColor = rgb(92, 50, 172);
 		state.conductor.paused = state.paused;
 
+		window.onbeforeunload = () => {
+			if (state.unsavedChanges) return "You have unsaved changes!";
+			else return;
+		};
+
 		// editor stamps update
 		state.notes.forEach((note) => note.update());
 		state.events.forEach((event) => event.update());
@@ -73,7 +79,6 @@ export function EditorScene(state: EditorState) {
 		// HOVERED STEP
 		state.hoveredStep = state.scrollStep + Math.floor(gameCursor.pos.y / EditorState.SQUARE_SIZE.y);
 		state.conductor.currentBPM = state.song.manifest.initial_bpm;
-		state.conductor.timeSignature = state.song.manifest.time_signature;
 
 		// has notes selected or has selectionbox
 		const canScrollWithCursor = EditorStamp.mix(state.notes, state.events).some((stamp) => stamp.selected && stamp.isHovering())
@@ -115,6 +120,26 @@ export function EditorScene(state: EditorState) {
 			scale: vec2(EditorState.instance.strumlineScale.x, 1),
 			width: (EditorState.SQUARE_SIZE.x * 3),
 		});
+
+		drawText({
+			text: `Editing: ${state.song.manifest.uuid_DONT_CHANGE}`,
+			opacity: 0.5,
+			size: 15,
+			align: "right",
+			anchor: "topright",
+			pos: vec2(width(), 0),
+		});
+
+		if (state.unsavedChanges) {
+			drawText({
+				text: `Unsaved changes: ${state.snapshots[state.snapshotIndex].command}`,
+				opacity: 0.5,
+				size: 15,
+				align: "right",
+				anchor: "topright",
+				pos: vec2(width(), height() - 15),
+			});
+		}
 	});
 
 	// The scroll event
