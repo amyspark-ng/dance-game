@@ -4,6 +4,7 @@ import { IndexedDB } from "@zenfs/dom";
 import { getSongByName, SongContent } from "../data/song";
 import { EditorState } from "../play/editor/EditorState";
 import { GameState } from "../play/GameState";
+import { MenuState } from "../ui/menu/MenuState";
 import { OptionsState } from "../ui/menu/options/OptionsState";
 import { SongSelectState } from "../ui/menu/songselect/SongSelectState";
 import { FocusState } from "../ui/scenes/FocusState";
@@ -100,5 +101,6 @@ document.addEventListener("fullscreenchange", (event) => {
 });
 
 export function INITIAL_SCENE() {
-	switchScene(EditorState, { song: SongContent.getByName("Bopeebo") });
+	switchScene(MenuState, "editor");
+	// switchScene(EditorState, { song: SongContent.getByName("Bopeebo") });
 }

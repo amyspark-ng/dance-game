@@ -22,8 +22,6 @@ export function GameScene(GameState: GameState) {
 		z(0),
 	]);
 
-	console.log(GameState.dancer.exists());
-
 	// ==== SETS UP SOME IMPORTANT STUFF ====
 	notesSpawner(GameState);
 

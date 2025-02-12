@@ -19,6 +19,8 @@ const barWidth = 46;
 
 type songCapsuleObj = ReturnType<typeof SongSelectState.addSongCapsule>;
 
+// TODO: Fix it so you can update capsules based on a song array
+
 /** State for selecting the song to play
  * @param startAt Can either be a number or a song
  */
@@ -227,6 +229,7 @@ export class SongSelectState implements IScene {
 
 		state.onUpdateState(async () => {
 			const capsule = allCapsules[state.index];
+			songAmount = SongContent.loaded.length + 1;
 			if (!capsule) return;
 			if (!capsule.song) {
 				state.songPreview?.stop();
@@ -257,7 +260,7 @@ export class SongSelectState implements IScene {
 				if (gottenFile) {
 					const oldLoadedList = cloneDeep(SongContent.loaded);
 					const assets = await SongContent.parseFromFile(gottenFile);
-					const content = await SongContent.load(assets, true);
+					const content = await SongContent.load(assets, true, false);
 
 					// is trying to overwrite deafult, not!!
 					if (SongContent.defaultUUIDS.includes(content.manifest.uuid_DONT_CHANGE)) {
@@ -340,11 +343,14 @@ export class SongSelectState implements IScene {
 		});
 
 		onKeyPress("backspace", () => {
-			// if (!state.menuInputEnabled) return;
-			// const hoveredCapsule = allCapsules[state.index];
-			// hoveredCapsule.destroy();
-			// SongContent.removeSongFromExistence(hoveredCapsule.song);
-			// state.updateState();
+			if (!state.menuInputEnabled) return;
+			const hoveredCapsule = allCapsules[state.index];
+			if (hoveredCapsule.song.isDefault) return;
+			hoveredCapsule.destroy();
+			SongContent.removeFromExistence(hoveredCapsule.song);
+			state.updateState();
+			// state.index -= 1;
+			switchScene(SongSelectState, state.index - 1);
 		});
 
 		onSceneLeave(() => {

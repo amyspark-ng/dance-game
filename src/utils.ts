@@ -174,6 +174,11 @@ export class utils {
 		return number.toString().split(".")[1].length || 0;
 	}
 
+	static isURL(url: string) {
+		const urlPattern = /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/i;
+		return urlPattern.test(url);
+	}
+
 	static async getAverageColorOfSprite(sprite: string): Promise<Color> {
 		/* https://stackoverflow.com/questions/2541481/get-average-color-of-image-via-javascript */
 		return new Promise(async (resolve) => {

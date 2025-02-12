@@ -56,7 +56,7 @@ export const editorShortcuts = () => {
 	else if (isKeyPressed("n")) EditorState.instance.NewSong();
 	else if (isKeyPressed("s")) EditorState.instance.SaveSong();
 	else if (isKeyPressed("o")) EditorState.instance.OpenSong();
-	else if (isKeyPressed("q")) EditorState.instance.ExitState();
+	else if (isKeyPressed("q")) EditorState.instance.RequestExit();
 	else if (isKeyPressed("f")) EditorState.instance.performCommand("FlipMoves");
 	else if (isKeyPressed("a")) EditorState.instance.performCommand("SelectStamps");
 	else if (isKeyPressed("d")) EditorState.instance.performCommand("DeselectStamps");

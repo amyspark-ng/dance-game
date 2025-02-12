@@ -1,6 +1,7 @@
 import { Zip } from "@zenfs/archives";
 import fs, { resolveMountConfig } from "@zenfs/core";
 import audioBufferToBlob from "audiobuffer-to-blob";
+import isUrl from "is-url";
 import JSZip from "jszip";
 import { resolve } from "path";
 import TOML, { TomlPrimitive } from "smol-toml";
@@ -34,6 +35,14 @@ export class SongManifest {
 
 	set chart_file(value: string) {
 		return;
+	}
+
+	static get default_cover() {
+		return "new-song-cover";
+	}
+
+	static get default_audio() {
+		return "new-song-audio";
 	}
 
 	static get default_audio_file() {
@@ -97,6 +106,59 @@ export class SongAssets {
 }
 
 export class SongContent {
+	static async getDefaultAssets() {
+		const assets = new SongAssets();
+		const manifest = new SongManifest();
+		assets.cover = await FileManager.spriteToDataURL(SongManifest.default_cover);
+		assets.audio = await FileManager.soundToDataURL(SongManifest.default_audio);
+		assets.chart = JSON.stringify(new SongChart());
+		assets.manifest = JSON.stringify(manifest);
+		return assets;
+	}
+
+	static async extractFromUnloaded(song: SongContent) {
+		const defaultAssets = await SongContent.getDefaultAssets();
+		const endAssets = new SongAssets();
+
+		// cover
+		if (utils.isURL(song.manifest.cover_file)) {
+			const response = await FileManager.getFileAtUrl(song.manifest.cover_file);
+			const dataurl = await FileManager.blobToDataURL(await response.blob());
+			endAssets.cover = dataurl;
+		}
+		else {
+			if (fs.existsSync(`/home/songs/${song.manifest.uuid_DONT_CHANGE}`)) {
+				const stringAssets = fs.readFileSync(`/home/songs/${song.manifest.uuid_DONT_CHANGE}`, "utf-8");
+				const assets = JSON.parse(stringAssets) as SongAssets;
+				endAssets.cover = assets.cover;
+			}
+			else {
+				endAssets.cover = defaultAssets.cover;
+			}
+		}
+
+		// audio
+		if (utils.isURL(song.manifest.cover_file)) {
+			const response = await FileManager.getFileAtUrl(song.manifest.audio_file);
+			const dataurl = await FileManager.blobToDataURL(await response.blob());
+			endAssets.audio = dataurl;
+		}
+		else {
+			if (fs.existsSync(`/home/songs/${song.manifest.uuid_DONT_CHANGE}`)) {
+				const stringAssets = fs.readFileSync(`/home/songs/${song.manifest.uuid_DONT_CHANGE}`, "utf-8");
+				const assets = JSON.parse(stringAssets) as SongAssets;
+				endAssets.audio = assets.audio;
+			}
+			else {
+				endAssets.audio = defaultAssets.audio;
+			}
+		}
+
+		endAssets.chart = JSON.stringify(song.chart);
+		endAssets.manifest = JSON.stringify(song.manifest);
+		return endAssets;
+	}
+
 	/**
 	 * Fetch a manifest from a path
 	 * @param path (eg: "content/songs/bopeebo" would do "content/songs/bopeebo/manifest.toml")
@@ -184,17 +246,7 @@ export class SongContent {
 		await loadSprite(content.getCoverName(), assets.cover);
 		await loadSound(content.getAudioName(), assets.audio);
 
-		if (!content.isDefault) {
-			if (GameSave.extraSongs.includes(manifest.uuid_DONT_CHANGE)) {
-				const index = GameSave.extraSongs.indexOf(manifest.uuid_DONT_CHANGE);
-				GameSave.extraSongs[index] = manifest.uuid_DONT_CHANGE;
-			}
-			else {
-				GameSave.extraSongs.push(manifest.uuid_DONT_CHANGE);
-			}
-		}
-
-		if (pushToIndexedDB) SongContent.writeToSave(content, assets);
+		if (pushToIndexedDB) SongContent.writeToSave(pushToIndexedDB, pushToLoaded, content, assets);
 		if (pushToLoaded) SongContent.addToLoaded(content);
 
 		console.log(`${GAME.NAME}: Loaded song '${content.manifest.name}' successfully`);
@@ -202,8 +254,8 @@ export class SongContent {
 	}
 
 	static async loadAll() {
-		await loadSound("new-song-audio", "content/songs/new-song-audio.ogg");
-		await loadSprite("new-song-cover", "content/songs/new-song-cover.png");
+		await loadSprite(SongManifest.default_cover, SongManifest.default_cover_file);
+		await loadSound(SongManifest.default_audio, SongManifest.default_audio_file);
 
 		const defaultPromises = SongContent.defaultPaths.map((path) =>
 			new Promise(async (resolve, reject) => {
@@ -268,7 +320,7 @@ export class SongContent {
 		// "content/songs/unholy-blight",
 	];
 
-	static removeSongFromExistence(song: SongContent) {
+	static removeFromExistence(song: SongContent) {
 		if (!SongContent.loaded.includes(song)) return;
 		const indexInLoaded = SongContent.loaded.indexOf(song);
 		const indexInSave = GameSave.extraSongs.indexOf(song.manifest.uuid_DONT_CHANGE);
@@ -276,11 +328,20 @@ export class SongContent {
 		SongContent.loaded.splice(indexInLoaded, 1);
 		GameSave.extraSongs.splice(indexInSave, 1);
 
-		const file_path = `/home/songs/${song.manifest.uuid_DONT_CHANGE}`;
-		if (fs.existsSync(file_path)) fs.rmSync(file_path);
+		// const file_path = `/home/songs/${song.manifest.uuid_DONT_CHANGE}`;
+		// if (fs.existsSync("/home/songs") && fs.existsSync("home/songs/")) {
+		// 	if (fs.existsSync(file_path)) fs.rmSync(file_path);
+		// }
 	}
 
-	static async extractAssets(song: SongContent) {
+	static async hasAssetsLoaded(song: SongContent) {
+		const cover = await getSprite(song.getCoverName());
+		const sound = await getSound(song.getAudioName());
+		const loaded = cover != null && sound != null;
+		return loaded;
+	}
+
+	static async extractFromLoaded(song: SongContent) {
 		const assets = new SongAssets();
 		assets.manifest = JSON.stringify(song.manifest);
 		assets.chart = JSON.stringify(song.chart);
@@ -293,23 +354,28 @@ export class SongContent {
 		return assets;
 	}
 
-	static async writeToSave(song: SongContent, assets?: SongAssets) {
+	static async writeToSave(toIndexedDB: boolean, extraSongs: boolean, song: SongContent, assets?: SongAssets) {
 		const file_path = `/home/songs/${song.manifest.uuid_DONT_CHANGE}`;
-		assets = assets ?? await SongContent.extractAssets(song);
+		assets = assets ?? await SongContent.extractFromLoaded(song);
 
 		const data = JSON.stringify(assets);
 
-		if (GameSave.extraSongs.includes(song.manifest.uuid_DONT_CHANGE)) {
-			const uuids = SongContent.loaded.map((song) => song.manifest.uuid_DONT_CHANGE);
-			const index = uuids.indexOf(song.manifest.uuid_DONT_CHANGE);
-			if (index != -1) GameSave.extraSongs[index] = song.manifest.uuid_DONT_CHANGE;
-		}
-		else {
-			GameSave.extraSongs.push(song.manifest.uuid_DONT_CHANGE);
+		if (extraSongs) {
+			if (GameSave.extraSongs.includes(song.manifest.uuid_DONT_CHANGE)) {
+				const uuids = SongContent.loaded.map((song) => song.manifest.uuid_DONT_CHANGE);
+				const index = uuids.indexOf(song.manifest.uuid_DONT_CHANGE);
+				if (index != -1) GameSave.extraSongs[index] = song.manifest.uuid_DONT_CHANGE;
+			}
+			else {
+				GameSave.extraSongs.push(song.manifest.uuid_DONT_CHANGE);
+			}
 		}
 
-		if (!fs.existsSync("/home/songs")) fs.mkdirSync("/home/songs");
-		fs.writeFileSync(file_path, data);
+		if (toIndexedDB) {
+			if (!fs.existsSync("/home/songs")) fs.mkdirSync("/home/songs");
+			fs.writeFileSync(file_path, data);
+		}
+
 		if (GameSave.save) GameSave.save();
 	}
 

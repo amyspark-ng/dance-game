@@ -95,8 +95,11 @@ export class _GameSave {
 
 	/** Writes current instance to localStorage */
 	save() {
-		setData(GAME.SAVE_NAME, this);
-		return console.log("SAVED");
+		const lastSave = this.getLatestSave();
+		if (JSON.stringify(this) !== JSON.stringify(lastSave)) {
+			setData(GAME.SAVE_NAME, this);
+			return console.log(`${GAME.NAME}: Saved`);
+		}
 	}
 
 	/**
@@ -111,7 +114,7 @@ export class _GameSave {
 	delete() {
 		const theNewSave = new _GameSave();
 		this.set(theNewSave);
-		return console.log("DELETED GAME SAVE!!");
+		return console.log(`${GAME.NAME}: DELETED Game Save`);
 	}
 
 	/** Gets the latest instance in localStorage */

@@ -47,7 +47,7 @@ export class MenuBar {
 			},
 			{
 				text: "Exit (Ctrl + Q)",
-				action: () => EditorState.instance.ExitState(),
+				action: () => EditorState.instance.RequestExit(),
 			},
 		]),
 		"Edit": new MenuBar("Edit", [

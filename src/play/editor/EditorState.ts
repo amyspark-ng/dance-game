@@ -6,7 +6,7 @@ import { IScene, switchScene } from "../../core/scenes/KaplayState";
 import { Sound } from "../../core/sound";
 import { ChartEvent, eventId } from "../../data/event/event";
 import EventSchema from "../../data/event/schema";
-import { SongContent, SongManifest } from "../../data/song";
+import { SongAssets, SongContent, SongManifest } from "../../data/song";
 import { FileManager } from "../../FileManager";
 import { MenuState } from "../../ui/menu/MenuState";
 import { addNotification } from "../../ui/objects/notification";
@@ -207,7 +207,7 @@ export class EditorState implements IScene {
 
 	/** Triggers a dialog to open a song zip */
 	async OpenSong() {
-		const loading = FileManager.loadingScreen();
+		const loading = FileManager.loadingScreen("Receiving song");
 		const songFile = await FileManager.receiveFile("mod");
 		if (!songFile) {
 			loading.cancel();
@@ -215,28 +215,42 @@ export class EditorState implements IScene {
 		}
 
 		const assets = await SongContent.parseFromFile(songFile);
-		const content = await SongContent.load(assets, true);
+		const content = await SongContent.load(assets, false, false);
 
 		// TODO: What...
 		if (content.isDefault) {
-			EditorState.instance.changeSong(cloneDeep(content));
+			this.changeSong(cloneDeep(content), assets);
 			addNotification(`Editor: Editing ${content.manifest.name}`);
 		}
-		else if (content.manifest.uuid_DONT_CHANGE == EditorState.instance.song.manifest.uuid_DONT_CHANGE) {
-			EditorState.instance.changeSong(content);
-			addNotification(`[warning]Warning:[/warning] Overwrote "${EditorState.instance.song.manifest.name}" by "${content.manifest.name}" since they have the same UUID`, 5);
+		else if (content.manifest.uuid_DONT_CHANGE == this.song.manifest.uuid_DONT_CHANGE) {
+			this.changeSong(content, assets);
+			addNotification(`[warning]Warning:[/warning] Overwrote "${this.song.manifest.name}" by "${content.manifest.name}" since they have the same UUID`, 5);
 		}
+		// what????
+		else {
+			this.changeSong(content, assets);
+			addNotification(`[warning]Warning:[/warning] Overwriting "${this.song.manifest.name}"`);
+		}
+
 		loading.cancel();
 	}
 
-	/** Exits the state */
-	async ExitState() {
+	async RequestExit() {
 		if (this.unsavedChanges) {
-			debug.log("You're sure you wanna exit?");
-			return;
+			debug.log("Are you sure you want to exit");
 		}
+		else {
+			await this.ExitDefinetely();
+		}
+	}
+
+	/** Exits the state */
+	async ExitDefinetely() {
+		const loading = FileManager.loadingScreen(`Saving '${this.song.manifest.name}...'`);
+		await this.SaveSong(true);
 		EditorState.instance.conductor.destroy();
 		switchScene(MenuState, "editor");
+		loading.cancel();
 	}
 
 	/** Downloads the current song */
@@ -250,13 +264,17 @@ export class EditorState implements IScene {
 	}
 
 	/** Saves the current song */
-	SaveSong() {
-		if (!this.unsavedChanges) return;
+	async SaveSong(writeSave: boolean = false) {
+		if (!this.unsavedChanges && !writeSave) return;
 		addNotification(`EDITOR: Saved '${this.song.manifest.name}' succesfully`);
 		this.lastSavedChanges = cloneDeep(this.song);
 		SongContent.addToLoaded(this.song);
-		// TODO: Make it so it doesn't always write to save, because this lags a bit
-		SongContent.writeToSave(this.song);
+
+		if (writeSave) {
+			await SongContent.writeToSave(true, true, this.song);
+		}
+
+		return new Promise((resolve, reject) => resolve("ok"));
 	}
 
 	/** Adds a noteto the Chart
@@ -362,41 +380,58 @@ export class EditorState implements IScene {
 	}
 
 	/** Changes the current song, removes notes and adds the new ones */
-	async changeSong(content: SongContent) {
+	async changeSong(newSong: SongContent, endAssets?: SongAssets) {
+		const loading = FileManager.loadingScreen(`Opening '${newSong.manifest.name}'...`);
 		this.notes.forEach((note) => this.deleteNote(note));
 		this.events.forEach((event) => this.deleteEvent(event));
 
 		// it's a default song, you can't overwrite it, make a copy
-		if (content.isDefault) {
-			this.song = cloneDeep(content);
+		if (newSong.isDefault) {
+			this.song = cloneDeep(newSong);
 
 			this.song.manifest.name = this.song.manifest.name + " (copy)";
 			this.song.manifest.uuid_DONT_CHANGE = v4();
+			endAssets = await SongContent.extractFromLoaded(newSong);
+			endAssets.manifest = JSON.stringify(this.song.manifest);
 
 			addNotification(`Editing: ${this.song.manifest.name}`, 3);
 		}
 		// overwrite it for all i care!!
 		else {
-			this.song = content;
+			// TODO: Have to make a dialog here about you're about to overwrite unsaved change you're ok with that etc etc
+			this.song = newSong;
 			if (!this.song.manifest.uuid_DONT_CHANGE) {
 				// it's a new song
 				this.song.manifest.uuid_DONT_CHANGE = v4();
 			}
-			// TODO: Have to make a dialog here about you're about to overwrite unsaved change you're ok with that etc etc
+
+			// reload assets
+			if (await SongContent.hasAssetsLoaded(newSong)) {
+				const assets = await SongContent.extractFromLoaded(newSong);
+				endAssets = assets;
+				endAssets.manifest = JSON.stringify(this.song.manifest);
+			}
+			// has to load first time
+			else {
+				if (!endAssets) {
+					const assets = await SongContent.extractFromUnloaded(newSong);
+					endAssets = assets;
+					endAssets.manifest = JSON.stringify(this.song.manifest);
+				}
+			}
 
 			addNotification(`[warning]WARNING[/warning]: You'll be overwriting "${this.song.manifest.name}"`, 5);
 		}
 
-		// reload assets
-		const assets = await SongContent.extractAssets(content);
-		loadSound(this.song.getAudioName(), assets.audio);
-		loadSprite(this.song.getCoverName(), assets.cover);
-
+		loading.message = `Loading ${this.song.manifest.name}'s assets...`;
+		await SongContent.load(endAssets, false, false);
 		this.updateAudio();
+		this.scrollToStep(0);
 
-		this.lastSavedChanges = cloneDeep(this.song);
 		this.song.chart.notes.forEach((chartNote) => this.placeNote(chartNote));
 		this.song.chart.events.forEach((ChartEvent) => this.placeEvent(ChartEvent));
+		loading.message = `Success loading ${this.song.manifest.name}`;
+		loading.cancel();
 	}
 
 	// TODO: Fix this typing

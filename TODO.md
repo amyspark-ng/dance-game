@@ -8,10 +8,7 @@
 - Playback speed doesn't work at all on gameplay
 
 # CHART EDITOR
-- Proper conversion from sound to asset (dataurl audio)
 - Add dialog for "are you sutre you want to exit"
-- Do editor cooler save functon
-
 - Fix the events panel, something happened to it
 
 # OPTIONS
