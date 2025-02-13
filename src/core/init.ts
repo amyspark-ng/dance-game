@@ -1,6 +1,6 @@
 import { getCurrent } from "@tauri-apps/api/window";
 import { configure, InMemory } from "@zenfs/core";
-import { IndexedDB } from "@zenfs/dom";
+import { IndexedDB, WebStorage } from "@zenfs/dom";
 import { getSongByName, SongContent } from "../data/song";
 import { EditorState } from "../play/editor/EditorState";
 import { GameState } from "../play/GameState";
@@ -20,6 +20,7 @@ import { switchScene } from "./scenes/KaplayState";
 import { Sound } from "./sound";
 import { CustomSoundTray } from "./soundtray";
 
+// "/home": { backend: WebStorage, storage: localStorage },
 configure({
 	mounts: {
 		"/tmp": InMemory,
@@ -101,6 +102,6 @@ document.addEventListener("fullscreenchange", (event) => {
 });
 
 export function INITIAL_SCENE() {
-	switchScene(MenuState, "editor");
+	switchScene(MenuState, "songs");
 	// switchScene(EditorState, { song: SongContent.getByName("Bopeebo") });
 }

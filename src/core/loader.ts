@@ -38,6 +38,45 @@ export async function loadAssets() {
 	DancerContent.loadAll();
 	NoteskinContent.loadAll();
 
+	loadSpriteAtlas("game/sprites/menu/menubuttons.png", {
+		"menusongs": {
+			x: 0,
+			y: 0,
+			width: 440,
+			height: 440,
+		},
+		"menuoptions": {
+			x: 440,
+			y: 0,
+			width: 440,
+			height: 440,
+		},
+		"menueditor": {
+			x: 440 * 2,
+			y: 0,
+			width: 440,
+			height: 440,
+		},
+		"menuscores": {
+			x: 0,
+			y: 440,
+			width: 440,
+			height: 440,
+		},
+		"menumods": {
+			x: 440,
+			y: 440,
+			width: 440,
+			height: 440,
+		},
+		"menucredits": {
+			x: 440 * 2,
+			y: 440,
+			width: 440,
+			height: 440,
+		},
+	});
+
 	let rankData = {};
 	rankings.forEach((rank, index) => {
 		rankData["rank_" + rank] = {
@@ -49,6 +88,18 @@ export async function loadAssets() {
 	});
 	loadSpriteAtlas("game/sprites/songRanks.png", rankData);
 
+	// #region EDITOR
+	loadSound("dialogOpen", "editor/sounds/dialogOpen.ogg");
+	loadSound("eventCog", "editor/sounds/eventCog.wav");
+	loadSound("noteAdd", "editor/sounds/noteAdd.mp3");
+	loadSound("noteCopy", "editor/sounds/noteCopy.wav");
+	loadSound("noteHit", "editor/sounds/noteHit.ogg");
+	loadSound("noteMove", "editor/sounds/noteMove.ogg");
+	loadSound("noteDelete", "editor/sounds/noteDelete.mp3");
+	loadSound("noteSnap", "editor/sounds/noteSnap.ogg");
+	loadSound("noteStretch", "editor/sounds/noteStretch.ogg");
+	loadSound("undo", "editor/sounds/undo.wav");
+	loadSprite("hueSlider", "editor/sprites/hueSlider.png");
 	const eventData = {} as SpriteAtlasData;
 	Object.keys(EventSchema).forEach((id, index) => {
 		const x = (index % 4) * 52;
@@ -62,20 +113,6 @@ export async function loadAssets() {
 		};
 	});
 	loadSpriteAtlas("editor/sprites/events.png", eventData);
-
-	// #region EDITOR
-	loadSound("dialogOpen", "editor/sounds/dialogOpen.ogg");
-	loadSound("eventCog", "editor/sounds/eventCog.wav");
-	loadSound("noteAdd", "editor/sounds/noteAdd.mp3");
-	loadSound("noteCopy", "editor/sounds/noteCopy.wav");
-	loadSound("noteHit", "editor/sounds/noteHit.ogg");
-	loadSound("noteMove", "editor/sounds/noteMove.ogg");
-	loadSound("noteDelete", "editor/sounds/noteDelete.mp3");
-	loadSound("noteSnap", "editor/sounds/noteSnap.ogg");
-	loadSound("noteStretch", "editor/sounds/noteStretch.ogg");
-	loadSound("undo", "editor/sounds/undo.wav");
-
-	loadSprite("hueSlider", "editor/sprites/hueSlider.png");
 	// #endregion EDITOR
 
 	// #region GAME
