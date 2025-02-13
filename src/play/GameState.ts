@@ -145,7 +145,10 @@ export class GameState implements IScene {
 		const songSaveScore = new SongScore(this.song.manifest.uuid_DONT_CHANGE, this.tally);
 		GameSave.scores.push(songSaveScore);
 		GameSave.save();
-		switchScene(ResultsState, this);
+		switchScene(ResultsState, songSaveScore, () => {
+			if (this.params.fromEditor) switchScene(EditorState, { song: this.song, playbackSpeed: this.params.playbackSpeed, seekTime: 0 });
+			else switchScene(SongSelectState, this.song);
+		});
 	}
 
 	/** Restarts the song */

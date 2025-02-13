@@ -3,11 +3,14 @@ import { _GameSave } from "../../core/save";
 import { IScene, switchScene } from "../../core/scenes/KaplayState";
 import { Sound } from "../../core/sound";
 import { getDancer } from "../../data/dancer";
+import { SongContent } from "../../data/song";
+import { ScoresState } from "../../ui/menu/ScoresState";
 import { SongSelectState } from "../../ui/menu/songselect/SongSelectState";
 import { utils } from "../../utils";
 import { EditorState } from "../editor/EditorState";
 import { GameState } from "../GameState";
 import { Ranking, Scoring, Tally } from "../objects/scoring";
+import { SongScore } from "../savescore";
 
 export function getAnimsAccordingToRanking(ranking: Ranking) {
 	if (ranking == "S+" || ranking == "S" || ranking == "A") return { initial: "idle", end: "victory" };
@@ -16,10 +19,14 @@ export function getAnimsAccordingToRanking(ranking: Ranking) {
 }
 
 export class ResultsState implements IScene {
-	GameState: GameState;
+	onExit: () => void = () => {};
+	songScore: SongScore;
 
-	scene(this: ResultsState): void {
+	scene(state: ResultsState): void {
 		setBackground(RED.lighten(60));
+
+		const song = SongContent.getByUUID(state.songScore.uuid);
+		if (!song) throw new Error("Entered results state with a score that has no song attached");
 
 		/** Class that contains a dumb thing for each line in the tally countering */
 		type tallyContainer = {
@@ -29,15 +36,15 @@ export class ResultsState implements IScene {
 		};
 
 		const tallyThings: tallyContainer[] = [
-			{ title: "score", value: this.GameState.tally.score, color: WHITE },
+			{ title: "score", value: state.songScore.tally.score, color: WHITE },
 			// { title: "total notes", value: this.GameState.songZip.notes.length, color: WHITE },
-			{ title: "hit notes", value: Tally.hitNotes(this.GameState.tally), color: WHITE },
-			{ title: "awesomes", value: this.GameState.tally.awesomes, color: BLUE.lighten(50) },
-			{ title: "goods", value: this.GameState.tally.goods, color: GREEN.lighten(50) },
-			{ title: "ehhs", value: this.GameState.tally.ehhs, color: BLACK.lighten(50) },
+			{ title: "hit notes", value: Tally.hitNotes(state.songScore.tally), color: WHITE },
+			{ title: "awesomes", value: state.songScore.tally.awesomes, color: BLUE.lighten(50) },
+			{ title: "goods", value: state.songScore.tally.goods, color: GREEN.lighten(50) },
+			{ title: "ehhs", value: state.songScore.tally.ehhs, color: BLACK.lighten(50) },
 			{
 				title: "misses",
-				value: this.GameState.tally.misses,
+				value: state.songScore.tally.misses,
 				color: utils.blendColors(BLUE, BLACK.lighten(50), 0.6),
 			},
 		];
@@ -46,10 +53,10 @@ export class ResultsState implements IScene {
 		const initialY = 40;
 
 		/** How cleared was the song */
-		const cleared = Tally.cleared(this.GameState.tally);
+		const cleared = Tally.cleared(state.songScore.tally);
 
 		/** The ranking you're gonna get */
-		const ranking = Tally.ranking(this.GameState.tally);
+		const ranking = Tally.ranking(state.songScore.tally);
 
 		/** The animations of the dancer according to the ranking you got */
 		const anims = getAnimsAccordingToRanking(ranking);
@@ -150,16 +157,13 @@ export class ResultsState implements IScene {
 		});
 
 		onKeyPress(["escape", "enter", "space"], () => {
-			if (this.GameState.params.fromEditor) {
-				switchScene(EditorState, { song: this.GameState.song, playbackSpeed: this.GameState.params.playbackSpeed, seekTime: this.GameState.params.seekTime });
-			}
-			else {
-				switchScene(SongSelectState, this.GameState.song);
-			}
+			drumroll.stop();
+			this.onExit();
 		});
 	}
 
-	constructor(GameState: GameState) {
-		this.GameState = GameState;
+	constructor(songScore: SongScore, onExit: () => void) {
+		this.songScore = songScore;
+		this.onExit = onExit;
 	}
 }

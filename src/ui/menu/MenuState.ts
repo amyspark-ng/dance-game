@@ -101,7 +101,7 @@ export class MenuState implements IScene {
 		const songsButton = state.addItem("songs", () => switchScene(SongSelectState, 0));
 		const optionsButton = state.addItem("options", () => switchScene(OptionsState));
 		const editorButton = state.addItem("editor", () => switchScene(EditorState, { song: new SongContent() }));
-		const scoresButton = state.addItem("scores", () => switchScene(ScoresState));
+		const scoresButton = state.addItem("scores", () => switchScene(ScoresState, 0));
 		const modsButton = state.addItem("mods", () => switchScene(ModsState));
 		const creditsButton = state.addItem("credits", () => switchScene(CreditsState));
 

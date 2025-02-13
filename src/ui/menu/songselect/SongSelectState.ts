@@ -1,6 +1,6 @@
 import fs from "@zenfs/core";
 import { Color } from "kaplay";
-import { cloneDeep } from "lodash";
+import { cloneDeep, isEqual } from "lodash";
 import { GameSave } from "../../../core/save";
 import { IScene, switchScene } from "../../../core/scenes/KaplayState";
 import { CustomAudioPlay, Sound } from "../../../core/sound";
@@ -367,14 +367,13 @@ export class SongSelectState implements IScene {
 
 	constructor(startAt: SongContent | number) {
 		if (typeof startAt == "number") {
-			utils.isInRange(startAt, 0, SongContent.loaded.length - 1);
-			this.index = startAt;
+			if (utils.isInRange(startAt, 0, SongContent.loaded.length - 1)) this.index = startAt;
+			else this.index = 0;
 		}
 		else {
-			if (SongContent.loaded.includes(startAt)) {
-				const newIndex = SongContent.loaded.indexOf(startAt);
-				if (newIndex && newIndex > 0) this.index = newIndex;
-			}
+			const newIndex = SongContent.loaded.findIndex((otherSong) => isEqual(otherSong, startAt));
+			if (!newIndex) this.index = 0;
+			else this.index = newIndex;
 		}
 	}
 }

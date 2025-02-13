@@ -97,112 +97,112 @@ export class OptionsState implements IScene {
 		this.updateDescription();
 	}
 
-	scene(instance: OptionsState): void {
+	scene(state: OptionsState): void {
 		setBackground(BLUE.lighten(30));
 
 		function controlsPage() {
-			instance.addItem("Left", "Left note", addOptionsMoveInput, "left", (key) => {
+			state.addItem("Left", "Left note", addOptionsMoveInput, "left", (key) => {
 				GameSave.gameControls.left = key;
 			}, (focused) => {
-				instance.inputEnabled = !focused;
+				state.inputEnabled = !focused;
 			}, GameSave.gameControls.left);
 
-			instance.addItem("Down", "Down note", addOptionsMoveInput, "down", (key) => {
+			state.addItem("Down", "Down note", addOptionsMoveInput, "down", (key) => {
 				GameSave.gameControls.down = key;
 			}, (focused) => {
-				instance.inputEnabled = !focused;
+				state.inputEnabled = !focused;
 			}, GameSave.gameControls.down);
 
-			instance.addItem("Up", "Up note", addOptionsMoveInput, "up", (key) => {
+			state.addItem("Up", "Up note", addOptionsMoveInput, "up", (key) => {
 				GameSave.gameControls.up = key;
 			}, (focused) => {
-				instance.inputEnabled = !focused;
+				state.inputEnabled = !focused;
 			}, GameSave.gameControls.up);
 
-			instance.addItem("Right", "Right note", addOptionsMoveInput, "right", (key) => {
+			state.addItem("Right", "Right note", addOptionsMoveInput, "right", (key) => {
 				GameSave.gameControls.right = key;
 			}, (focused) => {
-				instance.inputEnabled = !focused;
+				state.inputEnabled = !focused;
 			}, GameSave.gameControls.right);
 
-			instance.addItem("Lower volume", "The key that lowers the volume", addOptionsKeyInput, (key) => {
+			state.addItem("Lower volume", "The key that lowers the volume", addOptionsKeyInput, (key) => {
 				SoundTray.downKeys = [key];
 			}, (focused) => {
-				instance.inputEnabled = !focused;
+				state.inputEnabled = !focused;
 			}, GameSave.soundDownKey);
 
-			instance.addItem("Increase volume", "The key that increases the volume", addOptionsKeyInput, (key) => {
+			state.addItem("Increase volume", "The key that increases the volume", addOptionsKeyInput, (key) => {
 				SoundTray.upKeys = [key];
 			}, (focused) => {
-				instance.inputEnabled = !focused;
+				state.inputEnabled = !focused;
 			}, GameSave.soundUpKey);
 
-			instance.updateDescription();
-			instance.escapeAction = () => {
-				instance.switchPage(preferencesPage);
+			state.updateDescription();
+			state.escapeAction = () => {
+				state.switchPage(preferencesPage);
 			};
 		}
 
 		function preferencesPage() {
-			instance.addItem("Silly notes", "Wheter to make notes do the silly", addOptionsCheckbox, (checked: boolean) => {
+			state.addItem("Silly notes", "Wheter to make notes do the silly", addOptionsCheckbox, (checked: boolean) => {
 				GameSave.sillyNotes = checked;
 			}, GameSave.sillyNotes);
 
-			instance.addItem("Other checkbox", "Test checkbox", addOptionsCheckbox, (checked: boolean) => {
+			state.addItem("Other checkbox", "Test checkbox", addOptionsCheckbox, (checked: boolean) => {
 				GameSave.sillyNotes = checked;
 			}, GameSave.sillyNotes);
 
-			instance.addItem("Master volume", "Changes the master volume", addOptionsStepper, 10, 0, 100, (value) => {
+			state.addItem("Master volume", "Changes the master volume", addOptionsStepper, 10, 0, 100, (value) => {
 				GameSave.volume = value / 100;
 			}, Math.round(GameSave.volume * 100));
 
-			instance.addItem("Music volume", "Changes the music volume", addOptionsStepper, 10, 0, 100, (value) => {
+			state.addItem("Music volume", "Changes the music volume", addOptionsStepper, 10, 0, 100, (value) => {
 				GameSave.musicVolume = value / 100;
 			}, Math.round(GameSave.musicVolume * 100));
 
-			instance.addItem("SFX volume", "Changes the sfx volume", addOptionsStepper, 10, 0, 100, (value) => {
+			state.addItem("SFX volume", "Changes the sfx volume", addOptionsStepper, 10, 0, 100, (value) => {
 				GameSave.soundVolume = value / 100;
 			}, Math.round(GameSave.soundVolume * 100));
 
-			instance.addItem("Scroll speed", "Changes how fast notes will scroll", addOptionsStepper, 0.1, 1, 10, (value) => {
+			state.addItem("Scroll speed", "Changes how fast notes will scroll", addOptionsStepper, 0.1, 1, 10, (value) => {
 				GameSave.scrollSpeed = value;
 			}, GameSave.scrollSpeed);
 
-			instance.addItem("Noteskin", "Changes the noteskin", addOptionsNoteskinEnum, NoteskinContent.getByName(GameSave.noteskin), NoteskinContent.loaded, (name) => {
+			state.addItem("Noteskin", "Changes the noteskin", addOptionsNoteskinEnum, NoteskinContent.getByName(GameSave.noteskin), NoteskinContent.loaded, (name) => {
 				GameSave.noteskin = name;
 			});
 
-			instance.addItem(null, "Change the keys to the game", addOptionsButton, "Controls", () => {
-				instance.switchPage(controlsPage);
+			state.addItem(null, "Change the keys to the game", addOptionsButton, "Controls", () => {
+				state.switchPage(controlsPage);
 			});
 
-			instance.escapeAction = () => {
+			state.escapeAction = () => {
 				switchScene(MenuState, "options");
-				instance.updateDescription();
+				state.updateDescription();
 			};
 		}
 
-		instance.switchPage(preferencesPage);
+		state.switchPage(preferencesPage);
 
-		instance.updateDescription();
+		state.updateDescription();
 
 		onUpdate(() => {
-			let previousSelection = instance.focused;
-			if (isKeyPressed("down")) instance.index = utils.scrollIndex(instance.index, 1, instance.items.length);
-			else if (isKeyPressed("up")) instance.index = utils.scrollIndex(instance.index, -1, instance.items.length);
-			if (previousSelection != instance.focused) {
+			let previousSelection = state.focused;
+			if (isKeyPressed("down")) state.index = utils.scrollIndex(state.index, 1, state.items.length);
+			else if (isKeyPressed("up")) state.index = utils.scrollIndex(state.index, -1, state.items.length);
+			if (previousSelection != state.focused) {
 				// onChange
-				instance.updateDescription();
+				state.updateDescription();
 			}
 
-			if (!instance.focused) return;
-			if (instance.focused.handleInput) instance.focused.handleInput();
-			if (instance.focused != undefined) cam.pos.y = lerp(cam.pos.y, (instance.focused.pos.y + height() / 2) - instance.focused.height, 0.25);
+			if (!state.focused) return;
+			if (state.focused.handleInput) state.focused.handleInput();
+			if (state.focused != undefined) cam.pos.y = lerp(cam.pos.y, (state.focused.pos.y + height() / 2) - state.focused.height, 0.25);
 		});
 
 		onUpdate("optionsUI", (element: GameObj<any>) => {
-			const elIndex = instance.items.indexOf(element);
-			const isFocused = element == instance.focused;
+			const elIndex = state.items.indexOf(element);
+			const isFocused = element == state.focused;
 
 			element.pos.y = 50 + 80 * elIndex;
 
@@ -220,7 +220,7 @@ export class OptionsState implements IScene {
 
 		onKeyPress("escape", () => {
 			GameSave.save(); // just in case
-			instance.escapeAction();
+			state.escapeAction();
 		});
 	}
 }

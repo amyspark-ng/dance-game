@@ -304,6 +304,10 @@ export class SongContent {
 		);
 	}
 
+	static getByUUID(uuid: string) {
+		return SongContent.loaded.find((song) => song.manifest.uuid_DONT_CHANGE == uuid);
+	}
+
 	static getByName(name: string) {
 		return SongContent.loaded.find((song) => song.manifest.name == name);
 	}
@@ -449,12 +453,4 @@ export class SongContent {
 		this.chart = chart;
 		this.manifest = manifest;
 	}
-}
-
-export function getSongByName(name: string) {
-	return SongContent.loaded.find((song) => song.manifest.name == name);
-}
-
-export function getSongByUUID(uuid: string) {
-	return SongContent.loaded.find((song) => song.manifest.uuid_DONT_CHANGE == uuid);
 }
