@@ -61,6 +61,10 @@ export class _GameSave {
 
 	/** Array of uuids that are stored as keys on the localStorage and have to be loaded */
 	extraSongs: string[] = [];
+	/** Array of names that are stored as keys on the localStorage and have to be loaded */
+	extraNoteskins: string[] = [];
+	/** Array of names that are stored as keys on the localStorage and have to be loaded */
+	extraDancers: string[] = [];
 
 	// #region PREFERENCES
 

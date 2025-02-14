@@ -1,0 +1,3 @@
+name = "arrows"
+sprite_path = "arrows.png"
+data_path = "data.json"

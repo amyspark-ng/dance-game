@@ -182,10 +182,7 @@ export class SongContent {
 	 */
 	static async parseFromManifest(manifest: SongManifest, path: string): Promise<SongAssets> {
 		const assets = new SongAssets();
-
-		function getPath(otherPath: string) {
-			return path + "/" + otherPath;
-		}
+		const getPath = (otherPath: string) => `${path}/${otherPath}`;
 
 		const audio = await FileManager.getFileAtUrl(getPath(manifest.audio_file));
 		const cover = await FileManager.getFileAtUrl(getPath(manifest.cover_file));
