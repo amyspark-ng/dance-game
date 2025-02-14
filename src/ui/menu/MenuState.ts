@@ -6,7 +6,7 @@ import { EditorState } from "../../play/editor/EditorState";
 import { utils } from "../../utils";
 import { TitleState } from "../scenes/TitleState";
 import { CreditsState } from "./CreditsState";
-import { ModsState } from "./ModState";
+import { ModsState } from "./mods/ModState";
 import { OptionsState } from "./options/OptionsState";
 import { ScoresState } from "./ScoresState";
 import { SongSelectState } from "./songselect/SongSelectState";

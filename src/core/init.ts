@@ -5,7 +5,7 @@ import { SongContent } from "../data/song";
 import { EditorState } from "../play/editor/EditorState";
 import { GameState } from "../play/GameState";
 import { MenuState } from "../ui/menu/MenuState";
-import { ModsState } from "../ui/menu/ModState";
+import { ModsState } from "../ui/menu/mods/ModState";
 import { ScoresState } from "../ui/menu/ScoresState";
 import { FocusState } from "../ui/scenes/FocusState";
 import { utils } from "../utils";
