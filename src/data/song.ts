@@ -277,7 +277,7 @@ export class SongContent {
 
 		if (GameSave.extraSongs.length < 1) return;
 
-		const extraPromises = GameSave.extraSongs.map((uuid) =>
+		const extraPromises = GameSave.extraSongs.map((uuid, index) =>
 			new Promise(async (resolve, reject) => {
 				console.log(`${GAME.NAME}: Found extra song (${uuid}), will try to load`);
 
@@ -288,7 +288,8 @@ export class SongContent {
 					resolve("ok");
 				}
 				else {
-					console.log(`${GAME.NAME}: Didn't find the associated files with the UUID`);
+					console.log(`${GAME.NAME}: Didn't find the associated files with the UUID, removing UUID from list`);
+					GameSave.extraSongs.splice(index, 1);
 					reject("404");
 				}
 			})
@@ -331,11 +332,16 @@ export class SongContent {
 
 		SongContent.loaded.splice(indexInLoaded, 1);
 		GameSave.extraSongs.splice(indexInSave, 1);
+		GameSave.save();
+
+		console.log(`${GAME.NAME}: Removed song '${song.manifest.name}' from existance`);
 
 		// const file_path = `/home/songs/${song.manifest.uuid_DONT_CHANGE}`;
 		// if (fs.existsSync("/home/songs") && fs.existsSync("home/songs/")) {
 		// 	if (fs.existsSync(file_path)) fs.rmSync(file_path);
 		// }
+
+		return song;
 	}
 
 	static async hasAssetsLoaded(song: SongContent) {

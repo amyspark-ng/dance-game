@@ -1,15 +1,13 @@
 import { getCurrent } from "@tauri-apps/api/window";
 import { configure, InMemory } from "@zenfs/core";
-import { IndexedDB, WebStorage } from "@zenfs/dom";
+import { IndexedDB } from "@zenfs/dom";
 import { SongContent } from "../data/song";
 import { EditorState } from "../play/editor/EditorState";
 import { GameState } from "../play/GameState";
 import { MenuState } from "../ui/menu/MenuState";
-import { OptionsState } from "../ui/menu/options/OptionsState";
+import { ModsState } from "../ui/menu/ModState";
 import { ScoresState } from "../ui/menu/ScoresState";
-import { SongSelectState } from "../ui/menu/songselect/SongSelectState";
 import { FocusState } from "../ui/scenes/FocusState";
-import { TitleState } from "../ui/scenes/TitleState";
 import { utils } from "../utils";
 import { setupCamera } from "./camera";
 import { setupCursor } from "./cursor";
@@ -104,6 +102,7 @@ document.addEventListener("fullscreenchange", (event) => {
 
 export function INITIAL_SCENE() {
 	switchScene(MenuState, "songs");
+	switchScene(ModsState);
 	// switchScene(ScoresState);
 	// switchScene(EditorState, { song: SongContent.getByName("Bopeebo") });
 	// switchScene(GameState, { song: SongContent.getByName("Bopeebo") });

@@ -136,6 +136,7 @@ export class utils {
 	 * @param totalAmount The total amounts of elements
 	 */
 	static scrollIndex(index: number, change: number, totalAmount: number) {
+		if (totalAmount == 0) throw new Error("Something must be wrong with your code, scrollIndex amount is 0");
 		// why was this so hard to figure out??
 		if (change > 0) {
 			if (index + change > totalAmount - 1) index = 0;
