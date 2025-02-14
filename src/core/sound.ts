@@ -15,6 +15,7 @@ export interface CustomAudioPlay extends AudioPlay {
 	 * @param easing The easing
 	 */
 	fadeOut: (duration?: number, easing?: EaseFunc) => TweenController;
+	setVolume(newVolume: number): number;
 }
 
 /* Small class that handles some sound related stuff */
@@ -40,12 +41,16 @@ export class Sound {
 			Sound.sounds.delete(audioPlayer);
 		});
 
+		audioPlayer.setVolume = (newVolume: number) => {
+			return audioPlayer.volume = Sound.soundVolume * newVolume;
+		};
+
 		audioPlayer.fadeIn = (newVolume: number = audioPlayer.volume, duration: number = 0.15, easing: EaseFunc = easings.linear) => {
-			return tween(0, newVolume, duration, (p) => audioPlayer.volume = p, easing);
+			return tween(0, newVolume, duration, (p) => audioPlayer.setVolume(p), easing);
 		};
 
 		audioPlayer.fadeOut = (duration: number = 0.15, easing: EaseFunc = easings.linear) => {
-			return tween(audioPlayer.volume, 0, duration, (p) => audioPlayer.volume = p, easing);
+			return tween(audioPlayer.volume, 0, duration, (p) => audioPlayer.setVolume(p), easing);
 		};
 
 		return audioPlayer;
@@ -62,6 +67,10 @@ export class Sound {
 			this.musics.delete(audioPlayer);
 		});
 
+		audioPlayer.setVolume = (newVolume: number) => {
+			return audioPlayer.volume = Sound.musicVolume * newVolume;
+		};
+
 		return audioPlayer;
 	}
 
@@ -75,11 +84,11 @@ export class Sound {
 		Sound.musicVolume = GameSave.musicVolume * GameSave.volume;
 
 		Sound.sounds.forEach((handler) => {
-			handler.volume = Sound.soundVolume;
+			handler.setVolume(Sound.soundVolume);
 		});
 
 		Sound.musics.forEach((handler) => {
-			handler.volume = Sound.musicVolume;
+			handler.setVolume(Sound.musicVolume);
 		});
 	}
 }

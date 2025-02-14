@@ -1,4 +1,5 @@
 import { juice } from "../../core/juiceComp";
+import { GameSave } from "../../core/save";
 import { IScene, switchScene } from "../../core/scenes/KaplayState";
 import { SongContent } from "../../data/song";
 import { EditorState } from "../../play/editor/EditorState";
@@ -101,7 +102,9 @@ export class MenuState implements IScene {
 		const songsButton = state.addItem("songs", () => switchScene(SongSelectState, 0));
 		const optionsButton = state.addItem("options", () => switchScene(OptionsState));
 		const editorButton = state.addItem("editor", () => switchScene(EditorState, { song: new SongContent() }));
-		const scoresButton = state.addItem("scores", () => switchScene(ScoresState, 0));
+		const scoresButton = state.addItem("scores", () => {
+			if (GameSave.scores.length > 0) switchScene(ScoresState, 0);
+		});
 		const modsButton = state.addItem("mods", () => switchScene(ModsState));
 		const creditsButton = state.addItem("credits", () => switchScene(CreditsState));
 

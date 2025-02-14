@@ -9,7 +9,7 @@ import { SongSelectState } from "../ui/menu/songselect/SongSelectState";
 import { EditorState } from "./editor/EditorState";
 import { GameScene } from "./GameScene";
 import { DancerGameObj, makeDancer } from "./objects/dancer";
-import { addBouncyNote, ChartNote } from "./objects/note";
+import { ChartNote } from "./objects/note";
 import { Scoring, Tally } from "./objects/scoring";
 import { createStrumline, StrumlineGameObj } from "./objects/strumline";
 import { addUI } from "./objects/ui/gameUi";
@@ -142,6 +142,7 @@ export class GameState implements IScene {
 
 	/** Run this to finish the song */
 	finishSong() {
+		this.destroy();
 		const songSaveScore = new SongScore(this.song.manifest.uuid_DONT_CHANGE, this.tally);
 		GameSave.scores.push(songSaveScore);
 		GameSave.save();
@@ -177,12 +178,10 @@ export class GameState implements IScene {
 		}
 
 		ChartNote.getNotesOnScreen().forEach((noteObj) => {
-			noteObj.destroy();
-
-			const chartNote = noteObj.chartNote;
-			let rotationDirection = choose([-10, 10]);
-			const note = addBouncyNote(chartNote, noteObj.pos, vec2(0, rand(250, 500)), rotationDirection);
-			note.fadeOut(this.TIME_FOR_STRUM);
+			const rotationDirection = choose([-10, 10]);
+			noteObj.getX = () => noteObj.pos.x;
+			noteObj.bounce(noteObj.height * rand(3, 5), rotationDirection);
+			noteObj.fadeOut(this.TIME_FOR_STRUM);
 		});
 
 		get("trailObj").forEach((obj) => {
@@ -192,9 +191,7 @@ export class GameState implements IScene {
 		this.events.trigger("restart");
 	}
 
-	/** I don't remember what this was for?? */
-	private stop() {
-		this.conductor.paused = true;
+	destroy() {
 		this.conductor.audioPlay.stop();
 		this.menuInputEnabled = true;
 	}
@@ -206,8 +203,7 @@ export class GameState implements IScene {
 
 	/** Function to exit to the editor menu from the gamescene */
 	exitEditor() {
-		this.stop();
-		this.menuInputEnabled = false;
+		this.destroy();
 		switchScene(EditorState, { song: this.song });
 	}
 

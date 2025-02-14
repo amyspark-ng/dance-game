@@ -2,10 +2,16 @@
 - Sometimes the conductor keeps playing after exiting the scene
 - Make cursor animation system even BETTER
     ## Save
-    - unlocked dancers system
+    - available dancers system
 
-# GAMEPLAY
+# SCORES
+- Fix the changing of song when changing the filter
+
+# GAME
 - Playback speed doesn't work at all on gameplay
+- Fix note placing, notes squish and stretch
+- Fix conductor overlaying
+- Make game input enabled and menu input enabled
 
 # CHART EDITOR
 - Add dialog for "are you sutre you want to exit"

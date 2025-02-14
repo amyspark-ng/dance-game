@@ -1,9 +1,7 @@
 import { juice } from "../../core/juiceComp";
 import { GameSave } from "../../core/save";
-import { utils } from "../../utils";
 import { GameState } from "../GameState";
-import { addNote, ChartNote } from "./note";
-import { Scoring } from "./scoring";
+import { ChartNote, NOTE_WIDTH } from "./note";
 
 export function createStrumline() {
 	const STRUMLINE_COLOR = WHITE.darken(60);
@@ -13,6 +11,30 @@ export function createStrumline() {
 
 	/** A counter for when the strumline should be released */
 	let counterForReleasing = 0.5;
+
+	const state = GameState.instance;
+
+	const stepsUntilStrumline = Math.floor(state.conductor.timeToStep(state.TIME_FOR_STRUM));
+
+	add([
+		rect(NOTE_WIDTH * stepsUntilStrumline, NOTE_WIDTH - 10, { radius: 10 }),
+		color(BLACK),
+		opacity(0.5),
+		pos(STRUM_POS),
+		anchor("left"),
+		z(1),
+	]);
+
+	for (let i = 0; i < stepsUntilStrumline; i++) {
+		add([
+			opacity(1 - i / 10),
+			circle(10),
+			color(BLACK),
+			pos(STRUM_POS.x + NOTE_WIDTH * i, STRUM_POS.y),
+			z(1),
+			anchor("center"),
+		]);
+	}
 
 	const strumlineObj = add([
 		rect(80, 80, { radius: 5 }),

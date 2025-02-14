@@ -32,7 +32,7 @@ export function GameScene(GameState: GameState) {
 	});
 
 	let hasPlayedGo = false;
-	let timeToFinishSong = false;
+	let timeLeftToFinish = 5;
 
 	if (!isFocused()) GameState.paused = true;
 
@@ -45,14 +45,16 @@ export function GameScene(GameState: GameState) {
 		}
 
 		if (GameState.song.chart.notes.length > 2) {
-			if (
-				GameState.conductor.time >= GameState.song.chart.notes[GameState.song.chart.notes.length - 1].time
-				&& GameState.conductor.time + 5 < GameState.conductor.audioPlay.duration() && !timeToFinishSong
-			) {
-				timeToFinishSong = true;
-				tween(GameState.conductor.audioPlay.volume, 0, 5, (p) => GameState.conductor.audioPlay.volume = p).onEnd(() => {
-					GameState.finishSong();
-				});
+			// counts stuff to finish song early if there's no notes left to play
+			const timeIsAfterLastNote = GameState.conductor.time >= GameState.song.chart.notes[GameState.song.chart.notes.length - 1].time;
+			const songHasEnoughTimeLeft = GameState.conductor.time + 5 < GameState.conductor.audioPlay.duration();
+			if (timeIsAfterLastNote && songHasEnoughTimeLeft && !GameState.paused) timeLeftToFinish -= dt();
+			else timeLeftToFinish = 5;
+
+			if (timeLeftToFinish < 5) {
+				if (timeLeftToFinish <= 0) GameState.finishSong();
+				const mapVolume = mapc(timeLeftToFinish, 0, 3, 0, 1);
+				GameState.conductor.audioPlay.setVolume(mapVolume);
 			}
 		}
 
