@@ -1,9 +1,5 @@
 import { Zip } from "@zenfs/archives";
 import fs, { resolveMountConfig } from "@zenfs/core";
-import audioBufferToBlob from "audiobuffer-to-blob";
-import isUrl from "is-url";
-import JSZip from "jszip";
-import { resolve } from "path";
 import TOML, { TomlPrimitive } from "smol-toml";
 import { GAME } from "../core/game";
 import { GameSave } from "../core/save";
@@ -141,7 +137,7 @@ export class Song implements IContent {
 		await load(
 			new Promise((resolve, reject) => {
 				Promise.all(defaultPromises).then(() => {
-					console.log(`${GAME.NAME}: Finished loading default songs SUCCESSFULLY (loaded ${Song.loadedDefault})`);
+					console.log(`${GAME.NAME}: Finished loading default songs SUCCESSFULLY (loaded ${Song.loadedDefault.length})`);
 					resolve("ok");
 				});
 			}),
@@ -209,14 +205,9 @@ export class Song implements IContent {
 		const manifest = new SongManifest();
 		manifest.assignFromOBJ(TOML.parse(stringManifest));
 
-		const coverPath = manifest.cover_file;
-		const coverBase64 = fs.readFileSync("/mnt/zip/" + coverPath, "base64");
-
-		const audioPath = manifest.audio_file;
-		const audioBase64 = fs.readFileSync("/mnt/zip/" + audioPath, "base64");
-
-		const chartPath = manifest.chart_file;
-		const stringChart = fs.readFileSync("/mnt/zip/" + chartPath, "utf-8");
+		const coverBase64 = fs.readFileSync(`/mnt/zip/${manifest.cover_file}`, "base64");
+		const audioBase64 = fs.readFileSync(`/mnt/zip/${manifest.audio_file}`, "base64");
+		const stringChart = fs.readFileSync(`/mnt/zip/${manifest.chart_file}`, "utf-8");
 		const chartObject = JSON.parse(stringChart);
 
 		const assets = new SongAssets();
@@ -269,7 +260,8 @@ export class Song implements IContent {
 		console.log(`${GAME.NAME}: Loading ${this.isDefault ? "default" : "extra"} song: '${this.manifest.name}' with the UUID '${this.manifest.uuid_DONT_CHANGE}'`);
 		await loadSprite(this.coverName, assets.cover);
 		await loadSound(this.audioName, assets.audio);
-		this.writeToSave(!this.isDefault, !this.isDefault);
+		await this.writeToSave(!this.isDefault, !this.isDefault);
+		this.pushToLoaded();
 		console.log(`${GAME.NAME}: Loaded ${this.isDefault ? "default" : "extra"} song: '${this.manifest.name}' successfully`);
 	}
 
@@ -310,19 +302,16 @@ export class Song implements IContent {
 				GameSave.extraSongs.push(this.manifest.uuid_DONT_CHANGE);
 			}
 
-			console.log("saving song");
-
 			if (GameSave.save && !this.isDefault) GameSave.save();
 		}
 
-		// console.log(this.indexedDB_path);
 		if (toIndexedDB) {
 			if (!fs.existsSync("/home/songs")) fs.mkdirSync("/home/songs");
 			fs.writeFileSync(this.indexedDB_path, JSON.stringify(await this.toAssets()));
 		}
 	}
 
-	async removeFromExistence(): Promise<Song> {
+	removeFromExistence(): Song {
 		if (!Song.loaded.includes(this)) return;
 		const indexInLoaded = Song.loaded.indexOf(this);
 		const indexInSave = GameSave.extraSongs.indexOf(this.manifest.uuid_DONT_CHANGE);
@@ -331,12 +320,11 @@ export class Song implements IContent {
 		GameSave.extraSongs.splice(indexInSave, 1);
 		GameSave.save();
 
-		console.log(`${GAME.NAME}: Removed '${this.manifest.name}' (${this.manifest.uuid_DONT_CHANGE}) from existance`);
+		console.log(`${GAME.NAME}: Removed song '${this.manifest.name}' (${this.manifest.uuid_DONT_CHANGE}) from existance`);
 
-		// const file_path = `/home/songs/${this.manifest.uuid_DONT_CHANGE}`;
-		// if (fs.existsSync("/home/thiss") && fs.existsSync("home/thiss/")) {
-		// 	if (fs.existsSync(file_path)) fs.rmSync(file_path);
-		// }
+		if (fs.existsSync("/home/songs")) {
+			if (fs.existsSync(this.indexedDB_path)) fs.rmSync(this.indexedDB_path);
+		}
 
 		return this;
 	}

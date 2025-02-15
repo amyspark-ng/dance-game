@@ -11,7 +11,7 @@ export interface IContent {
 	/** Given the assets, load its sprites, writeToSave, and pushToLoaded */
 	load(assets: any): Promise<void>;
 	writeToSave(): Promise<void>;
-	removeFromExistence(): Promise<any>;
+	removeFromExistence(): any;
 	hasAssetsLoaded(): Promise<boolean>;
 	toAssets(): Promise<any>;
 	isDefault: boolean;

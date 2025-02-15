@@ -1,6 +1,6 @@
 import { KEventController, TweenController, Vec2 } from "kaplay";
 import { GameSave } from "../../core/save";
-import { getDancer, getDancerByName } from "../../data/dancer";
+import { Dancer } from "../../data/dancer";
 
 export const moveAnimsArr = ["left", "down", "up", "right"] as const;
 /** The moves in the gameplay, also handles the note type */
@@ -15,13 +15,15 @@ const TIME_FOR_IDLE = 1;
 export const DANCER_POS = vec2(518, 377);
 
 /** Make a base dancer object
- * @param dancerName the name of the dancer
+ * @param dancerID the ID of the dancer
  */
-export function makeDancer(dancerName: string = getDancer().manifest.name, intendedScale: Vec2 = vec2(1)) {
+export function makeDancer(dancerID: string = Dancer.get().manifest.id, intendedScale: Vec2 = vec2(1)) {
 	let onAnimEndEvent: KEventController = null;
 
+	const dancerData = Dancer.getByID(dancerID);
+
 	const dancerObj = make([
-		sprite(getDancerByName(dancerName).spriteName),
+		sprite(dancerData.spriteName),
 		pos(center().x, height()),
 		anchor("bot"),
 		scale(intendedScale),
@@ -30,7 +32,7 @@ export function makeDancer(dancerName: string = getDancer().manifest.name, inten
 		"dancer",
 		{
 			/** The data of the dancer */
-			data: getDancerByName(dancerName),
+			data: dancerData,
 			/** The timer controller for the wait for the idle */
 			waitForIdle: null as KEventController,
 			forcedAnim: false,
