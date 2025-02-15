@@ -130,8 +130,8 @@ export class _GameSave {
 	}
 
 	/** Assigns itself to {@link getLatestSave `getLatestSave()`}  */
-	load() {
-		const data = this.getLatestSave();
+	load(data: _GameSave = this.getLatestSave()) {
+		if (globalThis.GameSave != this) globalThis.GameSave = this;
 		this.set(data as _GameSave);
 	}
 

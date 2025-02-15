@@ -4,7 +4,7 @@ import { GameSave } from "../core/save";
 import { IScene, switchScene } from "../core/scenes/KaplayState";
 import { Sound } from "../core/sound";
 import { getDancer } from "../data/dancer";
-import { SongContent } from "../data/song";
+import { Song } from "../data/song";
 import { SongSelectState } from "../ui/menu/songselect/SongSelectState";
 import { EditorState } from "./editor/EditorState";
 import { GameScene } from "./GameScene";
@@ -20,7 +20,7 @@ import { ResultsState } from "./scenes/ResultsState";
 /** Type to store the parameters for the game scene */
 export type paramsGame = {
 	/** The song passed for gameplay */
-	song: SongContent;
+	song: Song;
 
 	/** The name of the dancer */
 	dancerName?: string;
@@ -63,7 +63,7 @@ export class GameState implements IScene {
 	conductor: Conductor = null;
 
 	/** Holds the current song chart */
-	song: SongContent = null;
+	song: Song = null;
 
 	/** Holds the current tallies for the song */
 	tally: Tally = new Tally();

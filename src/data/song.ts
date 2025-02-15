@@ -8,6 +8,7 @@ import TOML, { TomlPrimitive } from "smol-toml";
 import { GAME } from "../core/game";
 import { GameSave } from "../core/save";
 import { AUDIO_HELPER, FileManager, IMAGE_HELPER } from "../FileManager";
+import { IContent } from "../modding";
 import { ChartNote } from "../play/objects/note";
 import { utils } from "../utils";
 import { ChartEvent } from "./event/event";
@@ -105,103 +106,102 @@ export class SongAssets {
 	manifest: string = "";
 }
 
-export class SongContent {
-	static async getDefaultAssets() {
-		const assets = new SongAssets();
-		const manifest = new SongManifest();
-		assets.cover = await FileManager.spriteToDataURL(SongManifest.default_cover);
-		assets.audio = await FileManager.soundToDataURL(SongManifest.default_audio);
-		assets.chart = JSON.stringify(new SongChart());
-		assets.manifest = JSON.stringify(manifest);
-		return assets;
+export class Song implements IContent {
+	static defaultUUIDS: string[] = [
+		"1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed", // bopeebo
+		"be4c3897-5e37-4f93-81ab-e5262dbe11a5", // secret
+		// "14e1c3e9-b24f-4aaa-8401-d772d8725f51",
+	];
+
+	static defaultPaths: string[] = [
+		"content/songs/bopeebo",
+		"content/songs/secret",
+		// "content/songs/unholy-blight",
+	];
+	static loaded: Song[] = [];
+	static get loadedExtra() {
+		return Song.loaded.filter((song) => !song.isDefault);
+	}
+	static get loadedDefault() {
+		return Song.loaded.filter((song) => song.isDefault);
 	}
 
-	static async extractFromUnloaded(song: SongContent) {
-		const defaultAssets = await SongContent.getDefaultAssets();
-		const endAssets = new SongAssets();
+	static async loadAll() {
+		await loadSprite(SongManifest.default_cover, SongManifest.default_cover_file);
+		await loadSound(SongManifest.default_audio, SongManifest.default_audio_file);
 
-		// cover
-		if (utils.isURL(song.manifest.cover_file)) {
-			const response = await FileManager.getFileAtUrl(song.manifest.cover_file);
-			const dataurl = await FileManager.blobToDataURL(await response.blob());
-			endAssets.cover = dataurl;
-		}
-		else {
-			if (fs.existsSync(`/home/songs/${song.manifest.uuid_DONT_CHANGE}`)) {
-				const stringAssets = fs.readFileSync(`/home/songs/${song.manifest.uuid_DONT_CHANGE}`, "utf-8");
-				const assets = JSON.parse(stringAssets) as SongAssets;
-				endAssets.cover = assets.cover;
-			}
-			else {
-				endAssets.cover = defaultAssets.cover;
-			}
-		}
+		const defaultPromises = Song.defaultPaths.map((path) =>
+			new Promise(async (resolve, reject) => {
+				const song = new Song();
+				await song.load(await song.pathToAssets(path));
+				resolve("ok");
+			})
+		);
 
-		// audio
-		if (utils.isURL(song.manifest.cover_file)) {
-			const response = await FileManager.getFileAtUrl(song.manifest.audio_file);
-			const dataurl = await FileManager.blobToDataURL(await response.blob());
-			endAssets.audio = dataurl;
-		}
-		else {
-			if (fs.existsSync(`/home/songs/${song.manifest.uuid_DONT_CHANGE}`)) {
-				const stringAssets = fs.readFileSync(`/home/songs/${song.manifest.uuid_DONT_CHANGE}`, "utf-8");
-				const assets = JSON.parse(stringAssets) as SongAssets;
-				endAssets.audio = assets.audio;
-			}
-			else {
-				endAssets.audio = defaultAssets.audio;
-			}
-		}
+		await load(
+			new Promise((resolve, reject) => {
+				Promise.all(defaultPromises).then(() => {
+					console.log(`${GAME.NAME}: Finished loading default songs SUCCESSFULLY (loaded ${Song.loadedDefault})`);
+					resolve("ok");
+				});
+			}),
+		);
 
-		endAssets.chart = JSON.stringify(song.chart);
-		endAssets.manifest = JSON.stringify(song.manifest);
-		return endAssets;
+		if (GameSave.extraSongs.length == 0) return;
+
+		const extraPromises = GameSave.extraSongs.map((uuid, index) =>
+			new Promise(async (resolve, reject) => {
+				console.log(`${GAME.NAME}: Found extra song (${uuid}), will try to load`);
+
+				if (fs.existsSync(`/home/songs/${uuid}`)) {
+					const stringAssets = fs.readFileSync(`/home/songs/${uuid}`, "utf-8");
+					new Song().load(JSON.parse(stringAssets));
+					resolve("ok");
+				}
+				else {
+					console.log(`${GAME.NAME}: Didn't find the associated files with the UUID, removing UUID from list`);
+					GameSave.extraSongs.splice(index, 1);
+					reject("not ok");
+				}
+			})
+		);
+
+		load(
+			new Promise((resolve, reject) => {
+				Promise.allSettled(extraPromises).then(() => {
+					console.log(`${GAME.NAME}: Finished loading extra songs SUCCESSFULLY (loaded ${Song.loadedExtra.length})`);
+					resolve("ok");
+				});
+			}),
+		);
 	}
 
-	/**
-	 * Fetch a manifest from a path
-	 * @param path (eg: "content/songs/bopeebo" would do "content/songs/bopeebo/manifest.toml")
-	 * @returns A song manifest
-	 *
-	 * The next step is pass it through {@link parseFromManifest()}
-	 */
-	static async fetchManifestFromPath(path: string): Promise<SongManifest> {
-		const stringedTOML = await (await fetch(path + "/manifest.toml")).text();
-		const manifestContent = TOML.parse(stringedTOML);
+	manifest: SongManifest;
+	chart: SongChart;
 
-		const manifest = new SongManifest();
-		manifest.assignFromOBJ(manifestContent);
-
-		return new Promise((resolve) => resolve(manifest));
+	get indexedDB_path() {
+		return `/home/songs/${this.manifest.uuid_DONT_CHANGE}`;
 	}
 
-	/** Parses manifest data to Assets
-	 *
-	 * The next step is pass it through {@link load()}
-	 */
-	static async parseFromManifest(manifest: SongManifest, path: string): Promise<SongAssets> {
-		const assets = new SongAssets();
-		const getPath = (otherPath: string) => `${path}/${otherPath}`;
-
-		const audio = await FileManager.getFileAtUrl(getPath(manifest.audio_file));
-		const cover = await FileManager.getFileAtUrl(getPath(manifest.cover_file));
-		const chart = await FileManager.getFileAtUrl(getPath(manifest.chart_file));
-
-		// no need for audio/image helper with this method apparently
-		if (audio) assets.audio = await FileManager.blobToDataURL(await audio.blob());
-		if (cover) assets.cover = await FileManager.blobToDataURL(await cover.blob());
-		if (chart) assets.chart = await chart.blob().then((thing) => thing.text());
-		assets.manifest = JSON.stringify(manifest);
-
-		return new Promise((resolve) => resolve(assets));
+	get isDefault() {
+		return Song.defaultUUIDS.includes(this.manifest.uuid_DONT_CHANGE);
 	}
 
-	/** Parses file data to Assets
-	 *
-	 * The next step is pass it through {@link load()}
-	 */
-	static async parseFromFile(file: File): Promise<SongAssets> {
+	get coverName() {
+		return this.manifest.uuid_DONT_CHANGE + "-cover";
+	}
+
+	get audioName() {
+		return this.manifest.uuid_DONT_CHANGE + "-audio";
+	}
+
+	assignFromAssets(assets: SongAssets): Song {
+		this.manifest = JSON.parse(assets.manifest);
+		this.chart = JSON.parse(assets.chart);
+		return this;
+	}
+
+	async fileToAssets(file: File): Promise<SongAssets> {
 		const zipFs = await resolveMountConfig({ backend: Zip, data: await file.arrayBuffer() });
 		fs.mount("/mnt/zip", zipFs);
 
@@ -227,233 +227,121 @@ export class SongContent {
 
 		fs.umount("/mnt/zip");
 
-		return new Promise((resolve) => resolve(assets));
+		return new Promise((resolve, reject) => resolve(assets));
 	}
 
-	/** Loads a song to the game
-	 * @param assets The SongAssets to load
-	 * @param pushToIndexedDB Wheter to push the song to indexedDB (defaults to false)
-	 * @param pushToLoaded Wheter to push the song to the loaded array (available songs) (defalts to true)
-	 */
-	static async load(assets: SongAssets, pushToIndexedDB = false, pushToLoaded = true): Promise<SongContent> {
-		const manifest = new SongManifest().assignFromOBJ(JSON.parse(assets.manifest));
-		const content = new SongContent(JSON.parse(assets.chart), manifest);
-		console.log(`${GAME.NAME}: Loading song '${content.manifest.name}', ${content.isDefault ? "default" : "extra"} with the UUID ${content.manifest.uuid_DONT_CHANGE}`);
+	async pathToAssets(path: string): Promise<SongAssets> {
+		const stringedTOML = await (await fetch(path + "/manifest.toml")).text();
+		const manifestContent = TOML.parse(stringedTOML);
 
-		await loadSprite(content.getCoverName(), assets.cover);
-		await loadSound(content.getAudioName(), assets.audio);
+		const manifest = new SongManifest();
+		manifest.assignFromOBJ(manifestContent);
 
-		if (pushToIndexedDB) SongContent.writeToSave(pushToIndexedDB, pushToLoaded, content, assets);
-		if (pushToLoaded) SongContent.addToLoaded(content);
-
-		console.log(`${GAME.NAME}: Loaded song '${content.manifest.name}' successfully`);
-		return new Promise((resolve) => resolve(content));
-	}
-
-	static async loadAll() {
-		await loadSprite(SongManifest.default_cover, SongManifest.default_cover_file);
-		await loadSound(SongManifest.default_audio, SongManifest.default_audio_file);
-
-		const defaultPromises = SongContent.defaultPaths.map((path) =>
-			new Promise(async (resolve, reject) => {
-				const manifest = await SongContent.fetchManifestFromPath(path);
-				const assets = await SongContent.parseFromManifest(manifest, path);
-				await SongContent.load(assets, false, true);
-				resolve("ok");
-			})
-		);
-
-		await load(
-			new Promise((resolve, reject) => {
-				Promise.all(defaultPromises).then(() => {
-					console.log(`${GAME.NAME}: Finished loading default songs SUCCESSFULLY (loaded ${SongContent.loaded.filter((song) => song.isDefault).length})`);
-					resolve("ok");
-				});
-			}),
-		);
-
-		if (GameSave.extraSongs.length < 1) return;
-
-		const extraPromises = GameSave.extraSongs.map((uuid, index) =>
-			new Promise(async (resolve, reject) => {
-				console.log(`${GAME.NAME}: Found extra song (${uuid}), will try to load`);
-
-				if (fs.existsSync(`/home/songs/${uuid}`)) {
-					const stringAssets = fs.readFileSync(`/home/songs/${uuid}`, "utf-8");
-					const assets = JSON.parse(stringAssets) as SongAssets;
-					await SongContent.load(assets, false, true);
-					resolve("ok");
-				}
-				else {
-					console.log(`${GAME.NAME}: Didn't find the associated files with the UUID, removing UUID from list`);
-					GameSave.extraSongs.splice(index, 1);
-					reject("404");
-				}
-			})
-		);
-
-		load(
-			new Promise((resolve, reject) => {
-				Promise.allSettled(extraPromises).then(() => {
-					console.log(`${GAME.NAME}: Finished loading extra songs SUCCESSFULLY (loaded ${SongContent.loaded.filter((song) => !song.isDefault).length})`);
-					resolve("ok");
-				});
-			}),
-		);
-	}
-
-	static getByUUID(uuid: string) {
-		return SongContent.loaded.find((song) => song.manifest.uuid_DONT_CHANGE == uuid);
-	}
-
-	static getByName(name: string) {
-		return SongContent.loaded.find((song) => song.manifest.name == name);
-	}
-
-	static defaultUUIDS: string[] = [
-		"1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed", // bopeebo
-		"be4c3897-5e37-4f93-81ab-e5262dbe11a5", // secret
-		// "14e1c3e9-b24f-4aaa-8401-d772d8725f51",
-	];
-
-	static defaultPaths: string[] = [
-		"content/songs/bopeebo",
-		"content/songs/secret",
-		// "content/songs/unholy-blight",
-	];
-
-	static removeFromExistence(song: SongContent) {
-		if (!SongContent.loaded.includes(song)) return;
-		const indexInLoaded = SongContent.loaded.indexOf(song);
-		const indexInSave = GameSave.extraSongs.indexOf(song.manifest.uuid_DONT_CHANGE);
-
-		SongContent.loaded.splice(indexInLoaded, 1);
-		GameSave.extraSongs.splice(indexInSave, 1);
-		GameSave.save();
-
-		console.log(`${GAME.NAME}: Removed song '${song.manifest.name}' from existance`);
-
-		// const file_path = `/home/songs/${song.manifest.uuid_DONT_CHANGE}`;
-		// if (fs.existsSync("/home/songs") && fs.existsSync("home/songs/")) {
-		// 	if (fs.existsSync(file_path)) fs.rmSync(file_path);
-		// }
-
-		return song;
-	}
-
-	static async hasAssetsLoaded(song: SongContent) {
-		const cover = await getSprite(song.getCoverName());
-		const sound = await getSound(song.getAudioName());
-		const loaded = cover != null && sound != null;
-		return loaded;
-	}
-
-	static async extractFromLoaded(song: SongContent) {
 		const assets = new SongAssets();
-		assets.manifest = JSON.stringify(song.manifest);
-		assets.chart = JSON.stringify(song.chart);
+		const getPath = (otherPath: string) => `${path}/${otherPath}`;
 
-		const coverURL = await FileManager.spriteToDataURL(song.getCoverName());
+		const audio = await FileManager.getFileAtUrl(getPath(manifest.audio_file));
+		const cover = await FileManager.getFileAtUrl(getPath(manifest.cover_file));
+		const chart = await FileManager.getFileAtUrl(getPath(manifest.chart_file));
+
+		// no need for audio/image helper with this method apparently
+		if (audio) assets.audio = await FileManager.blobToDataURL(await audio.blob());
+		if (cover) assets.cover = await FileManager.blobToDataURL(await cover.blob());
+		if (chart) assets.chart = await chart.blob().then((thing) => thing.text());
+		assets.manifest = JSON.stringify(manifest);
+
+		return new Promise((resolve, reject) => resolve(assets));
+	}
+
+	async pushToLoaded() {
+		const uuids = Song.loaded.map((song) => song.manifest.uuid_DONT_CHANGE);
+		if (uuids.includes(this.manifest.uuid_DONT_CHANGE)) {
+			const index = uuids.indexOf(this.manifest.uuid_DONT_CHANGE);
+			if (index != -1) Song.loaded[index] = this;
+		}
+		else {
+			if (!Song.loaded.includes(this)) Song.loaded.push(this);
+		}
+	}
+
+	async load(assets: SongAssets): Promise<void> {
+		this.assignFromAssets(assets);
+		console.log(`${GAME.NAME}: Loading ${this.isDefault ? "default" : "extra"} song: '${this.manifest.name}' with the UUID '${this.manifest.uuid_DONT_CHANGE}'`);
+		await loadSprite(this.coverName, assets.cover);
+		await loadSound(this.audioName, assets.audio);
+		this.writeToSave(!this.isDefault, !this.isDefault);
+		console.log(`${GAME.NAME}: Loaded ${this.isDefault ? "default" : "extra"} song: '${this.manifest.name}' successfully`);
+	}
+
+	/**
+	 * Convert the current song to assets
+	 *
+	 * WILL ONLY WORK IF THE SONG IS LOADED
+	 * @returns
+	 */
+	async toAssets(): Promise<SongAssets> {
+		const assets = new SongAssets();
+		assets.manifest = JSON.stringify(this.manifest);
+		assets.chart = JSON.stringify(this.chart);
+
+		const coverURL = await FileManager.spriteToDataURL(this.coverName);
 		assets.cover = coverURL;
 
-		const audioURL = await FileManager.soundToDataURL(song.getAudioName());
+		const audioURL = await FileManager.soundToDataURL(this.audioName);
 		assets.audio = audioURL;
 		return assets;
 	}
 
-	static async writeToSave(toIndexedDB: boolean, extraSongs: boolean, song: SongContent, assets?: SongAssets) {
-		const file_path = `/home/songs/${song.manifest.uuid_DONT_CHANGE}`;
-		assets = assets ?? await SongContent.extractFromLoaded(song);
+	async hasAssetsLoaded(): Promise<boolean> {
+		const cover = await getSprite(this.coverName);
+		const sound = await getSound(this.audioName);
+		const loaded = cover != null && sound != null;
+		return loaded;
+	}
 
-		const data = JSON.stringify(assets);
-
-		if (extraSongs) {
-			if (GameSave.extraSongs.includes(song.manifest.uuid_DONT_CHANGE)) {
-				const uuids = SongContent.loaded.map((song) => song.manifest.uuid_DONT_CHANGE);
-				const index = uuids.indexOf(song.manifest.uuid_DONT_CHANGE);
-				if (index != -1) GameSave.extraSongs[index] = song.manifest.uuid_DONT_CHANGE;
+	async writeToSave(toSave: boolean = true, toIndexedDB: boolean = false) {
+		if (toSave) {
+			if (GameSave.extraSongs.includes(this.manifest.uuid_DONT_CHANGE)) {
+				const uuids = Song.loaded.map((song) => song.manifest.uuid_DONT_CHANGE);
+				const index = uuids.indexOf(this.manifest.uuid_DONT_CHANGE);
+				if (index != -1) GameSave.extraSongs[index] = this.manifest.uuid_DONT_CHANGE;
 			}
 			else {
-				GameSave.extraSongs.push(song.manifest.uuid_DONT_CHANGE);
+				GameSave.extraSongs.push(this.manifest.uuid_DONT_CHANGE);
 			}
+
+			console.log("saving song");
+
+			if (GameSave.save && !this.isDefault) GameSave.save();
 		}
 
+		// console.log(this.indexedDB_path);
 		if (toIndexedDB) {
 			if (!fs.existsSync("/home/songs")) fs.mkdirSync("/home/songs");
-			fs.writeFileSync(file_path, data);
-		}
-
-		if (GameSave.save) GameSave.save();
-	}
-
-	static addToLoaded(song: SongContent) {
-		const uuids = SongContent.loaded.map((song) => song.manifest.uuid_DONT_CHANGE);
-		if (uuids.includes(song.manifest.uuid_DONT_CHANGE)) {
-			const index = uuids.indexOf(song.manifest.uuid_DONT_CHANGE);
-			if (index != -1) SongContent.loaded[index] = song;
-		}
-		else {
-			if (!SongContent.loaded.includes(song)) SongContent.loaded.push(song);
+			fs.writeFileSync(this.indexedDB_path, JSON.stringify(await this.toAssets()));
 		}
 	}
 
-	static loaded: SongContent[] = [];
+	async removeFromExistence(): Promise<Song> {
+		if (!Song.loaded.includes(this)) return;
+		const indexInLoaded = Song.loaded.indexOf(this);
+		const indexInSave = GameSave.extraSongs.indexOf(this.manifest.uuid_DONT_CHANGE);
 
-	/** The content of the manifest.toml in the zip */
-	manifest: SongManifest = new SongManifest();
-	/** The content of the chart.json in the zip */
-	chart: SongChart = new SongChart();
+		Song.loaded.splice(indexInLoaded, 1);
+		GameSave.extraSongs.splice(indexInSave, 1);
+		GameSave.save();
 
-	get isDefault() {
-		return SongContent.defaultUUIDS.includes(this.manifest.uuid_DONT_CHANGE);
+		console.log(`${GAME.NAME}: Removed '${this.manifest.name}' (${this.manifest.uuid_DONT_CHANGE}) from existance`);
+
+		// const file_path = `/home/songs/${this.manifest.uuid_DONT_CHANGE}`;
+		// if (fs.existsSync("/home/thiss") && fs.existsSync("home/thiss/")) {
+		// 	if (fs.existsSync(file_path)) fs.rmSync(file_path);
+		// }
+
+		return this;
 	}
 
-	/** Will return a blob to download a zip with the song */
-	async writeToBlob(): Promise<Blob> {
-		/** This is the folder where everything will be stored */
-		const zipFolder = new JSZip();
-
-		// chart
-		zipFolder.file(this.manifest.chart_file, JSON.stringify(this.chart));
-
-		// manifest
-		zipFolder.file("manifest.toml", TOML.stringify(this.manifest));
-
-		// cover
-		let pathToCover: string = undefined;
-		const cover = await getSprite(this.getCoverName());
-		if (!cover) {
-			pathToCover = SongManifest.default_cover_file;
-		}
-		else pathToCover = await FileManager.spriteToDataURL(this.getCoverName());
-		const imageBlob = await fetch(pathToCover).then((r) => r.blob());
-		zipFolder.file(this.manifest.cover_file, imageBlob);
-
-		// audio
-		const audio = await getSound(this.getAudioName());
-		let audioBlob = await fetch(SongManifest.default_audio_file).then((r) => r.blob());
-		if (!audio) audioBlob = await fetch(SongManifest.default_audio_file).then((r) => r.blob());
-		else {
-			const blob = audioBufferToBlob(audio.buf);
-			audioBlob = blob;
-		}
-		zipFolder.file(this.manifest.audio_file, audioBlob);
-
-		return zipFolder.generateAsync({ type: "blob" });
-	}
-
-	getAudioName() {
-		if (!this.manifest.uuid_DONT_CHANGE) return this.manifest.audio_file;
-		else return this.manifest.uuid_DONT_CHANGE + "-audio";
-	}
-
-	getCoverName() {
-		if (!this.manifest.uuid_DONT_CHANGE) return this.manifest.cover_file;
-		else return this.manifest.uuid_DONT_CHANGE + "-cover";
-	}
-
-	constructor(chart: SongChart = new SongChart(), manifest: SongManifest = new SongManifest()) {
-		this.chart = chart;
-		this.manifest = manifest;
+	constructor(assets?: SongAssets) {
+		if (assets) this.assignFromAssets(assets);
 	}
 }

@@ -3,7 +3,7 @@ import { _GameSave } from "../../core/save";
 import { IScene, switchScene } from "../../core/scenes/KaplayState";
 import { Sound } from "../../core/sound";
 import { getDancer } from "../../data/dancer";
-import { SongContent } from "../../data/song";
+import { Song } from "../../data/song";
 import { ScoresState } from "../../ui/menu/ScoresState";
 import { SongSelectState } from "../../ui/menu/songselect/SongSelectState";
 import { utils } from "../../utils";
@@ -25,7 +25,7 @@ export class ResultsState implements IScene {
 	scene(state: ResultsState): void {
 		setBackground(RED.lighten(60));
 
-		const song = SongContent.getByUUID(state.songScore.uuid);
+		const song = Song.getByUUID(state.songScore.uuid);
 		if (!song) throw new Error("Entered results state with a score that has no song attached");
 
 		/** Class that contains a dumb thing for each line in the tally countering */

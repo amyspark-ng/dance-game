@@ -1,7 +1,7 @@
 import { getCurrent } from "@tauri-apps/api/window";
 import { configure, InMemory } from "@zenfs/core";
 import { IndexedDB } from "@zenfs/dom";
-import { SongContent } from "../data/song";
+import { Song } from "../data/song";
 import { EditorState } from "../play/editor/EditorState";
 import { GameState } from "../play/GameState";
 import { MenuState } from "../ui/menu/MenuState";
@@ -43,7 +43,6 @@ layers([
 setGravity(1000);
 
 GameSave.load();
-globalThis.GameSave = GameSave;
 onLoading((progress: number) => loadingScreen(progress));
 loadAssets();
 
@@ -101,8 +100,8 @@ document.addEventListener("fullscreenchange", (event) => {
 });
 
 export function INITIAL_SCENE() {
-	switchScene(MenuState, "songs");
-	switchScene(ModsState);
+	// switchScene(MenuState, "songs");
+	// switchScene(ModsState);
 	// switchScene(ScoresState);
 	// switchScene(EditorState, { song: SongContent.getByName("Bopeebo") });
 	// switchScene(GameState, { song: SongContent.getByName("Bopeebo") });

@@ -1,4 +1,4 @@
-import { SongContent, SongManifest } from "../../../data/song";
+import { Song, SongManifest } from "../../../data/song";
 import { FileManager } from "../../../FileManager";
 import { ModsState } from "./ModState";
 
@@ -47,7 +47,7 @@ export function songsPage(state: ModsState) {
 
 		if (isKeyPressed("backspace")) {
 			if (isAdd) return;
-			const removedSong = SongContent.removeFromExistence(state.songs[songTitle.index]);
+			const removedSong = Song.removeFromExistence(state.songs[songTitle.index]);
 			state.songs.splice(state.songs.indexOf(removedSong), 1);
 		}
 

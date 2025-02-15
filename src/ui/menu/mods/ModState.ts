@@ -2,7 +2,7 @@ import { GameSave } from "../../../core/save";
 import { IScene, switchScene } from "../../../core/scenes/KaplayState";
 import { DancerContent } from "../../../data/dancer";
 import { NoteskinContent } from "../../../data/noteskins";
-import { SongContent, SongManifest } from "../../../data/song";
+import { Song, SongManifest } from "../../../data/song";
 import { FileManager } from "../../../FileManager";
 import { utils } from "../../../utils";
 import { MenuState } from "../MenuState";
@@ -10,7 +10,7 @@ import { dancersPage } from "./dancersPage";
 import { songsPage } from "./songsPage";
 
 export class ModsState implements IScene {
-	songs: SongContent[] = [];
+	songs: Song[] = [];
 	dancers: DancerContent[] = [];
 	noteskins: NoteskinContent[] = [];
 	itemIndex: number = 0;
@@ -28,7 +28,7 @@ export class ModsState implements IScene {
 	}
 
 	scene(state: ModsState): void {
-		state.songs = GameSave.extraSongs.map((uuid) => SongContent.getByUUID(uuid));
+		state.songs = GameSave.extraSongs.map((uuid) => Song.getByUUID(uuid));
 		state.songs.push(null);
 		const pages = [songsPage, dancersPage];
 		state.changePage(songsPage);

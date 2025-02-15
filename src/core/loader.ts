@@ -2,7 +2,7 @@ import { SpriteAtlasData } from "kaplay";
 import { DancerContent } from "../data/dancer";
 import EventSchema from "../data/event/schema";
 import { NoteskinContent } from "../data/noteskins";
-import { SongContent } from "../data/song";
+import { Song } from "../data/song";
 import { rankings } from "../play/objects/scoring";
 import { loadCursor } from "./cursor";
 
@@ -34,7 +34,7 @@ export function loadingScreen(progress: number) {
 /** Loads all the assets of the game */
 export async function loadAssets() {
 	loadBean();
-	SongContent.loadAll();
+	Song.loadAll();
 	DancerContent.loadAll();
 	NoteskinContent.loadAll();
 

@@ -2,7 +2,7 @@ import { cloneDeep } from "lodash";
 import { switchScene } from "../../../core/scenes/KaplayState";
 import { Sound } from "../../../core/sound";
 import { ChartEvent, EventDataDefaults, eventId } from "../../../data/event/event";
-import { SongContent } from "../../../data/song";
+import { Song } from "../../../data/song";
 import { FileManager } from "../../../FileManager";
 import { MenuState } from "../../../ui/menu/MenuState";
 import { addNotification } from "../../../ui/objects/notification";

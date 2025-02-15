@@ -2,7 +2,7 @@ import { cloneDeep, isEqual } from "lodash";
 import { cam } from "../../core/camera";
 import { GameSave } from "../../core/save";
 import { IScene, switchScene } from "../../core/scenes/KaplayState";
-import { SongContent } from "../../data/song";
+import { Song } from "../../data/song";
 import { Tally } from "../../play/objects/scoring";
 import { SongScore } from "../../play/savescore";
 import { ResultsState } from "../../play/scenes/ResultsState";
@@ -19,7 +19,7 @@ export class ScoresState implements IScene {
 
 	scoreItems: ReturnType<typeof this.addScoreObj>[] = [];
 
-	addScoreObj(song: SongContent, score: SongScore) {
+	addScoreObj(song: Song, score: SongScore) {
 		const hitNotes = Tally.hitNotes(score.tally);
 		const totalNotes = Tally.totalNotes(score.tally);
 		const clear = Tally.cleared(score.tally);
@@ -104,7 +104,7 @@ export class ScoresState implements IScene {
 		setBackground(RED.lerp(BLUE, 0.6));
 
 		state.scores.forEach((score, index) => {
-			const song = SongContent.getByUUID(score.uuid);
+			const song = Song.getByUUID(score.uuid);
 
 			if (!song) return;
 			this.addScoreObj(song, score);
@@ -176,7 +176,7 @@ export class ScoresState implements IScene {
 		});
 
 		this.scores.forEach((score, index) => {
-			const songIsLoaded = SongContent.getByUUID(score.uuid) ? true : false;
+			const songIsLoaded = Song.getByUUID(score.uuid) ? true : false;
 			const shouldRemoveFromScore = !songIsLoaded;
 			if (shouldRemoveFromScore) this.scores.splice(index, 1);
 		});

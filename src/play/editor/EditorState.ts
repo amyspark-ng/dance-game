@@ -6,7 +6,7 @@ import { IScene, switchScene } from "../../core/scenes/KaplayState";
 import { Sound } from "../../core/sound";
 import { ChartEvent, eventId } from "../../data/event/event";
 import EventSchema from "../../data/event/schema";
-import { SongAssets, SongContent, SongManifest } from "../../data/song";
+import { Song, SongAssets, SongManifest } from "../../data/song";
 import { FileManager } from "../../FileManager";
 import { MenuState } from "../../ui/menu/MenuState";
 import { addNotification } from "../../ui/objects/notification";
@@ -24,7 +24,7 @@ import { EditorEvent, EditorNote, EditorStamp } from "./objects/stamp";
 /** The params for the chart editor */
 export type paramsEditor = {
 	/** The song */
-	song: SongContent;
+	song: Song;
 	playbackSpeed?: number;
 	seekTime?: number;
 };
@@ -35,7 +35,7 @@ export type ChartStamp = ChartNote | ChartEvent;
 /** Class that manages the snapshots of the chart */
 export class ChartSnapshot {
 	/** The content of the song at the moment the snapshot was taking */
-	song: SongContent;
+	song: Song;
 	/** Notes at time */
 	notes: EditorNote[];
 	/** Events at time */
@@ -80,7 +80,7 @@ export class EditorState implements IScene {
 	bgColor: Color = rgb(92, 50, 172);
 
 	/** The song that's currently being edited */
-	song: SongContent;
+	song: Song;
 
 	/** Wheter the state is paused or not */
 	paused: boolean;
@@ -126,7 +126,7 @@ export class EditorState implements IScene {
 	}
 
 	/** Everytime you save this is setted to the current song */
-	lastSavedChanges: SongContent = null;
+	lastSavedChanges: Song = null;
 
 	/** Wheter the song has unsaved changes */
 	get unsavedChanges() {
@@ -201,7 +201,7 @@ export class EditorState implements IScene {
 	/** Creates a new song */
 	async NewSong() {
 		const loading = FileManager.loadingScreen();
-		await EditorState.instance.changeSong(new SongContent());
+		await EditorState.instance.changeSong(new Song());
 		loading.cancel();
 	}
 
@@ -214,8 +214,8 @@ export class EditorState implements IScene {
 			return;
 		}
 
-		const assets = await SongContent.parseFromFile(songFile);
-		const content = await SongContent.load(assets, false, false);
+		const assets = await Song.parseFromFile(songFile);
+		const content = await Song.load(assets, false, false);
 
 		// TODO: What...
 		if (content.isDefault) {
@@ -268,10 +268,10 @@ export class EditorState implements IScene {
 		if (!this.unsavedChanges && !writeSave) return;
 		addNotification(`EDITOR: Saved '${this.song.manifest.name}' succesfully`);
 		this.lastSavedChanges = cloneDeep(this.song);
-		SongContent.addToLoaded(this.song);
+		Song.addToLoaded(this.song);
 
 		if (writeSave) {
-			await SongContent.writeToSave(true, true, this.song);
+			await Song.writeToSave(true, true, this.song);
 		}
 
 		return new Promise((resolve, reject) => resolve("ok"));
@@ -380,7 +380,7 @@ export class EditorState implements IScene {
 	}
 
 	/** Changes the current song, removes notes and adds the new ones */
-	async changeSong(newSong: SongContent, endAssets?: SongAssets) {
+	async changeSong(newSong: Song, endAssets?: SongAssets) {
 		const loading = FileManager.loadingScreen(`Opening '${newSong.manifest.name}'...`);
 		this.notes.forEach((note) => this.deleteNote(note));
 		this.events.forEach((event) => this.deleteEvent(event));
@@ -391,7 +391,7 @@ export class EditorState implements IScene {
 
 			this.song.manifest.name = this.song.manifest.name + " (copy)";
 			this.song.manifest.uuid_DONT_CHANGE = v4();
-			endAssets = await SongContent.extractFromLoaded(newSong);
+			endAssets = await Song.extractFromLoaded(newSong);
 			endAssets.manifest = JSON.stringify(this.song.manifest);
 
 			addNotification(`Editing: ${this.song.manifest.name}`, 3);
@@ -406,15 +406,15 @@ export class EditorState implements IScene {
 			}
 
 			// reload assets
-			if (await SongContent.hasAssetsLoaded(newSong)) {
-				const assets = await SongContent.extractFromLoaded(newSong);
+			if (await Song.hasAssetsLoaded(newSong)) {
+				const assets = await Song.extractFromLoaded(newSong);
 				endAssets = assets;
 				endAssets.manifest = JSON.stringify(this.song.manifest);
 			}
 			// has to load first time
 			else {
 				if (!endAssets) {
-					const assets = await SongContent.extractFromUnloaded(newSong);
+					const assets = await Song.extractFromUnloaded(newSong);
 					endAssets = assets;
 					endAssets.manifest = JSON.stringify(this.song.manifest);
 				}
@@ -424,7 +424,7 @@ export class EditorState implements IScene {
 		}
 
 		loading.message = `Loading ${this.song.manifest.name}'s assets...`;
-		await SongContent.load(endAssets, false, false);
+		await Song.load(endAssets, false, false);
 		this.updateAudio();
 		this.scrollToStep(0);
 
@@ -477,7 +477,7 @@ export class EditorState implements IScene {
 		if (params.seekTime < 0) params.seekTime = 0;
 		else if (isNaN(params.seekTime)) params.seekTime = 0;
 
-		params.song = params.song ?? new SongContent();
+		params.song = params.song ?? new Song();
 		this.params = params;
 
 		// This has to run after the asset reloading

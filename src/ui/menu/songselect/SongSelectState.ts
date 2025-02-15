@@ -4,7 +4,7 @@ import { cloneDeep, isEqual } from "lodash";
 import { GameSave } from "../../../core/save";
 import { IScene, switchScene } from "../../../core/scenes/KaplayState";
 import { CustomAudioPlay, Sound } from "../../../core/sound";
-import { SongContent } from "../../../data/song";
+import { Song } from "../../../data/song";
 import { FileManager } from "../../../FileManager";
 import { GameState } from "../../../play/GameState";
 import { Tally } from "../../../play/objects/scoring";
@@ -51,7 +51,7 @@ export class SongSelectState implements IScene {
 	}
 
 	/** Adds a song capsule to the song select scene */
-	static addSongCapsule(curSong: SongContent) {
+	static addSongCapsule(curSong: Song) {
 		const isAddSong = curSong == null;
 
 		const capsuleContainer = add([
@@ -140,7 +140,7 @@ export class SongSelectState implements IScene {
 		}
 
 		// if song isn't on default songs then it means it's imported from elsewhere
-		if (!SongContent.defaultUUIDS.includes(curSong.manifest.uuid_DONT_CHANGE)) {
+		if (!Song.defaultUUIDS.includes(curSong.manifest.uuid_DONT_CHANGE)) {
 			const importedSticker = capsuleContainer.add([
 				sprite("imported"),
 				pos(),
@@ -158,10 +158,10 @@ export class SongSelectState implements IScene {
 	scene(state: SongSelectState): void {
 		setBackground(BLUE.lighten(50));
 
-		let songAmount = SongContent.loaded.length + 1;
+		let songAmount = Song.loaded.length + 1;
 		const LERP_AMOUNT = 0.25;
 
-		SongContent.loaded.forEach((song, index) => {
+		Song.loaded.forEach((song, index) => {
 			SongSelectState.addSongCapsule(song);
 		});
 
@@ -170,7 +170,7 @@ export class SongSelectState implements IScene {
 
 		const allCapsules = get("songCapsule", { liveUpdate: true }) as songCapsuleObj[];
 		onUpdate(() => {
-			songAmount = SongContent.loaded.length + 1;
+			songAmount = Song.loaded.length + 1;
 			allCapsules.forEach((songCapsule, index) => {
 				let opacity = 1;
 
@@ -229,7 +229,7 @@ export class SongSelectState implements IScene {
 
 		state.onUpdateState(async () => {
 			const capsule = allCapsules[state.index];
-			songAmount = SongContent.loaded.length + 1;
+			songAmount = Song.loaded.length + 1;
 			if (!capsule) return;
 			if (!capsule.song) {
 				state.songPreview?.stop();
@@ -258,12 +258,12 @@ export class SongSelectState implements IScene {
 				const gottenFile = await FileManager.receiveFile("mod");
 
 				if (gottenFile) {
-					const oldLoadedList = cloneDeep(SongContent.loaded);
-					const assets = await SongContent.parseFromFile(gottenFile);
-					const content = await SongContent.load(assets, true, false);
+					const oldLoadedList = cloneDeep(Song.loaded);
+					const assets = await Song.parseFromFile(gottenFile);
+					const content = await Song.load(assets, true, false);
 
 					// is trying to overwrite deafult, not!!
-					if (SongContent.defaultUUIDS.includes(content.manifest.uuid_DONT_CHANGE)) {
+					if (Song.defaultUUIDS.includes(content.manifest.uuid_DONT_CHANGE)) {
 						addNotification("[error]ERROR:[/error] The song you were trying to load overwrites a default song", 5);
 						loadingScreen.cancel();
 						return;
@@ -271,9 +271,9 @@ export class SongSelectState implements IScene {
 
 					/** Wheter the UUID is already on loaded but not on default */
 					const overwritingExtra = oldLoadedList.map((content) => content.manifest.uuid_DONT_CHANGE).includes(content.manifest.uuid_DONT_CHANGE)
-						&& !SongContent.defaultUUIDS.includes(content.manifest.uuid_DONT_CHANGE);
+						&& !Song.defaultUUIDS.includes(content.manifest.uuid_DONT_CHANGE);
 
-					const overwritingDefault = SongContent.defaultUUIDS.includes(content.manifest.uuid_DONT_CHANGE);
+					const overwritingDefault = Song.defaultUUIDS.includes(content.manifest.uuid_DONT_CHANGE);
 
 					if (overwritingDefault) {
 						addNotification("[error]ERROR:[/error] The song you were trying to load overwrites a default song", 5);
@@ -290,8 +290,8 @@ export class SongSelectState implements IScene {
 							return;
 						}
 
-						const indexOfSong = SongContent.loaded.indexOf(SongContent.loaded.find((song) => song.manifest.uuid_DONT_CHANGE == content.manifest.uuid_DONT_CHANGE));
-						SongContent.loaded[indexOfSong] = capsule.song;
+						const indexOfSong = Song.loaded.indexOf(Song.loaded.find((song) => song.manifest.uuid_DONT_CHANGE == content.manifest.uuid_DONT_CHANGE));
+						Song.loaded[indexOfSong] = capsule.song;
 
 						addNotification(`[warning]Warning:[/warning] Overwrote "${capsule.song.manifest.name}" by "${content.manifest.name}" since they have the same UUID`, 5);
 						allCapsules[allCapsules.indexOf(capsule)].song = content;
@@ -347,7 +347,7 @@ export class SongSelectState implements IScene {
 			const hoveredCapsule = allCapsules[state.index];
 			if (hoveredCapsule.song.isDefault) return;
 			hoveredCapsule.destroy();
-			SongContent.removeFromExistence(hoveredCapsule.song);
+			Song.removeFromExistence(hoveredCapsule.song);
 			state.updateState();
 			// state.index -= 1;
 			switchScene(SongSelectState, state.index - 1);
@@ -365,13 +365,13 @@ export class SongSelectState implements IScene {
 		});
 	}
 
-	constructor(startAt: SongContent | number) {
+	constructor(startAt: Song | number) {
 		if (typeof startAt == "number") {
-			if (utils.isInRange(startAt, 0, SongContent.loaded.length - 1)) this.index = startAt;
+			if (utils.isInRange(startAt, 0, Song.loaded.length - 1)) this.index = startAt;
 			else this.index = 0;
 		}
 		else {
-			const newIndex = SongContent.loaded.findIndex((otherSong) => isEqual(otherSong, startAt));
+			const newIndex = Song.loaded.findIndex((otherSong) => isEqual(otherSong, startAt));
 			if (!newIndex) this.index = 0;
 			else this.index = newIndex;
 		}
