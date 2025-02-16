@@ -2,7 +2,7 @@ import { Color, Vec2 } from "kaplay";
 import { CustomAudioPlay, Sound } from "../../../core/sound";
 import { ChartEvent } from "../../../data/event/event";
 import EventSchema from "../../../data/event/schema";
-import { getNoteskinSprite } from "../../../data/noteskins";
+import { getCurNoteskin } from "../../../data/noteskins";
 import { utils } from "../../../utils";
 import { ChartNote } from "../../objects/note";
 import { EditorState } from "../EditorState";
@@ -240,7 +240,8 @@ export class EditorNote extends EditorStamp {
 					height: this.height,
 					scale: this.scale,
 					angle: 90,
-					sprite: getNoteskinSprite(i == this.data.length - 1 ? "tail" : "trail", this.data.move),
+					frame: 0,
+					sprite: getCurNoteskin().getAnim(this.data.move, i == this.data.length - 1 ? "tail" : "trail"),
 					pos: vec2(this.pos.x, this.pos.y + ((i + 1) * this.height)),
 					anchor: "center",
 					opacity,
@@ -254,7 +255,7 @@ export class EditorNote extends EditorStamp {
 			height: this.height,
 			scale: this.scale,
 			angle: this.angle,
-			sprite: getNoteskinSprite(this.data.move),
+			sprite: getCurNoteskin().getAnim(this.data.move),
 			pos: vec2(this.pos.x, this.pos.y),
 			anchor: "center",
 			opacity,

@@ -1,4 +1,4 @@
-import { getNoteskinSprite } from "../../../../data/noteskins";
+import { getCurNoteskin } from "../../../../data/noteskins";
 import { Move } from "../../../objects/dancer";
 import { EditorState } from "../../EditorState";
 import { EditorTab } from "../tabs";
@@ -12,7 +12,7 @@ export function notesTab() {
 
 	moves.forEach((move, index) => {
 		const note = notes.add([
-			sprite(getNoteskinSprite(move)),
+			sprite(getCurNoteskin().getAnim(move)),
 			pos((index % 4) * 60, Math.floor(index / 4) * 60),
 			area(),
 			opacity(),

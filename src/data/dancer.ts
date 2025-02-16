@@ -6,7 +6,8 @@ import { GAME } from "../core/game";
 import { GameSave } from "../core/save";
 import { FileManager, IMAGE_HELPER } from "../FileManager";
 import { ContentManifest, IContent } from "../modding";
-import { DancerAnim, moveAnimsArr } from "../play/objects/dancer";
+
+type DancerAnim = "left" | "down" | "up" | "right" | "idle" | "miss";
 
 type DancerAssets = {
 	manifest: string;
@@ -28,16 +29,16 @@ export class DancerManifest extends ContentManifest {
 export class Dancer implements IContent {
 	static defaultDancers: string[] = [
 		"astri",
-		"astri-blight",
-		"starlight",
-		"mormon",
+		// "astri-blight",
+		// "starlight",
+		// "mormon",
 	];
 
 	static defaultPaths: string[] = [
 		"content/dancers/astri",
-		"content/dancers/astri-blight",
-		"content/dancers/starlight",
-		"content/dancers/mormon",
+		// "content/dancers/astri-blight",
+		// "content/dancers/starlight",
+		// "content/dancers/mormon",
 	];
 
 	static loaded: Dancer[] = [];
@@ -47,10 +48,6 @@ export class Dancer implements IContent {
 
 	static get loadedDefault() {
 		return Dancer.loaded.filter((dancer) => dancer.isDefault);
-	}
-
-	static get() {
-		return Dancer.loaded.find((dancer) => dancer.manifest.id == GameSave.dancer);
 	}
 
 	static getByID(id: string) {
@@ -109,16 +106,18 @@ export class Dancer implements IContent {
 
 	assignFromAssets(assets: DancerAssets) {
 		this.manifest = JSON.parse(assets.manifest);
+		this.spriteData = JSON.parse(assets.sprite_data); // wtf?????????????
 		return this;
 	}
 
-	get anims() {
+	get rawAnims() {
 		return this.spriteData.anims;
 	}
 
 	getAnim(move: DancerAnim, miss: boolean = false) {
-		if (!Object.keys(this.anims).includes("idle")) throw new Error("You have to at least include a miss animation for dancer: " + this.manifest.name);
-		const animNames = Object.keys(this.anims);
+		if (!Object.keys(this.rawAnims).includes("idle")) throw new Error("You have to at least include a miss animation for dancer: " + this.manifest.id);
+
+		const animNames = Object.keys(this.rawAnims);
 
 		// searching for regular move and combination (move_miss)
 		const anim = animNames.find((name) => {
@@ -143,9 +142,9 @@ export class Dancer implements IContent {
 		// @ts-ignore
 		if (moveAnimsArr.includes(anim)) return anim;
 		else {
-			moveAnimsArr.forEach((move) => {
-				if (anim.includes(move)) return anim;
-			});
+			// moveAnimsArr.forEach((move) => {
+			// 	if (anim.includes(move)) return anim;
+			// });
 			return undefined;
 		}
 	}
@@ -235,7 +234,7 @@ export class Dancer implements IContent {
 		const bg = FileManager.getFileAtUrl(getPath(manifest.bg_path));
 
 		if (sprite) assets.sprite = await FileManager.blobToDataURL(await (await sprite).blob());
-		if (spriteData) assets.sprite_data = JSON.stringify(await (await (await spriteData).blob()).text());
+		if (spriteData) assets.sprite_data = JSON.stringify(JSON.parse(await (await (await spriteData).blob()).text()));
 		if (bg) assets.bg = await FileManager.blobToDataURL(await (await bg).blob());
 		assets.manifest = JSON.stringify(manifest);
 
@@ -274,11 +273,14 @@ export class Dancer implements IContent {
 	async load(assets: DancerAssets): Promise<void> {
 		this.assignFromAssets(assets);
 		console.log(`${GAME.NAME}: Loading ${this.isDefault ? "default" : "extra"} dancer: '${this.manifest.name}' with the ID '${this.manifest.id}'`);
-
-		await loadSprite(this.spriteName, assets.sprite, JSON.parse(assets.sprite_data));
+		await loadSprite(this.spriteName, assets.sprite, this.spriteData);
 		await loadSprite(this.bgSpriteName, assets.bg);
 		await this.writeToSave(!this.isDefault, !this.isDefault);
 		this.pushToLoaded();
 		console.log(`${GAME.NAME}: Loaded ${this.isDefault ? "default" : "extra"} dancer: '${this.manifest.name}' successfully`);
 	}
+}
+
+export function getCurDancer() {
+	return Dancer.loaded.find((dancer) => dancer.manifest.id == GameSave.dancer);
 }

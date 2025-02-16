@@ -112,6 +112,10 @@ export class Song implements IContent {
 		return Song.loaded.filter((song) => song.isDefault);
 	}
 
+	static getByUUID(uuid: string) {
+		return Song.loaded.find((song) => song.manifest.uuid_DONT_CHANGE == uuid);
+	}
+
 	static async loadAll() {
 		await loadSprite(SongManifest.default_cover, SongManifest.default_cover_file);
 		await loadSound(SongManifest.default_audio, SongManifest.default_audio_file);

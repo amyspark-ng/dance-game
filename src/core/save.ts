@@ -90,7 +90,7 @@ export class _GameSave {
 	scrollSpeed: number = 1;
 
 	/** The dancer the player is using (to dance) */
-	dancer: string = "Astri";
+	dancer: string = "astri";
 
 	/** Wheter notes should jump when hit */
 	sillyNotes: boolean = true;
@@ -100,10 +100,10 @@ export class _GameSave {
 	/** Writes current instance to localStorage */
 	save() {
 		const lastSave = this.getLatestSave();
-		if (JSON.stringify(this) !== JSON.stringify(lastSave)) {
-			setData(GAME.SAVE_NAME, this);
-			return console.log(`${GAME.NAME}: Saved`);
-		}
+		// if (JSON.stringify(this) !== JSON.stringify(lastSave)) {
+		setData(GAME.SAVE_NAME, this);
+		return console.log(`${GAME.NAME}: Saved`);
+		// }
 	}
 
 	/**

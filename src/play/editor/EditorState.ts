@@ -177,7 +177,7 @@ export class EditorState implements IScene {
 	/** Runs when the sound for the soundPlay has changed */
 	updateAudio() {
 		this.conductor.audioPlay.stop();
-		this.conductor.audioPlay = Sound.playMusic(this.song.getAudioName());
+		this.conductor.audioPlay = Sound.playMusic(this.song.audioName);
 	}
 
 	/** Sets scrollStep to a clamped and rounded value
@@ -214,21 +214,22 @@ export class EditorState implements IScene {
 			return;
 		}
 
-		const assets = await Song.parseFromFile(songFile);
-		const content = await Song.load(assets, false, false);
+		const song = new Song();
+		const assets = await song.fileToAssets(songFile);
+		song.assignFromAssets(assets);
 
 		// TODO: What...
-		if (content.isDefault) {
-			this.changeSong(cloneDeep(content), assets);
-			addNotification(`Editor: Editing ${content.manifest.name}`);
+		if (song.isDefault) {
+			this.changeSong(cloneDeep(song), assets);
+			addNotification(`Editor: Editing ${song.manifest.name}`);
 		}
-		else if (content.manifest.uuid_DONT_CHANGE == this.song.manifest.uuid_DONT_CHANGE) {
-			this.changeSong(content, assets);
-			addNotification(`[warning]Warning:[/warning] Overwrote "${this.song.manifest.name}" by "${content.manifest.name}" since they have the same UUID`, 5);
+		else if (song.manifest.uuid_DONT_CHANGE == this.song.manifest.uuid_DONT_CHANGE) {
+			this.changeSong(song, assets);
+			addNotification(`[warning]Warning:[/warning] Overwrote "${this.song.manifest.name}" by "${song.manifest.name}" since they have the same UUID`, 5);
 		}
 		// what????
 		else {
-			this.changeSong(content, assets);
+			this.changeSong(song, assets);
 			addNotification(`[warning]Warning:[/warning] Overwriting "${this.song.manifest.name}"`);
 		}
 

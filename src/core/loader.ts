@@ -1,7 +1,7 @@
 import { SpriteAtlasData } from "kaplay";
-import { DancerContent } from "../data/dancer";
+import { Dancer } from "../data/dancer";
 import EventSchema from "../data/event/schema";
-import { NoteskinContent } from "../data/noteskins";
+import { Noteskin } from "../data/noteskins";
 import { Song } from "../data/song";
 import { rankings } from "../play/objects/scoring";
 import { loadCursor } from "./cursor";
@@ -33,10 +33,10 @@ export function loadingScreen(progress: number) {
 
 /** Loads all the assets of the game */
 export async function loadAssets() {
-	loadBean();
-	Song.loadAll();
-	DancerContent.loadAll();
-	NoteskinContent.loadAll();
+	await loadBean();
+	await Song.loadAll();
+	await Dancer.loadAll();
+	await Noteskin.loadAll();
 
 	loadSpriteAtlas("game/sprites/menu/menubuttons.png", {
 		"menusongs": {

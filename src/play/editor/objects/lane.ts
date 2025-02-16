@@ -1,5 +1,5 @@
 import { Vec2 } from "kaplay";
-import { getNoteskinSprite } from "../../../data/noteskins";
+import { getCurNoteskin } from "../../../data/noteskins";
 import { Move } from "../../objects/dancer";
 import { ChartNote } from "../../objects/note";
 import { ChartSnapshot, EditorState } from "../EditorState";
@@ -121,7 +121,7 @@ export class EditorLane {
 		// if no note at step
 		if (!noteOrEventAtStep) {
 			drawSprite({
-				sprite: isInNotelane ? getNoteskinSprite(EditorState.instance.currentMove) : EditorState.instance.currentEvent,
+				sprite: isInNotelane ? getCurNoteskin().getAnim(EditorState.instance.currentMove) : EditorState.instance.currentEvent,
 				width: EditorState.SQUARE_SIZE.x - 5,
 				height: EditorState.SQUARE_SIZE.y - 5,
 				opacity: wave(0.5, 0.75, time() % 5),

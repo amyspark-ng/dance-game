@@ -1,4 +1,4 @@
-import { getDancer } from "../../../../data/dancer";
+import { getCurDancer } from "../../../../data/dancer";
 import { ChartEvent } from "../../../../data/event/event";
 import EventHandler from "../../../../data/event/handler";
 import { utils } from "../../../../utils";
@@ -41,7 +41,7 @@ export function syncTab() {
 	]);
 
 	// add dancer
-	const dancer = previewSquare.add(makeDancer(getDancer().manifest.name, vec2(0.25)));
+	const dancer = previewSquare.add(makeDancer(getCurDancer().manifest.id, vec2(0.25)));
 	dancer.pos = DANCER_POS.scale(0.25);
 
 	camSquare.onUpdate(() => {
@@ -114,7 +114,7 @@ export function syncTab() {
 			tween(YELLOW, WHITE, 0.15, (p) => currentBeatObj.color = p);
 		}
 
-		if (dancer.currentMove == "idle") dancer.moveBop();
+		if (dancer.currentMove == "idle") dancer.bop();
 	});
 
 	const onNoteHitEv = state.onStampHit((stamp) => {

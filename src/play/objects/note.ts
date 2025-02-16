@@ -1,7 +1,7 @@
 import { GameObj, Quad, ScaleComp, Vec2 } from "kaplay";
 import { GameSave } from "../../core/save";
 import { Sound } from "../../core/sound";
-import { getNoteskinSprite } from "../../data/noteskins";
+import { getCurNoteskin } from "../../data/noteskins";
 import { utils } from "../../utils";
 import { GameState } from "../GameState";
 import { Move } from "./dancer";
@@ -113,7 +113,7 @@ function addBaseNote(chartNote: ChartNote, state: GameState) {
 	});
 
 	const noteObj = add([
-		sprite(getNoteskinSprite(chartNote.move)),
+		sprite(getCurNoteskin().spriteName, { anim: getCurNoteskin().getAnim(chartNote.move) }),
 		pos(NOTE_SPAWNPOINT, state.strumline.pos.y),
 		anchor("center"),
 		scale(),
@@ -242,68 +242,35 @@ function addLongNote(chartNote: ChartNote, state: GameState) {
 	]);
 
 	const trail = masked.add([
+		sprite(getCurNoteskin().spriteName, { anim: getCurNoteskin().getAnim(chartNote.move, "trail"), tiled: true }),
 		pos(noteObj.pos),
 		anchor("left"),
-		opacity(),
-		{
-			width: NOTE_WIDTH * chartNote.length,
-		},
+		opacity(1),
 	]);
 
+	trail.play(getCurNoteskin().getAnim(chartNote.move, "trail"), { loop: true });
+	trail.width = (NOTE_WIDTH - 1) * chartNote.length;
 	trail.onDestroy(() => masked.destroy());
+
+	const tail = trail.add([
+		sprite(getCurNoteskin().spriteName),
+		pos(),
+		anchor("left"),
+		opacity(),
+	]);
+
+	tail.play(getCurNoteskin().getAnim(chartNote.move, "tail"), { loop: true });
+
+	tail.onUpdate(() => {
+		tail.opacity = trail.opacity;
+		tail.pos = vec2(trail.width, 0);
+	});
 
 	trail.onUpdate(() => {
 		if (state.paused) return;
 		trail.opacity = noteObj.opacity;
 		const X = ChartNote.getPosAtTime(state.conductor.time, noteObj.spawnTime).x;
 		trail.pos = vec2(X, noteObj.pos.y);
-	});
-
-	trail.onDraw(() => {
-		// debugging
-		// for (let i = 0; i < chartNote.length; i++) {
-		// 	drawRect({
-		// 		width: NOTE_WIDTH,
-		// 		height: noteObj.height,
-		// 		fill: false,
-		// 		anchor: "left",
-		// 		pos: vec2(NOTE_WIDTH / 2 + NOTE_WIDTH * i, 0),
-		// 		outline: {
-		// 			width: 5,
-		// 			color: BLUE,
-		// 		},
-		// 	});
-		// }
-
-		// draws the base
-		drawSprite({
-			sprite: getNoteskinSprite("trail", chartNote.move),
-			width: NOTE_WIDTH / 2,
-			height: NOTE_WIDTH,
-			anchor: "left",
-			opacity: trail.opacity,
-		});
-
-		// draws the trail
-		drawSprite({
-			sprite: getNoteskinSprite("trail", chartNote.move),
-			width: trail.width - NOTE_WIDTH, // removes 1 to account for the tail
-			height: noteObj.height,
-			// tiled: true,
-			pos: vec2(NOTE_WIDTH / 2, 0),
-			anchor: "left",
-			opacity: trail.opacity,
-		});
-
-		// draws the tail
-		drawSprite({
-			sprite: getNoteskinSprite("tail", chartNote.move),
-			pos: vec2(NOTE_WIDTH / 2 + trail.width - NOTE_WIDTH, 0),
-			width: NOTE_WIDTH,
-			height: noteObj.height,
-			anchor: "left",
-			opacity: trail.opacity,
-		});
 	});
 
 	const onNoteHitEV = state.events.onNoteHit((hitNote) => {
@@ -317,11 +284,12 @@ function addLongNote(chartNote: ChartNote, state: GameState) {
 		});
 
 		trail.parent.width = noteObj.pos.x;
-		let stepAtTime = state.conductor.currentStep;
+		let stepAtTime = state.conductor.stepTime + 1;
 
 		const finishChecker = trail.onUpdate(() => {
 			// this only runs when the trail has finished
-			const conditionForFinishingTrail = state.conductor.stepTime >= (stepAtTime + chartNote.length + 0.5) && !trailHasFinished;
+			const conditionForFinishingTrail = state.conductor.stepTime >= (stepAtTime + chartNote.length) && !trailHasFinished;
+
 			if (!conditionForFinishingTrail) return;
 			trailHasFinished = true;
 			beatHitEV.cancel();

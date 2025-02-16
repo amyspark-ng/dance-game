@@ -57,6 +57,7 @@ If any of the frames takes more than one frame, you can do something like this!
     }
 }
 ```
+You can also add your own animations! Which you can then trigger in a song with the `Play Anim` event
 
 And most importantly
 - [manifest](./template-dancer/manifest.toml), which actually holds the paths to the information to your dancer, you can set its metdata, the path to its information, and configure it, it must be in a `.toml` file, it looks a little like this:

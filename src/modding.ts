@@ -57,3 +57,60 @@ export class Mods {
 	// 	return content;
 	// }
 }
+
+// saving this for song importing
+// const oldLoadedList = cloneDeep(Song.loaded);
+// const assets = await Song.parseFromFile(gottenFile);
+// const content = await Song.load(assets, true, false);
+
+// // is trying to overwrite deafult, not!!
+// if (Song.defaultUUIDS.includes(content.manifest.uuid_DONT_CHANGE)) {
+// 	addNotification("[error]ERROR:[/error] The song you were trying to load overwrites a default song", 5);
+// 	loadingScreen.cancel();
+// 	return;
+// }
+
+// /** Wheter the UUID is already on loaded but not on default */
+// const overwritingExtra = oldLoadedList.map((content) => content.manifest.uuid_DONT_CHANGE).includes(content.manifest.uuid_DONT_CHANGE)
+// 	&& !Song.defaultUUIDS.includes(content.manifest.uuid_DONT_CHANGE);
+
+// const overwritingDefault = Song.defaultUUIDS.includes(content.manifest.uuid_DONT_CHANGE);
+
+// if (overwritingDefault) {
+// 	addNotification("[error]ERROR:[/error] The song you were trying to load overwrites a default song", 5);
+// 	state.index = allCapsules.indexOf(allCapsules.find((capsule) => capsule.song.manifest.uuid_DONT_CHANGE == content.manifest.uuid_DONT_CHANGE));
+// 	state.updateState();
+// 	loadingScreen.cancel();
+// 	return;
+// }
+// else if (overwritingExtra) {
+// 	const capsule = allCapsules.find((capsule) => capsule.song.manifest.uuid_DONT_CHANGE == content.manifest.uuid_DONT_CHANGE);
+// 	if (!capsule) {
+// 		addNotification("[warning]Warning:[/warning] Tried to overwrite an extra song but failed", 5);
+// 		loadingScreen.cancel();
+// 		return;
+// 	}
+
+// 	const indexOfSong = Song.loaded.indexOf(Song.loaded.find((song) => song.manifest.uuid_DONT_CHANGE == content.manifest.uuid_DONT_CHANGE));
+// 	Song.loaded[indexOfSong] = capsule.song;
+
+// 	addNotification(`[warning]Warning:[/warning] Overwrote "${capsule.song.manifest.name}" by "${content.manifest.name}" since they have the same UUID`, 5);
+// 	allCapsules[allCapsules.indexOf(capsule)].song = content;
+// 	state.index = allCapsules.indexOf(capsule);
+// 	state.updateState();
+
+// 	loadingScreen.cancel();
+// 	return;
+// }
+// else {
+// 	// some weird case??
+// }
+
+// // if you got here it's because you're not overwriting a song, you're adding a totally new one
+// const capsule = SongSelectState.addSongCapsule(content);
+// let index = allCapsules.indexOf(capsule);
+// if (index == -1) index = 0;
+// state.index = index;
+
+// state.updateState();
+// loadingScreen.cancel();

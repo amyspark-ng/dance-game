@@ -195,7 +195,17 @@ export class Noteskin implements IContent {
 		console.log(`${GAME.NAME}: Loaded ${this.isDefault ? "default" : "extra"} noteskin: '${this.manifest.name}' successfully`);
 	}
 
-	getSprite(move: Move, type?: "trail" | "tail") {
+	getFrameOfAnim(move: Move, type?: "trail" | "tail") {
+		const animName = Object.keys(this.spriteData.anims).find((animKey) => {
+			if (animKey != this.getAnim(move, type)) return false;
+			return this.spriteData.anims[animKey] ? true : false;
+		});
+
+		if (typeof this.spriteData.anims[animName] == "number") return this.spriteData.anims[animName];
+		else return this.spriteData.anims[animName].from;
+	}
+
+	getAnim(move: Move, type?: "trail" | "tail") {
 		if (type) return `${move}_${type}`;
 		else return move;
 	}
@@ -203,21 +213,21 @@ export class Noteskin implements IContent {
 	addTest() {
 		["left", "down", "up", "right"].forEach((move: Move, index) => {
 			add([
-				sprite(this.spriteName, { anim: this.getSprite(move) }),
+				sprite(this.spriteName, { anim: this.getAnim(move) }),
 				pos(90, 90 + index * 60),
 				anchor("center"),
 			]);
 
 			// trail
 			add([
-				sprite(this.spriteName, { anim: this.getSprite(move, "trail") }),
+				sprite(this.spriteName, { anim: this.getAnim(move, "trail") }),
 				pos(170, 90 + index * 60),
 				anchor("center"),
 			]);
 
 			// tail
 			add([
-				sprite(this.spriteName, { anim: this.getSprite(move, "tail") }),
+				sprite(this.spriteName, { anim: this.getAnim(move, "tail") }),
 				pos(260, 90 + index * 60),
 				anchor("center"),
 			]);
@@ -240,4 +250,8 @@ export class Noteskin implements IContent {
 	get isDefault() {
 		return Noteskin.defaultNoteskins.includes(this.manifest.id);
 	}
+}
+
+export function getCurNoteskin() {
+	return Noteskin.loaded.find((noteskin) => noteskin.manifest.id == GameSave.noteskin);
 }

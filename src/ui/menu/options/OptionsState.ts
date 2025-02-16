@@ -3,7 +3,7 @@ import { cam } from "../../../core/camera";
 import { _GameSave, GameSave } from "../../../core/save";
 import { IScene, switchScene } from "../../../core/scenes/KaplayState";
 import { SoundTray } from "../../../core/soundtray";
-import { NoteskinContent } from "../../../data/noteskins";
+import { getCurNoteskin, Noteskin } from "../../../data/noteskins";
 import { utils } from "../../../utils";
 import { MenuState } from "../MenuState";
 import { addOptionsButton, addOptionsCheckbox, addOptionsKeyInput, addOptionsMoveInput, addOptionsNoteskinEnum, addOptionsStepper } from "./optionsUI";
@@ -168,7 +168,7 @@ export class OptionsState implements IScene {
 				GameSave.scrollSpeed = value;
 			}, GameSave.scrollSpeed);
 
-			state.addItem("Noteskin", "Changes the noteskin", addOptionsNoteskinEnum, NoteskinContent.getByName(GameSave.noteskin), NoteskinContent.loaded, (name) => {
+			state.addItem("Noteskin", "Changes the noteskin", addOptionsNoteskinEnum, getCurNoteskin(), Noteskin.loaded, (name) => {
 				GameSave.noteskin = name;
 			});
 

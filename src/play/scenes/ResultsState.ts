@@ -2,7 +2,7 @@ import { Color } from "kaplay";
 import { _GameSave } from "../../core/save";
 import { IScene, switchScene } from "../../core/scenes/KaplayState";
 import { Sound } from "../../core/sound";
-import { getDancer } from "../../data/dancer";
+import { getCurDancer } from "../../data/dancer";
 import { Song } from "../../data/song";
 import { ScoresState } from "../../ui/menu/ScoresState";
 import { SongSelectState } from "../../ui/menu/songselect/SongSelectState";
@@ -115,14 +115,14 @@ export class ResultsState implements IScene {
 		});
 
 		const dancer = add([
-			sprite(getDancer().spriteName),
+			sprite(getCurDancer().spriteName),
 			pos(),
 			anchor("bot"),
 			scale(0.8),
 			z(1),
 		]);
 
-		dancer.play(getDancer().getAnim("up"));
+		dancer.play(getCurDancer().getAnim("up"));
 
 		const clearObj = add([
 			text("0%", { align: "center", size: 65 }),

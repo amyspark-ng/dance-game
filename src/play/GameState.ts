@@ -3,7 +3,7 @@ import { Conductor } from "../Conductor";
 import { GameSave } from "../core/save";
 import { IScene, switchScene } from "../core/scenes/KaplayState";
 import { Sound } from "../core/sound";
-import { getDancer } from "../data/dancer";
+import { getCurDancer } from "../data/dancer";
 import { Song } from "../data/song";
 import { SongSelectState } from "../ui/menu/songselect/SongSelectState";
 import { EditorState } from "./editor/EditorState";
@@ -21,9 +21,6 @@ import { ResultsState } from "./scenes/ResultsState";
 export type paramsGame = {
 	/** The song passed for gameplay */
 	song: Song;
-
-	/** The name of the dancer */
-	dancerName?: string;
 
 	/** How fast to make the song :smiling_imp: */
 	playbackSpeed?: number;
@@ -242,7 +239,6 @@ export class GameState implements IScene {
 		params.playbackSpeed = params.playbackSpeed ?? 1;
 		params.seekTime = params.seekTime ?? 0;
 		if (isNaN(params.seekTime)) params.seekTime = 0;
-		params.dancerName = params.dancerName ?? getDancer().manifest.name;
 		params.fromEditor = params.fromEditor ?? false;
 
 		this.params = params;
@@ -263,7 +259,7 @@ export class GameState implements IScene {
 
 		// adds the ui to the game
 		this.strumline = createStrumline();
-		this.dancer = add(makeDancer(this.params.dancerName));
+		this.dancer = add(makeDancer());
 		this.gameUI = addUI();
 		this.pauseUI = addPauseUI();
 

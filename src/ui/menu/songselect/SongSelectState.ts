@@ -1,5 +1,3 @@
-import fs from "@zenfs/core";
-import { Color } from "kaplay";
 import { cloneDeep, isEqual } from "lodash";
 import { GameSave } from "../../../core/save";
 import { IScene, switchScene } from "../../../core/scenes/KaplayState";
@@ -52,8 +50,6 @@ export class SongSelectState implements IScene {
 
 	/** Adds a song capsule to the song select scene */
 	static addSongCapsule(curSong: Song) {
-		const isAddSong = curSong == null;
-
 		const capsuleContainer = add([
 			opacity(),
 			pos(center().x, center().y),
@@ -67,7 +63,7 @@ export class SongSelectState implements IScene {
 		]);
 
 		const albumCover = capsuleContainer.add([
-			sprite(!isAddSong ? curSong.getCoverName() : "importSong"),
+			sprite(curSong.coverName),
 			pos(),
 			anchor("center"),
 			opacity(),
@@ -79,10 +75,8 @@ export class SongSelectState implements IScene {
 		capsuleContainer.width = albumCover.width;
 		capsuleContainer.height = albumCover.height;
 
-		if (isAddSong) return;
-
 		albumCover.onUpdate(() => {
-			albumCover.sprite = capsuleContainer.song.getCoverName();
+			albumCover.sprite = capsuleContainer.song.coverName;
 		});
 
 		const cdCase = capsuleContainer.add([
@@ -158,19 +152,14 @@ export class SongSelectState implements IScene {
 	scene(state: SongSelectState): void {
 		setBackground(BLUE.lighten(50));
 
-		let songAmount = Song.loaded.length + 1;
 		const LERP_AMOUNT = 0.25;
 
 		Song.loaded.forEach((song, index) => {
 			SongSelectState.addSongCapsule(song);
 		});
 
-		// add the song capsule for the extra thing
-		SongSelectState.addSongCapsule(null);
-
 		const allCapsules = get("songCapsule", { liveUpdate: true }) as songCapsuleObj[];
 		onUpdate(() => {
-			songAmount = Song.loaded.length + 1;
 			allCapsules.forEach((songCapsule, index) => {
 				let opacity = 1;
 
@@ -210,26 +199,25 @@ export class SongSelectState implements IScene {
 
 		onKeyPress("left", () => {
 			if (!state.menuInputEnabled) return;
-			state.scroll(-1, songAmount);
+			state.scroll(-1, Song.loaded.length);
 			state.updateState();
 		});
 
 		onKeyPress("right", () => {
 			if (!state.menuInputEnabled) return;
-			state.scroll(1, songAmount);
+			state.scroll(1, Song.loaded.length);
 			state.updateState();
 		});
 
 		onScroll((delta) => {
 			if (!state.menuInputEnabled) return;
 			delta.y = clamp(delta.y, -1, 1);
-			state.scroll(delta.y, songAmount);
+			state.scroll(delta.y, Song.loaded.length);
 			state.updateState();
 		});
 
 		state.onUpdateState(async () => {
 			const capsule = allCapsules[state.index];
-			songAmount = Song.loaded.length + 1;
 			if (!capsule) return;
 			if (!capsule.song) {
 				state.songPreview?.stop();
@@ -243,7 +231,7 @@ export class SongSelectState implements IScene {
 			highscoreText.solidValue = Math.floor(tallyScore.tally.score);
 
 			state.songPreview?.stop();
-			state.songPreview = Sound.playMusic(capsule.song.getAudioName());
+			state.songPreview = Sound.playMusic(capsule.song.audioName);
 			state.songPreview.loop = true;
 			state.songPreview.fadeIn(Sound.musicVolume, 0.25);
 		});
@@ -252,78 +240,9 @@ export class SongSelectState implements IScene {
 			if (!state.menuInputEnabled) return;
 			const hoveredCapsule = allCapsules[state.index];
 			if (!hoveredCapsule) return;
-
-			if (hoveredCapsule.song == null) {
-				const loadingScreen = FileManager.loadingScreen();
-				const gottenFile = await FileManager.receiveFile("mod");
-
-				if (gottenFile) {
-					const oldLoadedList = cloneDeep(Song.loaded);
-					const assets = await Song.parseFromFile(gottenFile);
-					const content = await Song.load(assets, true, false);
-
-					// is trying to overwrite deafult, not!!
-					if (Song.defaultUUIDS.includes(content.manifest.uuid_DONT_CHANGE)) {
-						addNotification("[error]ERROR:[/error] The song you were trying to load overwrites a default song", 5);
-						loadingScreen.cancel();
-						return;
-					}
-
-					/** Wheter the UUID is already on loaded but not on default */
-					const overwritingExtra = oldLoadedList.map((content) => content.manifest.uuid_DONT_CHANGE).includes(content.manifest.uuid_DONT_CHANGE)
-						&& !Song.defaultUUIDS.includes(content.manifest.uuid_DONT_CHANGE);
-
-					const overwritingDefault = Song.defaultUUIDS.includes(content.manifest.uuid_DONT_CHANGE);
-
-					if (overwritingDefault) {
-						addNotification("[error]ERROR:[/error] The song you were trying to load overwrites a default song", 5);
-						state.index = allCapsules.indexOf(allCapsules.find((capsule) => capsule.song.manifest.uuid_DONT_CHANGE == content.manifest.uuid_DONT_CHANGE));
-						state.updateState();
-						loadingScreen.cancel();
-						return;
-					}
-					else if (overwritingExtra) {
-						const capsule = allCapsules.find((capsule) => capsule.song.manifest.uuid_DONT_CHANGE == content.manifest.uuid_DONT_CHANGE);
-						if (!capsule) {
-							addNotification("[warning]Warning:[/warning] Tried to overwrite an extra song but failed", 5);
-							loadingScreen.cancel();
-							return;
-						}
-
-						const indexOfSong = Song.loaded.indexOf(Song.loaded.find((song) => song.manifest.uuid_DONT_CHANGE == content.manifest.uuid_DONT_CHANGE));
-						Song.loaded[indexOfSong] = capsule.song;
-
-						addNotification(`[warning]Warning:[/warning] Overwrote "${capsule.song.manifest.name}" by "${content.manifest.name}" since they have the same UUID`, 5);
-						allCapsules[allCapsules.indexOf(capsule)].song = content;
-						state.index = allCapsules.indexOf(capsule);
-						state.updateState();
-
-						loadingScreen.cancel();
-						return;
-					}
-					else {
-						// some weird case??
-					}
-
-					// if you got here it's because you're not overwriting a song, you're adding a totally new one
-					const capsule = SongSelectState.addSongCapsule(content);
-					let index = allCapsules.indexOf(capsule);
-					if (index == -1) index = 0;
-					state.index = index;
-
-					state.updateState();
-					loadingScreen.cancel();
-				}
-				else {
-					loadingScreen.cancel();
-				}
-			}
-			else {
-				state.menuInputEnabled = false;
-				state.songPreview?.stop();
-				const currentSongZip = hoveredCapsule.song;
-				switchScene(GameState, { song: currentSongZip });
-			}
+			state.menuInputEnabled = false;
+			state.songPreview?.stop();
+			switchScene(GameState, { song: hoveredCapsule.song });
 		});
 
 		function stopPreview() {
@@ -342,22 +261,8 @@ export class SongSelectState implements IScene {
 			switchScene(MenuState, "songs");
 		});
 
-		onKeyPress("backspace", () => {
-			if (!state.menuInputEnabled) return;
-			const hoveredCapsule = allCapsules[state.index];
-			if (hoveredCapsule.song.isDefault) return;
-			hoveredCapsule.destroy();
-			Song.removeFromExistence(hoveredCapsule.song);
-			state.updateState();
-			// state.index -= 1;
-			switchScene(SongSelectState, state.index - 1);
-		});
-
 		onSceneLeave(() => {
 			stopPreview();
-		});
-
-		onKeyPress("q", () => {
 		});
 
 		state.onAddSongCapsule(() => {

@@ -1,5 +1,5 @@
 import { Comp, GameObj, KEventController, Key } from "kaplay";
-import { getNoteskinSprite, NoteskinContent, NoteskinData } from "../../../data/noteskins";
+import { getCurNoteskin, Noteskin } from "../../../data/noteskins";
 import { Move } from "../../../play/objects/dancer";
 import { utils } from "../../../utils";
 
@@ -92,7 +92,7 @@ export function addOptionsStepper(step: number, min: number, max: number, onChan
 	return number;
 }
 
-export function addOptionsNoteskinEnum(noteskin: NoteskinContent, options: NoteskinContent[], onChange: (name: string) => void) {
+export function addOptionsNoteskinEnum(noteskin: Noteskin, options: Noteskin[], onChange: (name: string) => void) {
 	const container = add([
 		area(),
 		rect(0, 0, { fill: false }),
@@ -117,16 +117,16 @@ export function addOptionsNoteskinEnum(noteskin: NoteskinContent, options: Notes
 
 	container.change = (change: -1 | 1) => {
 		index = utils.scrollIndex(index, change, options.length);
-		const name = options[index].name;
-		container.get("note").forEach((note) => note.sprite = options[index].getSprite(note.gameMove));
-		onChange(name);
+		const id = options[index].manifest.id;
+		container.get("note").forEach((note) => note.sprite = options[index].getAnim(note.gameMove));
+		onChange(id);
 	};
 
 	const moves = ["left", "down", "up", "right"] as Move[];
 
 	moves.forEach((move, index) => {
 		const child = container.add([
-			sprite(noteskin.getSprite(move)),
+			sprite(noteskin.getAnim(move)),
 			pos(0, 0),
 			scale(1),
 			anchor("left"),
@@ -218,7 +218,7 @@ export function addOptionsKeyInput(onChange: (key: Key) => void, onFocusChange: 
 export function addOptionsMoveInput(move: Move, ...args: Parameters<typeof addOptionsKeyInput>) {
 	const keyInput = addOptionsKeyInput(...args);
 	const note = keyInput.add([
-		sprite(getNoteskinSprite(move)),
+		sprite(getCurNoteskin().spriteName, { anim: getCurNoteskin().getAnim(move) }),
 		anchor("left"),
 		pos(),
 	]);

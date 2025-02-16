@@ -1,7 +1,7 @@
 import { GameSave } from "../../../core/save";
 import { IScene, switchScene } from "../../../core/scenes/KaplayState";
-import { DancerContent } from "../../../data/dancer";
-import { NoteskinContent } from "../../../data/noteskins";
+import { Dancer } from "../../../data/dancer";
+import { Noteskin } from "../../../data/noteskins";
 import { Song, SongManifest } from "../../../data/song";
 import { FileManager } from "../../../FileManager";
 import { utils } from "../../../utils";
@@ -11,8 +11,8 @@ import { songsPage } from "./songsPage";
 
 export class ModsState implements IScene {
 	songs: Song[] = [];
-	dancers: DancerContent[] = [];
-	noteskins: NoteskinContent[] = [];
+	dancers: Dancer[] = [];
+	noteskins: Noteskin[] = [];
 	itemIndex: number = 0;
 	pageIndex: number = 0;
 	curItems: any[] = [];

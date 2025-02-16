@@ -4,7 +4,7 @@ import { GAME } from "../core/game";
 import { GameSave } from "../core/save";
 import { switchScene } from "../core/scenes/KaplayState";
 import { Sound } from "../core/sound";
-import { getDancer } from "../data/dancer";
+import { getCurDancer } from "../data/dancer";
 import EventHandler from "../data/event/handler";
 import { utils } from "../utils";
 import { GameState, inputHandler, introGo, paramsGame } from "./GameState";
@@ -15,7 +15,7 @@ import { DeathState } from "./scenes/DeathScene";
 
 export function GameScene(GameState: GameState) {
 	add([
-		sprite(getDancer().bgSpriteName),
+		sprite(getCurDancer().bgSpriteName),
 		pos(center()),
 		anchor("center"),
 		layer("background"),
@@ -106,7 +106,7 @@ export function GameScene(GameState: GameState) {
 		}
 
 		if (GameState.dancer.currentMove == "idle") {
-			GameState.dancer.moveBop();
+			GameState.dancer.bop();
 		}
 	});
 
@@ -146,7 +146,7 @@ export function GameScene(GameState: GameState) {
 
 	GameState.events.onMiss((note: ChartNote) => {
 		GameState.dancer.currentMove = note.move;
-		GameState.dancer.miss();
+		GameState.dancer.doMove("miss");
 
 		// Sound.playSound("noteMiss");
 		updateJudgement("Miss");
