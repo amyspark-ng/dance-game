@@ -1,0 +1,4 @@
+name = "Template"
+id = "template"
+sprite_path = "template.png"
+data_path = "data.json"

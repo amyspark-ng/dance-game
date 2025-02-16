@@ -1,0 +1,6 @@
+name = "Gru"
+id = "gru"
+artist = "Illumination"
+sprite_path = "sprite.png"
+sprite_data_path = "data.json"
+bg_path = "bg.png"
