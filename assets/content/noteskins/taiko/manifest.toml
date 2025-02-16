@@ -1,0 +1,4 @@
+name = "Taiko"
+id = "taiko"
+sprite_path = "taiko.png"
+data_path = "data.json"

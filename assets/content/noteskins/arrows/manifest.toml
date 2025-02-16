@@ -1,3 +1,4 @@
-name = "arrows"
+name = "Arrows"
+id = "arrows"
 sprite_path = "arrows.png"
 data_path = "data.json"

@@ -4,3 +4,4 @@ artist = "Mormon"
 sprite_path = "mormon.png"
 sprite_data_path = "mormon-data.json"
 bg_path = "mormon-bg.png"
+bop_on_beat = true

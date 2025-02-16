@@ -1,0 +1,4 @@
+name = "Play"
+id = "play"
+sprite_path = "play.png"
+data_path = "data.json"

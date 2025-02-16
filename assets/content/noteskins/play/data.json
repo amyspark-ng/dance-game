@@ -1,0 +1,18 @@
+{
+    "sliceX": 3,
+    "sliceY": 4,
+    "anims": {
+        "left": 0,
+        "left_trail": 1,
+        "left_tail": 2,
+        "down": 3,
+        "down_trail": 4,
+        "down_tail": 5,
+        "up": 6,
+        "up_trail": 7,
+        "up_tail": 8,
+        "right": 9,
+        "right_trail": 10,
+        "right_tail": 11
+    }
+}

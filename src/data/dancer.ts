@@ -5,7 +5,7 @@ import TOML, { TomlPrimitive } from "smol-toml";
 import { GAME } from "../core/game";
 import { GameSave } from "../core/save";
 import { FileManager, IMAGE_HELPER } from "../FileManager";
-import { IContent } from "../modding";
+import { ContentManifest, IContent } from "../modding";
 import { DancerAnim, moveAnimsArr } from "../play/objects/dancer";
 
 type DancerAssets = {
@@ -15,23 +15,14 @@ type DancerAssets = {
 	bg: string;
 };
 
-export class DancerManifest {
+export class DancerManifest extends ContentManifest {
 	name: string;
 	id: string;
 	artist: string;
 	sprite_path: string;
 	sprite_data_path: string;
 	bg_path: string;
-
-	assignFromOBJ(tomlRecord: Record<string, TomlPrimitive | any>) {
-		Object.keys(tomlRecord).forEach((key) => {
-			if (!(tomlRecord[key] == "undefined" || tomlRecord[key] == "")) {
-				this[key] = tomlRecord[key];
-			}
-		});
-
-		return this;
-	}
+	bop_on_beat: boolean;
 }
 
 export class Dancer implements IContent {

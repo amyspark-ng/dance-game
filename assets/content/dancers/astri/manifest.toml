@@ -4,3 +4,4 @@ artist = "DevkyRD"
 sprite_path = "astri.png"
 sprite_data_path = "astri-data.json"
 bg_path = "astri-bg.png"
+bop_on_beat = true

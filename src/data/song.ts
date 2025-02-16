@@ -4,12 +4,12 @@ import TOML, { TomlPrimitive } from "smol-toml";
 import { GAME } from "../core/game";
 import { GameSave } from "../core/save";
 import { AUDIO_HELPER, FileManager, IMAGE_HELPER } from "../FileManager";
-import { IContent } from "../modding";
+import { ContentManifest, IContent } from "../modding";
 import { ChartNote } from "../play/objects/note";
 import { utils } from "../utils";
 import { ChartEvent } from "./event/event";
 
-export class SongManifest {
+export class SongManifest extends ContentManifest {
 	/** Name of the song */
 	name: string = "Song name";
 	/** Artist of the song */
@@ -69,16 +69,6 @@ export class SongManifest {
 
 	set beats_per_measure(val: number) {
 		this.time_signature[1] = val;
-	}
-
-	assignFromOBJ(tomlRecord: Record<string, TomlPrimitive | any>) {
-		Object.keys(tomlRecord).forEach((key) => {
-			if (!(tomlRecord[key] == "undefined" || tomlRecord[key] == "")) {
-				this[key] = tomlRecord[key];
-			}
-		});
-
-		return this;
 	}
 }
 

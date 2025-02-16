@@ -4,3 +4,4 @@ artist = "DevkyRD"
 sprite_path = "astri-blight.png"
 sprite_data_path = "astri-blight-data.json"
 bg_path = "astri-blight-bg.png"
+bop_on_beat = true

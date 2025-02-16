@@ -18,6 +18,18 @@ export interface IContent {
 	indexedDB_path: string;
 }
 
+export class ContentManifest {
+	assignFromOBJ(obj: any) {
+		Object.keys(obj).forEach((key) => {
+			if (!(obj[key] == "undefined" || obj[key] == "")) {
+				this[key] = obj[key];
+			}
+		});
+
+		return this;
+	}
+}
+
 export type ModTag = "song" | "dancer" | "noteskin";
 
 export class Mods {

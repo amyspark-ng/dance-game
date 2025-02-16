@@ -4,3 +4,4 @@ artist = "idk"
 sprite_path = "starlight.png"
 sprite_data_path = "starlight-data.json"
 bg_path = "starlight-bg.png"
+bop_on_beat = true

@@ -1,20 +1,18 @@
-import fs from "@zenfs/core";
+import { Zip } from "@zenfs/archives";
+import fs, { resolveMountConfig } from "@zenfs/core";
 import { LoadSpriteOpt } from "kaplay";
 import TOML from "smol-toml";
 import { GAME } from "../core/game";
 import { GameSave } from "../core/save";
-import { FileManager } from "../FileManager";
+import { FileManager, IMAGE_HELPER } from "../FileManager";
+import { ContentManifest, IContent } from "../modding";
 import { Move } from "../play/objects/dancer";
 
-export class NoteskinManifest {
+export class NoteskinManifest extends ContentManifest {
 	name: string;
 	sprite_path: string;
 	data_path: string;
-
-	assignFromOBJ(obj: Record<string, any>) {
-		Object.keys(obj).forEach((key) => this[key] = obj[key]);
-		return this as NoteskinManifest;
-	}
+	id: string;
 }
 
 export class NoteskinAssets {
@@ -23,128 +21,27 @@ export class NoteskinAssets {
 	data: string;
 }
 
-// TODO: Do this like the others
-export class NoteskinContent {
+export class Noteskin implements IContent {
 	static defaultNoteskins: string[] = ["arrows", "taiko", "play"];
-
 	static defaultPaths: string[] = [
 		"content/noteskins/arrows",
-		// "content/noteskins/taiko",
-		// "content/noteskins/play",
+		"content/noteskins/taiko",
+		"content/noteskins/play",
 	];
+	static loaded: Noteskin[] = [];
 
-	static loaded: NoteskinContent[] = [];
-
-	static getByName(name: string) {
-		return NoteskinContent.loaded.find((skin) => skin.name == name);
+	static get loadedExtra() {
+		return Noteskin.loaded.filter((noteskin) => !noteskin.isDefault);
 	}
-
-	static async parseFromManifest(manifest: NoteskinManifest, pathPrefix: string) {
-		const getPath = (otherPath: string) => `${pathPrefix}/${otherPath}`;
-
-		const assets = new NoteskinAssets();
-		const sprite = await FileManager.blobToDataURL(await (await FileManager.getFileAtUrl(getPath(manifest.sprite_path))).blob());
-		const data = await (await (await FileManager.getFileAtUrl(getPath(manifest.data_path))).blob()).text();
-		assets.manifest = JSON.stringify(manifest);
-		assets.data = data;
-		assets.sprite = sprite;
-		return assets;
-	}
-
-	static async extractFromLoaded(noteskin: NoteskinContent) {
-		const assets = new NoteskinAssets();
-		assets.manifest = JSON.stringify(noteskin.manifest);
-		assets.sprite = await FileManager.spriteToDataURL(noteskin.getSpriteName());
-		assets.data = JSON.stringify(noteskin.spriteData);
-		return assets;
-	}
-
-	static async writeToSave(toIndexedDB: boolean, extraNoteskins: boolean, noteskin: NoteskinContent, assets?: NoteskinAssets) {
-		const file_path = `/home/noteskins/${noteskin.name}`;
-		assets = assets ?? await NoteskinContent.extractFromLoaded(noteskin);
-
-		const data = JSON.stringify(assets);
-
-		if (extraNoteskins) {
-			if (GameSave.extraNoteskins.includes(noteskin.name)) {
-				const index = GameSave.extraNoteskins.indexOf(noteskin.name);
-				if (index != -1) GameSave.extraNoteskins[index] = noteskin.name;
-			}
-			else {
-				GameSave.extraNoteskins.push(noteskin.name);
-			}
-		}
-
-		if (toIndexedDB) {
-			if (!fs.existsSync("/home/noteskins")) fs.mkdirSync("/home/noteskins");
-			fs.writeFileSync(file_path, data);
-		}
-
-		if (GameSave.save) GameSave.save();
-	}
-
-	static async fetchManifestFromPath(path: string): Promise<NoteskinManifest> {
-		const stringedTOML = await (await fetch(path + "/manifest.toml")).text();
-		const manifestContent = TOML.parse(stringedTOML);
-		const manifest = new NoteskinManifest().assignFromOBJ(manifestContent);
-		return new Promise((resolve) => resolve(manifest));
-	}
-
-	static async addTestSprites(content: NoteskinContent) {
-		["left", "down", "up", "right"].forEach((move: Move, index) => {
-			add([
-				sprite(content.getSpriteName(), { anim: content.getSprite(move) }),
-				pos(90, 90 + index * 60),
-				anchor("center"),
-			]);
-
-			// trail
-			add([
-				sprite(content.getSpriteName(), { anim: content.getSprite(move, "trail") }),
-				pos(170, 90 + index * 60),
-				anchor("center"),
-			]);
-
-			// tail
-			add([
-				sprite(content.getSpriteName(), { anim: content.getSprite(move, "tail") }),
-				pos(260, 90 + index * 60),
-				anchor("center"),
-			]);
-		});
-	}
-
-	static async addToLoaded(content: NoteskinContent) {
-		const uuids = NoteskinContent.loaded.map((song) => song.name);
-		if (uuids.includes(content.name)) {
-			const index = uuids.indexOf(content.name);
-			if (index != -1) NoteskinContent.loaded[index] = content;
-		}
-		else {
-			if (!NoteskinContent.loaded.includes(content)) NoteskinContent.loaded.push(content);
-		}
-	}
-
-	static async load(assets: NoteskinAssets, pushToIndexedDB = false, pushToLoaded = true): Promise<NoteskinContent> {
-		const manifest = JSON.parse(assets.manifest) as NoteskinManifest;
-		const data = JSON.parse(assets.data) as LoadSpriteOpt;
-		const content = new NoteskinContent(manifest.name, data);
-		console.log(`${GAME.NAME}: Loading ${content.isDefault ? "default" : "extra"} noteskin, '${manifest.name}'`);
-
-		if (pushToIndexedDB) NoteskinContent.writeToSave(pushToIndexedDB, pushToLoaded, content, assets);
-		if (pushToLoaded) NoteskinContent.addToLoaded(content);
-
-		console.log(`${GAME.NAME}: Loaded noteskin '${content.name}' successfully`);
-
-		return new Promise((resolve) => resolve(content));
+	static get loadedDefault() {
+		return Noteskin.loaded.filter((noteskin) => noteskin.isDefault);
 	}
 
 	static async loadAll() {
-		const defaultPromises = NoteskinContent.defaultPaths.map((path) =>
+		const defaultPromises = Noteskin.defaultPaths.map((path) =>
 			new Promise(async (resolve, reject) => {
-				const manifest = await NoteskinContent.fetchManifestFromPath(path);
-				const assets = await NoteskinContent.parseFromManifest(manifest, path);
-				await NoteskinContent.load(assets, false, true);
+				const noteskin = new Noteskin();
+				await noteskin.load(await noteskin.pathToAssets(path));
 				resolve("ok");
 			})
 		);
@@ -152,28 +49,27 @@ export class NoteskinContent {
 		await load(
 			new Promise((resolve, reject) => {
 				Promise.all(defaultPromises).then(() => {
-					console.log(`${GAME.NAME}: Finished loading default noteskins SUCCESSFULLY (loaded ${NoteskinContent.loaded.filter((noteskin) => noteskin.isDefault).length})`);
+					console.log(`${GAME.NAME}: Finished loading default noteskins SUCCESSFULLY (loaded ${Noteskin.loadedDefault.length})`);
 					resolve("ok");
 				});
 			}),
 		);
 
-		if (GameSave.extraNoteskins.length < 1) return;
+		if (GameSave.extraNoteskins.length == 0) return;
 
-		const extraPromises = GameSave.extraNoteskins.map((name, index) =>
+		const extraPromises = GameSave.extraNoteskins.map((id, index) =>
 			new Promise(async (resolve, reject) => {
-				console.log(`${GAME.NAME}: Found extra noteskin (${name}), will try to load`);
+				console.log(`${GAME.NAME}: Found extra noteskin (${id}), will try to load`);
 
-				if (fs.existsSync(`/home/noteskins/${name}`)) {
-					const stringAssets = fs.readFileSync(`/home/noteskins/${name}`, "utf-8");
-					const assets = JSON.parse(stringAssets) as NoteskinAssets;
-					await NoteskinContent.load(assets, false, true);
+				if (fs.existsSync(`/home/noteskins/${id}`)) {
+					const stringAssets = fs.readFileSync(`/home/noteskins/${id}`, "utf-8");
+					new Noteskin().load(JSON.parse(stringAssets));
 					resolve("ok");
 				}
 				else {
-					console.log(`${GAME.NAME}: Didn't find the associated files with the noteskin, removing noteskin from list`);
+					console.log(`${GAME.NAME}: Didn't find the associated files with the ID, removing ID from list`);
 					GameSave.extraNoteskins.splice(index, 1);
-					reject("404");
+					reject("not ok");
 				}
 			})
 		);
@@ -181,43 +77,167 @@ export class NoteskinContent {
 		load(
 			new Promise((resolve, reject) => {
 				Promise.allSettled(extraPromises).then(() => {
-					console.log(`${GAME.NAME}: Finished loading extra noteskins SUCCESSFULLY (loaded ${NoteskinContent.loaded.filter((noteskin) => !noteskin.isDefault).length})`);
+					console.log(`${GAME.NAME}: Finished loading extra noteskins SUCCESSFULLY (loaded ${Noteskin.loadedExtra.length})`);
 					resolve("ok");
 				});
 			}),
 		);
 	}
 
-	name: string;
+	manifest: NoteskinManifest;
 	spriteData: LoadSpriteOpt;
-	manifest: NoteskinManifest = new NoteskinManifest();
-	getSpriteName() {
-		return `${this.name}-noteskin`;
+
+	async hasAssetsLoaded(): Promise<boolean> {
+		return await getSprite(this.spriteName) != null;
 	}
 
-	getSprite(move: Move, type?: "tail" | "trail") {
+	async fileToAssets(file: File): Promise<NoteskinAssets> {
+		const zipFs = await resolveMountConfig({ backend: Zip, data: await file.arrayBuffer() });
+		fs.mount("/mnt/zip", zipFs);
+
+		const stringManifest = fs.readFileSync("/mnt/zip/manifest.toml", "utf-8");
+		const manifest = new NoteskinManifest().assignFromOBJ(TOML.parse(stringManifest));
+
+		const sprite = fs.readFileSync(`/mnt/zip/${manifest.sprite_path}`, "base64");
+		const spriteData = fs.readFileSync(`/mnt/zip/${manifest.data_path}`, "utf-8");
+
+		const assets = {} as NoteskinAssets;
+		assets.manifest = JSON.stringify(manifest);
+		assets.sprite = IMAGE_HELPER + sprite;
+		assets.data = spriteData;
+
+		fs.umount("/mnt/zip");
+
+		return new Promise((resolve, reject) => resolve(assets));
+	}
+
+	removeFromExistence() {
+		if (!Noteskin.loaded.includes(this)) return;
+		const indexInLoaded = Noteskin.loaded.indexOf(this);
+		const indexInSave = GameSave.extraNoteskins.indexOf(this.manifest.id);
+
+		Noteskin.loaded.splice(indexInLoaded, 1);
+		GameSave.extraNoteskins.splice(indexInSave, 1);
+		GameSave.save();
+
+		console.log(`${GAME.NAME}: Removed noteskin '${this.manifest.name}' (${this.manifest.id}) from existance`);
+
+		if (fs.existsSync("/home/noteskins")) {
+			if (fs.existsSync(this.indexedDB_path)) fs.rmSync(this.indexedDB_path);
+		}
+
+		return this;
+	}
+
+	async pathToAssets(path: string): Promise<any> {
+		const stringedTOML = await (await fetch(path + "/manifest.toml")).text();
+		const manifestContent = TOML.parse(stringedTOML);
+
+		const manifest = new NoteskinManifest();
+		manifest.assignFromOBJ(manifestContent);
+
+		const assets = new NoteskinAssets();
+		const getPath = (otherPath: string) => `${path}/${otherPath}`;
+
+		const sprite = await FileManager.getFileAtUrl(getPath(manifest.sprite_path));
+		const data = await FileManager.getFileAtUrl(getPath(manifest.data_path));
+
+		if (sprite) assets.sprite = await FileManager.blobToDataURL(await sprite.blob());
+		if (data) assets.data = await (await data.blob()).text();
+		assets.manifest = JSON.stringify(manifest);
+
+		return new Promise((resolve, reject) => resolve(assets));
+	}
+
+	get spriteName() {
+		return `noteskin_${this.manifest.id}`;
+	}
+
+	assignFromAssets(assets: NoteskinAssets) {
+		this.manifest = JSON.parse(assets.manifest);
+		this.spriteData = JSON.parse(assets.data);
+	}
+
+	async toAssets(): Promise<any> {
+		const assets = new NoteskinAssets();
+		assets.manifest = JSON.stringify(this.manifest);
+		assets.data = JSON.stringify(this.spriteData);
+		assets.sprite = await FileManager.spriteToDataURL(this.spriteName);
+		return assets;
+	}
+
+	async writeToSave(toSave: boolean = false, toIndexedDB: boolean = false): Promise<void> {
+		if (toSave) {
+			if (GameSave.extraNoteskins.includes(this.manifest.id)) {
+				const uuids = Noteskin.loaded.map((noteskin) => noteskin.manifest.id);
+				const index = uuids.indexOf(this.manifest.id);
+				if (index != -1) GameSave.extraNoteskins[index] = this.manifest.id;
+			}
+			else {
+				GameSave.extraNoteskins.push(this.manifest.id);
+			}
+
+			if (GameSave.save && !this.isDefault) GameSave.save();
+		}
+
+		if (toIndexedDB) {
+			if (!fs.existsSync("/home/noteskins")) fs.mkdirSync("/home/noteskins");
+			fs.writeFileSync(this.indexedDB_path, JSON.stringify(await this.toAssets()));
+		}
+	}
+
+	async load(assets: NoteskinAssets): Promise<void> {
+		this.assignFromAssets(assets);
+		console.log(`${GAME.NAME}: Loading ${this.isDefault ? "default" : "extra"} noteskin: '${this.manifest.name}' with the ID '${this.manifest.id}'`);
+		await loadSprite(this.spriteName, assets.sprite, JSON.parse(assets.data));
+		await this.writeToSave(!this.isDefault, !this.isDefault);
+		this.pushToLoaded();
+		console.log(`${GAME.NAME}: Loaded ${this.isDefault ? "default" : "extra"} noteskin: '${this.manifest.name}' successfully`);
+	}
+
+	getSprite(move: Move, type?: "trail" | "tail") {
 		if (type) return `${move}_${type}`;
 		else return move;
 	}
 
+	addTest() {
+		["left", "down", "up", "right"].forEach((move: Move, index) => {
+			add([
+				sprite(this.spriteName, { anim: this.getSprite(move) }),
+				pos(90, 90 + index * 60),
+				anchor("center"),
+			]);
+
+			// trail
+			add([
+				sprite(this.spriteName, { anim: this.getSprite(move, "trail") }),
+				pos(170, 90 + index * 60),
+				anchor("center"),
+			]);
+
+			// tail
+			add([
+				sprite(this.spriteName, { anim: this.getSprite(move, "tail") }),
+				pos(260, 90 + index * 60),
+				anchor("center"),
+			]);
+		});
+	}
+
+	pushToLoaded(): void {
+		const ids = Noteskin.loaded.map((noteskin) => noteskin.manifest.id);
+		if (ids.includes(this.manifest.id)) {
+			const index = ids.indexOf(this.manifest.id);
+			if (index != -1) Noteskin.loaded[index] = this;
+		}
+		else Noteskin.loaded.push(this);
+	}
+
+	get indexedDB_path() {
+		return `/home/noteskins/${this.manifest.id}`;
+	}
+
 	get isDefault() {
-		return NoteskinContent.defaultNoteskins.includes(this.name);
+		return Noteskin.defaultNoteskins.includes(this.manifest.id);
 	}
-
-	constructor(name?: string, data?: LoadSpriteOpt) {
-		this.name = name;
-		this.spriteData = data;
-	}
-}
-
-// export function getNoteskinSprite(sprite: "tail" | "trail", move: Move): string;
-// export function getNoteskinSprite(sprite: Move): string;
-// export function getNoteskinSprite(sprite: typeof NoteskinData.Moves[number], move?: Move) {
-// 	const noteskin = NoteskinContent.getByName(GameSave.noteskin);
-// 	// @ts-ignore
-// 	return noteskin.getSprite(sprite, move);
-// }
-
-export function getCurNoteskin() {
-	return NoteskinContent.loaded.find((noteskin) => noteskin.name == GameSave.noteskin);
 }
