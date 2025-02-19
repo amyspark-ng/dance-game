@@ -2,6 +2,7 @@ import { getCurrent } from "@tauri-apps/api/window";
 import { configure, InMemory } from "@zenfs/core";
 import { IndexedDB } from "@zenfs/dom";
 import { MenuState } from "../ui/menu/MenuState";
+import { SongSelectState } from "../ui/menu/songselect/SongSelectState";
 import { FocusState } from "../ui/scenes/FocusState";
 import { utils } from "../utils";
 import { setupCamera } from "./camera";
@@ -95,5 +96,6 @@ document.addEventListener("fullscreenchange", (event) => {
 });
 
 export function INITIAL_SCENE() {
-	switchScene(MenuState, "songs");
+	switchScene(SongSelectState, 0);
+	// switchScene(MenuState, "songs");
 }

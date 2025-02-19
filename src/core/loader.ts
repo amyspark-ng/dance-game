@@ -126,6 +126,8 @@ export async function loadAssets() {
 	loadSprite("cdCase", "game/sprites/songselect/cdCase.png");
 	loadSprite("imported", "game/sprites/songselect/imported.png");
 	loadSprite("importSong", "game/sprites/songselect/importSong.png");
+	loadSprite("vynil", "shared/transitions/vynil.png");
+	loadSound("transitionScratch", "shared/transitions/transitionScratch.ogg");
 	// #endregion GAME
 
 	// #region SHARED

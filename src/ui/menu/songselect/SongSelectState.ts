@@ -1,6 +1,7 @@
 import { cloneDeep, isEqual } from "lodash";
 import { GameSave } from "../../../core/save";
 import { IScene, switchScene } from "../../../core/scenes/KaplayState";
+import { SongTrans } from "../../../core/scenes/transitions/songtransition";
 import { CustomAudioPlay, Sound } from "../../../core/sound";
 import { Song } from "../../../data/song";
 import { FileManager } from "../../../FileManager";
@@ -241,8 +242,13 @@ export class SongSelectState implements IScene {
 			const hoveredCapsule = allCapsules[state.index];
 			if (!hoveredCapsule) return;
 			state.menuInputEnabled = false;
-			state.songPreview?.stop();
-			switchScene(GameState, { song: hoveredCapsule.song });
+			state.songPreview?.fadeOut(0.1);
+
+			await SongTrans(() => {
+				// state.menuInputEnabled = true;
+				// state.updateState();
+				switchScene(GameState, { song: hoveredCapsule.song });
+			}, hoveredCapsule.song.manifest);
 		});
 
 		function stopPreview() {
